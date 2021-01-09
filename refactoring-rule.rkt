@@ -1,6 +1,6 @@
 #lang racket/base
 
-(require racket/contract/base)
+(require racket/contract)
 
 (provide
  (contract-out
@@ -12,14 +12,11 @@
    (contract-out
     [refactoring-rule-refactor (-> refactoring-rule? syntax? (option/c syntax?))])))
 
-(require (for-template racket/block)
-         racket/block
-         racket/syntax
+(require racket/syntax
          rebellion/base/option
          rebellion/type/record
          syntax/parse
-         syntax/parse/define
-         syntax/parse/lib/function-header)
+         syntax/parse/define)
 
 ;@----------------------------------------------------------------------------------------------------
 
@@ -55,7 +52,49 @@
 
 (define-refactoring-rule false/c-migration
   #:literals (false/c)
-  [false/c #false])
+  [false/c
+   #false])
+
+(define-refactoring-rule symbols-migration
+  #:literals (symbols)
+  [(symbols sym ...)
+   (or/c sym ...)])
+
+(define-refactoring-rule vector-immutableof-migration
+  #:literals (vector-immutableof)
+  [(vector-immutableof c)
+   (vectorof c #:immutable #true)])
+
+(define-refactoring-rule vector-immutable/c-migration
+  #:literals (vector-immutable/c)
+  [(vector-immutable/c c ...)
+   (vector/c c ... #:immutable #true)])
+
+(define-refactoring-rule box-immutable/c-migration
+  #:literals (box-immutable/c)
+  [(box-immutable/c c)
+   (box/c c #:immutable #true)])
+
+(define-refactoring-rule flat-contract-migration
+  #:literals (flat-contract)
+  [(flat-contract predicate)
+   predicate])
+
+(define-refactoring-rule flat-contract-predicate-migration
+  #:literals (flat-contract-predicate)
+  [(flat-contract-predicate c)
+   c])
+
+(define-refactoring-rule contract-struct-migration
+  #:literals (contract-struct)
+  [(contract-struct id fields)
+   (struct id fields)])
+
+(define-refactoring-rule define-contract-struct-migration
+  #:literals (define-contract-struct)
+  [(define-contract-struct id fields)
+   #:with make-id (format-id #'id "make-~a" #'id)
+   (define-struct id fields #:extra-constructor-name make-id)])
 
 (define-syntax-class cond-condition-clause
   #:literals (cond else)
@@ -69,4 +108,12 @@
 (define standard-refactoring-rules
   (list struct-from-define-struct-with-default-constructor-name
         false/c-migration
+        symbols-migration
+        vector-immutableof-migration
+        vector-immutable/c-migration
+        box-immutable/c-migration
+        flat-contract-migration
+        flat-contract-predicate-migration
+        contract-struct-migration
+        define-contract-struct-migration
         cond-mandatory-else))
