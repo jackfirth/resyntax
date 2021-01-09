@@ -1,65 +1,35 @@
 #lang racket/base
 
 (require (for-syntax racket/base)
-         (for-template racket/block)
          fancy-app
-         racket/block
          racket/file
          racket/format
-         racket/function
          racket/match
-         racket/port
-         racket/pretty
+         racket/path
          racket/sequence
-         racket/set
          racket/string
-         racket/syntax
          rebellion/base/option
          rebellion/collection/entry
-         rebellion/collection/hash
          rebellion/collection/list
-         rebellion/module/binding
-         rebellion/module/phase
          rebellion/private/guarded-block
-         rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
-         rebellion/type/tuple
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
-         syntax/modread
-         syntax/parse
-         syntax/parse/define
-         syntax/parse/lib/function-header)
+         resyntax/source-code
+         syntax/parse)
 
 (module+ test
-  (require (submod "..")
-           rackunit))
-
-(module+ main
-  (require racket/runtime-path))
+  (require (submod "..")))
 
 ;@----------------------------------------------------------------------------------------------------
 
-(define (read-module) (with-module-reading-parameterization read-syntax))
 
-(define (read-module-from-string string)
-  (with-input-from-string string
-    (λ ()
-      (port-count-lines! (current-input-port))
-      (read-module))))
-
-(define (refactoring-rule-apply rule module-code-string)
+(define (refactoring-rule-apply rule code)
   (parameterize ([current-namespace (make-base-namespace)])
-    (define module-syntax (read-module-from-string module-code-string))
-    (define events (expansion-events module-syntax))
-    (transduce events
-               (bisecting expansion-event-sig expansion-event-val)
-               (filtering-keys (equal? _ 'visit))
-               (mapping entry-value)
-               (filtering syntax?)
-               (filtering syntax-original?)
-               (deduplicating #:key syntax-source-location)
+    (define code-string (source-code-read-string code))
+    (define analysis (source-code-analyze code))
+    (transduce (source-code-analysis-visited-forms analysis)
                (bisecting values (refactoring-rule-refactor rule _))
                (append-mapping-values in-option)
                (mapping-values syntax->string)
@@ -71,51 +41,29 @@
                   (source-replacement
                    #:position pos
                    #:span span
-                   #:old-code (substring module-code-string (sub1 pos) (+ (sub1 pos) span))
+                   #:old-code (substring code-string (sub1 pos) (+ (sub1 pos) span))
                    #:new-code code)))
                (sorting #:key source-replacement-position)
                #:into into-list)))
 
-(define-tuple-type expansion-event (sig val))
-(define-record-type source-location (source line column position span))
 (define-record-type source-replacement (position span old-code new-code))
-
-(define (syntax-source-location stx)
-  (source-location
-   #:source (syntax-source stx)
-   #:line (syntax-line stx)
-   #:column (syntax-column stx)
-   #:position (syntax-position stx)
-   #:span (syntax-span stx)))
-
-(define (expansion-events stx)
-  (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
-  (define events '())
-  (define (add-event! sig val)
-    (set! events (cons (expansion-event sig val) events)))
-  (parameterize ([current-expand-observe add-event!])
-    (expand stx))
-  (reverse events))
 
 (define (syntax->string stx)
   (syntax-parse stx
     #:literals (quote)
     [id:id (symbol->string (syntax-e #'id))]
     [(~or v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
-     (~v (syntax-e #'v))]
+     (~s (syntax-e #'v))]
     [(quote datum) (string-append "'" (syntax->string #'datum))]
     [(subform ...)
      (string-join (for/list ([subform-stx (in-syntax #'(subform ...))]) (syntax->string subform-stx))
                   #:before-first "("
                   #:after-last ")")]))
 
-(define (refactor-once code-string rules)
-  (apply-replacements code-string (refactor-replacements code-string rules)))
-
-(define (refactor-replacements code-string rules)
+(define (refactor-source-code code rules)
   (define replacements
     (transduce rules
-               (append-mapping (refactoring-rule-apply _ code-string))
+               (append-mapping (refactoring-rule-apply _ code))
                (sorting #:key source-replacement-position)
                #:into into-list))
   (define/guard (loop [replacements replacements])
@@ -151,29 +99,24 @@
   (for/fold ([code-string code-string]) ([replacement descending-replacements])
     (string-apply-replacement code-string replacement)))
 
-(define standard-refactoring-rules
-    (list let-to-block single-block-elimination immediate-define-block-elimination))
-
-(define/guard (refactor code-string #:rules [rules standard-refactoring-rules])
-  (define replacements (refactor-replacements code-string rules))
-  (guard (empty-list? replacements) then code-string)
-  (refactor (apply-replacements code-string replacements) #:rules rules))
+(define/guard (refactor code #:rules [rules standard-refactoring-rules])
+  (define code-string (source-code-read-string code))
+  (define replacements (refactor-source-code code rules))
+  (apply-replacements code-string replacements))
 
 (define (refactor-file path #:rules [rules standard-refactoring-rules])
-  (refactor-replacements (file->string path #:mode 'text) rules))
+  (refactor-source-code (file-source-code path) rules))
 
 (define (refactor-file! path #:rules [rules standard-refactoring-rules])
-  (define replacement-code (refactor (file->string path #:mode 'text) #:rules rules))
+  (define replacement-code (refactor (file-source-code path) #:rules rules))
   (display-to-file replacement-code path #:mode 'text #:exists 'replace))
 
-(define (multiline-string . lines)
-  (string-join lines "\n" #:after-last "\n"))
+(define (rkt-path? path) (path-has-extension? path #".rkt"))
+
+(define (refactor-directory! path #:rules [rules standard-refactoring-rules])
+  (for ([file (in-directory path)] #:when (rkt-path? file))
+    (refactor-file! file #:rules rules)))
+
 
 (module+ main
-  
-  (define-runtime-path example1 "examples/example1.rkt")
-
-  (refactor
-   "#lang racket/base (require racket/block) (define (add) (let ([a 1] [b 2]) (+ a b)))")
-
-  (refactor-file! example1))
+  (refactor-directory! "/Users/jackfirth/Documents/GitHub/rackunit/rackunit-lib/rackunit"))
