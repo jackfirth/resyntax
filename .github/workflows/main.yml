@@ -9,4 +9,4 @@ jobs:
     - uses: actions/checkout@v1
     - uses: jackfirth/racket-package-ci-action@v0.1.4
       with:
-        name: racket-package-template
+        name: resyntax
