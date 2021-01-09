@@ -2,7 +2,8 @@
 
 ;; A library for manipulating IP Addresses
 
-(require racket/bool
+(require racket/block
+         racket/bool
          racket/contract
          racket/format
          racket/list
