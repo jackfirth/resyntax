@@ -160,7 +160,11 @@
   (refactor (apply-replacements code-string replacements) #:rules rules))
 
 (define (refactor-file path #:rules [rules standard-refactoring-rules])
-  (refactor-replacements (file->string path) rules))
+  (refactor-replacements (file->string path #:mode 'text) rules))
+
+(define (refactor-file! path #:rules [rules standard-refactoring-rules])
+  (define replacement-code (refactor (file->string path #:mode 'text) #:rules rules))
+  (display-to-file replacement-code path #:mode 'text #:exists 'replace))
 
 (define (multiline-string . lines)
   (string-join lines "\n" #:after-last "\n"))
@@ -172,4 +176,4 @@
   (refactor
    "#lang racket/base (require racket/block) (define (add) (let ([a 1] [b 2]) (+ a b)))")
 
-  (refactor-file example1))
+  (refactor-file! example1))
