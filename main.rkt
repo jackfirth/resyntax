@@ -25,13 +25,18 @@
 
 ;@----------------------------------------------------------------------------------------------------
 
-(define (refactoring-rule-apply rule code)
+(define (refactoring-rules-refactor rules syntax)
+  (for*/list ([rule rules]
+              [result (in-option (refactoring-rule-refactor rule syntax))])
+    result))
+
+(define (refactoring-rules-apply rules code)
   (parameterize ([current-namespace (make-base-namespace)])
     (define code-string (source-code-read-string code))
     (define analysis (source-code-analyze code))
     (transduce (source-code-analysis-visited-forms analysis)
-               (bisecting values (refactoring-rule-refactor rule _))
-               (append-mapping-values in-option)
+               (bisecting values (refactoring-rules-refactor rules _))
+               (append-mapping-values values)
                (mapping-values (syntax-render _ code code-string))
                (mapping
                 (λ (e)
@@ -49,11 +54,7 @@
 (define-record-type source-replacement (position span old-code new-code))
 
 (define (refactor-source-code code rules)
-  (define replacements
-    (transduce rules
-               (append-mapping (refactoring-rule-apply _ code))
-               (sorting #:key source-replacement-position)
-               #:into into-list))
+  (define replacements (refactoring-rules-apply rules code))
   (define/guard (loop [replacements replacements])
     (guard-match (list first second remaining ...) replacements else
       replacements)
