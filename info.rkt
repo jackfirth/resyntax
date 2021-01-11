@@ -9,7 +9,9 @@
               "resyntax")))
 
 (define deps
-  (list "base"))
+  (list "fancy-app"
+        "rebellion"
+        "base"))
 
 (define build-deps
   (list "racket-doc"
