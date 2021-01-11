@@ -17,13 +17,13 @@
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
          resyntax/source-code
+         resyntax/syntax-rendering
          syntax/parse)
 
 (module+ test
   (require (submod "..")))
 
 ;@----------------------------------------------------------------------------------------------------
-
 
 (define (refactoring-rule-apply rule code)
   (parameterize ([current-namespace (make-base-namespace)])
@@ -32,7 +32,7 @@
     (transduce (source-code-analysis-visited-forms analysis)
                (bisecting values (refactoring-rule-refactor rule _))
                (append-mapping-values in-option)
-               (mapping-values syntax->string)
+               (mapping-values (syntax-render _ code code-string))
                (mapping
                 (λ (e)
                   (match-define (entry stx code) e)
@@ -47,18 +47,6 @@
                #:into into-list)))
 
 (define-record-type source-replacement (position span old-code new-code))
-
-(define (syntax->string stx)
-  (syntax-parse stx
-    #:literals (quote)
-    [id:id (symbol->string (syntax-e #'id))]
-    [(~or v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
-     (~s (syntax-e #'v))]
-    [(quote datum) (string-append "'" (syntax->string #'datum))]
-    [(subform ...)
-     (string-join (for/list ([subform-stx (in-syntax #'(subform ...))]) (syntax->string subform-stx))
-                  #:before-first "("
-                  #:after-last ")")]))
 
 (define (refactor-source-code code rules)
   (define replacements

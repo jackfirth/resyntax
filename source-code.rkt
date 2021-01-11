@@ -8,6 +8,7 @@
   [source-code-directory (-> source-code? path?)]
   [source-code-read-string (-> source-code? immutable-string?)]
   [source-code-read-syntax (-> source-code? syntax?)]
+  [source-code-produced-syntax? (-> source-code? syntax? boolean?)]
   [file-source-code? predicate/c]
   [file-source-code (-> path-string? file-source-code?)]
   [file-source-code-path (-> file-source-code? path?)]
@@ -104,6 +105,12 @@
              (mapping syntax->datum)
              #:into (into-for-each (λ (v) (pretty-display v) (newline)))))
 
+(define/guard (source-code-produced-syntax? code stx)
+  (guard (syntax-original? stx) else
+    #false)
+  (guard-match (file-source-code path) code else
+    #false)
+  (equal? path (syntax-source stx)))
 
 (module+ main
   (source-code-analyze!
