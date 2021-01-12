@@ -7,6 +7,7 @@
   [syntax-render (-> syntax? source-code? immutable-string? immutable-string?)]))
 
 (require racket/format
+         racket/match
          racket/sequence
          racket/string
          rebellion/base/immutable-string
@@ -32,4 +33,8 @@
     [(subform ...)
      (define subform-strings
        (for/list ([subform-stx (in-syntax #'(subform ...))]) (recur subform-stx)))
-     (string->immutable-string (string-join subform-strings #:before-first "(" #:after-last ")"))]))
+     (define shape (syntax-property stx 'paren-shape))
+     (define opener (match shape [#false "("] [#\[ "["] [#\{ "{"]))
+     (define closer (match shape [#false ")"] [#\[ "]"] [#\{ "}"]))
+     (string->immutable-string
+      (string-join subform-strings #:before-first opener #:after-last closer))]))
