@@ -131,6 +131,7 @@
         (usage:id usage1:id ... default:expr)]
        [(case2-arg:id ... bonus-arg:id)
         body ...]))
+   #:when (free-identifier=? #'id #'usage)
    #:when (free-identifiers=? #'(case1-arg ...) #'(case2-arg ...))
    #:when (free-identifiers=? #'(case1-arg ...) #'(usage1 ...))
    (define (id case2-arg ... [bonus-arg default])
