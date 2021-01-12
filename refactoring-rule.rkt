@@ -104,7 +104,7 @@
   #:literals (define-contract-struct)
   [(define-contract-struct id fields)
    #:with make-id (format-id #'id "make-~a" #'id)
-   (define-struct id fields #:extra-constructor-name make-id)])
+   (struct id fields #:extra-constructor-name make-id)])
 
 (define-syntax-class cond-condition-clause
   #:literals (cond else)
