@@ -12,6 +12,7 @@
          racket/string
          rebellion/base/immutable-string
          rebellion/private/guarded-block
+         resyntax/refactoring-rule
          resyntax/source-code
          syntax/parse)
 
@@ -25,7 +26,8 @@
   (define (recur stx)
     (syntax-render stx source code-string))
   (syntax-parse stx
-    #:literals (quote)
+    #:literals (quote NEWLINE)
+    [NEWLINE "\n"]
     [id:id (symbol->immutable-string (syntax-e #'id))]
     [(~or v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
      (string->immutable-string (~s (syntax-e #'v)))]
