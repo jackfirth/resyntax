@@ -137,11 +137,17 @@
    (define (id case2-arg ... [bonus-arg default])
      (~@ NEWLINE body) ...)])
 
-(define-refactoring-rule cond-from-if-begin
+(define-refactoring-rule cond-from-if-then-begin
   #:literals (if begin)
   [(if condition (begin then-body ...) else-branch)
    (cond [condition (~@ NEWLINE then-body) ...] NEWLINE
          [else else-branch])])
+
+(define-refactoring-rule cond-from-if-else-begin
+  #:literals (if begin)
+  [(if condition then-branch (begin else-body ...))
+   (cond [condition then-branch] NEWLINE
+         [else (~@ NEWLINE else-body) ...])])
 
 (define-refactoring-rule match-absorbing-outer-and
   #:literals (and match)
@@ -163,6 +169,7 @@
         contract-struct-migration
         define-contract-struct-migration
         define-from-case-lambda
-        cond-from-if-begin
+        cond-from-if-then-begin
+        cond-from-if-else-begin
         match-absorbing-outer-and
         cond-mandatory-else))
