@@ -28,8 +28,7 @@
   (syntax-parse stx
     #:literals (quote NEWLINE)
     [NEWLINE "\n"]
-    [id:id (symbol->immutable-string (syntax-e #'id))]
-    [(~or v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
+    [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
      (string->immutable-string (~s (syntax-e #'v)))]
     [(quote datum) (string->immutable-string (string-append "'" (recur #'datum)))]
     [(subform ...)
