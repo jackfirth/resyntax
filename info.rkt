@@ -9,7 +9,8 @@
               "resyntax")))
 
 (define deps
-  (list "fancy-app"
+  (list "gui-lib"
+        "fancy-app"
         "rebellion"
         "base"))
 

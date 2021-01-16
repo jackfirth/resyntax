@@ -3,7 +3,6 @@
 (require racket/contract)
 
 (provide
- NEWLINE
  (contract-out
   [refactoring-rule? predicate/c]
   [standard-refactoring-rules (listof refactoring-rule?)]))
@@ -11,30 +10,38 @@
 (module+ private
   (provide
    (contract-out
-    [refactoring-rule-refactor (-> refactoring-rule? syntax? (option/c syntax?))])))
+    [refactoring-rule-refactor
+     (-> refactoring-rule?
+         syntax?
+         #:source source-code?
+         #:code-string immutable-string?
+         (option/c syntax-replacement?))])))
 
 (require (for-syntax racket/base)
+         fancy-app
          racket/match
          racket/syntax
+         rebellion/base/immutable-string
          rebellion/base/option
          rebellion/private/guarded-block
          rebellion/type/record
+         resyntax/source-code
+         resyntax/syntax-rendering
          syntax/parse
          syntax/parse/define)
 
 ;@----------------------------------------------------------------------------------------------------
 
-(define-syntax (NEWLINE stx)
-  (raise-syntax-error
-   'NEWLINE
-   "should only be used by refactoring rules to indicate where newlines should be inserted"
-   stx))
-
 (define-record-type refactoring-rule (transformer)
   #:omit-root-binding)
 
-(define (refactoring-rule-refactor rule syntax)
-  ((refactoring-rule-transformer rule) syntax))
+(define (refactoring-rule-refactor rule syntax #:source source #:code-string code-string)
+  (option-map ((refactoring-rule-transformer rule) syntax)
+              (syntax-replacement
+               #:original-syntax syntax
+               #:new-syntax _
+               #:source source
+               #:code-string code-string)))
 
 (define-simple-macro
   (define-refactoring-rule id:id parse-option ... [pattern pattern-directive ... replacement])

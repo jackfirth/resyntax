@@ -25,9 +25,11 @@
 
 ;@----------------------------------------------------------------------------------------------------
 
-(define (refactoring-rules-refactor rules syntax)
+(define (refactoring-rules-refactor rules syntax #:source code #:code-string code-string)
+  (define (refactor rule)
+    (refactoring-rule-refactor rule syntax #:source code #:code-string code-string))
   (for*/list ([rule rules]
-              [result (in-option (refactoring-rule-refactor rule syntax))])
+              [result (in-option (refactor rule))])
     result))
 
 (define (refactoring-rules-apply rules code)
@@ -35,12 +37,12 @@
     (define code-string (source-code-read-string code))
     (define analysis (source-code-analyze code))
     (transduce (source-code-analysis-visited-forms analysis)
-               (bisecting values (refactoring-rules-refactor rules _))
-               (append-mapping-values values)
-               (mapping-values (syntax-render _ code code-string))
+               (append-mapping
+                (refactoring-rules-refactor rules _ #:source code #:code-string code-string))
                (mapping
-                (λ (e)
-                  (match-define (entry stx code) e)
+                (λ (replacement)
+                  (define code (syntax-replacement-render replacement))
+                  (define stx (syntax-replacement-original-syntax replacement))
                   (define pos (syntax-position stx))
                   (define span (syntax-span stx))
                   (source-replacement
@@ -52,6 +54,21 @@
                #:into into-list)))
 
 (define-record-type source-replacement (position span old-code new-code))
+
+(define (source-replacements-ranges-after replacements)
+  (for/fold ([position-skew 0]
+             [ranges '()]
+             #:result (reverse ranges))
+            ([replacement replacements])
+    (match-define (source-replacement #:position position #:span span #:new-code new-code)
+      replacement)
+    (define skewed-start (+ position position-skew))
+    (define skewed-end-before (+ skewed-start span))
+    (define skewed-end-after (+ skewed-start (string-length new-code)))
+    (define skew-delta (- skewed-end-after skewed-end-before))
+    (define range (source-range skewed-start skewed-end-after))
+    (values (+ position-skew skew-delta)
+            (cons range ranges))))
 
 (define (refactor-source-code code rules)
   (define replacements (refactoring-rules-apply rules code))
@@ -85,8 +102,10 @@
     (transduce replacements
                (sorting #:key source-replacement-position #:descending? #true)
                #:into into-list))
-  (for/fold ([code-string code-string]) ([replacement descending-replacements])
-    (string-apply-replacement code-string replacement)))
+  (define replaced
+    (for/fold ([code-string code-string]) ([replacement descending-replacements])
+      (string-apply-replacement code-string replacement)))
+  (indent-code replaced (source-replacements-ranges-after replacements)))
 
 (define/guard (refactor code #:rules [rules standard-refactoring-rules])
   (define code-string (source-code-read-string code))
