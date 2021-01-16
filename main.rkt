@@ -30,6 +30,8 @@
     (refactoring-rule-refactor rule syntax #:source code #:code-string code-string))
   (for*/list ([rule rules]
               [result (in-option (refactor rule))])
+    (define line (syntax-line (syntax-replacement-original-syntax result)))
+    (printf "line ~a: ~a\n" line (object-name rule))
     result))
 
 (define (refactoring-rules-apply rules code)
@@ -48,12 +50,13 @@
                   (source-replacement
                    #:position pos
                    #:span span
+                   #:line (syntax-line stx)
                    #:old-code (substring code-string (sub1 pos) (+ (sub1 pos) span))
                    #:new-code code)))
                (sorting #:key source-replacement-position)
                #:into into-list)))
 
-(define-record-type source-replacement (position span old-code new-code))
+(define-record-type source-replacement (position span line old-code new-code))
 
 (define (source-replacements-ranges-after replacements)
   (for/fold ([position-skew 0]
@@ -80,6 +83,7 @@
     (define second-start (source-replacement-position second))
     (define second-end (+ second-start (source-replacement-span second)))
     (guard (< first-end second-end) else
+      (printf "overlapped on line ~a, rejecting\n" (source-replacement-line second))
       (loop (cons first remaining)))
     (guard (<= first-end second-start) else
       (error 'overlap))
@@ -115,9 +119,11 @@
 (define (refactor-file path #:rules [rules standard-refactoring-rules])
   (refactor-source-code (file-source-code path) rules))
 
-(define (refactor-file! path #:rules [rules standard-refactoring-rules])
-  (define replacement-code (refactor (file-source-code path) #:rules rules))
-  (display-to-file replacement-code path #:mode 'text #:exists 'replace))
+(define (refactor-file! path #:rules [rules standard-refactoring-rules] #:passes [passes 1])
+  (for ([n (in-range 1 (add1 passes))])
+    (printf "pass ~a\n" n)
+    (define replacement-code (refactor (file-source-code path) #:rules rules))
+    (display-to-file replacement-code path #:mode 'text #:exists 'replace)))
 
 (define (rkt-path? path) (path-has-extension? path #".rkt"))
 
@@ -127,4 +133,5 @@
 
 
 (module+ main
-  (refactor-directory! "/Users/jackfirth/Documents/GitHub/little-helper"))
+  (refactor-file! "/Users/jackfirth/Documents/GitHub/scribble/scribble-lib/scribble/search.rkt"
+                  #:passes 10))
