@@ -39,57 +39,16 @@
                (append-mapping (refactoring-rules-refactor rules _))
                (mapping syntax-replacement-render)
                (sorting #:key string-replacement-start)
-               #:into into-list)))
-
-
-(define (string-replacements-ranges-after replacements)
-  (for/fold ([position-skew 0]
-             [ranges '()]
-             #:result (reverse ranges))
-            ([replacement replacements])
-    (define position (string-replacement-start replacement))
-    (define span (string-replacement-span replacement))
-    (define new-span (string-replacement-new-span replacement))
-    (define skewed-start (+ position position-skew))
-    (define skewed-end-before (+ skewed-start span))
-    (define skewed-end-after (+ skewed-start new-span))
-    (define skew-delta (- skewed-end-after skewed-end-before))
-    (define range (source-range skewed-start skewed-end-after))
-    (values (+ position-skew skew-delta)
-            (cons range ranges))))
-
-
-(define (refactor-source-code code rules)
-  (define replacements (refactoring-rules-apply rules code))
-  (define/guard (loop [replacements replacements])
-    (guard-match (list first second remaining ...) replacements else
-      replacements)
-    (guard (string-replacement-overlaps? first second) then
-      (printf "overlapped at position ~a, rejecting\n" (string-replacement-start second))
-      (loop (cons first remaining)))
-    (cons first (loop (cons second remaining))))
-  (loop))
-
-
-(define (apply-replacements code-string replacements)
-  (define descending-replacements
-    (transduce replacements
-               (sorting #:key string-replacement-start #:descending? #true)
-               #:into into-list))
-  (define replaced
-    (for/fold ([code-string code-string]) ([replacement descending-replacements])
-      (string-apply-replacement code-string replacement)))
-  (indent-code replaced (string-replacements-ranges-after replacements)))
+               #:into union-into-string-replacement)))
 
 
 (define/guard (refactor code #:rules [rules standard-refactoring-rules])
   (define code-string (source-code-read-string code))
-  (define replacements (refactor-source-code code rules))
-  (apply-replacements code-string replacements))
-
-
-(define (refactor-file path #:rules [rules standard-refactoring-rules])
-  (refactor-source-code (file-source-code path) rules))
+  (define replacement (refactoring-rules-apply rules code))
+  (define replaced (string-apply-replacement code-string replacement))
+  (define replaced-range
+    (source-range (string-replacement-start replacement) (string-replacement-new-end replacement)))
+  (indent-code replaced replaced-range))
 
 
 (define (refactor-file! path #:rules [rules standard-refactoring-rules] #:passes [passes 1])
@@ -108,5 +67,5 @@
 
 
 (module+ main
-  (refactor-file! "/Users/jackfirth/Documents/GitHub/scribble/scribble-lib/scribble/search.rkt"
-                  #:passes 10))
+  (refactor-file!
+   "/Users/jackfirth/Documents/GitHub/scribble/scribble-lib/scribble/search.rkt" #:passes 10))

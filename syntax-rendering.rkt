@@ -17,7 +17,7 @@
   [source-range (-> natural? natural? source-range?)]
   [source-range-start (-> source-range? natural?)]
   [source-range-end (-> source-range? natural?)]
-  [indent-code (-> immutable-string? (sequence/c source-range?) immutable-string?)]))
+  [indent-code (-> immutable-string? source-range? immutable-string?)]))
 
 
 (require (for-syntax racket/base)
@@ -105,9 +105,7 @@
     (define replacement
       (syntax-replacement
        #:original-syntax orig-stx
-       #:new-syntax new-stx
-       #:source (string-source-code "(+ 1 (+ 2 3))")
-       #:code-string "(+ 1 (+ 2 3))"))
+       #:new-syntax new-stx))
     (define expected
       (string-replacement
        #:start orig-start
@@ -129,35 +127,20 @@
 (define-tuple-type source-range (start end))
 
 
-(define (indent-code code-string source-ranges)
+(define (indent-code code-string srcrng)
   (define text-object (new racket:text%))
+  (match-define (source-range start end) srcrng)
   (send text-object insert code-string)
-  (for/fold ([position-skew 0] #:result (void))
-            ([range source-ranges])
-    (match-define (source-range start end) range)
-    (define skewed-start (+ start position-skew))
-    (define skewed-end (+ end position-skew))
-    (send text-object set-position skewed-start skewed-end)
-    (send text-object tabify-selection)
-    (define indented-end (send text-object get-end-position))
-    (- indented-end skewed-end))
+  (send text-object set-position start end)
+  (send text-object tabify-selection)
   (string->immutable-string (send text-object get-text)))
 
 
 (module+ test
   (test-case "indent-code"
     (check-equal?
-     (indent-code
-      "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n"
-      (list (source-range 19 28) (source-range 30 39)))
-     "#lang racket/base\n\n(+ 1\n   2\n   3)\n\n(+ 4\n   5\n   6)\n")
-    (check-equal?
-     (indent-code
-      "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n"
-      (list (source-range 19 28)))
+     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" (source-range 19 28))
      "#lang racket/base\n\n(+ 1\n   2\n   3)\n\n(+ 4\n5\n6)\n")
     (check-equal?
-     (indent-code
-      "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n"
-      (list (source-range 30 39)))
+     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" (source-range 30 39))
      "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n   5\n   6)\n")))
