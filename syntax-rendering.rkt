@@ -120,9 +120,6 @@
     (check-equal? (syntax-replacement-render replacement) expected)))
 
 
-(define-tuple-type source-range (start end))
-
-
 (define (indent-code code-string start end)
   (define text-object (new racket:text%))
   (send text-object insert code-string)
