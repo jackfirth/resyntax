@@ -46,9 +46,8 @@
   (define code-string (source-code-read-string code))
   (define replacement (refactoring-rules-apply rules code))
   (define replaced (string-apply-replacement code-string replacement))
-  (define replaced-range
-    (source-range (string-replacement-start replacement) (string-replacement-new-end replacement)))
-  (indent-code replaced replaced-range))
+  (indent-code
+   replaced (string-replacement-start replacement) (string-replacement-new-end replacement)))
 
 
 (define (refactor-file! path #:rules [rules standard-refactoring-rules] #:passes [passes 1])

@@ -13,11 +13,7 @@
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
-  [source-range? predicate/c]
-  [source-range (-> natural? natural? source-range?)]
-  [source-range-start (-> source-range? natural?)]
-  [source-range-end (-> source-range? natural?)]
-  [indent-code (-> immutable-string? source-range? immutable-string?)]))
+  [indent-code (-> immutable-string? natural? natural? immutable-string?)]))
 
 
 (require (for-syntax racket/base)
@@ -127,9 +123,8 @@
 (define-tuple-type source-range (start end))
 
 
-(define (indent-code code-string srcrng)
+(define (indent-code code-string start end)
   (define text-object (new racket:text%))
-  (match-define (source-range start end) srcrng)
   (send text-object insert code-string)
   (send text-object set-position start end)
   (send text-object tabify-selection)
@@ -139,8 +134,8 @@
 (module+ test
   (test-case "indent-code"
     (check-equal?
-     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" (source-range 19 28))
+     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" 19 28)
      "#lang racket/base\n\n(+ 1\n   2\n   3)\n\n(+ 4\n5\n6)\n")
     (check-equal?
-     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" (source-range 30 39))
+     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" 30 39)
      "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n   5\n   6)\n")))
