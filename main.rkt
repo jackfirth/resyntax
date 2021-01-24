@@ -1,11 +1,13 @@
 #lang racket/base
 
+
 (require (for-syntax racket/base)
          fancy-app
          racket/file
          racket/format
          racket/match
          racket/path
+         racket/pretty
          racket/sequence
          racket/string
          rebellion/base/option
@@ -20,30 +22,33 @@
          resyntax/syntax-rendering
          syntax/parse)
 
+
 (module+ test
   (require (submod "..")))
 
+
 ;@----------------------------------------------------------------------------------------------------
 
-(define (refactoring-rules-refactor rules syntax #:source code #:code-string code-string)
-  (define (refactor rule)
-    (refactoring-rule-refactor rule syntax #:source code #:code-string code-string))
+
+(define (refactoring-rules-refactor rules syntax)
+  (define (refactor rule) (refactoring-rule-refactor rule syntax))
   (for*/list ([rule rules]
               [result (in-option (refactor rule))])
     (define line (syntax-line (syntax-replacement-original-syntax result)))
-    (printf "line ~a: ~a\n" line (object-name rule))
+    (printf "line ~a: ~a:\n" line (object-name rule))
     result))
+
 
 (define (refactoring-rules-apply rules code)
   (parameterize ([current-namespace (make-base-namespace)])
     (define code-string (source-code-read-string code))
     (define analysis (source-code-analyze code))
     (transduce (source-code-analysis-visited-forms analysis)
-               (append-mapping
-                (refactoring-rules-refactor rules _ #:source code #:code-string code-string))
+               (append-mapping (refactoring-rules-refactor rules _))
                (mapping
                 (λ (replacement)
-                  (define code (syntax-replacement-render replacement))
+                  (define new-code-string
+                    (syntax-replacement-render-string replacement #:code-string code-string))
                   (define stx (syntax-replacement-original-syntax replacement))
                   (define pos (syntax-position stx))
                   (define span (syntax-span stx))
@@ -52,11 +57,13 @@
                    #:span span
                    #:line (syntax-line stx)
                    #:old-code (substring code-string (sub1 pos) (+ (sub1 pos) span))
-                   #:new-code code)))
+                   #:new-code new-code-string)))
                (sorting #:key source-replacement-position)
                #:into into-list)))
 
+
 (define-record-type source-replacement (position span line old-code new-code))
+
 
 (define (source-replacements-ranges-after replacements)
   (for/fold ([position-skew 0]
@@ -72,6 +79,7 @@
     (define range (source-range skewed-start skewed-end-after))
     (values (+ position-skew skew-delta)
             (cons range ranges))))
+
 
 (define (refactor-source-code code rules)
   (define replacements (refactoring-rules-apply rules code))

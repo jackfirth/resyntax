@@ -10,12 +10,7 @@
 (module+ private
   (provide
    (contract-out
-    [refactoring-rule-refactor
-     (-> refactoring-rule?
-         syntax?
-         #:source source-code?
-         #:code-string immutable-string?
-         (option/c syntax-replacement?))])))
+    [refactoring-rule-refactor (-> refactoring-rule? syntax? (option/c syntax-replacement?))])))
 
 (require (for-syntax racket/base)
          fancy-app
@@ -42,17 +37,20 @@
 
 ;@----------------------------------------------------------------------------------------------------
 
+
 (define-object-type refactoring-rule (transformer)
   #:omit-root-binding
   #:constructor-name constructor:refactoring-rule)
 
-(define (refactoring-rule-refactor rule syntax #:source source #:code-string code-string)
-  (option-map ((refactoring-rule-transformer rule) syntax)
-              (syntax-replacement
-               #:original-syntax syntax
-               #:new-syntax _
-               #:source source
-               #:code-string code-string)))
+
+(define (refactoring-rule-refactor rule syntax)
+  (define rule-introduction-scope (make-syntax-introducer))
+  (option-map
+   ((refactoring-rule-transformer rule) (rule-introduction-scope syntax))
+   (λ (new-syntax)
+     (syntax-replacement
+      #:original-syntax syntax #:new-syntax (rule-introduction-scope new-syntax)))))
+
 
 (define-simple-macro
   (define-refactoring-rule id:id parse-option ... [pattern pattern-directive ... replacement])
@@ -65,10 +63,12 @@
        [pattern pattern-directive ... (present #'replacement)]
        [_ absent]))))
 
+
 (define-syntax-class define-struct-id-maybe-super
   #:attributes (id super-id)
   (pattern id:id #:attr super-id #false)
   (pattern (id:id super-id:id)))
+
 
 (define-refactoring-rule struct-from-define-struct-with-default-constructor-name
   #:literals (define-struct)
@@ -79,45 +79,54 @@
      #:extra-constructor-name make-id NEWLINE
      option ...)])
 
+
 (define-refactoring-rule false/c-migration
   #:literals (false/c)
   [false/c
    #false])
+
 
 (define-refactoring-rule symbols-migration
   #:literals (symbols)
   [(symbols sym ...)
    (or/c sym ...)])
 
+
 (define-refactoring-rule vector-immutableof-migration
   #:literals (vector-immutableof)
   [(vector-immutableof c)
    (vectorof c #:immutable #true)])
+
 
 (define-refactoring-rule vector-immutable/c-migration
   #:literals (vector-immutable/c)
   [(vector-immutable/c c ...)
    (vector/c c ... #:immutable #true)])
 
+
 (define-refactoring-rule box-immutable/c-migration
   #:literals (box-immutable/c)
   [(box-immutable/c c)
    (box/c c #:immutable #true)])
+
 
 (define-refactoring-rule flat-contract-migration
   #:literals (flat-contract)
   [(flat-contract predicate)
    predicate])
 
+
 (define-refactoring-rule flat-contract-predicate-migration
   #:literals (flat-contract-predicate)
   [(flat-contract-predicate c)
    c])
 
+
 (define-refactoring-rule contract-struct-migration
   #:literals (contract-struct)
   [(contract-struct id fields)
    (struct id fields)])
+
 
 (define-refactoring-rule define-contract-struct-migration
   #:literals (define-contract-struct)
@@ -125,14 +134,17 @@
    #:with make-id (format-id #'id "make-~a" #'id)
    (struct id fields #:extra-constructor-name make-id)])
 
+
 (define-syntax-class cond-condition-clause
   #:literals (cond else)
   (pattern [(~and condition (~not else)) body ...+]))
+
 
 (define-refactoring-rule cond-mandatory-else
   #:literals (cond else)
   [(cond clause:cond-condition-clause ...)
    (cond (~@ NEWLINE clause) ... NEWLINE [else (void)])])
+
 
 (define/guard (free-identifiers=? ids other-ids)
   (define id-list (syntax->list ids))
@@ -141,6 +153,7 @@
     #false)
   (for/and ([id (in-list id-list)] [other-id (in-list other-id-list)])
     (free-identifier=? id other-id)))
+
 
 (define-refactoring-rule define-from-case-lambda
   #:literals (define case-lambda)
@@ -156,12 +169,14 @@
    (define (id case2-arg ... [bonus-arg default])
      (~@ NEWLINE body) ...)])
 
+
 (define-refactoring-rule cond-from-if-then-begin
   #:literals (if begin)
   [(if condition (begin then-body ...) else-branch)
    (cond
      NEWLINE [condition (~@ NEWLINE then-body) ...]
      NEWLINE [else NEWLINE else-branch])])
+
 
 (define-refactoring-rule cond-from-if-else-begin
   #:literals (if begin)
@@ -170,12 +185,14 @@
      NEWLINE [condition NEWLINE then-branch]
      NEWLINE [else (~@ NEWLINE else-body) ...])])
 
+
 (define-refactoring-rule if-then-cond-to-cond
   #:literals (if cond)
   [(if condition then-branch (cond clause ...))
    (cond
      NEWLINE [condition NEWLINE then-branch]
      (~@ NEWLINE clause) ...)])
+
 
 (define-refactoring-rule match-absorbing-outer-and
   #:literals (and match)
@@ -185,11 +202,14 @@
      NEWLINE [#false #false]
      (~@ NEWLINE match-clause) ...)])
 
+
 ;@----------------------------------------------------------------------------------------------------
 ;; DEFINITION CONTEXT RULES
 
+
 (define (sequence->bound-id-set ids)
   (immutable-bound-id-set (list->set (sequence->list ids))))
+
 
 (define/guard (syntax-identifiers stx)
   (guard (identifier? stx) then
@@ -200,16 +220,19 @@
               [subid (in-list (syntax-identifiers substx))])
     subid))
 
+
 (module+ test
   (test-case "syntax-identifiers"
     (check-equal?
      (map syntax->datum (syntax-identifiers #'(hello (darkness #:my old) friend)))
      (list 'hello 'darkness 'old 'friend))))
 
+
 (define (no-binding-overlap? ids other-ids)
   (define id-set (sequence->bound-id-set ids))
   (define other-id-set (sequence->bound-id-set other-ids))
   (bound-id-set-empty? (bound-id-set-intersect id-set other-id-set)))
+
 
 (module+ test
   (test-case "no-binding-overlap?"
@@ -217,6 +240,7 @@
     (check-false (no-binding-overlap? (in-syntax #'(a b c)) (in-syntax #'(c d e))))
     (check-true (no-binding-overlap? (in-syntax #'(a b c)) '()))
     (check-true (no-binding-overlap? '() (in-syntax #'(d e f))))))
+
 
 (define-syntax-class refactorable-let-bindings
   #:attributes (ids [definition 1] unmigratable-bindings fully-migratable?)
@@ -256,6 +280,7 @@
       part)
     #:attr fully-migratable? (zero? (length unsafe-positions))))
 
+
 (define-syntax-class refactorable-let-expression
   #:literals (let)
   #:attributes (ids [refactored-form 1])
@@ -269,11 +294,13 @@
            NEWLINE (let bindings.unmigratable-bindings
                      (~@ NEWLINE body) ...)))))
 
+
 (define-refactoring-rule define-let-to-define
   #:literals (define let)
   [(define header:function-header let-expr:refactorable-let-expression)
    #:when (no-binding-overlap? (in-syntax #'header.params) (in-syntax #'let-expr.ids))
    (define header let-expr.refactored-form ...)])
+
 
 (define-refactoring-rule and-let-to-cond-define
   #:literals (and let)
@@ -281,6 +308,7 @@
    (cond
      NEWLINE [(not guard-expr) #false]
      NEWLINE [else let-expr.refactored-form ...])])
+
 
 (define-refactoring-rule cond-else-let-to-define
   #:literals (cond else let)
@@ -291,6 +319,7 @@
      (~@ NEWLINE clause) ...
      NEWLINE [else let-expr.refactored-form ...])])
 
+
 (define-refactoring-rule if-then-let-else-let-to-cond-define
   #:literals (if else let)
   [(if condition
@@ -299,6 +328,7 @@
    (cond
      NEWLINE [condition then-let-expr.refactored-form ...]
      NEWLINE [else else-let-expr.refactored-form ...])])
+
 
 (define-refactoring-rule if-then-let-to-cond-define
   #:literals (if else let)
@@ -309,6 +339,7 @@
      NEWLINE [condition let-expr.refactored-form ...]
      NEWLINE [else NEWLINE then-expr])])
 
+
 (define-refactoring-rule if-else-let-to-cond-define
   #:literals (if else let)
   [(if condition
@@ -318,8 +349,10 @@
      NEWLINE [condition NEWLINE then-expr]
      NEWLINE [else let-expr.refactored-form ...])])
 
+
 ;@----------------------------------------------------------------------------------------------------
 ;; STANDARD RULE LIST
+
 
 (define standard-refactoring-rules
   (list and-let-to-cond-define
