@@ -42,7 +42,7 @@
                #:into into-list)))
 
 
-(define (source-replacements-ranges-after replacements)
+(define (string-replacements-ranges-after replacements)
   (for/fold ([position-skew 0]
              [ranges '()]
              #:result (reverse ranges))
@@ -64,15 +64,9 @@
   (define/guard (loop [replacements replacements])
     (guard-match (list first second remaining ...) replacements else
       replacements)
-    (define first-start (string-replacement-start first))
-    (define first-end (+ first-start (string-replacement-span first)))
-    (define second-start (string-replacement-start second))
-    (define second-end (+ second-start (string-replacement-span second)))
-    (guard (< first-end second-end) else
+    (guard (string-replacement-overlaps? first second) then
       (printf "overlapped at position ~a, rejecting\n" (string-replacement-start second))
       (loop (cons first remaining)))
-    (guard (<= first-end second-start) else
-      (error 'overlap))
     (cons first (loop (cons second remaining))))
   (loop))
 
@@ -85,7 +79,7 @@
   (define replaced
     (for/fold ([code-string code-string]) ([replacement descending-replacements])
       (string-apply-replacement code-string replacement)))
-  (indent-code replaced (source-replacements-ranges-after replacements)))
+  (indent-code replaced (string-replacements-ranges-after replacements)))
 
 
 (define/guard (refactor code #:rules [rules standard-refactoring-rules])
