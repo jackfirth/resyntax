@@ -11,8 +11,6 @@
   [syntax-replacement
    (-> #:original-syntax (and/c syntax? syntax-original?) #:new-syntax syntax? syntax-replacement?)]
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
-  [syntax-replacement-render-string
-   (-> syntax-replacement? #:code-string immutable-string? immutable-string?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
   [source-range? predicate/c]
@@ -92,10 +90,6 @@
   (define start (sub1 (syntax-position orig-stx)))
   (string-replacement
    #:start start #:end (+ start (syntax-span orig-stx)) #:contents (pieces new-stx)))
-
-
-(define/guard (syntax-replacement-render-string replacement #:code-string code-string)
-  (string-replacement-content (syntax-replacement-render replacement) code-string))
 
 
 (module+ test
