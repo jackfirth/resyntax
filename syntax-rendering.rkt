@@ -108,29 +108,34 @@
   (test-case (name-string syntax-replacement-render)
     (define flip (make-syntax-introducer))
     (define orig-stx #'(+ 1 (+ 2 3)))
-    (define orig-start (sub1 (syntax-position orig-stx)))
-    (define new-stx
-      (flip
-       (syntax-parse (flip orig-stx)
-         #:literals (+)
-         [((~and + +_1) x (+ y z)) #'(+_1 x y z)])))
-    (define replacement
-      (syntax-replacement
-       #:original-syntax orig-stx
-       #:new-syntax new-stx))
-    (define expected
-      (string-replacement
-       #:start orig-start
-       #:end (+ orig-start 13)
-       #:contents
-       (list
-        (inserted-string "(")
-        (copied-string (+ orig-start 1) (+ orig-start 2))
-        (inserted-string " ")
-        (copied-string (+ orig-start 3) (+ orig-start 4))
-        (inserted-string " ")
-        (copied-string (+ orig-start 8) (+ orig-start 9))
-        (inserted-string " ")
-        (copied-string (+ orig-start 10) (+ orig-start 11))
-        (inserted-string ")"))))
-    (check-equal? (syntax-replacement-render replacement) expected)))
+    (cond
+      [(not (syntax-original? orig-stx))
+       (displayln
+        "skipping syntax-replacement-render test because orignal-ness is lost in compiled code")]
+      [else
+       (define orig-start (sub1 (syntax-position orig-stx)))
+       (define new-stx
+         (flip
+          (syntax-parse (flip orig-stx)
+            #:literals (+)
+            [((~and + +_1) x (+ y z)) #'(+_1 x y z)])))
+       (define replacement
+         (syntax-replacement
+          #:original-syntax orig-stx
+          #:new-syntax new-stx))
+       (define expected
+         (string-replacement
+          #:start orig-start
+          #:end (+ orig-start 13)
+          #:contents
+          (list
+           (inserted-string "(")
+           (copied-string (+ orig-start 1) (+ orig-start 2))
+           (inserted-string " ")
+           (copied-string (+ orig-start 3) (+ orig-start 4))
+           (inserted-string " ")
+           (copied-string (+ orig-start 8) (+ orig-start 9))
+           (inserted-string " ")
+           (copied-string (+ orig-start 10) (+ orig-start 11))
+           (inserted-string ")"))))
+       (check-equal? (syntax-replacement-render replacement) expected)])))
