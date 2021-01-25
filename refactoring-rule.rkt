@@ -327,7 +327,7 @@
 (define-syntax-class refactorable-let-expression
   #:literals (let)
   #:attributes (ids [refactored-form 1])
-  (pattern (let bindings:refactorable-let-bindings body ...)
+  (pattern (let bindings:refactorable-let-bindings body:expr ...)
     #:with ids #'bindings.ids
     #:with (refactored-form ...)
     (if (attribute bindings.fully-migratable?)
@@ -338,16 +338,53 @@
                      (~@ NEWLINE body) ...)))))
 
 
-(define-refactoring-rule define-let-to-define
-  #:literals (define let)
-  [(define header:function-header
-     forms:body-forms
-     let-expr:refactorable-let-expression)
+(define-syntax-class let-binding-clause
+  #:attributes (id rhs definition)
+  (pattern [id:id rhs:expr]
+    #:with definition
+    (if (> (+ (syntax-span #'id) (syntax-span #'rhs)) 90) ;; conservative under-estimate
+        #'(define id NEWLINE rhs)
+        #'(define id rhs))))
+    
+
+;; TODO: make this recognize cases where some bindings can't be migrated, like we do for let.
+(define-syntax-class refactorable-let*-expression
+  #:literals (let*)
+  #:attributes ([id 1] [refactored-form 1])
+  (pattern (let* (clause:let-binding-clause ...) body:expr ...)
+    #:with (id ...) #'(clause.id ...)
+    #:with (refactored-form ...)
+    #'((~@ NEWLINE clause.definition) ...
+       (~@ NEWLINE body) ...)))
+
+
+;; TODO: make this recognize cases where some bindings can't be migrated, like we do for let.
+(define-syntax-class refactorable-let-values-expression
+  #:literals (let-values)
+  #:attributes ([id 2] [refactored-form 1])
+  (pattern (let-values ([(~and id-list (id:id ...)) rhs:expr] ...) body:expr ...)
+    #:with (refactored-form ...)
+    ;; We always split define-values into at least two lines since they seem to be longer forms in
+    ;; practice. This is kind of a rough guess though, and maybe should be changed to be more like the
+    ;; other definition forms where we only split if they're too long.
+    #'((~@ NEWLINE (define-values id-list NEWLINE rhs)) ...
+       (~@ NEWLINE body) ...)))
+
+
+(define-refactoring-rule define-let-to-define-define
+  #:literals (define)
+  [(define header:function-header forms:body-forms let-expr:refactorable-let-expression)
    #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'header.params))
    #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
-   (define header
-     forms.formatted-form ...
-     let-expr.refactored-form ...)])
+   (define header forms.formatted-form ... let-expr.refactored-form ...)])
+
+
+(define-refactoring-rule define-let-values-to-define-define-values
+  #:literals (define let-values)
+  [(define header:function-header forms:body-forms let-expr:refactorable-let-values-expression)
+   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (in-syntax #'header.params))
+   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (in-syntax #'(forms.bound-id ...)))
+   (define header forms.formatted-form ... let-expr.refactored-form ...)])
 
 
 (define-refactoring-rule and-let-to-cond-define
@@ -358,17 +395,37 @@
      NEWLINE [else let-expr.refactored-form ...])])
 
 
-(define-refactoring-rule cond-else-let-to-define
-  #:literals (cond else let)
+(define-syntax-class cond-clause
+  #:attributes ([formatted 1])
+  #:literals (else =>)
+  (pattern (~and clause (~or [else body ...+] [expr:expr => body-handler:expr] [expr:expr body ...+]))
+    #:with (formatted ...)
+    #'(NEWLINE clause)))
+
+
+(define-syntax-class refactorable-cond-clause
+  #:attributes ([refactored 1])
+  #:literals (else =>)
+
+  (pattern [else forms:body-forms let-expr:refactorable-let-expression]
+    #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
+    #:with (refactored ...) #'(NEWLINE [else forms.formatted-form ... let-expr.refactored-form ...]))
+  
+  (pattern (~and [expr forms:body-forms let-expr:refactorable-let-expression] (~not [expr => _ ...]))
+    #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
+    #:with (refactored ...) #'(NEWLINE [expr forms.formatted-form ... let-expr.refactored-form ...])))
+
+
+(define-refactoring-rule cond-let-to-cond-define
+  #:literals (cond)
   [(cond
-     clause ...
-     [else
-      forms:body-forms
-      let-expr:refactorable-let-expression])
-   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
+     clause-before:cond-clause ...
+     refactorable:refactorable-cond-clause
+     clause-after:cond-clause ...)
    (cond
-     (~@ NEWLINE clause) ...
-     NEWLINE [else forms.formatted-form ... let-expr.refactored-form ...])])
+     clause-before.formatted ... ...
+     refactorable.refactored ...
+     clause-after.formatted ... ...)])
 
 
 (define-refactoring-rule if-then-let-else-let-to-cond-define
@@ -407,21 +464,43 @@
      forms:body-forms
      let-expr:refactorable-let-expression)
    #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
-   (let (~? name) header
-     forms.formatted-form ...
-     let-expr.refactored-form ...)])
+   (let (~? name) header forms.formatted-form ... let-expr.refactored-form ...)])
 
 
 (define-refactoring-rule let-let*-to-let-define
   #:literals (let let*)
   [(let (~optional name:id) header:let-bindings
      forms:body-forms
-     (let* ([id:id rhs] ...) body ...))
-   #:when (no-binding-overlap? (in-syntax #'(id ...)) (in-syntax #'(forms.bound-id ...)))
-   (let (~? name) header
-     forms.formatted-form ...
-     (~@ NEWLINE (define id rhs)) ...
-     (~@ NEWLINE body) ...)])
+     let-expr:refactorable-let*-expression)
+   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ...)) (in-syntax #'(forms.bound-id ...)))
+   (let (~? name) header forms.formatted-form ... let-expr.refactored-form ...)])
+
+
+;; λ and lambda aren't free-identifier=?. Additionally, by using a syntax class instead of #:literals
+;; we can produce the same lambda identifier that the input syntax had instead of changing all lambda
+;; identfiers to one of the two cases. There doesn't seem to be a strong community consensus on which
+;; name should be used, so we want to avoid changing the original code's choice.
+(define-syntax-class lambda-by-any-name
+  #:literals (λ lambda)
+  (pattern (~or λ lambda)))
+
+
+(define-refactoring-rule lambda-let-to-lambda-define
+  [(lambda:lambda-by-any-name formals:formals forms:body-forms let-expr:refactorable-let-expression)
+   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
+   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (syntax-identifiers #'formals))
+   (lambda formals forms.formatted-form ... let-expr.refactored-form ...)])
+
+
+(define-refactoring-rule lambda-let-values-to-lambda-define-values
+  #:literals (let-values)
+  [(lambda:lambda-by-any-name
+    formals:formals
+    forms:body-forms
+    let-expr:refactorable-let-values-expression)
+   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (in-syntax #'(forms.bound-id ...)))
+   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (syntax-identifiers #'formals))
+   (lambda formals forms.formatted-form ... let-expr.refactored-form ...)])
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -432,14 +511,15 @@
   (list
    and-let-to-cond-define
    box-immutable/c-migration
-   cond-else-let-to-define
+   cond-let-to-cond-define
    cond-from-if-then-begin
    cond-from-if-else-begin
    cond-mandatory-else
    contract-struct-migration
    define-contract-struct-migration
    define-from-case-lambda
-   define-let-to-define
+   define-let-to-define-define
+   define-let-values-to-define-define-values
    false/c-migration
    flat-contract-migration
    flat-contract-predicate-migration
@@ -447,6 +527,8 @@
    if-then-let-else-let-to-cond-define
    if-then-let-to-cond-define
    if-else-let-to-cond-define
+   lambda-let-to-lambda-define
+   lambda-let-values-to-lambda-define-values
    let-let-to-let-define
    let-let*-to-let-define
    match-absorbing-outer-and
