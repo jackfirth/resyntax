@@ -62,20 +62,46 @@
        (define shape (syntax-property stx 'paren-shape))
        (define opener (match shape [#false "("] [#\[ "["] [#\{ "{"]))
        (define closer (match shape [#false ")"] [#\[ "]"] [#\{ "}"]))
-       (define subform-piece-lists
-         (for/list ([subform-stx (in-syntax #'(subform ...))]) (pieces subform-stx)))
-       (append*
-        (add-between
-         subform-piece-lists
-         (list (list (inserted-string " ")))
-         #:before-first (list (list (inserted-string opener)))
-         #:after-last (list (list (inserted-string closer)))
-         #:splice? #true))]))
+       (append
+        (list (inserted-string opener))
+        (join-piece-lists (for/list ([subform-stx (in-syntax #'(subform ...))]) (pieces subform-stx)))
+        (list (inserted-string closer)))]))
 
   (match-define (syntax-replacement #:original-syntax orig-stx #:new-syntax new-stx) replacement)
   (define start (sub1 (syntax-position orig-stx)))
   (string-replacement
    #:start start #:end (+ start (syntax-span orig-stx)) #:contents (pieces new-stx)))
+
+
+(define/guard (ends-with-newline? piece-list)
+  (guard (empty? piece-list) then #true)
+  (define last-piece (last piece-list))
+  (guard (inserted-string? last-piece) else #false)
+  (define str (inserted-string-contents last-piece))
+  (equal? (string-ref str (sub1 (string-length str))) #\newline))
+
+
+(define/guard (starts-with-newline? piece-list)
+  (guard (empty? piece-list) then #true)
+  (define first-piece (first piece-list))
+  (guard (inserted-string? first-piece) else #false)
+  (define str (inserted-string-contents first-piece))
+  (equal? (string-ref str 0) #\newline))
+
+
+(define/guard (join-piece-lists piece-lists)
+  (guard (empty? piece-lists) then '())
+  (append
+   (for/list ([piece-list (in-list piece-lists)]
+              [next-piece-list (in-list (rest piece-lists))]
+              #:when #true
+              [piece
+               (in-list
+                (if (or (ends-with-newline? piece-list) (starts-with-newline? next-piece-list))
+                    piece-list
+                    (append piece-list (list (inserted-string " ")))))])
+     piece)
+   (last piece-lists)))
 
 
 (module+ test
