@@ -255,13 +255,13 @@
 (define-syntax-class body-form
   #:literals (define define-syntax define-values define-syntaxes)
   #:attributes ([bound-id 1])
-  (pattern (define id:id ~! _) #:with (bound-id ...) (list #'id))
-  (pattern (define header:function-header ~! _ ...) #:with (bound-id ...) (list #'header.name))
-  (pattern (define-syntax id:id ~! _) #:with (bound-id ...) (list #'id))
-  (pattern (define-syntax header:function-header ~! _ ...) #:with (bound-id ...) (list #'header.name))
+  (pattern (define id:id ~! _) #:with (bound-id ...) #'(id))
+  (pattern (define header:function-header ~! _ ...) #:with (bound-id ...) #'(header.name))
+  (pattern (define-syntax id:id ~! _) #:with (bound-id ...) #'(id))
+  (pattern (define-syntax header:function-header ~! _ ...) #:with (bound-id ...) #'(header.name))
   (pattern (define-values ~! (bound-id:id ...) _))
   (pattern (define-syntaxes ~! (bound-id:id ...) _))
-  (pattern _ #:with (bound-id ...) '()))
+  (pattern _ #:with (bound-id ...) #'()))
 
 
 (define-splicing-syntax-class body-forms
