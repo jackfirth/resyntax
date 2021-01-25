@@ -1,16 +1,20 @@
 #lang racket/base
 
+
 (require racket/contract)
+
 
 (provide
  (contract-out
   [refactoring-rule? predicate/c]
   [standard-refactoring-rules (listof refactoring-rule?)]))
 
+
 (module+ private
   (provide
    (contract-out
     [refactoring-rule-refactor (-> refactoring-rule? syntax? (option/c syntax-replacement?))])))
+
 
 (require (for-syntax racket/base)
          fancy-app
@@ -31,9 +35,11 @@
          syntax/parse/lib/function-header
          syntax/stx)
 
+
 (module+ test
   (require (submod "..")
            rackunit))
+
 
 ;@----------------------------------------------------------------------------------------------------
 
@@ -242,6 +248,43 @@
     (check-true (no-binding-overlap? '() (in-syntax #'(d e f))))))
 
 
+(define-syntax-class let-bindings
+  (pattern ([id:id rhs:expr] ...)))
+
+
+(define-syntax-class body-form
+  #:literals (define define-syntax define-values define-syntaxes)
+  #:attributes ([bound-id 1])
+  (pattern (define id:id ~! _) #:with (bound-id ...) (list #'id))
+  (pattern (define header:function-header ~! _ ...) #:with (bound-id ...) (list #'header.name))
+  (pattern (define-syntax id:id ~! _) #:with (bound-id ...) (list #'id))
+  (pattern (define-syntax header:function-header ~! _ ...) #:with (bound-id ...) (list #'header.name))
+  (pattern (define-values ~! (bound-id:id ...) _))
+  (pattern (define-syntaxes ~! (bound-id:id ...) _))
+  (pattern _ #:with (bound-id ...) '()))
+
+
+(define-splicing-syntax-class body-forms
+  #:attributes ([bound-id 1] [formatted-form 1])
+  (pattern (~seq form:body-form ...)
+    #:with (bound-id ...) #'(form.bound-id ... ...)
+    #:with (formatted-form ...) #'((~@ NEWLINE form) ...)))
+
+
+(module+ test
+  (test-case "body-form"
+    (define (parse stx) (syntax-parse stx [form:body-form (syntax->datum #'(form.bound-id ...))]))
+    (check-equal? (parse #'(define a 42)) (list 'a))
+    (check-equal? (parse #'(define (f a b c) 42)) (list 'f))
+    (check-equal? (parse #'(define (((f a) b) c) 42)) (list 'f))
+    (check-equal? (parse #'(define-syntax a 42)) (list 'a))
+    (check-equal? (parse #'(define-syntax (f a b c) 42)) (list 'f))
+    (check-equal? (parse #'(define-syntax (((f a) b) c) 42)) (list 'f))
+    (check-equal? (parse #'(define-values (a b c) 42)) (list 'a 'b 'c))
+    (check-equal? (parse #'(define-syntaxes (a b c) 42)) (list 'a 'b 'c))
+    (check-equal? (parse #'(void)) '())))
+
+
 (define-syntax-class refactorable-let-bindings
   #:attributes (ids [definition 1] unmigratable-bindings fully-migratable?)
   (pattern ((~and clause [id:id rhs:expr]) ...)
@@ -297,9 +340,14 @@
 
 (define-refactoring-rule define-let-to-define
   #:literals (define let)
-  [(define header:function-header let-expr:refactorable-let-expression)
-   #:when (no-binding-overlap? (in-syntax #'header.params) (in-syntax #'let-expr.ids))
-   (define header let-expr.refactored-form ...)])
+  [(define header:function-header
+     forms:body-forms
+     let-expr:refactorable-let-expression)
+   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'header.params))
+   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
+   (define header
+     forms.formatted-form ...
+     let-expr.refactored-form ...)])
 
 
 (define-refactoring-rule and-let-to-cond-define
@@ -314,10 +362,13 @@
   #:literals (cond else let)
   [(cond
      clause ...
-     [else let-expr:refactorable-let-expression])
+     [else
+      forms:body-forms
+      let-expr:refactorable-let-expression])
+   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
    (cond
      (~@ NEWLINE clause) ...
-     NEWLINE [else let-expr.refactored-form ...])])
+     NEWLINE [else forms.formatted-form ... let-expr.refactored-form ...])])
 
 
 (define-refactoring-rule if-then-let-else-let-to-cond-define
@@ -350,30 +401,56 @@
      NEWLINE [else let-expr.refactored-form ...])])
 
 
+(define-refactoring-rule let-let-to-let-define
+  #:literals (let)
+  [(let (~optional name:id) header:let-bindings
+     forms:body-forms
+     let-expr:refactorable-let-expression)
+   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
+   (let (~? name) header
+     forms.formatted-form ...
+     let-expr.refactored-form ...)])
+
+
+(define-refactoring-rule let-let*-to-let-define
+  #:literals (let let*)
+  [(let (~optional name:id) header:let-bindings
+     forms:body-forms
+     (let* ([id:id rhs] ...) body ...))
+   #:when (no-binding-overlap? (in-syntax #'(id ...)) (in-syntax #'(forms.bound-id ...)))
+   (let (~? name) header
+     forms.formatted-form ...
+     (~@ NEWLINE (define id rhs)) ...
+     (~@ NEWLINE body) ...)])
+
+
 ;@----------------------------------------------------------------------------------------------------
 ;; STANDARD RULE LIST
 
 
 (define standard-refactoring-rules
-  (list and-let-to-cond-define
-        box-immutable/c-migration
-        cond-else-let-to-define
-        cond-from-if-then-begin
-        cond-from-if-else-begin
-        cond-mandatory-else
-        contract-struct-migration
-        define-contract-struct-migration
-        define-from-case-lambda
-        define-let-to-define
-        false/c-migration
-        flat-contract-migration
-        flat-contract-predicate-migration
-        if-then-cond-to-cond
-        if-then-let-else-let-to-cond-define
-        if-then-let-to-cond-define
-        if-else-let-to-cond-define
-        match-absorbing-outer-and
-        struct-from-define-struct-with-default-constructor-name
-        symbols-migration
-        vector-immutableof-migration
-        vector-immutable/c-migration))
+  (list
+   and-let-to-cond-define
+   box-immutable/c-migration
+   cond-else-let-to-define
+   cond-from-if-then-begin
+   cond-from-if-else-begin
+   cond-mandatory-else
+   contract-struct-migration
+   define-contract-struct-migration
+   define-from-case-lambda
+   define-let-to-define
+   false/c-migration
+   flat-contract-migration
+   flat-contract-predicate-migration
+   if-then-cond-to-cond
+   if-then-let-else-let-to-cond-define
+   if-then-let-to-cond-define
+   if-else-let-to-cond-define
+   let-let-to-let-define
+   let-let*-to-let-define
+   match-absorbing-outer-and
+   struct-from-define-struct-with-default-constructor-name
+   symbols-migration
+   vector-immutableof-migration
+   vector-immutable/c-migration))
