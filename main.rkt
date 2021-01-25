@@ -5,9 +5,9 @@
          racket/file
          racket/path
          rebellion/base/option
-         rebellion/collection/list
          rebellion/private/guarded-block
          rebellion/streaming/transducer
+         resyntax/indentation
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
          resyntax/source-code

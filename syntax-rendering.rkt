@@ -12,34 +12,24 @@
    (-> #:original-syntax (and/c syntax? syntax-original?) #:new-syntax syntax? syntax-replacement?)]
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
-  [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
-  [indent-code (-> immutable-string? natural? natural? immutable-string?)]))
+  [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]))
 
 
 (require (for-syntax racket/base)
-         framework
-         racket/class
          racket/format
          racket/list
          racket/match
-         racket/math
          racket/sequence
-         racket/string
-         rebellion/base/immutable-string
          rebellion/private/guarded-block
          rebellion/private/static-name
          rebellion/type/record
-         rebellion/type/tuple
-         resyntax/source-code
          resyntax/string-replacement
          syntax/parse)
 
 
 (module+ test
   (require (submod "..")
-           racket/port
-           rackunit
-           syntax/modread))
+           rackunit))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -118,21 +108,3 @@
         (copied-string (+ orig-start 10) (+ orig-start 11))
         (inserted-string ")"))))
     (check-equal? (syntax-replacement-render replacement) expected)))
-
-
-(define (indent-code code-string start end)
-  (define text-object (new racket:text%))
-  (send text-object insert code-string)
-  (send text-object set-position start end)
-  (send text-object tabify-selection)
-  (string->immutable-string (send text-object get-text)))
-
-
-(module+ test
-  (test-case "indent-code"
-    (check-equal?
-     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" 19 28)
-     "#lang racket/base\n\n(+ 1\n   2\n   3)\n\n(+ 4\n5\n6)\n")
-    (check-equal?
-     (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" 30 39)
-     "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n   5\n   6)\n")))
