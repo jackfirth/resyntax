@@ -15,10 +15,6 @@
          resyntax/syntax-rendering)
 
 
-(module+ test
-  (require (submod "..")))
-
-
 ;@----------------------------------------------------------------------------------------------------
 
 
@@ -63,6 +59,10 @@
 (define (refactor-directory! path #:rules [rules standard-refactoring-rules])
   (for ([file (in-directory path)] #:when (rkt-path? file))
     (refactor-file! file #:rules rules)))
+
+
+;; Empty test submodule to prevent initialization of the GUI framework via resyntax/indentation
+(module test racket/base)
 
 
 (module+ main

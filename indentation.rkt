@@ -15,7 +15,7 @@
          rebellion/base/immutable-string)
 
 
-(module+ test
+(module+ main
   (require (submod "..")
            rackunit))
 
@@ -31,7 +31,13 @@
   (string->immutable-string (send text-object get-text)))
 
 
-(module+ test
+;; Empty test submodule to prevent initialization of the GUI framework in CI.
+(module test racket/base)
+
+
+;; This test can't be run from CI because of GUI dependencies, so we put it in a main submodule and
+;; only run it manually.
+(module+ main
   (test-case "indent-code"
     (check-equal?
      (indent-code "#lang racket/base\n\n(+ 1\n2\n3)\n\n(+ 4\n5\n6)\n" 19 28)
