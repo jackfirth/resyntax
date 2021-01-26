@@ -27,6 +27,7 @@
          rebellion/base/option
          rebellion/private/guarded-block
          rebellion/type/object
+         resyntax/let-binding
          resyntax/source-code
          resyntax/syntax-rendering
          syntax/id-set
@@ -248,10 +249,6 @@
     (check-true (no-binding-overlap? '() (in-syntax #'(d e f))))))
 
 
-(define-syntax-class let-bindings
-  (pattern ([id:id rhs:expr] ...)))
-
-
 (define-syntax-class body-form
   #:literals (define define-syntax define-values define-syntaxes)
   #:attributes ([bound-id 1])
@@ -285,79 +282,6 @@
     (check-equal? (parse #'(void)) '())))
 
 
-(define-syntax-class refactorable-let-bindings
-  #:attributes (ids [definition 1] unmigratable-bindings fully-migratable?)
-  (pattern ((~and clause [id:id rhs:expr]) ...)
-    #:with ids #'(id ...)
-    #:do [(define id-vec (for/vector ([id-stx (in-syntax #'ids)]) id-stx))
-          (define rhs-vec (for/vector ([rhs-stx (in-syntax #'(rhs ...))]) rhs-stx))
-          (define clause-vec (for/vector ([clause-stx (in-syntax #'(clause ...))]) clause-stx))
-          (define used-ids (syntax-identifiers #'(rhs ...)))
-          (define-values (safe-positions unsafe-positions)
-            (for/fold ([safe '()]
-                       [unsafe '()]
-                       #:result (values (reverse safe) (reverse unsafe)))
-                      ([i (in-naturals)]
-                       [id-stx (in-vector id-vec)])
-              (if (no-binding-overlap? (list id-stx) used-ids)
-                  (values (cons i safe) unsafe)
-                  (values safe (cons i unsafe)))))]
-    #:when (not (empty? safe-positions))
-    #:with (definition ...)
-    (for/list ([pos (in-list safe-positions)])
-      (define id-stx (vector-ref id-vec pos))
-      (define rhs-stx (vector-ref rhs-vec pos))
-      (define total-length (+ (syntax-span id-stx) (syntax-span rhs-stx)))
-      (if (> total-length 90) ;; conservative under-estimate
-          #`(define #,id-stx NEWLINE #,rhs-stx)
-          #`(define #,id-stx #,rhs-stx)))
-    #:with unmigratable-bindings
-    (for/list ([pos (in-list unsafe-positions)]
-               [n (in-naturals)]
-               #:when #true
-               [part
-                (in-list
-                 (if (zero? n)
-                     (list (vector-ref clause-vec pos))
-                     (list #'NEWLINE (vector-ref clause-vec pos))))])
-      part)
-    #:attr fully-migratable? (zero? (length unsafe-positions))))
-
-
-(define-syntax-class refactorable-let-expression
-  #:literals (let)
-  #:attributes (ids [refactored-form 1])
-  (pattern (let bindings:refactorable-let-bindings body:expr ...)
-    #:with ids #'bindings.ids
-    #:with (refactored-form ...)
-    (if (attribute bindings.fully-migratable?)
-        #'((~@ NEWLINE bindings.definition) ...
-           (~@ NEWLINE body) ...)
-        #'((~@ NEWLINE bindings.definition) ...
-           NEWLINE (let bindings.unmigratable-bindings
-                     (~@ NEWLINE body) ...)))))
-
-
-(define-syntax-class let-binding-clause
-  #:attributes (id rhs definition)
-  (pattern [id:id rhs:expr]
-    #:with definition
-    (if (> (+ (syntax-span #'id) (syntax-span #'rhs)) 90) ;; conservative under-estimate
-        #'(define id NEWLINE rhs)
-        #'(define id rhs))))
-    
-
-;; TODO: make this recognize cases where some bindings can't be migrated, like we do for let.
-(define-syntax-class refactorable-let*-expression
-  #:literals (let*)
-  #:attributes ([id 1] [refactored-form 1])
-  (pattern (let* (clause:let-binding-clause ...) body:expr ...)
-    #:with (id ...) #'(clause.id ...)
-    #:with (refactored-form ...)
-    #'((~@ NEWLINE clause.definition) ...
-       (~@ NEWLINE body) ...)))
-
-
 ;; TODO: make this recognize cases where some bindings can't be migrated, like we do for let.
 (define-syntax-class refactorable-let-values-expression
   #:literals (let-values)
@@ -373,10 +297,8 @@
 
 (define-refactoring-rule define-let-to-define-define
   #:literals (define)
-  [(define header:function-header forms:body-forms let-expr:refactorable-let-expression)
-   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'header.params))
-   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
-   (define header forms.formatted-form ... let-expr.refactored-form ...)])
+  [(define header:function-header let-expr:refactorable-let-expression)
+   (define header let-expr.refactored ...)])
 
 
 (define-refactoring-rule define-let-values-to-define-define-values
@@ -389,10 +311,10 @@
 
 (define-refactoring-rule and-let-to-cond-define
   #:literals (and let)
-  [(and guard-expr let-expr:refactorable-let-expression)
+  [(and guard-expr (~and let-form (let header body ...)))
    (cond
      NEWLINE [(not guard-expr) #false]
-     NEWLINE [else let-expr.refactored-form ...])])
+     NEWLINE [else NEWLINE let-form])])
 
 
 (define-syntax-class cond-clause
@@ -407,13 +329,11 @@
   #:attributes ([refactored 1])
   #:literals (else =>)
 
-  (pattern [else forms:body-forms let-expr:refactorable-let-expression]
-    #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
-    #:with (refactored ...) #'(NEWLINE [else forms.formatted-form ... let-expr.refactored-form ...]))
+  (pattern [else let-expr:refactorable-let-expression]
+    #:with (refactored ...) #'(NEWLINE [else let-expr.refactored ...]))
   
-  (pattern (~and [expr forms:body-forms let-expr:refactorable-let-expression] (~not [expr => _ ...]))
-    #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
-    #:with (refactored ...) #'(NEWLINE [expr forms.formatted-form ... let-expr.refactored-form ...])))
+  (pattern (~and [expr let-expr:refactorable-let-expression] (~not [expr => _ ...]))
+    #:with (refactored ...) #'(NEWLINE [expr let-expr.refactored ...])))
 
 
 (define-refactoring-rule cond-let-to-cond-define
@@ -428,52 +348,42 @@
      clause-after.formatted ... ...)])
 
 
-(define-refactoring-rule if-then-let-else-let-to-cond-define
-  #:literals (if else let)
-  [(if condition
-       then-let-expr:refactorable-let-expression
-       else-let-expr:refactorable-let-expression)
-   (cond
-     NEWLINE [condition then-let-expr.refactored-form ...]
-     NEWLINE [else else-let-expr.refactored-form ...])])
-
-
 (define-refactoring-rule if-then-let-to-cond-define
   #:literals (if else let)
   [(if condition
-       let-expr:refactorable-let-expression
-       then-expr)
+       (~and let-form (let header body ...))
+       else-expr)
    (cond
-     NEWLINE [condition let-expr.refactored-form ...]
-     NEWLINE [else NEWLINE then-expr])])
+     NEWLINE [condition NEWLINE let-form]
+     NEWLINE [else NEWLINE else-expr])])
 
 
 (define-refactoring-rule if-else-let-to-cond-define
   #:literals (if else let)
   [(if condition
        then-expr
-       let-expr:refactorable-let-expression)
+       (~and let-form (let header body ...)))
    (cond
      NEWLINE [condition NEWLINE then-expr]
-     NEWLINE [else let-expr.refactored-form ...])])
+     NEWLINE [else NEWLINE let-form])])
+
+
+(define-refactoring-rule let*-once-to-let
+  #:literals (let*)
+  [(let* (~and header ([id:id rhs:expr])) body ...)
+   (let header body ...)])
 
 
 (define-refactoring-rule let-let-to-let-define
   #:literals (let)
-  [(let (~optional name:id) header:let-bindings
-     forms:body-forms
-     let-expr:refactorable-let-expression)
-   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
-   (let (~? name) header forms.formatted-form ... let-expr.refactored-form ...)])
+  [(let (~optional name:id) header let-expr:refactorable-let-expression)
+   (let (~? name) header let-expr.refactored ...)])
 
 
-(define-refactoring-rule let-let*-to-let-define
-  #:literals (let let*)
-  [(let (~optional name:id) header:let-bindings
-     forms:body-forms
-     let-expr:refactorable-let*-expression)
-   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ...)) (in-syntax #'(forms.bound-id ...)))
-   (let (~? name) header forms.formatted-form ... let-expr.refactored-form ...)])
+(define-refactoring-rule let*-let-to-let*-define
+  #:literals (let*)
+  [(let* header let-expr:refactorable-let-expression)
+   (let* header let-expr.refactored ...)])
 
 
 ;; λ and lambda aren't free-identifier=?. Additionally, by using a syntax class instead of #:literals
@@ -486,10 +396,8 @@
 
 
 (define-refactoring-rule lambda-let-to-lambda-define
-  [(lambda:lambda-by-any-name formals:formals forms:body-forms let-expr:refactorable-let-expression)
-   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (in-syntax #'(forms.bound-id ...)))
-   #:when (no-binding-overlap? (in-syntax #'let-expr.ids) (syntax-identifiers #'formals))
-   (lambda formals forms.formatted-form ... let-expr.refactored-form ...)])
+  [(lambda:lambda-by-any-name formals:formals let-expr:refactorable-let-expression)
+   (lambda formals let-expr.refactored ...)])
 
 
 (define-refactoring-rule lambda-let-values-to-lambda-define-values
@@ -524,13 +432,13 @@
    flat-contract-migration
    flat-contract-predicate-migration
    if-then-cond-to-cond
-   if-then-let-else-let-to-cond-define
    if-then-let-to-cond-define
    if-else-let-to-cond-define
    lambda-let-to-lambda-define
    lambda-let-values-to-lambda-define-values
    let-let-to-let-define
-   let-let*-to-let-define
+   let*-let-to-let*-define
+   let*-once-to-let
    match-absorbing-outer-and
    struct-from-define-struct-with-default-constructor-name
    symbols-migration
