@@ -142,17 +142,6 @@
    (struct id fields #:extra-constructor-name make-id)])
 
 
-(define-syntax-class cond-condition-clause
-  #:literals (cond else)
-  (pattern [(~and condition (~not else)) body ...+]))
-
-
-(define-refactoring-rule cond-mandatory-else
-  #:literals (cond else)
-  [(cond clause:cond-condition-clause ...)
-   (cond (~@ NEWLINE clause) ... NEWLINE [else (void)])])
-
-
 (define/guard (free-identifiers=? ids other-ids)
   (define id-list (syntax->list ids))
   (define other-id-list (syntax->list other-ids))
@@ -162,7 +151,13 @@
     (free-identifier=? id other-id)))
 
 
-(define-refactoring-rule define-from-case-lambda
+(define-refactoring-rule define-lambda-to-define
+  #:literals (define lambda)
+  [(define header (lambda formals body ...))
+   (define (header . formals) (~@ NEWLINE body) ...)])
+
+
+(define-refactoring-rule define-case-lambda-to-define
   #:literals (define case-lambda)
   [(define id:id
      (case-lambda
@@ -177,7 +172,7 @@
      (~@ NEWLINE body) ...)])
 
 
-(define-refactoring-rule cond-from-if-then-begin
+(define-refactoring-rule if-then-begin-to-cond
   #:literals (if begin)
   [(if condition (begin then-body ...) else-branch)
    (cond
@@ -185,7 +180,7 @@
      NEWLINE [else NEWLINE else-branch])])
 
 
-(define-refactoring-rule cond-from-if-else-begin
+(define-refactoring-rule if-else-begin-to-cond
   #:literals (if begin)
   [(if condition then-branch (begin else-body ...))
    (cond
@@ -193,7 +188,7 @@
      NEWLINE [else (~@ NEWLINE else-body) ...])])
 
 
-(define-refactoring-rule if-then-cond-to-cond
+(define-refactoring-rule if-else-cond-to-cond
   #:literals (if cond)
   [(if condition then-branch (cond clause ...))
    (cond
@@ -201,7 +196,60 @@
      (~@ NEWLINE clause) ...)])
 
 
-(define-refactoring-rule match-absorbing-outer-and
+(define-refactoring-rule if-else-if-to-cond
+  #:literals (if)
+  [(if condition then-branch (if inner-condition inner-then-branch else-branch))
+   (cond
+     NEWLINE [condition NEWLINE then-branch]
+     NEWLINE [inner-condition NEWLINE inner-then-branch]
+     NEWLINE [else else-branch])])
+
+
+(define-refactoring-rule cond-else-if-to-cond
+  #:literals (cond else if)
+  [(cond clause ... [else (if inner-condition inner-then-branch else-branch)])
+   (cond
+     (~@ NEWLINE clause) ...
+     NEWLINE [inner-condition NEWLINE inner-then-branch]
+     NEWLINE [else NEWLINE else-branch])])
+
+
+(define-refactoring-rule cond-begin-to-cond
+  #:literals (cond begin)
+  [(cond clause-before ...
+         [condition (begin body ...)]
+         clause-after ...)
+   (cond
+     (~@ NEWLINE clause-before) ...
+     NEWLINE [condition (~@ NEWLINE body) ...]
+     (~@ NEWLINE clause-after) ...)])
+
+
+(define-refactoring-rule or-cond-to-cond
+  #:literals (or cond)
+  [(or condition (cond clause ...))
+   (cond
+     NEWLINE [condition #t]
+     (~@ NEWLINE clause) ...)])
+
+
+(define-refactoring-rule or-or-to-or
+  #:literals (or)
+  [(or first-clause clause ... (or inner-clause ...))
+   (or first-clause
+       (~@ NEWLINE clause) ...
+       (~@ NEWLINE inner-clause) ...)])
+
+
+(define-refactoring-rule and-and-to-and
+  #:literals (and)
+  [(and first-clause clause ... (and inner-clause ...))
+   (and first-clause
+        (~@ NEWLINE clause) ...
+        (~@ NEWLINE inner-clause) ...)])
+
+
+(define-refactoring-rule and-match-to-match
   #:literals (and match)
   [(and and-subject:id (match match-subject:id match-clause ...))
    #:when (free-identifier=? #'and-subject #'match-subject)
@@ -411,36 +459,56 @@
    (lambda formals forms.formatted-form ... let-expr.refactored-form ...)])
 
 
+(define-refactoring-rule when-let-to-when-define
+  #:literals (when)
+  [(when condition:expr let-expr:refactorable-let-expression)
+   (when condition let-expr.refactored ...)])
+
+
+(define-refactoring-rule unless-let-to-unless-define
+  #:literals (unless)
+  [(unless condition:expr let-expr:refactorable-let-expression)
+   (unless condition let-expr.refactored ...)])
+
+
 ;@----------------------------------------------------------------------------------------------------
 ;; STANDARD RULE LIST
 
 
 (define standard-refactoring-rules
   (list
+   and-and-to-and
    and-let-to-cond-define
+   and-match-to-match
    box-immutable/c-migration
+   cond-begin-to-cond
+   cond-else-if-to-cond
    cond-let-to-cond-define
-   cond-from-if-then-begin
-   cond-from-if-else-begin
-   cond-mandatory-else
    contract-struct-migration
+   define-case-lambda-to-define
    define-contract-struct-migration
-   define-from-case-lambda
+   define-lambda-to-define
    define-let-to-define-define
    define-let-values-to-define-define-values
    false/c-migration
    flat-contract-migration
    flat-contract-predicate-migration
-   if-then-cond-to-cond
+   if-then-begin-to-cond
    if-then-let-to-cond-define
+   if-else-begin-to-cond
+   if-else-cond-to-cond
+   if-else-if-to-cond
    if-else-let-to-cond-define
    lambda-let-to-lambda-define
    lambda-let-values-to-lambda-define-values
    let-let-to-let-define
    let*-let-to-let*-define
    let*-once-to-let
-   match-absorbing-outer-and
+   or-cond-to-cond
+   or-or-to-or
    struct-from-define-struct-with-default-constructor-name
    symbols-migration
+   unless-let-to-unless-define
    vector-immutableof-migration
-   vector-immutable/c-migration))
+   vector-immutable/c-migration
+   when-let-to-when-define))
