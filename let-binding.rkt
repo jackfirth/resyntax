@@ -1,4 +1,4 @@
-#lang debug racket/base
+#lang racket/base
 
 
 (provide refactorable-let-expression)
@@ -10,10 +10,14 @@
          racket/set
          racket/syntax
          racket/vector
+         rebellion/base/option
          rebellion/collection/entry
          rebellion/private/guarded-block
          rebellion/private/static-name
+         rebellion/streaming/reducer
+         rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/graph
          resyntax/syntax-rendering
          syntax/id-set
          syntax/parse
@@ -418,19 +422,18 @@
               (+ a b x c))))
         (check-equal? (parse stx) expected))
 
-    ;; TODO: get this to work
-    #;(test-case "refactorable let bindings colliding with later self binding"
-        (define stx #'((let ([a c] [b c] [c c]) (+ a b c))))
-        (define expected
-          '(NEWLINE
-            (define a c)
+    (test-case "refactorable let bindings colliding with later self binding"
+      (define stx #'((let ([a c] [b c] [c c]) (+ a b c))))
+      (define expected
+        '(NEWLINE
+          (define a c)
+          NEWLINE
+          (define b c)
+          NEWLINE
+          (let ([c c])
             NEWLINE
-            (define b c)
-            NEWLINE
-            (let ([c c])
-              NEWLINE
-              (+ a b c))))
-        (check-equal? (parse stx) expected))))
+            (+ a b c))))
+      (check-equal? (parse stx) expected))))
 
 
 (define-syntax-class refactorable-let-bindings
@@ -444,11 +447,11 @@
     #:do
     [(define parsed-clauses (vector->immutable-vector (list->vector (attribute clause.parsed))))
      (define deps (let-binding-clause-dependencies parsed-clauses))
+     (define depgraph (edges->graph deps #:vertex-count (vector-length parsed-clauses)))
      (define graph
        (parsed-binding-graph
         #:clauses parsed-clauses
-        #:dependency-matrix (dependency-matrix deps (vector-length parsed-clauses))
-        #:reverse-dependency-matrix (reverse-dependency-matrix deps (vector-length parsed-clauses))))
+        #:dependencies depgraph))
      (define split (let-binding-graph-split graph))]
     #:when (split-bindings-changed? split)
     #:attr fully-refactorable? (split-bindings-fully-refactorable? split)
@@ -470,11 +473,11 @@
     #:do
     [(define parsed-clauses (vector->immutable-vector (list->vector (attribute clause.parsed))))
      (define deps (let-binding-clause-dependencies parsed-clauses))
+     (define depgraph (edges->graph deps #:vertex-count (vector-length parsed-clauses)))
      (define graph
        (parsed-binding-graph
         #:clauses parsed-clauses
-        #:dependency-matrix (dependency-matrix deps (vector-length parsed-clauses))
-        #:reverse-dependency-matrix (reverse-dependency-matrix deps (vector-length parsed-clauses))))
+        #:dependencies depgraph))
      (define split (let*-binding-graph-split graph))]
     #:when (split-bindings-changed? split)
     #:attr fully-refactorable? (split-bindings-fully-refactorable? split)
@@ -549,7 +552,7 @@
   (not (no-binding-overlap? dependant-references (list dependency-id))))
 
 
-(define-record-type parsed-binding-graph (clauses dependency-matrix reverse-dependency-matrix))
+(define-record-type parsed-binding-graph (clauses dependencies))
 
 
 (define (let-binding-clause-dependencies clauses)
@@ -557,99 +560,76 @@
               [(dependency j) (in-indexed (in-vector clauses))]
               #:when (binding-clause-depends-on? dependant dependency))
     (entry i j)))
-
-
-(define (let*-binding-clause-reverse-dependencies clauses)
-  (for*/list ([(dependant i) (in-indexed (in-vector clauses))]
-              [j (in-range 0 (add1 i))]
-              [dependency (in-value (vector-ref clauses j))]
-              #:when (binding-clause-depends-on? dependant dependency))
-    (entry j i)))
-
-
-(define (dependency-matrix edges num-vertices)
-  (define dep-vectors (make-vector num-vertices #()))
-  (define (add! i depstack)
-    (vector-set! dep-vectors i (vector->immutable-vector (list->vector (reverse depstack)))))
-  (for/fold ([i 0]
-             [current-depstack '()]
-             #:result (add! i current-depstack))
-            ([edge (in-list edges)])
-    (match-define (entry dependant dependency) edge)
-    (cond
-      [(equal? i dependant) (values i (cons dependency current-depstack))]
-      [else
-       (add! i current-depstack)
-       (values dependant (list dependency))]))
-  (vector->immutable-vector dep-vectors))
-
-
-(define (reverse-dependency-matrix edges num-vertices)
-  (define reversed-edges
-    (for/list ([edge (in-list edges)])
-      (match-define (entry dependant dependency) edge)
-      (entry dependency dependant)))
-  (dependency-matrix reversed-edges num-vertices))
-
-
-(define (vector-last vec)
-  (vector-ref vec (sub1 (vector-length vec))))
     
 
 (define-record-type split-bindings (before-cycles cycles after-cycles changed?))
 
 
-(define (let-binding-graph-split graph)
+(define/guard (let-binding-graph-split graph)
   (define binding-count (vector-length (parsed-binding-graph-clauses graph)))
+  (define cycle-indices (graph-cycle-vertices (parsed-binding-graph-dependencies graph)))
+  (define changed? (not (equal? (length cycle-indices) binding-count)))
+  (guard (empty? cycle-indices) then
+    (split-bindings
+     #:before-cycles (vector->list (parsed-binding-graph-clauses graph))
+     #:cycles '()
+     #:after-cycles '()
+     #:changed? changed?))
+  (define cycle-start-index (transduce cycle-indices #:into (nonempty-into-min)))
+  (define cycle-end-index (add1 (transduce cycle-indices #:into (nonempty-into-max))))
   (define before-cycles
-    (for*/list ([i (in-range 0 binding-count)]
-                [dep-vector (in-value (vector-ref (parsed-binding-graph-dependency-matrix graph) i))]
-                #:break (and (not (vector-empty? dep-vector)) (>= (vector-last dep-vector) i)))
+    (for/list ([i (in-range 0 cycle-start-index)])
       (vector-ref (parsed-binding-graph-clauses graph) i)))
-  (define cycle-start-index (length before-cycles))
-  (define after-cycles
-    (reverse
-     (for*/list ([i (in-range (sub1 binding-count) (sub1 cycle-start-index) -1)]
-                 [dep-vector
-                  (in-value (vector-ref (parsed-binding-graph-reverse-dependency-matrix graph) i))]
-                 #:break (and (not (vector-empty? dep-vector)) (<= (vector-ref dep-vector 0) i)))
-       (vector-ref (parsed-binding-graph-clauses graph) i))))
-  (define cycle-end-index (- binding-count (length after-cycles)))
   (define cycles
     (for/list ([i (in-range cycle-start-index cycle-end-index)])
+      (vector-ref (parsed-binding-graph-clauses graph) i)))
+  (define after-cycles
+    (for/list ([i (in-range cycle-end-index binding-count)])
       (vector-ref (parsed-binding-graph-clauses graph) i)))
   (split-bindings
    #:before-cycles before-cycles
    #:cycles cycles
    #:after-cycles after-cycles
-   #:changed? (not (equal? (length cycles) binding-count))))
+   #:changed? changed?))
 
 
-(define (let*-binding-graph-split graph)
+(define/guard (let*-binding-graph-split graph)
   (define binding-count (vector-length (parsed-binding-graph-clauses graph)))
+  (define (referenced-by-earlier? i)
+    (define earliest-predecessor
+      (transduce (graph-predecessors (parsed-binding-graph-dependencies graph) i) #:into into-first))
+    (match earliest-predecessor
+      [(present s) (<= s i)]
+      [_ #false]))
+  (define cycle-start-index-opt
+    (transduce (in-range 0 binding-count)
+               (filtering referenced-by-earlier?)
+               #:into into-first))
+  (guard-match (present cycle-start-index) cycle-start-index-opt else
+    (split-bindings
+     #:before-cycles (vector->list (parsed-binding-graph-clauses graph))
+     #:cycles '()
+     #:after-cycles '()
+     #:changed? (positive? binding-count)))
+  (define cycle-end-index
+    (add1
+     (transduce (in-range (sub1 binding-count) -1 -1)
+                (filtering referenced-by-earlier?)
+                #:into nonempty-into-first)))
   (define before-cycles
-    (for*/list ([i (in-range 0 binding-count)]
-                [dep-vector
-                 (in-value (vector-ref (parsed-binding-graph-reverse-dependency-matrix graph) i))]
-                #:break (and (not (vector-empty? dep-vector)) (<= (vector-ref dep-vector 0) i)))
+    (for/list ([i (in-range 0 cycle-start-index)])
       (vector-ref (parsed-binding-graph-clauses graph) i)))
-  (define cycle-start-index (length before-cycles))
-  (define after-cycles
-    (reverse
-     (for*/list ([i (in-range (sub1 binding-count) (sub1 cycle-start-index) -1)]
-                 [dep-vector
-                  (in-value (vector-ref (parsed-binding-graph-reverse-dependency-matrix graph) i))]
-                 #:break (and (not (vector-empty? dep-vector)) (<= (vector-ref dep-vector 0) i)))
-       (vector-ref (parsed-binding-graph-clauses graph) i))))
-  (define cycle-end-index (- binding-count (length after-cycles)))
   (define cycles
     (for/list ([i (in-range cycle-start-index cycle-end-index)])
+      (vector-ref (parsed-binding-graph-clauses graph) i)))
+  (define after-cycles
+    (for/list ([i (in-range cycle-end-index binding-count)])
       (vector-ref (parsed-binding-graph-clauses graph) i)))
   (split-bindings
    #:before-cycles before-cycles
    #:cycles cycles
    #:after-cycles after-cycles
-   #:changed? (not (equal? (length cycles) binding-count))))
+   #:changed? (or (not (empty? before-cycles)) (not (empty? after-cycles)))))
 
 
 (define (split-bindings-fully-refactorable? split)
@@ -720,15 +700,3 @@
     (check-equal? (parse #'(define-syntaxes (a b c) 42)) (list 'a 'b 'c))
     (check-equal? (parse #'(void)) '())))
 
-
-(define (parse-let*-binding-graph stx)
-  (syntax-parse stx
-    [(clause:binding-clause ...)
-     (define parsed-clauses (vector->immutable-vector (list->vector (attribute clause.parsed))))
-     (define deps (let-binding-clause-dependencies parsed-clauses))
-     (define graph
-       (parsed-binding-graph
-        #:clauses parsed-clauses
-        #:dependency-matrix (dependency-matrix deps (vector-length parsed-clauses))
-        #:reverse-dependency-matrix (reverse-dependency-matrix deps (vector-length parsed-clauses))))
-     (let*-binding-graph-split graph)]))

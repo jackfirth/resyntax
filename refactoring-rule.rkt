@@ -371,7 +371,7 @@
 (define-refactoring-rule let*-once-to-let
   #:literals (let*)
   [(let* (~and header ([id:id rhs:expr])) body ...)
-   (let header body ...)])
+   (let header (~@ NEWLINE body) ...)])
 
 
 (define-refactoring-rule let-let-to-let-define

@@ -67,4 +67,4 @@
 
 (module+ main
   (refactor-file!
-   "/Users/jackfirth/Documents/GitHub/scribble/scribble-lib/scribble/search.rkt" #:passes 4))
+   "/Users/jackfirth/Documents/GitHub/scribble/scribble-lib/scribble/search.rkt" #:passes 20))
