@@ -29,7 +29,7 @@
          rebellion/type/object
          resyntax/let-binding
          resyntax/source-code
-         resyntax/syntax-rendering
+         resyntax/syntax-replacement
          syntax/id-set
          syntax/parse
          syntax/parse/define

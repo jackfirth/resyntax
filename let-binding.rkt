@@ -18,7 +18,7 @@
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/graph
-         resyntax/syntax-rendering
+         resyntax/syntax-replacement
          syntax/id-set
          syntax/parse
          syntax/parse/lib/function-header

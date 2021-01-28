@@ -12,7 +12,7 @@
          (submod resyntax/refactoring-rule private)
          resyntax/source-code
          resyntax/string-replacement
-         resyntax/syntax-rendering)
+         resyntax/syntax-replacement)
 
 
 ;@----------------------------------------------------------------------------------------------------
