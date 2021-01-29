@@ -18,6 +18,17 @@
 
 (require (for-syntax racket/base)
          fancy-app
+         (only-in racket/class
+                  define/augment
+                  define/augment-final
+                  define/augride
+                  define/overment
+                  define/override
+                  define/override-final
+                  define/public
+                  define/public-final
+                  define/pubment
+                  define/private)
          racket/list
          racket/match
          racket/sequence
@@ -262,99 +273,72 @@
 ;; DEFINITION CONTEXT RULES
 
 
-(define (sequence->bound-id-set ids)
-  (immutable-bound-id-set (list->set (sequence->list ids))))
+(define-refactoring-rule let-to-define
+  [(header:header-form-allowing-internal-definitions let-expr:refactorable-let-expression)
+   (header.formatted ... let-expr.refactored ...)])
 
 
-(define/guard (syntax-identifiers stx)
-  (guard (identifier? stx) then
-    (list stx))
-  (guard (stx-list? stx) else
-    (list))
-  (for*/list ([substx (in-syntax stx)]
-              [subid (in-list (syntax-identifiers substx))])
-    subid))
+(define-splicing-syntax-class header-form-allowing-internal-definitions
+  #:attributes ([formatted 1])
+  #:literals (let let* let-values when unless)
+
+  (pattern (~seq lambda:lambda-by-any-name ~! formals:formals)
+    #:with (formatted ...) #'(lambda formals))
+
+  (pattern (~seq define:define-by-any-name ~! header:function-header)
+    #:with (formatted ...) #'(define header))
+
+  (pattern (~seq let ~! (~optional name:id) header)
+    #:with (formatted ...) #'(let (~? name) header))
+
+  (pattern (~seq let* ~! header)
+    #:with (formatted ...) #'(let* header))
+
+  (pattern (~seq let-values ~! header)
+    #:with (formatted ...) #'(let-values header))
+
+  (pattern (seq when ~! condition)
+    #:with (formatted ...) #'(when condition))
+
+  (pattern (seq unless ~! condition)
+    #:with (formatted ...) #'(unless condition)))
 
 
-(module+ test
-  (test-case "syntax-identifiers"
-    (check-equal?
-     (map syntax->datum (syntax-identifiers #'(hello (darkness #:my old) friend)))
-     (list 'hello 'darkness 'old 'friend))))
+;; λ and lambda aren't free-identifier=?. Additionally, by using a syntax class instead of #:literals
+;; we can produce the same lambda identifier that the input syntax had instead of changing all lambda
+;; identfiers to one of the two cases. There doesn't seem to be a strong community consensus on which
+;; name should be used, so we want to avoid changing the original code's choice.
+(define-syntax-class lambda-by-any-name
+  #:literals (λ lambda)
+  (pattern (~or λ lambda)))
 
 
-(define (no-binding-overlap? ids other-ids)
-  (define id-set (sequence->bound-id-set ids))
-  (define other-id-set (sequence->bound-id-set other-ids))
-  (bound-id-set-empty? (bound-id-set-intersect id-set other-id-set)))
-
-
-(module+ test
-  (test-case "no-binding-overlap?"
-    (check-true (no-binding-overlap? (in-syntax #'(a b c)) (in-syntax #'(d e f))))
-    (check-false (no-binding-overlap? (in-syntax #'(a b c)) (in-syntax #'(c d e))))
-    (check-true (no-binding-overlap? (in-syntax #'(a b c)) '()))
-    (check-true (no-binding-overlap? '() (in-syntax #'(d e f))))))
-
-
-(define-syntax-class body-form
-  #:literals (define define-syntax define-values define-syntaxes)
-  #:attributes ([bound-id 1])
-  (pattern (define id:id ~! _) #:with (bound-id ...) #'(id))
-  (pattern (define header:function-header ~! _ ...) #:with (bound-id ...) #'(header.name))
-  (pattern (define-syntax id:id ~! _) #:with (bound-id ...) #'(id))
-  (pattern (define-syntax header:function-header ~! _ ...) #:with (bound-id ...) #'(header.name))
-  (pattern (define-values ~! (bound-id:id ...) _))
-  (pattern (define-syntaxes ~! (bound-id:id ...) _))
-  (pattern _ #:with (bound-id ...) #'()))
-
-
-(define-splicing-syntax-class body-forms
-  #:attributes ([bound-id 1] [formatted-form 1])
-  (pattern (~seq form:body-form ...)
-    #:with (bound-id ...) #'(form.bound-id ... ...)
-    #:with (formatted-form ...) #'((~@ NEWLINE form) ...)))
-
-
-(module+ test
-  (test-case "body-form"
-    (define (parse stx) (syntax-parse stx [form:body-form (syntax->datum #'(form.bound-id ...))]))
-    (check-equal? (parse #'(define a 42)) (list 'a))
-    (check-equal? (parse #'(define (f a b c) 42)) (list 'f))
-    (check-equal? (parse #'(define (((f a) b) c) 42)) (list 'f))
-    (check-equal? (parse #'(define-syntax a 42)) (list 'a))
-    (check-equal? (parse #'(define-syntax (f a b c) 42)) (list 'f))
-    (check-equal? (parse #'(define-syntax (((f a) b) c) 42)) (list 'f))
-    (check-equal? (parse #'(define-values (a b c) 42)) (list 'a 'b 'c))
-    (check-equal? (parse #'(define-syntaxes (a b c) 42)) (list 'a 'b 'c))
-    (check-equal? (parse #'(void)) '())))
-
-
-;; TODO: make this recognize cases where some bindings can't be migrated, like we do for let.
-(define-syntax-class refactorable-let-values-expression
-  #:literals (let-values)
-  #:attributes ([id 2] [refactored-form 1])
-  (pattern (let-values ([(~and id-list (id:id ...)) rhs:expr] ...) body:expr ...)
-    #:with (refactored-form ...)
-    ;; We always split define-values into at least two lines since they seem to be longer forms in
-    ;; practice. This is kind of a rough guess though, and maybe should be changed to be more like the
-    ;; other definition forms where we only split if they're too long.
-    #'((~@ NEWLINE (define-values id-list NEWLINE rhs)) ...
-       (~@ NEWLINE body) ...)))
-
-
-(define-refactoring-rule define-let-to-define-define
-  #:literals (define)
-  [(define header:function-header let-expr:refactorable-let-expression)
-   (define header let-expr.refactored ...)])
-
-
-(define-refactoring-rule define-let-values-to-define-define-values
-  #:literals (define let-values)
-  [(define header:function-header forms:body-forms let-expr:refactorable-let-values-expression)
-   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (in-syntax #'header.params))
-   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (in-syntax #'(forms.bound-id ...)))
-   (define header forms.formatted-form ... let-expr.refactored-form ...)])
+;; There's a lot of variants of define that support the same grammar but have different meanings. We
+;; can recognize and refactor all of them with this syntax class.
+(define-syntax-class define-by-any-name
+  #:literals (define
+               define/augment
+               define/augment-final
+               define/augride
+               define/overment
+               define/override
+               define/override-final
+               define/public
+               define/public-final
+               define/pubment
+               define/private)
+  (pattern
+      (~or define
+           define/augment
+           define/augment-final
+           define/augride
+           define/overment
+           define/override
+           define/override-final
+           define/public
+           define/public-final
+           define/pubment
+           define/private)))
 
 
 (define-refactoring-rule and-let-to-cond-define
@@ -422,55 +406,6 @@
    (let header (~@ NEWLINE body) ...)])
 
 
-(define-refactoring-rule let-let-to-let-define
-  #:literals (let)
-  [(let (~optional name:id) header let-expr:refactorable-let-expression)
-   (let (~? name) header let-expr.refactored ...)])
-
-
-(define-refactoring-rule let*-let-to-let*-define
-  #:literals (let*)
-  [(let* header let-expr:refactorable-let-expression)
-   (let* header let-expr.refactored ...)])
-
-
-;; λ and lambda aren't free-identifier=?. Additionally, by using a syntax class instead of #:literals
-;; we can produce the same lambda identifier that the input syntax had instead of changing all lambda
-;; identfiers to one of the two cases. There doesn't seem to be a strong community consensus on which
-;; name should be used, so we want to avoid changing the original code's choice.
-(define-syntax-class lambda-by-any-name
-  #:literals (λ lambda)
-  (pattern (~or λ lambda)))
-
-
-(define-refactoring-rule lambda-let-to-lambda-define
-  [(lambda:lambda-by-any-name formals:formals let-expr:refactorable-let-expression)
-   (lambda formals let-expr.refactored ...)])
-
-
-(define-refactoring-rule lambda-let-values-to-lambda-define-values
-  #:literals (let-values)
-  [(lambda:lambda-by-any-name
-    formals:formals
-    forms:body-forms
-    let-expr:refactorable-let-values-expression)
-   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (in-syntax #'(forms.bound-id ...)))
-   #:when (no-binding-overlap? (in-syntax #'(let-expr.id ... ...)) (syntax-identifiers #'formals))
-   (lambda formals forms.formatted-form ... let-expr.refactored-form ...)])
-
-
-(define-refactoring-rule when-let-to-when-define
-  #:literals (when)
-  [(when condition:expr let-expr:refactorable-let-expression)
-   (when condition let-expr.refactored ...)])
-
-
-(define-refactoring-rule unless-let-to-unless-define
-  #:literals (unless)
-  [(unless condition:expr let-expr:refactorable-let-expression)
-   (unless condition let-expr.refactored ...)])
-
-
 ;@----------------------------------------------------------------------------------------------------
 ;; STANDARD RULE LIST
 
@@ -488,8 +423,6 @@
    define-case-lambda-to-define
    define-contract-struct-migration
    define-lambda-to-define
-   define-let-to-define-define
-   define-let-values-to-define-define-values
    false/c-migration
    flat-contract-migration
    flat-contract-predicate-migration
@@ -499,16 +432,11 @@
    if-else-cond-to-cond
    if-else-if-to-cond
    if-else-let-to-cond-define
-   lambda-let-to-lambda-define
-   lambda-let-values-to-lambda-define-values
-   let-let-to-let-define
-   let*-let-to-let*-define
+   let-to-define
    let*-once-to-let
    or-cond-to-cond
    or-or-to-or
    struct-from-define-struct-with-default-constructor-name
    symbols-migration
-   unless-let-to-unless-define
    vector-immutableof-migration
-   vector-immutable/c-migration
-   when-let-to-when-define))
+   vector-immutable/c-migration))

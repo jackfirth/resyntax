@@ -9,7 +9,6 @@
          racket/sequence
          racket/set
          racket/syntax
-         racket/vector
          rebellion/base/option
          rebellion/collection/entry
          rebellion/private/guarded-block
@@ -35,7 +34,7 @@
 
 (define-splicing-syntax-class refactorable-let-expression
   #:attributes ([refactored 1])
-  #:literals (let let*)
+  #:literals (let let-values let*)
 
   (pattern
       (~seq leading-body:body-forms (let ~! bindings:refactorable-let-bindings inner-body:body-forms))
@@ -54,6 +53,26 @@
            NEWLINE (let bindings.unrefactorable
                      bindings.inner-definition ...
                      inner-body.formatted ...))))
+
+  (pattern
+        (~seq
+         leading-body:body-forms
+         (let-values ~! bindings:refactorable-let-bindings inner-body:body-forms))
+    
+      #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
+                                  (in-syntax #'(bindings.outer-bound-id ...)))
+      #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
+                                  (in-syntax #'(bindings.inner-bound-id ...)))
+      #:with (refactored ...)
+      (if (attribute bindings.fully-refactorable?)
+          #'(leading-body.formatted ...
+             bindings.outer-definition ...
+             inner-body.formatted ...)
+          #'(leading-body.formatted ...
+             bindings.outer-definition ...
+             NEWLINE (let-values bindings.unrefactorable
+                       bindings.inner-definition ...
+                       inner-body.formatted ...))))
 
   (pattern
       (~seq
@@ -83,11 +102,20 @@
         [(let-expr:refactorable-let-expression) (syntax->datum #'(let-expr.refactored ...))]
         [_ #false]))
 
-    (check-equal? (parse #'((let ([a 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
-    (check-equal? (parse #'((let* ([a 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
-    (check-false (parse #'((let ([a a]) a))))
-    (check-false (parse #'((let* ([a a]) a))))
+    (test-case "basic let forms"
+      (check-equal? (parse #'((let ([a 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
+      (check-false (parse #'((let ([a a]) a)))))
 
+    (test-case "basic let* forms"
+      (check-equal? (parse #'((let* ([a 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
+      (check-false (parse #'((let* ([a a]) a)))))
+
+    (test-case "basic let-values forms"
+      (check-equal? (parse #'((let-values ([(a) 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
+      (check-equal? (parse #'((let-values ([(a b) 1]) a))) '(NEWLINE (define-values (a b) 1) NEWLINE a))
+      (check-false (parse #'((let-values ([(a) a]) a))))
+      (check-false (parse #'((let-values ([(a b) a]) a)))))
+    
     (test-case "multiple unrelated let bindings"
       (define stx #'((let ([a 1] [b 2] [c 3]) (+ a b c))))
       (define expected
@@ -524,7 +552,7 @@
 
 
 (define-record-type parsed-binding-clause
-  (original bound-identifier right-hand-side referenced-identifiers))
+  (original bound-identifiers identifier-side right-hand-side referenced-identifiers))
 
 
 (define-syntax-class binding-clause
@@ -533,23 +561,33 @@
     #:attr parsed
     (parsed-binding-clause
      #:original #'original
-     #:bound-identifier #'id
+     #:bound-identifiers (list #'id)
+     #:identifier-side #'id
+     #:right-hand-side #'rhs
+     #:referenced-identifiers (syntax-identifiers #'rhs)))
+  (pattern (~and original [(~and id-side (id:id ...)) rhs:expr])
+    #:attr parsed
+    (parsed-binding-clause
+     #:original #'original
+     #:bound-identifiers (syntax->list #'(id ...))
+     #:identifier-side #'id-side
      #:right-hand-side #'rhs
      #:referenced-identifiers (syntax-identifiers #'rhs))))
 
 
 (define (parsed-binding-clause-definition clause)
-  (define id (parsed-binding-clause-bound-identifier clause))
   (define rhs (parsed-binding-clause-right-hand-side clause))
-  (if (> (+ (syntax-span id) (syntax-span rhs)) 90) ;; conservative under-estimate
-      #`(define #,id NEWLINE #,rhs)
-      #`(define #,id #,rhs)))
+  (define id-side (parsed-binding-clause-identifier-side clause))
+  (define long? (> (+ (syntax-span id-side) (syntax-span rhs)) 90)) ;; conservative under-estimate
+  (match (parsed-binding-clause-bound-identifiers clause)
+    [(list id) (if long? #`(define #,id NEWLINE #,rhs) #`(define #,id #,rhs))]
+    [_ (if long? #`(define-values #,id-side NEWLINE #,rhs) #`(define-values #,id-side #,rhs))]))
 
 
 (define (binding-clause-depends-on? dependant dependency)
   (define dependant-references (parsed-binding-clause-referenced-identifiers dependant))
-  (define dependency-id (parsed-binding-clause-bound-identifier dependency))
-  (not (no-binding-overlap? dependant-references (list dependency-id))))
+  (define dependency-ids (parsed-binding-clause-bound-identifiers dependency))
+  (not (no-binding-overlap? dependant-references dependency-ids)))
 
 
 (define-record-type parsed-binding-graph (clauses dependencies))
@@ -638,13 +676,15 @@
 
 
 (define (split-bindings-outer-ids split)
-  (for/list ([before (in-list (split-bindings-before-cycles split))])
-    (parsed-binding-clause-bound-identifier before)))
+  (for*/list ([before (in-list (split-bindings-before-cycles split))]
+              [id (in-list (parsed-binding-clause-bound-identifiers before))])
+    id))
 
 
 (define (split-bindings-inner-ids split)
-  (for/list ([after (in-list (split-bindings-after-cycles split))])
-    (parsed-binding-clause-bound-identifier after)))
+  (for*/list ([after (in-list (split-bindings-after-cycles split))]
+              [id (in-list (parsed-binding-clause-bound-identifiers after))])
+    id))
 
 
 (define (split-bindings-outer-definitions split)
