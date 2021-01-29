@@ -7,6 +7,7 @@
 (provide
  (contract-out
   [refactoring-rule? predicate/c]
+  [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
   [standard-refactoring-rules (listof refactoring-rule?)]))
 
 
@@ -56,7 +57,7 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-object-type refactoring-rule (transformer)
+(define-object-type refactoring-rule (transformer description)
   #:omit-root-binding
   #:constructor-name constructor:refactoring-rule)
 
@@ -71,10 +72,15 @@
 
 
 (define-simple-macro
-  (define-refactoring-rule id:id parse-option ... [pattern pattern-directive ... replacement])
+  (define-refactoring-rule id:id
+    #:description description
+    parse-option ...
+    [pattern pattern-directive ... replacement])
+  #:declare description (expr/c #'string?)
   (define id
     (constructor:refactoring-rule
      #:name 'id
+     #:description (string->immutable-string description.c)
      #:transformer
      (syntax-parser
        parse-option ...
@@ -89,6 +95,7 @@
 
 
 (define-refactoring-rule struct-from-define-struct-with-default-constructor-name
+  #:description "The define-struct form exists for backwards compatibility, struct is preferred."
   #:literals (define-struct)
   [(define-struct id-maybe-super:define-struct-id-maybe-super fields
      (~and option (~not #:constructor-name) (~not #:extra-constructor-name)) ...)
@@ -99,54 +106,70 @@
 
 
 (define-refactoring-rule false/c-migration
+  #:description "false/c is an alias for #f that exists for backwards compatibility."
   #:literals (false/c)
   [false/c
    #false])
 
 
 (define-refactoring-rule symbols-migration
+  #:description "symbols is equivalent to or/c and exists for backwards compatibility."
   #:literals (symbols)
   [(symbols sym ...)
    (or/c sym ...)])
 
 
 (define-refactoring-rule vector-immutableof-migration
+  #:description "vector-immutableof is a legacy form that is equivalent to vectorof with the\
+ #:immutable option"
   #:literals (vector-immutableof)
   [(vector-immutableof c)
    (vectorof c #:immutable #true)])
 
 
 (define-refactoring-rule vector-immutable/c-migration
+  #:description "vector-immutable/c is a legacy form that is equivalent to vector/c with the\
+ #:immutable option"
   #:literals (vector-immutable/c)
   [(vector-immutable/c c ...)
    (vector/c c ... #:immutable #true)])
 
 
 (define-refactoring-rule box-immutable/c-migration
+  #:description "box-immutable/c is a legacy form that is equivalent to box/c with the #:immutable\
+ option"
   #:literals (box-immutable/c)
   [(box-immutable/c c)
    (box/c c #:immutable #true)])
 
 
 (define-refactoring-rule flat-contract-migration
+  #:description "flat-contract is a legacy form for constructing contracts from predicates;\
+ predicates can be used directly as contracts now."
   #:literals (flat-contract)
   [(flat-contract predicate)
    predicate])
 
 
 (define-refactoring-rule flat-contract-predicate-migration
+  #:description "flat-contract is a legacy form for turning contracts into predicates; flat contracts\
+ can be used directly as predicates now."
   #:literals (flat-contract-predicate)
   [(flat-contract-predicate c)
    c])
 
 
 (define-refactoring-rule contract-struct-migration
+  #:description "The contract-struct form is deprecated, use struct instead. Lazy struct contracts no\
+ longer require a separate struct declaration."
   #:literals (contract-struct)
   [(contract-struct id fields)
    (struct id fields)])
 
 
 (define-refactoring-rule define-contract-struct-migration
+  #:description "The define-contract-struct form is deprecated, use struct instead. Lazy struct\
+ contracts no longer require a separate struct declaration."
   #:literals (define-contract-struct)
   [(define-contract-struct id fields)
    #:with make-id (format-id #'id "make-~a" #'id)
@@ -163,12 +186,14 @@
 
 
 (define-refactoring-rule define-lambda-to-define
+  #:description "The define form supports a shorthand for defining functions."
   #:literals (define lambda)
   [(define header (lambda formals body ...))
    (define (header . formals) (~@ NEWLINE body) ...)])
 
 
 (define-refactoring-rule define-case-lambda-to-define
+  #:description "This use of case-lambda is equivalent to using define with optional arguments."
   #:literals (define case-lambda)
   [(define id:id
      (case-lambda
@@ -183,7 +208,11 @@
      (~@ NEWLINE body) ...)])
 
 
+(define if-begin-to-cond-message
+  "The cond form supports multiple body expressions in each branch, making begin unnecessary.")
+
 (define-refactoring-rule if-then-begin-to-cond
+  #:description if-begin-to-cond-message
   #:literals (if begin)
   [(if condition (begin then-body ...) else-branch)
    (cond
@@ -192,6 +221,7 @@
 
 
 (define-refactoring-rule if-else-begin-to-cond
+  #:description if-begin-to-cond-message
   #:literals (if begin)
   [(if condition then-branch (begin else-body ...))
    (cond
@@ -200,6 +230,7 @@
 
 
 (define-refactoring-rule if-else-cond-to-cond
+  #:description if-begin-to-cond-message
   #:literals (if cond)
   [(if condition then-branch (cond clause ...))
    (cond
@@ -208,6 +239,7 @@
 
 
 (define-refactoring-rule if-else-if-to-cond
+  #:description "These nested ifs can be collapsed into a single cond expression."
   #:literals (if)
   [(if condition then-branch (if inner-condition inner-then-branch else-branch))
    (cond
@@ -217,6 +249,8 @@
 
 
 (define-refactoring-rule cond-else-if-to-cond
+  #:description "The else if branch of this cond expression can be collapsed into the cond\
+ expression."
   #:literals (cond else if)
   [(cond clause ... [else (if inner-condition inner-then-branch else-branch)])
    (cond
@@ -226,6 +260,7 @@
 
 
 (define-refactoring-rule cond-begin-to-cond
+  #:description "The bodies of cond clauses are already implicitly wrapped in begin."
   #:literals (cond begin)
   [(cond clause-before ...
          [condition (begin body ...)]
@@ -237,6 +272,8 @@
 
 
 (define-refactoring-rule or-cond-to-cond
+  #:description "This or expression can be turned into a clause of the inner cond expression,\
+ reducing nesting."
   #:literals (or cond)
   [(or condition (cond clause ...))
    (cond
@@ -245,6 +282,7 @@
 
 
 (define-refactoring-rule or-or-to-or
+  #:description "Nested or expressions are equivalent to a single or expression."
   #:literals (or)
   [(or first-clause clause ... (or inner-clause ...))
    (or first-clause
@@ -253,6 +291,7 @@
 
 
 (define-refactoring-rule and-and-to-and
+  #:description "Nested and expressions are equivalent to a single and expression."
   #:literals (and)
   [(and first-clause clause ... (and inner-clause ...))
    (and first-clause
@@ -261,6 +300,8 @@
 
 
 (define-refactoring-rule and-match-to-match
+  #:description "This and expression can be turned into a clause of the inner match expression,\
+ reducing nesting."
   #:literals (and match)
   [(and and-subject:id (match match-subject:id match-clause ...))
    #:when (free-identifier=? #'and-subject #'match-subject)
@@ -274,6 +315,7 @@
 
 
 (define-refactoring-rule let-to-define
+  #:description "Internal definitions are recommended instead of let expressions, to reduce nesting."
   [(header:header-form-allowing-internal-definitions let-expr:body-with-refactorable-let-expression)
    (header.formatted ... let-expr.refactored ...)])
 
@@ -348,6 +390,8 @@
 
 
 (define-refactoring-rule and-let-to-cond-define
+  #:description "This and expression can be turned into a cond expression with internal definitions,\
+ reducing nesting."
   #:literals (and let)
   [(and guard-expr let-expr:refactorable-let-expression)
    (cond
@@ -375,6 +419,8 @@
 
 
 (define-refactoring-rule cond-let-to-cond-define
+  #:description "The body of a cond clause supports internal definitions, which are preferred over\
+ let expressions because they reduce nesting."
   #:literals (cond)
   [(cond
      clause-before:cond-clause ...
@@ -387,6 +433,8 @@
 
 
 (define-refactoring-rule if-then-let-to-cond-define
+  #:description "This if expression can be turned into a cond expression with internal definitions,\
+ reducing nesting."
   #:literals (if)
   [(if condition let-expr:refactorable-let-expression else-expr)
    (cond
@@ -395,6 +443,8 @@
 
 
 (define-refactoring-rule if-else-let-to-cond-define
+  #:description "This if expression can be turned into a cond expression with internal definitions,\
+ reducing nesting."
   #:literals (if)
   [(if condition then-expr let-expr:refactorable-let-expression)
    (cond
@@ -403,6 +453,7 @@
 
 
 (define-refactoring-rule let*-once-to-let
+  #:description "A let* expression with a single binding is equivalent to a let expression."
   #:literals (let*)
   [(let* (~and header ([id:id rhs:expr])) body ...)
    (let header (~@ NEWLINE body) ...)])
