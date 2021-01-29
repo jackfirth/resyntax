@@ -1,7 +1,8 @@
 #lang racket/base
 
 
-(provide refactorable-let-expression)
+(provide body-with-refactorable-let-expression
+         refactorable-let-expression)
 
 
 (require racket/list
@@ -32,12 +33,47 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-splicing-syntax-class refactorable-let-expression
+(define-syntax-class refactorable-let-expression
   #:attributes ([refactored 1])
   #:literals (let let-values let*)
 
   (pattern
-      (~seq leading-body:body-forms (let ~! bindings:refactorable-let-bindings inner-body:body-forms))
+      ((~and let-form (~or let let-values)) ~! bindings:refactorable-let-bindings body:body-forms)
+
+    #:when (no-binding-overlap?
+            (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
+
+    #:with (refactored ...)
+    (if (attribute bindings.fully-refactorable?)
+        #'(bindings.outer-definition ... body.formatted ...)
+        #'(bindings.outer-definition ...
+           NEWLINE (let-form bindings.unrefactorable
+                     bindings.inner-definition ...
+                     body.formatted ...))))
+
+  (pattern (let* ~! bindings:refactorable-let*-bindings body:body-forms)
+      
+    #:when (no-binding-overlap?
+            (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
+    
+    #:with (refactored ...)
+    (if (attribute bindings.fully-refactorable?)
+        #'(bindings.outer-definition ... body.formatted ...)
+        #'(bindings.outer-definition ...
+           NEWLINE (let* bindings.unrefactorable
+                     bindings.inner-definition ...
+                     body.formatted ...)))))
+
+
+(define-splicing-syntax-class body-with-refactorable-let-expression
+  #:attributes ([refactored 1])
+  #:literals (let let-values let*)
+
+  (pattern
+      (~seq
+       leading-body:body-forms
+       ((~and let-form (~or let let-values))
+        ~! bindings:refactorable-let-bindings inner-body:body-forms))
     
     #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
                                 (in-syntax #'(bindings.outer-bound-id ...)))
@@ -50,29 +86,9 @@
            inner-body.formatted ...)
         #'(leading-body.formatted ...
            bindings.outer-definition ...
-           NEWLINE (let bindings.unrefactorable
+           NEWLINE (let-form bindings.unrefactorable
                      bindings.inner-definition ...
                      inner-body.formatted ...))))
-
-  (pattern
-        (~seq
-         leading-body:body-forms
-         (let-values ~! bindings:refactorable-let-bindings inner-body:body-forms))
-    
-      #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
-                                  (in-syntax #'(bindings.outer-bound-id ...)))
-      #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
-                                  (in-syntax #'(bindings.inner-bound-id ...)))
-      #:with (refactored ...)
-      (if (attribute bindings.fully-refactorable?)
-          #'(leading-body.formatted ...
-             bindings.outer-definition ...
-             inner-body.formatted ...)
-          #'(leading-body.formatted ...
-             bindings.outer-definition ...
-             NEWLINE (let-values bindings.unrefactorable
-                       bindings.inner-definition ...
-                       inner-body.formatted ...))))
 
   (pattern
       (~seq
@@ -95,11 +111,11 @@
 
 
 (module+ test
-  (test-case (name-string refactorable-let-expression)
+  (test-case (name-string body-with-refactorable-let-expression)
 
     (define (parse stx)
       (syntax-parse stx
-        [(let-expr:refactorable-let-expression) (syntax->datum #'(let-expr.refactored ...))]
+        [(let-expr:body-with-refactorable-let-expression) (syntax->datum #'(let-expr.refactored ...))]
         [_ #false]))
 
     (test-case "basic let forms"
@@ -112,7 +128,8 @@
 
     (test-case "basic let-values forms"
       (check-equal? (parse #'((let-values ([(a) 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
-      (check-equal? (parse #'((let-values ([(a b) 1]) a))) '(NEWLINE (define-values (a b) 1) NEWLINE a))
+      (check-equal?
+       (parse #'((let-values ([(a b) 1]) a))) '(NEWLINE (define-values (a b) 1) NEWLINE a))
       (check-false (parse #'((let-values ([(a) a]) a))))
       (check-false (parse #'((let-values ([(a b) a]) a)))))
     

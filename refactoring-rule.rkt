@@ -274,7 +274,7 @@
 
 
 (define-refactoring-rule let-to-define
-  [(header:header-form-allowing-internal-definitions let-expr:refactorable-let-expression)
+  [(header:header-form-allowing-internal-definitions let-expr:body-with-refactorable-let-expression)
    (header.formatted ... let-expr.refactored ...)])
 
 
@@ -349,10 +349,10 @@
 
 (define-refactoring-rule and-let-to-cond-define
   #:literals (and let)
-  [(and guard-expr (~and let-form (let header body ...)))
+  [(and guard-expr let-expr:refactorable-let-expression)
    (cond
      NEWLINE [(not guard-expr) #false]
-     NEWLINE [else NEWLINE let-form])])
+     NEWLINE [else let-expr.refactored ...])])
 
 
 (define-syntax-class cond-clause
@@ -367,10 +367,10 @@
   #:attributes ([refactored 1])
   #:literals (else =>)
 
-  (pattern [else let-expr:refactorable-let-expression]
+  (pattern [else let-expr:body-with-refactorable-let-expression]
     #:with (refactored ...) #'(NEWLINE [else let-expr.refactored ...]))
   
-  (pattern (~and [expr let-expr:refactorable-let-expression] (~not [expr => _ ...]))
+  (pattern (~and [expr let-expr:body-with-refactorable-let-expression] (~not [expr => _ ...]))
     #:with (refactored ...) #'(NEWLINE [expr let-expr.refactored ...])))
 
 
@@ -387,23 +387,19 @@
 
 
 (define-refactoring-rule if-then-let-to-cond-define
-  #:literals (if else let)
-  [(if condition
-       (~and let-form (let header body ...))
-       else-expr)
+  #:literals (if)
+  [(if condition let-expr:refactorable-let-expression else-expr)
    (cond
-     NEWLINE [condition NEWLINE let-form]
+     NEWLINE [condition let-expr.refactored ...]
      NEWLINE [else NEWLINE else-expr])])
 
 
 (define-refactoring-rule if-else-let-to-cond-define
-  #:literals (if else let)
-  [(if condition
-       then-expr
-       (~and let-form (let header body ...)))
+  #:literals (if)
+  [(if condition then-expr let-expr:refactorable-let-expression)
    (cond
      NEWLINE [condition NEWLINE then-expr]
-     NEWLINE [else NEWLINE let-form])])
+     NEWLINE [else let-expr.refactored ...])])
 
 
 (define-refactoring-rule let*-once-to-let
