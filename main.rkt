@@ -23,7 +23,7 @@
   (for*/list ([rule rules]
               [result (in-option (refactor rule))])
     (define line (syntax-line (syntax-replacement-original-syntax result)))
-    (printf "line ~a: ~a:\n" line (object-name rule))
+    (printf "line ~a: ~a\n" line (object-name rule))
     result))
 
 
