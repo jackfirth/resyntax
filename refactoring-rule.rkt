@@ -280,7 +280,7 @@
 
 (define-splicing-syntax-class header-form-allowing-internal-definitions
   #:attributes ([formatted 1])
-  #:literals (let let* let-values when unless)
+  #:literals (let let* let-values when unless with-handlers parameterize)
 
   (pattern (~seq lambda:lambda-by-any-name ~! formals:formals)
     #:with (formatted ...) #'(lambda formals))
@@ -301,7 +301,13 @@
     #:with (formatted ...) #'(when condition))
 
   (pattern (seq unless ~! condition)
-    #:with (formatted ...) #'(unless condition)))
+    #:with (formatted ...) #'(unless condition))
+
+  (pattern (seq with-handlers ~! handlers)
+    #:with (formatted ...) #'(with-handlers handlers))
+
+  (pattern (seq parameterize ~! handlers)
+    #:with (formatted ...) #'(parameterize handlers)))
 
 
 ;; λ and lambda aren't free-identifier=?. Additionally, by using a syntax class instead of #:literals
