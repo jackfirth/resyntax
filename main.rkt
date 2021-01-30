@@ -35,9 +35,9 @@
          rebellion/private/guarded-block
          rebellion/streaming/transducer
          rebellion/type/record
-         resyntax/indentation
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
+         #;resyntax/indentation
          resyntax/source-code
          resyntax/string-replacement
          resyntax/syntax-replacement)
@@ -119,8 +119,8 @@
 (define/guard (refactor code #:rules [rules standard-refactoring-rules])
   (define code-string (source-code-read-string code))
   (define replacement (refactoring-rules-apply rules code))
-  (define replaced (string-apply-replacement code-string replacement))
-  (indent-code
+  (string-apply-replacement code-string replacement)
+  #;(indent-code
    replaced (string-replacement-start replacement) (string-replacement-new-end replacement)))
 
 
