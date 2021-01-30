@@ -64,4 +64,4 @@
   (printf "::set-output name=conclusion::~a\n" (if (empty? results) "success" "failure"))
   (printf "::set-output name=summary::~a\n"
           (if (empty? results) "\"No issues found.\"" "\"Resyntax found potential improvements.\""))
-  (printf "::set-output name=annotations::~v\n" annotations-json))
+  (printf "::set-output name=annotations::~a\n" annotations-json))
