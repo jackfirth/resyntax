@@ -21,7 +21,8 @@
 
 (define (refactoring-result->github-annnotation result)
   (define replacement (syntax-replacement-render (refactoring-result-replacement result)))
-  (define original-file-string (file->string (refactoring-result-path result) #:mode 'text))
+  (define original-file-string
+    (string->immutable-string (file->string (refactoring-result-path result) #:mode 'text)))
   (define content (string-replacement-render replacement original-file-string))
   (define start-line
     (syntax-line (syntax-replacement-original-syntax (refactoring-result-replacement result))))
