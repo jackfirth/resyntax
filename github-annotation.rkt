@@ -38,6 +38,7 @@
 
 
 (require json
+         racket/list
          racket/match
          racket/math
          racket/sequence
@@ -46,6 +47,12 @@
          rebellion/base/option
          rebellion/type/enum
          rebellion/type/record)
+
+
+(module+ test
+  (require (submod "..")
+           rackunit
+           rebellion/private/static-name))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -90,9 +97,16 @@
    
 
 (define (optional-hash . key-opt-value-pairs)
-  (for*/hash ([(k opt) (in-slice 2 (in-list key-opt-value-pairs))]
-              [v (in-option opt)])
-    (values k v)))
+  (for*/hash ([k+opt (in-slice 2 (in-list key-opt-value-pairs))]
+              [v (in-option (second k+opt))])
+    (values (first k+opt) v)))
+
+
+(module+ test
+  (test-case (name-string optional-hash)
+    (check-equal? (optional-hash) (hash))
+    (check-equal? (optional-hash 'a (present 1)) (hash 'a 1))
+    (check-equal? (optional-hash 'a absent) (hash))))
 
 
 (define (github-annotation->jsexpr annotation)
