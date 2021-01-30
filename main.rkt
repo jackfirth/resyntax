@@ -11,7 +11,11 @@
   [refactor-package (-> path-string? (listof refactoring-result?))]
   [refactoring-result? predicate/c]
   [refactoring-result
-   (-> #:path path-string? #:message string? #:replacement syntax-replacement? refactoring-result?)]
+   (-> #:path path-string?
+       #:rule-name interned-symbol?
+       #:message string?
+       #:replacement syntax-replacement?
+       refactoring-result?)]
   [refactoring-result-path (-> refactoring-result? path?)]
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
