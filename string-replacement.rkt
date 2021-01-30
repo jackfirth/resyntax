@@ -34,6 +34,7 @@
         (not (string-replacement-overlaps? replacement1 replacement2))
         [_ string-replacement?])]
   [union-into-string-replacement (reducer/c string-replacement? string-replacement?)]
+  [string-replacement-render (-> string-replacement? immutable-string? immutable-string?)]
   [string-apply-replacement (-> immutable-string? string-replacement? immutable-string?)]
   [inserted-string? predicate/c]
   [inserted-string (-> immutable-string? inserted-string?)]
@@ -123,6 +124,30 @@
     [(copied-string start end) (- end start)]))
 
 
+(define (string-replacement-render replacement original-string)
+  (define required-length (string-replacement-required-length replacement))
+  (define original-length (string-length original-string))
+  (unless (>= original-length required-length)
+    (raise-arguments-error
+     (name string-apply-replacement)
+     "string is not long enough"
+     "string" original-string
+     "string length" original-length
+     "required length" required-length))
+  (define content-length (string-replacement-new-span replacement))
+  (define edited (make-string content-length))
+  (for/fold ([start 0] #:result (void))
+            ([piece (in-list (string-replacement-contents replacement))])
+    (match piece
+      [(inserted-string inserted)
+       (string-copy! edited start inserted)
+       (+ start (string-length inserted))]
+      [(copied-string copy-start copy-end)
+       (string-copy! edited start original-string copy-start copy-end)
+       (+ start (- copy-end copy-start))]))
+  (string->immutable-string edited))
+
+
 (define (string-apply-replacement string replacement)
   (define start (string-replacement-start replacement))
   (define end (string-replacement-end replacement))
@@ -170,6 +195,7 @@
     (check-equal? (string-replacement-new-span replacement) 19)
     (check-equal? (string-replacement-length-change replacement) 2)
     (check-equal? (string-replacement-new-end replacement) 24)
+    (check-equal? (string-replacement-render replacement s) "evening and goodbye")
     (check-equal? (string-apply-replacement s replacement) "good evening and goodbye world")))
 
 
