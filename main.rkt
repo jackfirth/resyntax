@@ -19,7 +19,9 @@
   [refactoring-result-path (-> refactoring-result? path?)]
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
-  [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]))
+  [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]
+  [refactoring-result-original-code (-> refactoring-result? code-snippet?)]
+  [refactoring-result-new-code (-> refactoring-result? code-snippet?)]))
 
 
 (require fancy-app
@@ -35,6 +37,7 @@
          rebellion/private/guarded-block
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/code-snippet
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
          #;resyntax/indentation
@@ -53,10 +56,29 @@
 (define (refactoring-result
          #:path path #:rule-name rule-name #:message message #:replacement replacement)
   (constructor:refactoring-result
-   #:path (if (string? path) (cleanse-path (string->path path)) path)
+   #:path (simple-form-path path)
    #:rule-name rule-name
    #:message (string->immutable-string message)
    #:replacement replacement))
+
+
+(define (refactoring-result-original-code result)
+  (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
+  (define start (sub1 (syntax-position original)))
+  (define end (+ start (syntax-span original)))
+  (define start-column (syntax-column original))
+  (define raw-text
+    (string->immutable-string
+     (substring (file->string (refactoring-result-path result)) start end)))
+  (code-snippet raw-text start-column (syntax-line original)))
+
+
+(define (refactoring-result-new-code result)
+  (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
+  (define replacement (syntax-replacement-render (refactoring-result-replacement result)))
+  (define file-code (string->immutable-string (file->string (refactoring-result-path result))))
+  (define raw-text (string-replacement-render replacement file-code))
+  (code-snippet raw-text (syntax-column original) (syntax-line original)))
 
 
 (define (refactoring-rules-refactor rules syntax)
@@ -83,18 +105,27 @@
 
 
 (define (refactor-file path-string #:rules [rules standard-refactoring-rules])
-  (define path (if (string? path-string) (cleanse-path (string->path path-string)) path-string))
+  (define path (simple-form-path path-string))
+  (define relpath (find-relative-path (current-directory) path))
+  (printf "resyntax: analyzing ~a\n" relpath)
   (define rule-list (sequence->list rules))
   (define code (file-source-code path))
-  (parameterize ([current-namespace (make-base-namespace)])
-    (define analysis (source-code-analyze code))
-    (transduce (source-code-analysis-visited-forms analysis)
-               (append-mapping (λ (stx) (in-option (refactoring-rules-refactor* rule-list stx path))))
-               #:into into-list)))
+
+  (define (skip e)
+    (printf "resyntax: skipping ~a due to syntax error\n" relpath)
+    empty-list)
+  
+  (with-handlers ([exn:fail:syntax? skip])
+    (parameterize ([current-namespace (make-base-namespace)])
+      (define analysis (source-code-analyze code))
+      (transduce
+       (source-code-analysis-visited-forms analysis)
+       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor* rule-list stx path))))
+       #:into into-list))))
 
 
 (define (refactor-directory path-string #:rules [rules standard-refactoring-rules])
-  (define path (if (string? path-string) (cleanse-path (string->path path-string)) path-string))
+  (define path (simple-form-path path-string))
   (define rule-list (sequence->list rules))
   (transduce (in-directory path)
              (filtering rkt-path?)
