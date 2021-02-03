@@ -96,7 +96,7 @@
   (code-snippet indented-raw-text start-column (syntax-line original)))
 
 
-(define (refactoring-rules-refactor* rules syntax path)
+(define (refactoring-rules-refactor rules syntax path)
   (define (refactor rule)
     (option-map (refactoring-rule-refactor rule syntax)
                 (refactoring-result
@@ -126,7 +126,7 @@
       (define analysis (source-code-analyze code))
       (transduce
        (source-code-analysis-visited-forms analysis)
-       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor* rule-list stx path))))
+       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx path))))
        #:into into-list))))
 
 
