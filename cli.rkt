@@ -27,3 +27,7 @@
 
 (module+ main
   (run))
+
+
+;; Empty test submodule to avoid GUI initialization in CI.
+(module test racket/base)
