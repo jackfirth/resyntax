@@ -51,6 +51,26 @@
   (+ (code-snippet-start-line snippet) line-count))
 
 
+(module+ test
+  (test-case (name-string code-snippet)
+
+    (test-case "one-line snippet"
+      (define snippet (code-snippet "(+ 1 2 3)" 0 1))
+      (check-equal? (~a snippet) "1 (+ 1 2 3)"))
+
+    (test-case "indented snippet"
+      (define snippet (code-snippet "(+ 1 2 3)" 10 1))
+      (check-equal? (~a snippet) "1           (+ 1 2 3)"))
+
+    (test-case "multiline snippet"
+      (define snippet (code-snippet "(define (f x)\n  (+ x x))" 0 1))
+      (check-equal? (~a snippet) "1 (define (f x)\n2   (+ x x))"))
+
+    (test-case "snippet with line numbers of different digit counts"
+      (define snippet (code-snippet "(+ 1 2 3)\n(+ 4 5 6)" 0 99))
+      (check-equal? (~a snippet) "99  (+ 1 2 3)\n100 (+ 4 5 6)"))))
+
+
 (define (digit-count n)
   (add1 (exact-floor (log n 10))))
 
