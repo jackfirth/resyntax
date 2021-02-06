@@ -17,6 +17,7 @@
 (require racket/format
          racket/math
          racket/sequence
+         racket/string
          rebellion/base/immutable-string)
 
 
@@ -40,15 +41,41 @@
          (~a (+ n (code-snippet-start-line this)) #:min-width (digit-count end-line)))
        (write-string line-number-string out)
        (write-string " " out)
-       (when (zero? n)
-         (write-string (make-string (code-snippet-start-column this) #\space) out))
-       (write-string line out)
+       (cond
+         [(zero? n) (write-string line out)]
+         [else
+          (define leading-indentation (make-string (code-snippet-start-column this) #\space))
+          (write-string (string-replace line leading-indentation "" #:all? #false) out)])
        (newline out)))])
 
 
 (define (code-snippet-end-line snippet)
   (define line-count (sequence-length (in-lines (open-input-string (code-snippet-raw-text snippet)))))
   (+ (code-snippet-start-line snippet) line-count))
+
+
+(module+ test
+  (test-case (name-string code-snippet)
+
+    (test-case "one-line snippet"
+      (define snippet (code-snippet "(+ 1 2 3)" 0 1))
+      (check-equal? (~a snippet) "1 (+ 1 2 3)\n"))
+
+    (test-case "multiline snippet"
+      (define snippet (code-snippet "(define (f x)\n  (+ x x))" 0 1))
+      (check-equal? (~a snippet) "1 (define (f x)\n2   (+ x x))\n"))
+
+    (test-case "indented snippet"
+      (define snippet (code-snippet "(+ 1 2 3)" 10 1))
+      (check-equal? (~a snippet) "1 (+ 1 2 3)\n"))
+
+    (test-case "indented multiline snippet"
+      (define snippet (code-snippet "(define (f x)\n            (+ x x))" 10 1))
+      (check-equal? (~a snippet) "1 (define (f x)\n2   (+ x x))\n"))
+
+    (test-case "snippet with line numbers of different digit counts"
+      (define snippet (code-snippet "(+ 1 2 3)\n(+ 4 5 6)" 0 99))
+      (check-equal? (~a snippet) "99  (+ 1 2 3)\n100 (+ 4 5 6)\n"))))
 
 
 (define (digit-count n)
