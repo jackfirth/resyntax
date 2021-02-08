@@ -18,7 +18,6 @@
 
 
 (require (for-syntax racket/base)
-         fancy-app
          (only-in racket/class
                   define/augment
                   define/augment-final
@@ -33,25 +32,20 @@
          racket/list
          racket/match
          racket/sequence
-         racket/set
          racket/syntax
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/private/guarded-block
          rebellion/type/object
          resyntax/let-binding
-         resyntax/source-code
          resyntax/syntax-replacement
-         syntax/id-set
          syntax/parse
          syntax/parse/define
-         syntax/parse/lib/function-header
-         syntax/stx)
+         syntax/parse/lib/function-header)
 
 
 (module+ test
-  (require (submod "..")
-           rackunit))
+  (require (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -246,6 +240,14 @@
      NEWLINE [condition NEWLINE then-branch]
      NEWLINE [inner-condition NEWLINE inner-then-branch]
      NEWLINE [else else-branch])])
+
+
+(define-refactoring-rule if-x-else-x-to-and
+  #:description "This if expression can be replaced with an equivalent and expression."
+  #:literals (if)
+  [(if x:id then-branch:expr y:id)
+   #:when (free-identifier=? #'x #'y)
+   (and x then-branch)])
 
 
 (define-refactoring-rule cond-else-if-to-cond
@@ -589,6 +591,7 @@
                 if-else-begin-to-cond
                 if-else-cond-to-cond
                 if-else-if-to-cond
+                if-x-else-x-to-and
                 or-cond-to-cond
                 or-or-to-or
                 struct-from-define-struct-with-default-constructor-name
