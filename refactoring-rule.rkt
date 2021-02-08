@@ -18,7 +18,6 @@
 
 
 (require (for-syntax racket/base)
-         fancy-app
          (only-in racket/class
                   define/augment
                   define/augment-final
@@ -33,25 +32,20 @@
          racket/list
          racket/match
          racket/sequence
-         racket/set
          racket/syntax
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/private/guarded-block
          rebellion/type/object
          resyntax/let-binding
-         resyntax/source-code
          resyntax/syntax-replacement
-         syntax/id-set
          syntax/parse
          syntax/parse/define
-         syntax/parse/lib/function-header
-         syntax/stx)
+         syntax/parse/lib/function-header)
 
 
 (module+ test
-  (require (submod "..")
-           rackunit))
+  (require (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -246,6 +240,14 @@
      NEWLINE [condition NEWLINE then-branch]
      NEWLINE [inner-condition NEWLINE inner-then-branch]
      NEWLINE [else else-branch])])
+
+
+(define-refactoring-rule if-x-else-x-to-and
+  #:description "This if expression can be replaced with an equivalent and expression."
+  #:literals (if)
+  [(if x:id then-branch:expr y:id)
+   #:when (free-identifier=? #'x #'y)
+   (and x then-branch)])
 
 
 (define-refactoring-rule cond-else-if-to-cond
@@ -459,37 +461,140 @@
    (let header (~@ NEWLINE body) ...)])
 
 
+(define definition-context-refactoring-rules
+  (list
+   let-to-define
+   and-let-to-cond-define
+   cond-let-to-cond-define
+   if-then-let-to-cond-define
+   if-else-let-to-cond-define
+   let*-once-to-let))
+
+
+;@----------------------------------------------------------------------------------------------------
+;; FOR LOOP REFACTORING RULES
+
+
+(define-syntax-class for-clause-convertible-list-expression
+  #:attributes (flat? [leading-clause 1] trailing-expression)
+
+  (pattern (append-map (_:lambda-by-any-name (y:id) append-map-body:expr) list-expression:expr)
+    #:attr flat? #false
+    #:with (leading-clause ...) #'([y (in-list list-expression)])
+    #:with trailing-expression #'(in-list append-map-body))
+
+  (pattern list-expression:expr
+    #:attr flat? #true
+    #:with (leading-clause ...) #'()
+    #:with trailing-expression #'(in-list list-expression)))
+
+
+(define-syntax-class for-loop-convertible-list-expression
+  #:attributes (loop nesting-loop? loop-clauses [loop-body 1])
+  #:literals (map filter append-map)
+
+  (pattern
+      (map
+       (_:lambda-by-any-name (x:id) loop-body:expr ...+)
+       (filter (_:lambda-by-any-name (y:id) filter-body:expr) list-expression))
+    #:when (bound-identifier=? #'x #'y)
+    #:attr nesting-loop? #false
+    #:with loop-clauses #'([x (in-list list-expression)] NEWLINE #:when filter-body)
+    #:with loop #'(for/list loop-clauses loop-body ...))
+
+  (pattern
+      (map
+       (_:lambda-by-any-name (x:id) loop-body:expr ...+)
+       (append-map (_:lambda-by-any-name (y:id) append-map-body:expr) list-expression))
+    #:when (not (bound-identifier=? #'x #'y))
+    #:attr nesting-loop? #true
+    #:with loop-clauses #'([y (in-list list-expression)] NEWLINE [x (in-list append-map-body)])
+    #:with loop #'(for*/list loop-clauses loop-body ...))
+
+  (pattern (map (_:lambda-by-any-name (x:id) loop-body:expr ...+) list-expression)
+    #:attr nesting-loop? #false
+    #:with loop-clauses #'([x (in-list list-expression)])
+    #:with loop #'(for/list loop-clauses loop-body ...)))
+
+
+(define-refactoring-rule apply-plus-to-for/sum
+  #:description "Applying + to a list of numbers can be replaced with a for/sum loop."
+  #:literals (apply +)
+  [(apply + loop:for-loop-convertible-list-expression)
+   #:with loop-type (if (attribute loop.nesting-loop?) #'for*/sum #'for/sum)
+   (loop-type loop.loop-clauses (~@ NEWLINE loop.loop-body) ...)])
+
+
+(define-refactoring-rule ormap-to-for/or
+  #:description "This ormap operation can be replaced with a for/or loop."
+  #:literals (ormap)
+  [(ormap (_:lambda-by-any-name (x:id) body:expr ...+) loop:for-clause-convertible-list-expression)
+   #:with loop-type (if (attribute loop.flat?) #'for/or #'for*/or)
+   (loop-type ((~@ loop.leading-clause NEWLINE) ... [x loop.trailing-expression])
+              (~@ NEWLINE body) ...)])
+
+
+(define-refactoring-rule andmap-to-for/and
+  #:description "This andmap operation can be replaced with a for/and loop."
+  #:literals (andmap)
+  [(andmap (_:lambda-by-any-name (x:id) body:expr ...+) loop:for-clause-convertible-list-expression)
+   #:with loop-type (if (attribute loop.flat?) #'for/and #'for*/and)
+   (loop-type ((~@ loop.leading-clause NEWLINE) ... [x loop.trailing-expression])
+              (~@ NEWLINE body) ...)])
+
+
+(define-refactoring-rule in-syntax-list-to-in-syntax
+  #:description
+  "The in-syntax function can be used instead of converting this syntax object to a list."
+  #:literals (in-list syntax->list)
+  [(in-list (syntax->list stx))
+   (in-syntax stx)])
+
+
+(define-refactoring-rule for/or-and-to-for/first
+  #:description "This for/or loop can be replaced with a simpler, equivalent for/first loop."
+  #:literals (for/or and)
+  [(for/or (clause ...) (and (pred:id x:id) y:id))
+   #:when (free-identifier=? #'x #'y)
+   (for/first (clause ... #:when (pred x)) x)])
+
+
+(define for-loop-refactoring-rules
+  (list
+   andmap-to-for/and
+   apply-plus-to-for/sum
+   for/or-and-to-for/first
+   in-syntax-list-to-in-syntax
+   ormap-to-for/or))
+
+
 ;@----------------------------------------------------------------------------------------------------
 ;; STANDARD RULE LIST
 
 
 (define standard-refactoring-rules
-  (list
-   and-and-to-and
-   and-let-to-cond-define
-   and-match-to-match
-   box-immutable/c-migration
-   cond-begin-to-cond
-   cond-else-if-to-cond
-   cond-let-to-cond-define
-   contract-struct-migration
-   define-case-lambda-to-define
-   define-contract-struct-migration
-   define-lambda-to-define
-   false/c-migration
-   flat-contract-migration
-   flat-contract-predicate-migration
-   if-then-begin-to-cond
-   if-then-let-to-cond-define
-   if-else-begin-to-cond
-   if-else-cond-to-cond
-   if-else-if-to-cond
-   if-else-let-to-cond-define
-   let-to-define
-   let*-once-to-let
-   or-cond-to-cond
-   or-or-to-or
-   struct-from-define-struct-with-default-constructor-name
-   symbols-migration
-   vector-immutableof-migration
-   vector-immutable/c-migration))
+  (append definition-context-refactoring-rules
+          for-loop-refactoring-rules
+          (list and-and-to-and
+                and-match-to-match
+                box-immutable/c-migration
+                cond-begin-to-cond
+                cond-else-if-to-cond
+                contract-struct-migration
+                define-case-lambda-to-define
+                define-contract-struct-migration
+                define-lambda-to-define
+                false/c-migration
+                flat-contract-migration
+                flat-contract-predicate-migration
+                if-then-begin-to-cond
+                if-else-begin-to-cond
+                if-else-cond-to-cond
+                if-else-if-to-cond
+                if-x-else-x-to-and
+                or-cond-to-cond
+                or-or-to-or
+                struct-from-define-struct-with-default-constructor-name
+                symbols-migration
+                vector-immutableof-migration
+                vector-immutable/c-migration)))
