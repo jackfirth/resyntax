@@ -10,6 +10,7 @@
          rebellion/collection/hash
          rebellion/collection/list
          rebellion/collection/vector/builder
+         rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/tuple
          resyntax)
@@ -135,7 +136,16 @@
   (printf "resyntax: --- summary ---\n")
   (define total-fixes (length all-results))
   (define total-files (hash-count results-by-path))
-  (printf "\n  Fixed ~a issues in ~a files.\n\n" total-fixes total-files))
+  (define fix-counts-by-rule
+    (transduce all-results
+               (indexing refactoring-result-rule-name)
+               (grouping into-count)
+               #:into into-hash))
+  (printf "\n  Fixed ~a issues in ~a files.\n\n" total-fixes total-files)
+  (for ([(rule count) (in-hash fix-counts-by-rule)])
+    (define occurrence-string (if (> count 1) "occurences" "occurence"))
+    (printf "  * Fixed ~a ~a of ~a\n" count occurrence-string rule))
+  (newline))
 
 
 (define (string-indent s amount)
