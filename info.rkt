@@ -25,8 +25,8 @@
 
 
 (define racket-launcher-names
-  (list "resyntax-github-action"))
+  (list "resyntax"))
 
 
 (define racket-launcher-libraries
-  (list "github-action.rkt"))
+  (list "cli.rkt"))
