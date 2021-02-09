@@ -597,7 +597,11 @@
   (define id-side (parsed-binding-clause-identifier-side clause))
   (define long? (> (+ (syntax-span id-side) (syntax-span rhs)) 90)) ;; conservative under-estimate
   (match (parsed-binding-clause-bound-identifiers clause)
-    [(list id) (if long? #`(define #,id NEWLINE #,rhs) #`(define #,id #,rhs))]
+    [(list id)
+     (syntax-parse rhs
+       #:literals (lambda λ)
+       [((~or lambda λ) header body ...) #`(define (#,id . header) (~@ NEWLINE body) ...)]
+       [else (if long? #`(define #,id NEWLINE #,rhs) #`(define #,id #,rhs))])]
     [_ (if long? #`(define-values #,id-side NEWLINE #,rhs) #`(define-values #,id-side #,rhs))]))
 
 
