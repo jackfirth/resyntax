@@ -99,77 +99,6 @@
      option ...)])
 
 
-(define-refactoring-rule false/c-migration
-  #:description "false/c is an alias for #f that exists for backwards compatibility."
-  #:literals (false/c)
-  [false/c
-   #false])
-
-
-(define-refactoring-rule symbols-migration
-  #:description "symbols is equivalent to or/c and exists for backwards compatibility."
-  #:literals (symbols)
-  [(symbols sym ...)
-   (or/c sym ...)])
-
-
-(define-refactoring-rule vector-immutableof-migration
-  #:description "vector-immutableof is a legacy form that is equivalent to vectorof with the\
- #:immutable option"
-  #:literals (vector-immutableof)
-  [(vector-immutableof c)
-   (vectorof c #:immutable #true)])
-
-
-(define-refactoring-rule vector-immutable/c-migration
-  #:description "vector-immutable/c is a legacy form that is equivalent to vector/c with the\
- #:immutable option"
-  #:literals (vector-immutable/c)
-  [(vector-immutable/c c ...)
-   (vector/c c ... #:immutable #true)])
-
-
-(define-refactoring-rule box-immutable/c-migration
-  #:description "box-immutable/c is a legacy form that is equivalent to box/c with the #:immutable\
- option"
-  #:literals (box-immutable/c)
-  [(box-immutable/c c)
-   (box/c c #:immutable #true)])
-
-
-(define-refactoring-rule flat-contract-migration
-  #:description "flat-contract is a legacy form for constructing contracts from predicates;\
- predicates can be used directly as contracts now."
-  #:literals (flat-contract)
-  [(flat-contract predicate)
-   predicate])
-
-
-(define-refactoring-rule flat-contract-predicate-migration
-  #:description "flat-contract is a legacy form for turning contracts into predicates; flat contracts\
- can be used directly as predicates now."
-  #:literals (flat-contract-predicate)
-  [(flat-contract-predicate c)
-   c])
-
-
-(define-refactoring-rule contract-struct-migration
-  #:description "The contract-struct form is deprecated, use struct instead. Lazy struct contracts no\
- longer require a separate struct declaration."
-  #:literals (contract-struct)
-  [(contract-struct id fields)
-   (struct id fields)])
-
-
-(define-refactoring-rule define-contract-struct-migration
-  #:description "The define-contract-struct form is deprecated, use struct instead. Lazy struct\
- contracts no longer require a separate struct declaration."
-  #:literals (define-contract-struct)
-  [(define-contract-struct id fields)
-   #:with make-id (format-id #'id "make-~a" #'id)
-   (struct id fields #:extra-constructor-name make-id)])
-
-
 (define/guard (free-identifiers=? ids other-ids)
   (define id-list (syntax->list ids))
   (define other-id-list (syntax->list other-ids))
@@ -310,6 +239,93 @@
    (match match-subject
      NEWLINE [#false #false]
      (~@ NEWLINE match-clause) ...)])
+
+
+;@----------------------------------------------------------------------------------------------------
+;; LEGACY CONTRACT MIGRATION RULES
+
+
+(define-refactoring-rule false/c-migration
+  #:description "false/c is an alias for #f that exists for backwards compatibility."
+  #:literals (false/c)
+  [false/c
+   #false])
+
+
+(define-refactoring-rule symbols-migration
+  #:description "symbols is equivalent to or/c and exists for backwards compatibility."
+  #:literals (symbols)
+  [(symbols sym ...)
+   (or/c sym ...)])
+
+
+(define-refactoring-rule vector-immutableof-migration
+  #:description "vector-immutableof is a legacy form that is equivalent to vectorof with the\
+ #:immutable option"
+  #:literals (vector-immutableof)
+  [(vector-immutableof c)
+   (vectorof c #:immutable #true)])
+
+
+(define-refactoring-rule vector-immutable/c-migration
+  #:description "vector-immutable/c is a legacy form that is equivalent to vector/c with the\
+ #:immutable option"
+  #:literals (vector-immutable/c)
+  [(vector-immutable/c c ...)
+   (vector/c c ... #:immutable #true)])
+
+
+(define-refactoring-rule box-immutable/c-migration
+  #:description "box-immutable/c is a legacy form that is equivalent to box/c with the #:immutable\
+ option"
+  #:literals (box-immutable/c)
+  [(box-immutable/c c)
+   (box/c c #:immutable #true)])
+
+
+(define-refactoring-rule flat-contract-migration
+  #:description "flat-contract is a legacy form for constructing contracts from predicates;\
+ predicates can be used directly as contracts now."
+  #:literals (flat-contract)
+  [(flat-contract predicate)
+   predicate])
+
+
+(define-refactoring-rule flat-contract-predicate-migration
+  #:description "flat-contract is a legacy form for turning contracts into predicates; flat contracts\
+ can be used directly as predicates now."
+  #:literals (flat-contract-predicate)
+  [(flat-contract-predicate c)
+   c])
+
+
+(define-refactoring-rule contract-struct-migration
+  #:description "The contract-struct form is deprecated, use struct instead. Lazy struct contracts no\
+ longer require a separate struct declaration."
+  #:literals (contract-struct)
+  [(contract-struct id fields)
+   (struct id fields)])
+
+
+(define-refactoring-rule define-contract-struct-migration
+  #:description "The define-contract-struct form is deprecated, use struct instead. Lazy struct\
+ contracts no longer require a separate struct declaration."
+  #:literals (define-contract-struct)
+  [(define-contract-struct id fields)
+   #:with make-id (format-id #'id "make-~a" #'id)
+   (struct id fields #:extra-constructor-name make-id)])
+
+
+(define legacy-contract-migration-rules
+  (list box-immutable/c-migration
+        contract-struct-migration
+        define-contract-struct-migration
+        false/c-migration
+        flat-contract-migration
+        flat-contract-predicate-migration
+        symbols-migration
+        vector-immutableof-migration
+        vector-immutable/c-migration))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -575,18 +591,13 @@
 (define standard-refactoring-rules
   (append definition-context-refactoring-rules
           for-loop-refactoring-rules
+          legacy-contract-migration-rules
           (list and-and-to-and
                 and-match-to-match
-                box-immutable/c-migration
                 cond-begin-to-cond
                 cond-else-if-to-cond
-                contract-struct-migration
                 define-case-lambda-to-define
-                define-contract-struct-migration
                 define-lambda-to-define
-                false/c-migration
-                flat-contract-migration
-                flat-contract-predicate-migration
                 if-then-begin-to-cond
                 if-else-begin-to-cond
                 if-else-cond-to-cond
@@ -594,7 +605,4 @@
                 if-x-else-x-to-and
                 or-cond-to-cond
                 or-or-to-or
-                struct-from-define-struct-with-default-constructor-name
-                symbols-migration
-                vector-immutableof-migration
-                vector-immutable/c-migration)))
+                struct-from-define-struct-with-default-constructor-name)))
