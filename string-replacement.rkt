@@ -36,6 +36,7 @@
   [union-into-string-replacement (reducer/c string-replacement? string-replacement?)]
   [string-replacement-render (-> string-replacement? immutable-string? immutable-string?)]
   [string-apply-replacement (-> immutable-string? string-replacement? immutable-string?)]
+  [file-apply-string-replacement! (-> path-string? string-replacement? void?)]
   [inserted-string? predicate/c]
   [inserted-string (-> immutable-string? inserted-string?)]
   [inserted-string-contents (-> inserted-string? immutable-string?)]
@@ -51,7 +52,8 @@
   [copied-string-end (-> copied-string? natural?)]))
 
 
-(require racket/match
+(require racket/file
+         racket/match
          racket/math
          racket/sequence
          rebellion/base/comparator
@@ -197,6 +199,11 @@
     (check-equal? (string-replacement-new-end replacement) 24)
     (check-equal? (string-replacement-render replacement s) "evening and goodbye")
     (check-equal? (string-apply-replacement s replacement) "good evening and goodbye world")))
+
+
+(define (file-apply-string-replacement! path replacement)
+  (define replacement-text (string-apply-replacement (file->string path #:mode 'text) replacement))
+  (display-to-file replacement-text path #:mode 'text #:exists 'replace))
 
 
 (define/guard (string-replacement-union replacement1 replacement2)

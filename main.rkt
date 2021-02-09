@@ -6,6 +6,7 @@
 
 (provide
  (contract-out
+  [refactor! (-> (sequence/c refactoring-result?) void?)]
   [refactor-file (-> path-string? (listof refactoring-result?))]
   [refactor-directory (-> path-string? (listof refactoring-result?))]
   [refactor-package (-> path-string? (listof refactoring-result?))]
@@ -20,6 +21,7 @@
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
   [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]
+  [refactoring-result-original-line (-> refactoring-result? exact-positive-integer?)]
   [refactoring-result-original-code (-> refactoring-result? code-snippet?)]
   [refactoring-result-new-code (-> refactoring-result? code-snippet?)]))
 
@@ -37,6 +39,8 @@
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/base/symbol
+         rebellion/collection/entry
+         rebellion/collection/hash
          rebellion/collection/list
          rebellion/private/guarded-block
          rebellion/streaming/transducer
@@ -44,7 +48,6 @@
          resyntax/code-snippet
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
-         #;resyntax/indentation
          resyntax/source-code
          resyntax/string-replacement
          resyntax/syntax-replacement)
@@ -64,6 +67,14 @@
    #:rule-name rule-name
    #:message (string->immutable-string message)
    #:replacement replacement))
+
+
+(define (refactoring-result-original-position result)
+  (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
+  (sub1 (syntax-position original)))
+
+(define (refactoring-result-original-line result)
+  (syntax-line (syntax-replacement-original-syntax (refactoring-result-replacement result))))
 
 
 (define (refactoring-result-original-code result)
@@ -94,6 +105,17 @@
     (string->immutable-string (send text-object get-text indented-start indented-end)))
   (define start-column (+ (syntax-column original) (- indented-start start)))
   (code-snippet indented-raw-text start-column (syntax-line original)))
+
+
+(define (refactoring-result-string-replacement result)
+  (define old-start (refactoring-result-original-position result))
+  (define old-code (code-snippet-raw-text (refactoring-result-original-code result)))
+  (define new-code (code-snippet-raw-text (refactoring-result-new-code result)))
+  (define old-end (+ old-start (string-length old-code)))
+  (string-replacement
+   #:start old-start
+   #:end old-end
+   #:contents (list (inserted-string new-code))))
 
 
 (define (refactoring-rules-refactor rules syntax path)
@@ -148,6 +170,16 @@
     #false)
   (define content (file->string path))
   (string-prefix? content "#lang racket/base"))
+
+
+(define (refactor! results)
+  (define results-by-path
+    (transduce results
+               (bisecting refactoring-result-path refactoring-result-string-replacement)
+               (grouping union-into-string-replacement)
+               #:into into-hash))
+  (for ([(path replacement) (in-hash results-by-path)])
+    (file-apply-string-replacement! path replacement)))
 
 
 ;; Empty test submodule to prevent initialization of the GUI framework in CI.

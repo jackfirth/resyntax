@@ -6,6 +6,8 @@
          racket/match
          racket/path
          racket/string
+         rebellion/collection/entry
+         rebellion/collection/hash
          rebellion/collection/list
          rebellion/collection/vector/builder
          rebellion/streaming/transducer
@@ -13,16 +15,20 @@
          resyntax)
 
 
+;@----------------------------------------------------------------------------------------------------
+
+
 (define-tuple-type file-target (path))
 (define-tuple-type directory-target (path))
 (define-tuple-type package-target (name))
 
 
-(define (resyntax-parse-command-line)
+(define (resyntax-analyze-parse-command-line)
   (define targets (box (make-vector-builder)))
   (define (add-target! target)
     (set-box! targets (vector-builder-add (unbox targets) target)))
   (command-line
+   #:program "resyntax analyze"
    #:multi
    ("--file"
     filepath
@@ -41,6 +47,44 @@
   (build-vector (unbox targets)))
 
 
+(define (resyntax-fix-parse-command-line)
+  (define targets (box (make-vector-builder)))
+  (define (add-target! target)
+    (set-box! targets (vector-builder-add (unbox targets) target)))
+  (command-line
+   #:program "resyntax fix"
+   #:multi
+   ("--file"
+    filepath
+    "A file to fix."
+    (define complete-filepath (simplify-path (path->complete-path filepath)))
+    (add-target! (file-target complete-filepath)))
+   ("--directory"
+    dirpath
+    "A directory to fix, including subdirectories."
+    (define complete-dirpath (simplify-path (path->complete-path dirpath)))
+    (add-target! (directory-target complete-dirpath)))
+   ("--package"
+    pkgname
+    "A package to fix."
+    (add-target! (package-target pkgname))))
+  (build-vector (unbox targets)))
+
+
+(define (resyntax-run)
+  (command-line
+   #:program "resyntax"
+   #:args (command . leftover-args)
+   (define leftover-arg-vector (vector->immutable-vector (list->vector leftover-args)))
+   (match command
+     ["analyze"
+      (parameterize ([current-command-line-arguments leftover-arg-vector])
+        (resyntax-analyze-run))]
+     ["fix"
+      (parameterize ([current-command-line-arguments leftover-arg-vector])
+        (resyntax-fix-run))])))
+
+
 (define (refactor-target target)
   (match target
     [(file-target path) (refactor-file path)]
@@ -48,18 +92,50 @@
     [(package-target name) (refactor-package name)]))
 
 
-(define (run)
+(define (resyntax-analyze-run)
+  (printf "resyntax: --- analyzing code ---\n")
   (define results
-    (transduce (resyntax-parse-command-line)
+    (transduce (resyntax-analyze-parse-command-line)
                (append-mapping refactor-target)
                #:into into-list))
-  (for* ([result (in-list results)])
+  (printf "resyntax: --- displaying results ---\n")
+  (for ([result (in-list results)])
     (define path (find-relative-path (current-directory) (refactoring-result-path result)))
     (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
     (printf "\n\n~a\n" (string-indent (refactoring-result-message result) 2))
     (define old-code (refactoring-result-original-code result))
     (define new-code (refactoring-result-new-code result))
     (printf "\n\n~a\n\n\n~a\n\n\n" (string-indent (~a old-code) 2) (string-indent (~a new-code) 2))))
+
+
+(define (resyntax-fix-run)
+  (printf "resyntax: --- analyzing code ---\n")
+  (define all-results
+    (transduce
+     (resyntax-fix-parse-command-line)
+     (append-mapping refactor-target)
+     #:into into-list))
+  (define results-by-path
+    (transduce
+     all-results
+     (indexing refactoring-result-path)
+     (grouping (into-transduced (sorting #:key refactoring-result-original-line) #:into into-list))
+     #:into into-hash))
+  (printf "resyntax: --- fixing code ---\n")
+  (for ([(path results) (in-hash results-by-path)])
+    (define result-count (length results))
+    (define fix-string (if (> result-count 1) "fixes" "fix"))
+    (printf "resyntax: applying ~a ~a to ~a\n\n" result-count fix-string path)
+    (for ([result (in-list results)])
+      (define line (refactoring-result-original-line result))
+      (define message (refactoring-result-message result))
+      (printf "  * [line ~a] ~a\n" line message))
+    (refactor! results)
+    (newline))
+  (printf "resyntax: --- summary ---\n")
+  (define total-fixes (length all-results))
+  (define total-files (hash-count results-by-path))
+  (printf "\n  Fixed ~a issues in ~a files.\n\n" total-fixes total-files))
 
 
 (define (string-indent s amount)
@@ -70,7 +146,7 @@
 
 
 (module+ main
-  (run))
+  (resyntax-run))
 
 
 ;; Empty test submodule to avoid GUI initialization in CI.
