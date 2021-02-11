@@ -48,9 +48,10 @@
 
 
 (define-simple-macro (refactoring-test-case name:str input:str expected:str)
+  #:with check (syntax/loc this-syntax (check-equal? actual expected))
   (test-case name
     (define actual (refactor input #:rules refactoring-rules-under-test))
-    (check-equal? actual expected)))
+    check))
 
 
 (define-syntax-parameter refactoring-rules-under-test
