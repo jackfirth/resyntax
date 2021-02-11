@@ -28,5 +28,6 @@ test: "multiple let bindings"
 #lang racket/base
 (define (f)
   (define x 1)
+  (define y 1)
   1)
 ---------------------
