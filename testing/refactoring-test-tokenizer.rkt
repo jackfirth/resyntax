@@ -30,7 +30,7 @@
 
 
 (define-lex-abbrev refactoring-test-identifier
-  (repetition 1 +inf.0 (union alphabetic symbolic numeric (char-set "-"))))
+  (repetition 1 +inf.0 (union alphabetic symbolic numeric (char-set "-/"))))
 
 
 (define-tokens refactoring-test-tokens (IDENTIFIER STRING-LITERAL LANG-BLOCK))

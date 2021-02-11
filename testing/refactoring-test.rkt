@@ -1,25 +1,60 @@
 #lang racket/base
 
 
-(provide #%module-begin
-         (rename-out [begin refactoring-test-program])
-         quote
+(provide #%datum
+         #%module-begin
+         refactoring-test
          refactoring-test-import
          refactoring-test-case)
 
 
-(require syntax/parse/define)
+(require (for-syntax racket/base)
+         racket/stxparam
+         rackunit
+         rebellion/collection/list
+         rebellion/streaming/transducer
+         resyntax
+         syntax/parse/define)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-simple-macro (refactoring-test-import module rule)
-  (begin 'module 'rule))
+(begin-for-syntax
+  (define-syntax-class refactoring-test-import-statement
+    #:attributes (require-statement rule)
+    #:literals (refactoring-test-import)
+    (pattern (refactoring-test-import module rule)
+      #:with require-statement #'(require (only-in module rule)))))
+
+
+(define-simple-macro (refactoring-test import:refactoring-test-import-statement ...+ case ...)
+  (begin
+    import.require-statement ...
+    (define rule-list (refactoring-suite import.rule ...))
+    (syntax-parameterize ([refactoring-rules-under-test (make-rename-transformer #'rule-list)])
+      case ...)))
+
+
+(define (refactoring-suite . rules-and-suites)
+  (transduce rules-and-suites
+             (append-mapping
+              (λ (rule-or-suite) (if (list? rule-or-suite) rule-or-suite (list rule-or-suite))))
+             #:into into-list))
+
+
+(define-syntax (refactoring-test-import stx)
+  (raise-syntax-error #false "can only be used within a refactoring test" stx))
 
 
 (define-simple-macro (refactoring-test-case name:str input:str expected:str)
-  '(refactoring-test-case name input expected))
+  (test-case name
+    (define actual (refactor input #:rules refactoring-rules-under-test))
+    (check-equal? actual expected)))
+
+
+(define-syntax-parameter refactoring-rules-under-test
+  (λ (stx) (raise-syntax-error #false "can only be used within a refactoring test case" stx)))
 
 
 ;@----------------------------------------------------------------------------------------------------

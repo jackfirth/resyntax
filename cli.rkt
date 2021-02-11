@@ -6,6 +6,7 @@
          racket/match
          racket/path
          racket/string
+         rebellion/base/option
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
@@ -13,7 +14,8 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/tuple
-         resyntax)
+         resyntax
+         resyntax/source-code)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -101,7 +103,7 @@
                #:into into-list))
   (printf "resyntax: --- displaying results ---\n")
   (for ([result (in-list results)])
-    (define path (find-relative-path (current-directory) (refactoring-result-path result)))
+    (define path (file-source-code-path (refactoring-result-source result)))
     (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
     (printf "\n\n~a\n" (string-indent (refactoring-result-message result) 2))
     (define old-code (refactoring-result-original-code result))
@@ -119,7 +121,7 @@
   (define results-by-path
     (transduce
      all-results
-     (indexing refactoring-result-path)
+     (indexing (λ (result) (file-source-code-path (refactoring-result-source result))))
      (grouping (into-transduced (sorting #:key refactoring-result-original-line) #:into into-list))
      #:into into-hash))
   (printf "resyntax: --- fixing code ---\n")

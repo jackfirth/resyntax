@@ -39,7 +39,7 @@
 (struct source-code () #:transparent)
 
 (struct file-source-code source-code (path) #:transparent
-  #:guard (λ (path _) (cleanse-path path)))
+  #:guard (λ (path _) (simple-form-path path)))
 
 (struct string-source-code source-code (contents) #:transparent
   #:guard (λ (contents _) (string->immutable-string contents)))
@@ -112,7 +112,3 @@
     #false)
   (equal? path (syntax-source stx)))
 
-(module+ main
-  (source-code-analyze!
-   (file-source-code
-    "/Users/jackfirth/Documents/GitHub/rackunit/rackunit-lib/rackunit/private/base.rkt")))
