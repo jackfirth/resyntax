@@ -12,7 +12,10 @@
 
 
 (define deps
-  (list "gui-lib"
+  (list "br-parser-tools-lib"
+        "brag-lib"
+        "rackunit-lib"
+        "gui-lib"
         "fancy-app"
         "rebellion"
         "base"))
