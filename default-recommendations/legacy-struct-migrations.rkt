@@ -10,6 +10,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          racket/syntax
          resyntax/refactoring-rule
          resyntax/syntax-replacement
@@ -20,9 +21,15 @@
 
 
 (define-syntax-class id-maybe-super
-  #:attributes (id super-id)
-  (pattern id:id #:attr super-id #false)
-  (pattern (id:id super-id:id)))
+  #:attributes (make-id [migrated 1])
+
+  (pattern id:id
+    #:with (migrated ...) #'(id)
+    #:with make-id (format-id #'id "make-~a" #'id))
+  
+  (pattern (id:id super-id:id)
+    #:with (migrated ...) #'(id super-id)
+    #:with make-id (format-id #'id "make-~a" #'id)))
 
 
 (define-syntax-class constructor-name-keyword
@@ -30,20 +37,18 @@
 
 
 (define-splicing-syntax-class struct-option
-  #:attributes ([formatted 1])
+  #:attributes (keyword [expr 1] [formatted 1] [original 1])
   (pattern (~seq (~and keyword:keyword (~not :constructor-name-keyword)) expr:expr ...)
-    #:with (formatted ...) #'(keyword expr ...)))
+    #:with (original ...) #'(keyword expr ...)
+    #:with (formatted ...) #'(NEWLINE (ORIGINAL-SPLICE keyword expr ...))))
 
 
 (define-refactoring-rule define-struct-to-struct
   #:description "The define-struct form exists for backwards compatibility, struct is preferred."
   #:literals (define-struct)
-  [(define-struct id-maybe-super:id-maybe-super fields
-     option:struct-option ...)
-   #:with make-id (format-id #'id-maybe-super.id "make-~a" #'id-maybe-super.id)
-   (struct id-maybe-super.id (~? id-maybe-super.super-id) fields
-     NEWLINE #:extra-constructor-name make-id
-     (~@ NEWLINE option.formatted ...) ...)])
+  [(define-struct id:id-maybe-super fields option:struct-option ...)
+   (struct id.migrated ... (ORIGINAL-SPLICE fields option.original ... ...)
+     NEWLINE #:extra-constructor-name id.make-id)])
 
 
 (define legacy-struct-migrations

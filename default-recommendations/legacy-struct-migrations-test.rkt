@@ -23,9 +23,9 @@ test: "define-struct with simple options"
 ----------------------------------------
 #lang racket/base
 (struct point (x y)
-  #:extra-constructor-name make-point
   #:transparent
-  #:mutable)
+  #:mutable
+  #:extra-constructor-name make-point)
 ----------------------------------------
 
 
@@ -35,10 +35,8 @@ test: "one-line define-struct with simple options"
 (define-struct point (x y) #:transparent #:mutable)
 ----------------------------------------
 #lang racket/base
-(struct point (x y)
-  #:extra-constructor-name make-point
-  #:transparent
-  #:mutable)
+(struct point (x y) #:transparent #:mutable
+  #:extra-constructor-name make-point)
 ----------------------------------------
 
 
@@ -65,8 +63,90 @@ test: "define-struct with multi-form single-line options"
 ----------------------------------------
 #lang racket/base
 (struct point (x y)
-  #:extra-constructor-name make-point
   #:guard (λ (x y _) (values x y))
   #:property prop:custom-print-quotable 'never
-  #:inspector #false)
+  #:inspector #false
+  #:extra-constructor-name make-point)
+----------------------------------------
+
+
+test: "define-struct with multi-line options"
+----------------------------------------
+#lang racket/base
+(define-struct point (x y)
+  #:property prop:custom-write
+  (λ (this out mode)
+    (write-string "#<point>" out)))
+----------------------------------------
+#lang racket/base
+(struct point (x y)
+  #:property prop:custom-write
+  (λ (this out mode)
+    (write-string "#<point>" out))
+  #:extra-constructor-name make-point)
+----------------------------------------
+
+
+test: "define-struct with options with separating whitespace"
+----------------------------------------
+#lang racket/base
+(define-struct point (x y)
+
+  #:property prop:custom-write
+  (λ (this out mode)
+    (write-string "#<point>" out))
+
+  #:guard (λ (x y _) (values x y)))
+----------------------------------------
+#lang racket/base
+(struct point (x y)
+
+  #:property prop:custom-write
+  (λ (this out mode)
+    (write-string "#<point>" out))
+
+  #:guard (λ (x y _) (values x y))
+  #:extra-constructor-name make-point)
+----------------------------------------
+
+
+test: "define-struct with field comments"
+----------------------------------------
+#lang racket/base
+(define-struct point (x ;; The X coordinate of the point
+                      y ;; The Y coordinate of the point
+                      ))
+----------------------------------------
+#lang racket/base
+(struct point (x ;; The X coordinate of the point
+               y ;; The Y coordinate of the point
+               )
+  #:extra-constructor-name make-point)
+----------------------------------------
+
+
+test: "define-struct with comments between options"
+----------------------------------------
+#lang racket/base
+(define-struct point (x y)
+
+  ;; Custom write implementation
+  #:property prop:custom-write
+  (λ (this out mode)
+    (write-string "#<point>" out))
+
+  ;; Field guard
+  #:guard (λ (x y _) (values x y)))
+----------------------------------------
+#lang racket/base
+(struct point (x y)
+
+  ;; Custom write implementation
+  #:property prop:custom-write
+  (λ (this out mode)
+    (write-string "#<point>" out))
+
+  ;; Field guard
+  #:guard (λ (x y _) (values x y))
+  #:extra-constructor-name make-point)
 ----------------------------------------
