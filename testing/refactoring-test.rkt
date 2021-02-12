@@ -9,6 +9,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/pretty
          racket/stxparam
          rackunit
          rebellion/collection/list
@@ -48,7 +49,7 @@
 
 
 (define-simple-macro (refactoring-test-case name:str input:str expected:str)
-  #:with check (syntax/loc this-syntax (check-equal? actual expected))
+  #:with check (syntax/loc this-syntax (check-equal? (string-block actual) (string-block expected)))
   (test-case name
     (define actual (refactor input #:rules refactoring-rules-under-test))
     check))
@@ -56,6 +57,31 @@
 
 (define-syntax-parameter refactoring-rules-under-test
   (λ (stx) (raise-syntax-error #false "can only be used within a refactoring test case" stx)))
+
+
+(struct string-block (raw-string) #:transparent
+  #:guard (λ (raw-string _) (string->immutable-string raw-string))
+
+  #:methods gen:custom-write
+
+  [(define (write-proc this out mode)
+     (define raw (string-block-raw-string this))
+     (define-values (_line col _pos) (port-next-location out))
+     (cond
+       [(and (pretty-printing) (integer? (pretty-print-columns)) col)
+        (define lead (make-string col #\space))
+        (for ([line (in-lines (open-input-string raw))]
+              [i (in-naturals)])
+          (unless (zero? i)
+            (write-string lead out)
+            (pretty-print-newline out (pretty-print-columns)))
+          (write-string line out))]
+       [else
+        (for ([line (in-lines (open-input-string raw))]
+              [i (in-naturals)])
+          (unless (zero? i)
+            (newline out))
+          (write-string line out))]))])
 
 
 ;@----------------------------------------------------------------------------------------------------
