@@ -7,7 +7,7 @@
 (provide
  (contract-out
   [refactor! (-> (sequence/c refactoring-result?) void?)]
-  [refactor (->* (string?) (#:rules (sequence/c refactoring-rule?)) immutable-string?)]
+  [refactor (->* (string?) (#:rules (sequence/c refactoring-rule?)) string-replacement?)]
   [refactor-file (-> path-string? (listof refactoring-result?))]
   [refactor-directory (-> path-string? (listof refactoring-result?))]
   [refactor-package (-> path-string? (listof refactoring-result?))]
@@ -143,15 +143,13 @@
 (define (refactor code-string #:rules [rules default-recommendations])
   (define rule-list (sequence->list rules))
   (define source (string-source-code code-string))
-  (define replacement
-    (parameterize ([current-namespace (make-base-namespace)])
-      (define analysis (source-code-analyze source))
-      (transduce
-       (source-code-analysis-visited-forms analysis)
-       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
-       (mapping refactoring-result-string-replacement)
-       #:into union-into-string-replacement)))
-  (string-apply-replacement code-string replacement))
+  (parameterize ([current-namespace (make-base-namespace)])
+    (define analysis (source-code-analyze source))
+    (transduce
+     (source-code-analysis-visited-forms analysis)
+     (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
+     (mapping refactoring-result-string-replacement)
+     #:into union-into-string-replacement)))
 
 
 (define (refactor-file path-string #:rules [rules default-recommendations])
