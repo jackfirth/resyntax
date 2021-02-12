@@ -64,14 +64,6 @@
    predicate])
 
 
-(define-refactoring-rule flat-contract-predicate-migration
-  #:description "flat-contract is a legacy form for turning contracts into predicates; flat contracts\
- can be used directly as predicates now."
-  #:literals (flat-contract-predicate)
-  [(flat-contract-predicate c)
-   c])
-
-
 (define-refactoring-rule contract-struct-migration
   #:description "The contract-struct form is deprecated, use struct instead. Lazy struct contracts no\
  longer require a separate struct declaration."
@@ -95,8 +87,6 @@
         define-contract-struct-migration
         false/c-migration
         flat-contract-migration
-        flat-contract-predicate-migration
         symbols-migration
         vector-immutableof-migration
         vector-immutable/c-migration))
-
