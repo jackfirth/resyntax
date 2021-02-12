@@ -29,12 +29,14 @@
       #:with require-statement #'(require (only-in module rule)))))
 
 
-(define-simple-macro (refactoring-test import:refactoring-test-import-statement ...+ case ...)
+(define-simple-macro (refactoring-test import:refactoring-test-import-statement ... case ...)
   (begin
     import.require-statement ...
     (define rule-list (refactoring-suite import.rule ...))
     (syntax-parameterize ([refactoring-rules-under-test (make-rename-transformer #'rule-list)])
-      case ...)))
+      case ...
+      ;; this void expression ensures that it's not an error if no test cases are given
+      (void))))
 
 
 (define (refactoring-suite . rules-and-suites)
