@@ -6,6 +6,7 @@
 
 (provide
  NEWLINE
+ ORIGINAL-SPLICE
  (contract-out
   [syntax-replacement? predicate/c]
   [syntax-replacement
@@ -37,8 +38,15 @@
 
 (define-syntax (NEWLINE stx)
   (raise-syntax-error
-   'NEWLINE
+   #false
    "should only be used by refactoring rules to indicate where newlines should be inserted"
+   stx))
+
+
+(define-syntax (ORIGINAL-SPLICE stx)
+  (raise-syntax-error
+   #false
+   "should only be used by refactoring rules to indicate original sequences of syntax objects"
    stx))
 
 
@@ -53,8 +61,20 @@
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
     (syntax-parse stx
-      #:literals (quote NEWLINE)
+      #:literals (quote NEWLINE ORIGINAL-SPLICE)
       [NEWLINE (list (inserted-string "\n"))]
+      [(ORIGINAL-SPLICE ~! original-subform ...+)
+       (define subforms (syntax->list #'(original-subform ...)))
+       (for ([subform-stx (in-list subforms)])
+         (unless (syntax-original? subform-stx)
+           (raise-arguments-error
+            (name syntax-replacement-render)
+            "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
+            "subform" subform-stx
+            "splice" stx)))
+       (define start (sub1 (syntax-position (first subforms))))
+       (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
+       (list (copied-string start end))]
       [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
        (list (inserted-string (string->immutable-string (~s (syntax-e #'v)))))]
       [(quote datum) (cons (inserted-string "'") (pieces #'datum))]

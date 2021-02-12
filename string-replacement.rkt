@@ -117,7 +117,8 @@
 
 
 (struct inserted-string (contents) #:transparent
-  #:guard (λ (contents _) (string->immutable-string contents)))
+  #:guard (λ (contents _) (string->immutable-string contents))
+  #:property prop:custom-print-quotable 'never)
 
 
 (define-tuple-type copied-string (start end))

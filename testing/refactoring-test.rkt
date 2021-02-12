@@ -12,9 +12,11 @@
          racket/pretty
          racket/stxparam
          rackunit
+         rackunit/private/check-info
          rebellion/collection/list
          rebellion/streaming/transducer
          resyntax
+         resyntax/string-replacement
          syntax/parse/define)
 
 
@@ -29,12 +31,14 @@
       #:with require-statement #'(require (only-in module rule)))))
 
 
-(define-simple-macro (refactoring-test import:refactoring-test-import-statement ...+ case ...)
+(define-simple-macro (refactoring-test import:refactoring-test-import-statement ... case ...)
   (begin
     import.require-statement ...
     (define rule-list (refactoring-suite import.rule ...))
     (syntax-parameterize ([refactoring-rules-under-test (make-rename-transformer #'rule-list)])
-      case ...)))
+      case ...
+      ;; this void expression ensures that it's not an error if no test cases are given
+      (void))))
 
 
 (define (refactoring-suite . rules-and-suites)
@@ -51,8 +55,10 @@
 (define-simple-macro (refactoring-test-case name:str input:str expected:str)
   #:with check (syntax/loc this-syntax (check-equal? (string-block actual) (string-block expected)))
   (test-case name
-    (define actual (refactor input #:rules refactoring-rules-under-test))
-    check))
+    (define replacement (refactor input #:rules refactoring-rules-under-test))
+    (with-check-info (['replacement (pretty-info replacement)])
+      (define actual (string-apply-replacement input replacement))
+      check)))
 
 
 (define-syntax-parameter refactoring-rules-under-test

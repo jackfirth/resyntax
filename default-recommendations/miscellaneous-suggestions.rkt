@@ -40,23 +40,6 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-syntax-class define-struct-id-maybe-super
-  #:attributes (id super-id)
-  (pattern id:id #:attr super-id #false)
-  (pattern (id:id super-id:id)))
-
-
-(define-refactoring-rule struct-from-define-struct-with-default-constructor-name
-  #:description "The define-struct form exists for backwards compatibility, struct is preferred."
-  #:literals (define-struct)
-  [(define-struct id-maybe-super:define-struct-id-maybe-super fields
-     (~and option (~not #:constructor-name) (~not #:extra-constructor-name)) ...)
-   #:with make-id (format-id #'id-maybe-super.id "make-~a" #'id-maybe-super.id)
-   (struct id-maybe-super.id (~? id-maybe-super.super-id) fields NEWLINE
-     #:extra-constructor-name make-id NEWLINE
-     option ...)])
-
-
 (define/guard (free-identifiers=? ids other-ids)
   (define id-list (syntax->list ids))
   (define other-id-list (syntax->list other-ids))
@@ -212,5 +195,4 @@
         if-else-if-to-cond
         if-x-else-x-to-and
         or-cond-to-cond
-        or-or-to-or
-        struct-from-define-struct-with-default-constructor-name))
+        or-or-to-or))
