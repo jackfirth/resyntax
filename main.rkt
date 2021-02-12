@@ -92,21 +92,27 @@
 
 (define (refactoring-result-new-code result)
   (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
+  (define original-line (syntax-line original))
+  (define original-column (syntax-column original))
   (define start (sub1 (syntax-position original)))
   (define replacement (syntax-replacement-render (refactoring-result-replacement result)))
   (define end (+ start (string-replacement-new-span replacement)))
   (define source-code (source-code-read-string (refactoring-result-source result)))
   (define refactored-source-code (string-apply-replacement source-code replacement))
-  (define text-object (new racket:text%))
-  (send text-object insert refactored-source-code)
-  (send text-object set-position start end)
-  (send text-object tabify-selection)
-  (define indented-start (send text-object get-start-position))
-  (define indented-end (send text-object get-end-position))
-  (define indented-raw-text
-    (string->immutable-string (send text-object get-text indented-start indented-end)))
-  (define start-column (+ (syntax-column original) (- indented-start start)))
-  (code-snippet indented-raw-text start-column (syntax-line original)))
+  (cond
+    [(string-contains? (substring refactored-source-code start end) "\n")
+     (define text-object (new racket:text%))
+     (send text-object insert refactored-source-code)
+     (send text-object set-position start end)
+     (send text-object tabify-selection)
+     (define indented-start (send text-object get-start-position))
+     (define indented-end (send text-object get-end-position))
+     (define indented-raw-text
+       (string->immutable-string (send text-object get-text indented-start indented-end)))
+     (define indented-column (+ original-column (- indented-start start)))
+     (code-snippet indented-raw-text indented-column original-line)]
+    [else
+     (code-snippet (substring refactored-source-code start end) original-column original-line)]))
 
 
 (define (refactoring-result-string-replacement result)
