@@ -1,7 +1,7 @@
 #lang resyntax/testing/refactoring-test
 
 
-require: resyntax/refactoring-rule standard-refactoring-rules
+require: resyntax/default-recommendations/let-binding-suggestions let-binding-suggestions
 
 
 test: "single let binding"

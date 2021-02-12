@@ -49,6 +49,7 @@
          resyntax/code-snippet
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
+         resyntax/default-recommendations
          resyntax/source-code
          resyntax/string-replacement
          resyntax/syntax-replacement)
@@ -133,7 +134,7 @@
      result)))
 
 
-(define (refactor code-string #:rules [rules standard-refactoring-rules])
+(define (refactor code-string #:rules [rules default-recommendations])
   (define rule-list (sequence->list rules))
   (define source (string-source-code code-string))
   (define replacement
@@ -147,14 +148,14 @@
   (string-apply-replacement code-string replacement))
 
 
-(define (refactor-file path-string #:rules [rules standard-refactoring-rules])
+(define (refactor-file path-string #:rules [rules default-recommendations])
   (define path (simple-form-path path-string))
   (printf "resyntax: analyzing ~a\n" path)
   (define rule-list (sequence->list rules))
   (define source (file-source-code path))
 
   (define (skip e)
-    (printf "resyntax: skipping ~a due to syntax error\n" path)
+    (printf "resyntax: skipping ~a due to syntax error: ~e\n" path (exn-message e))
     empty-list)
   
   (with-handlers ([exn:fail:syntax? skip])
@@ -167,7 +168,7 @@
        #:into into-list))))
 
 
-(define (refactor-directory path-string #:rules [rules standard-refactoring-rules])
+(define (refactor-directory path-string #:rules [rules default-recommendations])
   (define path (simple-form-path path-string))
   (define rule-list (sequence->list rules))
   (transduce (in-directory path)
@@ -176,7 +177,7 @@
              #:into into-list))
 
 
-(define (refactor-package package-name #:rules [rules standard-refactoring-rules])
+(define (refactor-package package-name #:rules [rules default-recommendations])
   (refactor-directory (pkg-directory package-name) #:rules rules))
 
 
@@ -197,7 +198,3 @@
                #:into into-hash))
   (for ([(path replacement) (in-hash results-by-path)])
     (file-apply-string-replacement! path replacement)))
-
-
-;; Empty test submodule to prevent initialization of the GUI framework in CI.
-(module test racket/base)
