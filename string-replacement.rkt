@@ -34,11 +34,11 @@
         (not (string-replacement-overlaps? replacement1 replacement2))
         [_ string-replacement?])]
   [union-into-string-replacement (reducer/c string-replacement? string-replacement?)]
-  [string-replacement-render (-> string-replacement? immutable-string? immutable-string?)]
-  [string-apply-replacement (-> immutable-string? string-replacement? immutable-string?)]
+  [string-replacement-render (-> string-replacement? string? immutable-string?)]
+  [string-apply-replacement (-> string? string-replacement? immutable-string?)]
   [file-apply-string-replacement! (-> path-string? string-replacement? void?)]
   [inserted-string? predicate/c]
-  [inserted-string (-> immutable-string? inserted-string?)]
+  [inserted-string (-> string? inserted-string?)]
   [inserted-string-contents (-> inserted-string? immutable-string?)]
   [copied-string? predicate/c]
   [copied-string
@@ -116,7 +116,10 @@
    (string-replacement-range replacement) (string-replacement-range other-replacement)))
 
 
-(define-tuple-type inserted-string (contents))
+(struct inserted-string (contents) #:transparent
+  #:guard (λ (contents _) (string->immutable-string contents)))
+
+
 (define-tuple-type copied-string (start end))
 
 
@@ -127,13 +130,14 @@
 
 
 (define (string-replacement-render replacement original-string)
+  (define immutable-original-string (string->immutable-string original-string))
   (define required-length (string-replacement-required-length replacement))
-  (define original-length (string-length original-string))
+  (define original-length (string-length immutable-original-string))
   (unless (>= original-length required-length)
     (raise-arguments-error
      (name string-apply-replacement)
      "string is not long enough"
-     "string" original-string
+     "string" immutable-original-string
      "string length" original-length
      "required length" required-length))
   (define content-length (string-replacement-new-span replacement))
@@ -145,28 +149,29 @@
        (string-copy! edited start inserted)
        (+ start (string-length inserted))]
       [(copied-string copy-start copy-end)
-       (string-copy! edited start original-string copy-start copy-end)
+       (string-copy! edited start immutable-original-string copy-start copy-end)
        (+ start (- copy-end copy-start))]))
   (string->immutable-string edited))
 
 
 (define (string-apply-replacement string replacement)
+  (define immutable-string (string->immutable-string string))
   (define start (string-replacement-start replacement))
   (define end (string-replacement-end replacement))
   (define new-end (string-replacement-new-end replacement))
   (define contents (string-replacement-contents replacement))
   (define required-length (string-replacement-required-length replacement))
-  (define original-length (string-length string))
+  (define original-length (string-length immutable-string))
   (unless (>= original-length required-length)
     (raise-arguments-error
      (name string-apply-replacement)
      "string is not long enough"
-     "string" string
+     "string" immutable-string
      "string length" original-length
      "required length" required-length))
   (define new-length (+ original-length (string-replacement-length-change replacement)))
   (define edited (make-string new-length))
-  (string-copy! edited 0 string 0 start)
+  (string-copy! edited 0 immutable-string 0 start)
   (for/fold ([start start] #:result (void))
             ([piece (in-list contents)])
     (match piece
@@ -174,9 +179,9 @@
        (string-copy! edited start inserted)
        (+ start (string-length inserted))]
       [(copied-string copy-start copy-end)
-       (string-copy! edited start string copy-start copy-end)
+       (string-copy! edited start immutable-string copy-start copy-end)
        (+ start (- copy-end copy-start))]))
-  (string-copy! edited new-end string end)
+  (string-copy! edited new-end immutable-string end)
   (string->immutable-string edited))
 
 

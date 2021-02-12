@@ -7,17 +7,18 @@
 (provide
  (contract-out
   [refactor! (-> (sequence/c refactoring-result?) void?)]
+  [refactor (->* (string?) (#:rules (sequence/c refactoring-rule?)) immutable-string?)]
   [refactor-file (-> path-string? (listof refactoring-result?))]
   [refactor-directory (-> path-string? (listof refactoring-result?))]
   [refactor-package (-> path-string? (listof refactoring-result?))]
   [refactoring-result? predicate/c]
   [refactoring-result
-   (-> #:path path-string?
+   (-> #:source source-code?
        #:rule-name interned-symbol?
        #:message string?
        #:replacement syntax-replacement?
        refactoring-result?)]
-  [refactoring-result-path (-> refactoring-result? path?)]
+  [refactoring-result-source (-> refactoring-result? source-code?)]
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
   [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]
@@ -56,14 +57,14 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-record-type refactoring-result (path rule-name message replacement)
+(define-record-type refactoring-result (source rule-name message replacement)
   #:omit-root-binding)
 
 
 (define (refactoring-result
-         #:path path #:rule-name rule-name #:message message #:replacement replacement)
+         #:source source #:rule-name rule-name #:message message #:replacement replacement)
   (constructor:refactoring-result
-   #:path (simple-form-path path)
+   #:source source
    #:rule-name rule-name
    #:message (string->immutable-string message)
    #:replacement replacement))
@@ -84,7 +85,7 @@
   (define start-column (syntax-column original))
   (define raw-text
     (string->immutable-string
-     (substring (file->string (refactoring-result-path result)) start end)))
+     (substring (source-code-read-string (refactoring-result-source result)) start end)))
   (code-snippet raw-text start-column (syntax-line original)))
 
 
@@ -93,10 +94,10 @@
   (define start (sub1 (syntax-position original)))
   (define replacement (syntax-replacement-render (refactoring-result-replacement result)))
   (define end (+ start (string-replacement-new-span replacement)))
-  (define file-code (string->immutable-string (file->string (refactoring-result-path result))))
-  (define refactored-file-code (string-apply-replacement file-code replacement))
+  (define source-code (source-code-read-string (refactoring-result-source result)))
+  (define refactored-source-code (string-apply-replacement source-code replacement))
   (define text-object (new racket:text%))
-  (send text-object insert refactored-file-code)
+  (send text-object insert refactored-source-code)
   (send text-object set-position start end)
   (send text-object tabify-selection)
   (define indented-start (send text-object get-start-position))
@@ -118,11 +119,11 @@
    #:contents (list (inserted-string new-code))))
 
 
-(define (refactoring-rules-refactor rules syntax path)
+(define (refactoring-rules-refactor rules syntax source)
   (define (refactor rule)
     (option-map (refactoring-rule-refactor rule syntax)
                 (refactoring-result
-                 #:path path
+                 #:source source
                  #:rule-name (object-name rule)
                  #:message (refactoring-rule-description rule)
                  #:replacement _)))
@@ -132,23 +133,37 @@
      result)))
 
 
+(define (refactor code-string #:rules [rules standard-refactoring-rules])
+  (define rule-list (sequence->list rules))
+  (define source (string-source-code code-string))
+  (define replacement
+    (parameterize ([current-namespace (make-base-namespace)])
+      (define analysis (source-code-analyze source))
+      (transduce
+       (source-code-analysis-visited-forms analysis)
+       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
+       (mapping refactoring-result-string-replacement)
+       #:into union-into-string-replacement)))
+  (string-apply-replacement code-string replacement))
+
+
 (define (refactor-file path-string #:rules [rules standard-refactoring-rules])
   (define path (simple-form-path path-string))
-  (define relpath (find-relative-path (current-directory) path))
-  (printf "resyntax: analyzing ~a\n" relpath)
+  (printf "resyntax: analyzing ~a\n" path)
   (define rule-list (sequence->list rules))
-  (define code (file-source-code path))
+  (define source (file-source-code path))
 
   (define (skip e)
-    (printf "resyntax: skipping ~a due to syntax error\n" relpath)
+    (printf "resyntax: skipping ~a due to syntax error\n" path)
     empty-list)
   
   (with-handlers ([exn:fail:syntax? skip])
     (parameterize ([current-namespace (make-base-namespace)])
-      (define analysis (source-code-analyze code))
+      (define analysis (source-code-analyze source))
       (transduce
        (source-code-analysis-visited-forms analysis)
-       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx path))))
+       (append-mapping
+        (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
        #:into into-list))))
 
 
@@ -175,7 +190,9 @@
 (define (refactor! results)
   (define results-by-path
     (transduce results
-               (bisecting refactoring-result-path refactoring-result-string-replacement)
+               (bisecting
+                (λ (result) (file-source-code-path (refactoring-result-source result)))
+                refactoring-result-string-replacement)
                (grouping union-into-string-replacement)
                #:into into-hash))
   (for ([(path replacement) (in-hash results-by-path)])
