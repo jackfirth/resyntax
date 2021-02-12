@@ -8,7 +8,7 @@
  (contract-out
   [code-snippet? predicate/c]
   [code-snippet
-   (-> immutable-string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
+   (-> string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
   [code-snippet-raw-text (-> code-snippet? immutable-string?)]
   [code-snippet-start-column (-> code-snippet? exact-nonnegative-integer?)]
   [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]))
@@ -32,6 +32,11 @@
 
 (struct code-snippet (raw-text start-column start-line)
   #:transparent
+
+  #:guard
+  (λ (raw-text start-column start-line _)
+    (values (string->immutable-string raw-text) start-column start-line))
+  
   #:methods gen:custom-write
   [(define (write-proc this out mode)
      (define end-line (code-snippet-end-line this))
