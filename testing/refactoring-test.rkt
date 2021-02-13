@@ -52,8 +52,9 @@
   (raise-syntax-error #false "can only be used within a refactoring test" stx))
 
 
-(define-simple-macro (refactoring-test-case name:str input:str expected:str)
-  #:with check (syntax/loc this-syntax (check-equal? (string-block actual) (string-block expected)))
+(define-simple-macro (refactoring-test-case name:str input:str (~optional expected:str))
+  #:with check
+  (syntax/loc this-syntax (check-equal? (string-block actual) (string-block (~? expected actual))))
   (test-case name
     (define replacement (refactor input #:rules refactoring-rules-under-test))
     (with-check-info (['replacement (pretty-info replacement)])
