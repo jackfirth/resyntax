@@ -6,6 +6,7 @@
 
 (provide
  NEWLINE
+ ORIGINAL-GAP
  ORIGINAL-SPLICE
  (contract-out
   [syntax-replacement? predicate/c]
@@ -13,7 +14,8 @@
    (-> #:original-syntax (and/c syntax? syntax-original?) #:new-syntax syntax? syntax-replacement?)]
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
-  [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]))
+  [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
+  [syntax-replacement-template-drop-leading-newline (-> syntax? syntax?)]))
 
 
 (require (for-syntax racket/base)
@@ -43,11 +45,26 @@
    stx))
 
 
+(define-syntax (ORIGINAL-GAP stx)
+  (raise-syntax-error
+   #false
+   "should only be used by refactoring rules to indicate where to insert the content between two\
+ original syntax objects"
+   stx))
+
+
 (define-syntax (ORIGINAL-SPLICE stx)
   (raise-syntax-error
    #false
    "should only be used by refactoring rules to indicate original sequences of syntax objects"
    stx))
+
+
+(define (syntax-replacement-template-drop-leading-newline template-stx)
+  (syntax-parse template-stx
+    #:literals (NEWLINE)
+    [(NEWLINE form ...) #'(form ...)]
+    [_ template-stx]))
 
 
 (define-record-type syntax-replacement (original-syntax new-syntax))
@@ -61,8 +78,12 @@
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
     (syntax-parse stx
-      #:literals (quote NEWLINE ORIGINAL-SPLICE)
+      #:literals (quote NEWLINE ORIGINAL-GAP ORIGINAL-SPLICE)
       [NEWLINE (list (inserted-string "\n"))]
+      [(ORIGINAL-GAP ~! before after)
+       (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
+       (define after-start (sub1 (syntax-position #'after)))
+       (list (copied-string before-end after-start))]
       [(ORIGINAL-SPLICE ~! original-subform ...+)
        (define subforms (syntax->list #'(original-subform ...)))
        (for ([subform-stx (in-list subforms)])
