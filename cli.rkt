@@ -142,9 +142,11 @@
     (transduce all-results
                (indexing refactoring-result-rule-name)
                (grouping into-count)
-               #:into into-hash))
+               (sorting #:key entry-value #:descending? #true)
+               #:into into-list))
   (printf "\n  Fixed ~a issues in ~a files.\n\n" total-fixes total-files)
-  (for ([(rule count) (in-hash fix-counts-by-rule)])
+  (for ([rule+count (in-list fix-counts-by-rule)])
+    (match-define (entry rule count) rule+count)
     (define occurrence-string (if (> count 1) "occurences" "occurence"))
     (printf "  * Fixed ~a ~a of ~a\n" count occurrence-string rule))
   (newline))
