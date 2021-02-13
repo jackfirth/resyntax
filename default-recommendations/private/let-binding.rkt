@@ -600,7 +600,16 @@
     [(list id)
      (syntax-parse rhs
        #:literals (lambda λ)
-       [((~or lambda λ) header body ...) #`(define (#,id . header) (~@ NEWLINE body) ...)]
+       [((~or lambda λ) (arg:formal ...) body ...)
+        #`(define (#,id (~@ (~? arg.kw) (~? [arg.name arg.default] arg.name)) ...)
+            (~@ NEWLINE body) ...)]
+       [((~or lambda λ) (arg:formal ... . rest:identifier) body ...)
+        #`(define (#,id (~@ (~? arg.kw) (~? [arg.name arg.default] arg.name)) ... . rest)
+            (~@ NEWLINE body) ...)]
+       [((~or lambda λ) args:identifier body ...)
+        #:with id* id
+        #`(define (id* . args)
+            (~@ NEWLINE body) ...)]
        [else (if long? #`(define #,id NEWLINE #,rhs) #`(define #,id #,rhs))])]
     [_ (if long? #`(define-values #,id-side NEWLINE #,rhs) #`(define-values #,id-side #,rhs))]))
 
