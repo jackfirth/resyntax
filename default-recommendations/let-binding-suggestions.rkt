@@ -21,20 +21,11 @@
                   define/public-final
                   define/pubment
                   define/private)
-         racket/list
-         racket/match
-         racket/sequence
-         racket/syntax
-         rebellion/base/immutable-string
-         rebellion/base/option
-         rebellion/private/guarded-block
-         rebellion/type/object
          resyntax/default-recommendations/private/let-binding
          resyntax/refactoring-rule
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/syntax-replacement
          syntax/parse
-         syntax/parse/define
          syntax/parse/lib/function-header)
 
 
