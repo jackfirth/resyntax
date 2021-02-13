@@ -569,6 +569,7 @@
   (define rhs (parsed-binding-clause-right-hand-side clause))
   (define id-side (parsed-binding-clause-identifier-side clause))
   (define long? (> (+ (syntax-span id-side) (syntax-span rhs)) 90)) ;; conservative under-estimate
+  (define different-lines? (not (equal? (syntax-line id-side) (syntax-line rhs))))
   (match (parsed-binding-clause-bound-identifiers clause)
     [(list id)
      (syntax-parse rhs
@@ -583,8 +584,17 @@
         #:with id* id
         #`(define (id* . args)
             (~@ NEWLINE body) ...)]
-       [else (if long? #`(define #,id NEWLINE #,rhs) #`(define #,id #,rhs))])]
-    [_ (if long? #`(define-values #,id-side NEWLINE #,rhs) #`(define-values #,id-side #,rhs))]))
+       [_
+        (cond
+          [different-lines?
+           #`(define (ORIGINAL-SPLICE #,id #,rhs))]
+          [long? #`(define #,id NEWLINE #,rhs)]
+          [else #`(define #,id #,rhs)])])]
+    [_
+     (cond
+       [different-lines? #`(define-values (ORIGINAL-SPLICE #,id-side #,rhs))]
+       [long? #`(define-values #,id-side NEWLINE #,rhs)]
+       [else #`(define-values #,id-side #,rhs)])]))
 
 
 (define (binding-clause-depends-on? dependant dependency)
