@@ -15,7 +15,7 @@
          rebellion/streaming/transducer
          rebellion/type/tuple
          resyntax
-         resyntax/source-code)
+         resyntax/source)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@
                #:into into-list))
   (printf "resyntax: --- displaying results ---\n")
   (for ([result (in-list results)])
-    (define path (file-source-code-path (refactoring-result-source result)))
+    (define path (file-source-path (refactoring-result-source result)))
     (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
     (printf "\n\n~a\n" (string-indent (refactoring-result-message result) 2))
     (define old-code (refactoring-result-original-code result))
@@ -121,7 +121,7 @@
   (define results-by-path
     (transduce
      all-results
-     (indexing (λ (result) (file-source-code-path (refactoring-result-source result))))
+     (indexing (λ (result) (file-source-path (refactoring-result-source result))))
      (grouping (into-transduced (sorting #:key refactoring-result-original-line) #:into into-list))
      #:into into-hash))
   (printf "resyntax: --- fixing code ---\n")
