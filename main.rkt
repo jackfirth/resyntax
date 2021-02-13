@@ -162,7 +162,8 @@
     (printf "resyntax: skipping ~a due to syntax error: ~e\n" path (exn-message e))
     empty-list)
   
-  (with-handlers ([exn:fail:syntax? skip])
+  (with-handlers ([exn:fail:syntax? skip]
+                  [exn:fail:filesystem:missing-module? skip])
     (parameterize ([current-namespace (make-base-namespace)])
       (define analysis (source-analyze source))
       (transduce
