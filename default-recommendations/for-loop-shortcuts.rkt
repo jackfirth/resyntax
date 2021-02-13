@@ -10,49 +10,63 @@
 
 
 (require (for-syntax racket/base)
-         (only-in racket/class
-                  define/augment
-                  define/augment-final
-                  define/augride
-                  define/overment
-                  define/override
-                  define/override-final
-                  define/public
-                  define/public-final
-                  define/pubment
-                  define/private)
          racket/list
-         racket/match
-         racket/sequence
-         racket/syntax
-         rebellion/base/immutable-string
-         rebellion/base/option
-         rebellion/private/guarded-block
-         rebellion/type/object
-         resyntax/default-recommendations/private/let-binding
+         racket/set
          resyntax/refactoring-rule
          resyntax/default-recommendations/private/lambda-by-any-name
+         resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/syntax-replacement
-         syntax/parse
-         syntax/parse/define
-         syntax/parse/lib/function-header)
+         syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
+(define-syntax-class sequence-syntax-convertible-list-expression
+  #:attributes (refactored)
+  #:literals (vector->list range hash-keys hash-values hash->list bytes->list string->list)
+
+  (pattern (vector->list vec)
+    #:attr refactored #'(in-vector vec))
+
+  (pattern (range arg ...)
+    #:attr refactored #'(in-range arg ...))
+
+  (pattern (hash-keys hash)
+    #:attr refactored #'(in-hash-keys _))
+
+  (pattern (hash-values hash)
+    #:attr refactored #'(in-hash-values hash))
+
+  (pattern (hash->list hash)
+    #:attr refactored #'(in-hash-pairs hash))
+
+  (pattern (bytes->list bstr)
+    #:attr refactored #'(in-bytes bstr))
+
+  (pattern (string->list bstr)
+    #:attr refactored #'(in-string bstr))
+
+  (pattern plain-list:expr
+    #:attr refactored #'(in-list plain-list)))
+
+
 (define-syntax-class for-clause-convertible-list-expression
   #:attributes (flat? [leading-clause 1] trailing-expression)
 
-  (pattern (append-map (_:lambda-by-any-name (y:id) append-map-body:expr) list-expression:expr)
+  (pattern
+      (append-map
+       (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
+       list-expression:sequence-syntax-convertible-list-expression)
     #:attr flat? #false
-    #:with (leading-clause ...) #'([y (in-list list-expression)])
-    #:with trailing-expression #'(in-list append-map-body))
+    #:with (leading-clause ...) #'([y list-expression.refactored])
+    #:with trailing-expression #'append-map-body.refactored)
 
-  (pattern list-expression:expr
+  (pattern list-expression:sequence-syntax-convertible-list-expression
     #:attr flat? #true
     #:with (leading-clause ...) #'()
-    #:with trailing-expression #'(in-list list-expression)))
+    #:with trailing-expression #'list-expression.refactored))
 
 
 (define-syntax-class for-loop-convertible-list-expression
@@ -62,24 +76,31 @@
   (pattern
       (map
        (_:lambda-by-any-name (x:id) loop-body:expr ...+)
-       (filter (_:lambda-by-any-name (y:id) filter-body:expr) list-expression))
+       (filter
+        (_:lambda-by-any-name (y:id) filter-body:expr)
+        list-expression:sequence-syntax-convertible-list-expression))
     #:when (bound-identifier=? #'x #'y)
     #:attr nesting-loop? #false
-    #:with loop-clauses #'([x (in-list list-expression)] NEWLINE #:when filter-body)
+    #:with loop-clauses #'([x list-expression.refactored] NEWLINE #:when filter-body)
     #:with loop #'(for/list loop-clauses loop-body ...))
 
   (pattern
       (map
        (_:lambda-by-any-name (x:id) loop-body:expr ...+)
-       (append-map (_:lambda-by-any-name (y:id) append-map-body:expr) list-expression))
+       (append-map
+        (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
+        list-expression:sequence-syntax-convertible-list-expression))
     #:when (not (bound-identifier=? #'x #'y))
     #:attr nesting-loop? #true
-    #:with loop-clauses #'([y (in-list list-expression)] NEWLINE [x (in-list append-map-body)])
+    #:with loop-clauses #'([y list-expression.refactored] NEWLINE [x append-map-body.refactored])
     #:with loop #'(for*/list loop-clauses loop-body ...))
 
-  (pattern (map (_:lambda-by-any-name (x:id) loop-body:expr ...+) list-expression)
+  (pattern
+      (map
+       (_:lambda-by-any-name (x:id) loop-body:expr ...+)
+       list-expression:sequence-syntax-convertible-list-expression)
     #:attr nesting-loop? #false
-    #:with loop-clauses #'([x (in-list list-expression)])
+    #:with loop-clauses #'([x list-expression.refactored])
     #:with loop #'(for/list loop-clauses loop-body ...)))
 
 
@@ -91,43 +112,51 @@
    (loop-type loop.loop-clauses (~@ NEWLINE loop.loop-body) ...)])
 
 
-(define-refactoring-rule ormap-to-for/or
-  #:description "This ormap operation can be replaced with a for/or loop."
-  #:literals (ormap)
-  [(ormap (_:lambda-by-any-name (x:id) body:expr ...+) loop:for-clause-convertible-list-expression)
-   #:with loop-type (if (attribute loop.flat?) #'for/or #'for*/or)
-   (loop-type ((~@ loop.leading-clause NEWLINE) ... [x loop.trailing-expression])
-              (~@ NEWLINE body) ...)])
+(define-syntax-class worthwhile-for-each-function
+  #:attributes (x [body 1])
+
+  ;; We always migrate for-each functions that use let expressions, since in the process of migrating
+  ;; we can replace the let bindings with internal definitions within the for loop body.
+  (pattern (_:lambda-by-any-name (x) original-body:body-with-refactorable-let-expression)
+    #:with (body ...) #'(original-body.refactored ...))
+
+  ;; Lambdas with multiple body forms are hard to read when all the forms are on one line, so we
+  ;; assume all such lambdas are multi-line, and multi-line for-each functions are typically easier
+  ;; to read when they're in the body of a for loop.
+  (pattern (_:lambda-by-any-name (x) first-body remaining-body ...+)
+    #:with (body ...) #'(NEWLINE (ORIGINAL-SPLICE first-body remaining-body ...)))
+
+  ;; We don't bother migrating for-each forms with only a single body form unless the body form is
+  ;; exceptionally long, so that forms which span multiple lines tend to get migrated. By not
+  ;; migrating short forms, we avoid bothering reviewers with changes to loops that aren't complex
+  ;; enough to need a lot of refactoring in the first place.
+  (pattern (_:lambda-by-any-name (x) only-body)
+    #:when (>= (syntax-span #'only-body) 60)
+    #:with (body ...) #'(NEWLINE only-body)))
 
 
-(define-refactoring-rule andmap-to-for/and
-  #:description "This andmap operation can be replaced with a for/and loop."
-  #:literals (andmap)
-  [(andmap (_:lambda-by-any-name (x:id) body:expr ...+) loop:for-clause-convertible-list-expression)
-   #:with loop-type (if (attribute loop.flat?) #'for/and #'for*/and)
-   (loop-type ((~@ loop.leading-clause NEWLINE) ... [x loop.trailing-expression])
-              (~@ NEWLINE body) ...)])
+(define-refactoring-rule for-each-to-for
+  #:description "This for-each operation can be replaced with a for loop."
+  #:literals (for-each)
+  [(for-each function:worthwhile-for-each-function loop:for-clause-convertible-list-expression)
+   #:with loop-type (if (attribute loop.flat?) #'for #'for*)
+   (loop-type ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
+              function.body ...)])
 
 
-(define-refactoring-rule in-syntax-list-to-in-syntax
-  #:description
-  "The in-syntax function can be used instead of converting this syntax object to a list."
-  #:literals (in-list syntax->list)
-  [(in-list (syntax->list stx))
-   (in-syntax stx)])
-
-
-(define-refactoring-rule for/or-and-to-for/first
-  #:description "This for/or loop can be replaced with a simpler, equivalent for/first loop."
-  #:literals (for/or and)
-  [(for/or (clause ...) (and (pred:id x:id) y:id))
-   #:when (free-identifier=? #'x #'y)
-   (for/first (clause ... #:when (pred x)) x)])
+(define-refactoring-rule for/fold-building-hash-to-for/hash
+  #:description "This for loop is building a hash and can be simplified."
+  #:literals (for/fold for*/fold hash make-immutable-hash)
+  [((~or (~and for/fold (~bind [loop #'for/hash])) (~and for*/fold (~bind [loop #'for*/hash])))
+    ([h:id (~or (hash) (make-immutable-hash))]) iteration-clauses
+     body ...
+     (hash-set h-usage:id key value))
+   #:when (free-identifier=? #'h #'h-usage)
+   #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'h))
+   (loop (ORIGINAL-SPLICE iteration-clauses body ...) NEWLINE (values key value))])
 
 
 (define for-loop-shortcuts
-  (list andmap-to-for/and
-        apply-plus-to-for/sum
-        for/or-and-to-for/first
-        in-syntax-list-to-in-syntax
-        ormap-to-for/or))
+  (list apply-plus-to-for/sum
+        for/fold-building-hash-to-for/hash
+        for-each-to-for))
