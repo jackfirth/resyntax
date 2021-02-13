@@ -85,6 +85,26 @@
        (append
         (list (inserted-string opener))
         (join-piece-lists (for/list ([subform-stx (in-syntax #'(subform ...))]) (pieces subform-stx)))
+        (list (inserted-string closer)))]
+      [(subform ... . tail-form)
+       (define shape (syntax-property stx 'paren-shape))
+       (define opener (match shape [#false "("] [#\[ "["] [#\{ "{"]))
+       (define closer (match shape [#false ")"] [#\[ "]"] [#\{ "}"]))
+       (define subform-pieces
+         (join-piece-lists
+          (for/list ([subform-stx (in-syntax #'(subform ...))]) (pieces subform-stx))))
+       (define tail-pieces (pieces #'tail-form))
+       (define dot-string
+         (cond
+           [(and (ends-with-newline? subform-pieces) (starts-with-newline? tail-pieces)) "."]
+           [(ends-with-newline? subform-pieces) ". "]
+           [(starts-with-newline? tail-pieces) " ."]
+           [else " . "]))
+       (append
+        (list (inserted-string opener))
+        subform-pieces
+        (list (inserted-string dot-string))
+        tail-pieces
         (list (inserted-string closer)))]))
 
   (match-define (syntax-replacement #:original-syntax orig-stx #:new-syntax new-stx) replacement)
