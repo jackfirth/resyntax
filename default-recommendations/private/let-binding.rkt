@@ -118,33 +118,6 @@
         [(let-expr:body-with-refactorable-let-expression) (syntax->datum #'(let-expr.refactored ...))]
         [_ #false]))
 
-    (test-case "basic let forms"
-      (check-equal? (parse #'((let ([a 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
-      (check-false (parse #'((let ([a a]) a)))))
-
-    (test-case "basic let* forms"
-      (check-equal? (parse #'((let* ([a 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
-      (check-false (parse #'((let* ([a a]) a)))))
-
-    (test-case "basic let-values forms"
-      (check-equal? (parse #'((let-values ([(a) 1]) a))) '(NEWLINE (define a 1) NEWLINE a))
-      (check-equal?
-       (parse #'((let-values ([(a b) 1]) a))) '(NEWLINE (define-values (a b) 1) NEWLINE a))
-      (check-false (parse #'((let-values ([(a) a]) a))))
-      (check-false (parse #'((let-values ([(a b) a]) a)))))
-    
-    (test-case "multiple unrelated let bindings"
-      (define stx #'((let ([a 1] [b 2] [c 3]) (+ a b c))))
-      (define expected
-        '(NEWLINE (define a 1) NEWLINE (define b 2) NEWLINE (define c 3) NEWLINE (+ a b c)))
-      (check-equal? (parse stx) expected))
-
-    (test-case "multiple unrelated let* bindings"
-      (define stx #'((let* ([a 1] [b 2] [c 3]) (+ a b c))))
-      (define expected
-        '(NEWLINE (define a 1) NEWLINE (define b 2) NEWLINE (define c 3) NEWLINE (+ a b c)))
-      (check-equal? (parse stx) expected))
-
     (test-case "refactorable let bindings before self-binding"
       (define stx #'((let ([a 1] [b 2] [c c]) (+ a b c))))
       (define expected

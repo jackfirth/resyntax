@@ -18,6 +18,34 @@ test: "single let binding"
 ------------------------------
 
 
+test: "single let* binding"
+------------------------------
+#lang racket/base
+(define (f)
+  (let* ([x 1])
+    1))
+------------------------------
+#lang racket/base
+(define (f)
+  (define x 1)
+  1)
+------------------------------
+
+
+test: "single-clause let-values binding"
+------------------------------
+#lang racket/base
+(define (f)
+  (let-values ([(x y) (values 1 1)])
+    1))
+------------------------------
+#lang racket/base
+(define (f)
+  (define-values (x y) (values 1 1))
+  1)
+------------------------------
+
+
 test: "multiple let bindings"
 ------------------------------
 #lang racket/base
@@ -34,76 +62,60 @@ test: "multiple let bindings"
 ------------------------------
 
 
-test: "let binding to lambda"
+test: "multiple let* bindings"
 ------------------------------
 #lang racket/base
 (define (f)
-  (let ([g (λ (x y) 1)])
+  (let* ([x 1]
+         [y 1])
     1))
 ------------------------------
 #lang racket/base
 (define (f)
-  (define (g x y)
-    1)
+  (define x 1)
+  (define y 1)
   1)
 ------------------------------
 
 
-test: "let binding to lambda with keyword args"
+test: "multiple let-values bindings"
 ------------------------------
 #lang racket/base
 (define (f)
-  (let ([g (λ (#:x x #:y y) 1)])
+  (let-values ([(x y) (values 1 1)]
+               [(a b) (values 1 1)])
     1))
 ------------------------------
 #lang racket/base
 (define (f)
-  (define (g #:x x #:y y)
-    1)
+  (define-values (x y) (values 1 1))
+  (define-values (a b) (values 1 1))
   1)
 ------------------------------
 
 
-test: "let binding to lambda with optional args"
+test: "self-shadowing let binding isn't refactorable"
 ------------------------------
 #lang racket/base
-(define (f)
-  (let ([g (λ ([x 1] [y 1]) 1)])
+(define (f x)
+  (let ([x x])
     1))
 ------------------------------
-#lang racket/base
-(define (f)
-  (define (g [x 1] [y 1])
-    1)
-  1)
-------------------------------
 
 
-test: "let binding to lambda with only rest args"
+test: "self-shadowing let* binding isn't refactorable"
 ------------------------------
 #lang racket/base
-(define (f)
-  (let ([g (λ xs 1)])
+(define (f x)
+  (let* ([x x])
     1))
 ------------------------------
-#lang racket/base
-(define (f)
-  (define (g . xs)
-    1)
-  1)
-------------------------------
 
 
-test: "let binding to lambda with positional and rest args"
+test: "self-shadowing let-values binding clause isn't refactorable"
 ------------------------------
 #lang racket/base
-(define (f)
-  (let ([g (λ (x y . zs) 1)])
+(define (f x)
+  (let-values ([(x y) (values x 1)])
     1))
-------------------------------
-#lang racket/base
-(define (f)
-  (define (g x y . zs)
-    1)
-  1)
 ------------------------------
