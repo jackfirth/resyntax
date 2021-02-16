@@ -7,10 +7,10 @@
 (provide
  (contract-out
   [refactor! (-> (sequence/c refactoring-result?) void?)]
-  [refactor (->* (string?) (#:rules (sequence/c refactoring-rule?)) string-replacement?)]
-  [refactor-file (-> path-string? (listof refactoring-result?))]
-  [refactor-directory (-> path-string? (listof refactoring-result?))]
-  [refactor-package (-> path-string? (listof refactoring-result?))]
+  [refactor (->* (string?) (#:suite refactoring-suite?) string-replacement?)]
+  [refactor-file (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
+  [refactor-directory (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
+  [refactor-package (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
   [refactoring-result? predicate/c]
   [refactoring-result
    (-> #:source source?
@@ -49,6 +49,7 @@
          resyntax/code-snippet
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
+         resyntax/refactoring-suite
          resyntax/default-recommendations
          resyntax/source
          resyntax/string-replacement
@@ -140,8 +141,8 @@
      result)))
 
 
-(define (refactor code-string #:rules [rules default-recommendations])
-  (define rule-list (sequence->list rules))
+(define (refactor code-string #:suite [suite default-recommendations])
+  (define rule-list (refactoring-suite-rules suite))
   (define source (string-source code-string))
   (parameterize ([current-namespace (make-base-namespace)])
     (define analysis (source-analyze source))
@@ -152,10 +153,10 @@
      #:into union-into-string-replacement)))
 
 
-(define (refactor-file path-string #:rules [rules default-recommendations])
+(define (refactor-file path-string #:suite [suite default-recommendations])
   (define path (simple-form-path path-string))
   (printf "resyntax: analyzing ~a\n" path)
-  (define rule-list (sequence->list rules))
+  (define rule-list (refactoring-suite-rules suite))
   (define source (file-source path))
 
   (define (skip e)
@@ -173,17 +174,16 @@
        #:into into-list))))
 
 
-(define (refactor-directory path-string #:rules [rules default-recommendations])
+(define (refactor-directory path-string #:suite [suite default-recommendations])
   (define path (simple-form-path path-string))
-  (define rule-list (sequence->list rules))
   (transduce (in-directory path)
              (filtering rkt-file?)
-             (append-mapping (refactor-file _ #:rules rule-list))
+             (append-mapping (refactor-file _ #:suite suite))
              #:into into-list))
 
 
-(define (refactor-package package-name #:rules [rules default-recommendations])
-  (refactor-directory (pkg-directory package-name) #:rules rules))
+(define (refactor-package package-name #:suite [suite default-recommendations])
+  (refactor-directory (pkg-directory package-name) #:rules suite))
 
 
 (define/guard (rkt-file? path)

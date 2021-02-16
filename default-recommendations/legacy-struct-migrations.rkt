@@ -6,13 +6,15 @@
 
 (provide
  (contract-out
-  [legacy-struct-migrations (listof refactoring-rule?)]))
+  [legacy-struct-migrations refactoring-suite?]))
 
 
 (require (for-syntax racket/base)
          racket/list
          racket/syntax
+         rebellion/private/static-name
          resyntax/refactoring-rule
+         resyntax/refactoring-suite
          resyntax/syntax-replacement
          syntax/parse)
 
@@ -52,4 +54,4 @@
 
 
 (define legacy-struct-migrations
-  (list define-struct-to-struct))
+  (refactoring-suite #:name (name legacy-struct-migrations) #:rules (list define-struct-to-struct)))
