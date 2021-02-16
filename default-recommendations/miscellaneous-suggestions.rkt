@@ -22,38 +22,6 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define/guard (free-identifiers=? ids other-ids)
-  (define id-list (syntax->list ids))
-  (define other-id-list (syntax->list other-ids))
-  (guard (equal? (length id-list) (length other-id-list)) else
-    #false)
-  (for/and ([id (in-list id-list)] [other-id (in-list other-id-list)])
-    (free-identifier=? id other-id)))
-
-
-(define-refactoring-rule define-lambda-to-define
-  #:description "The define form supports a shorthand for defining functions."
-  #:literals (define lambda)
-  [(define header (lambda formals body ...))
-   (define (header . formals) (~@ NEWLINE body) ...)])
-
-
-(define-refactoring-rule define-case-lambda-to-define
-  #:description "This use of case-lambda is equivalent to using define with optional arguments."
-  #:literals (define case-lambda)
-  [(define id:id
-     (case-lambda
-       [(case1-arg:id ...)
-        (usage:id usage1:id ... default:expr)]
-       [(case2-arg:id ... bonus-arg:id)
-        body ...]))
-   #:when (free-identifier=? #'id #'usage)
-   #:when (free-identifiers=? #'(case1-arg ...) #'(case2-arg ...))
-   #:when (free-identifiers=? #'(case1-arg ...) #'(usage1 ...))
-   (define (id case2-arg ... [bonus-arg default])
-     (~@ NEWLINE body) ...)])
-
-
 (define if-begin-to-cond-message
   "The cond form supports multiple body expressions in each branch, making begin unnecessary.")
 
@@ -171,8 +139,6 @@
                  and-match-to-match
                  cond-begin-to-cond
                  cond-else-if-to-cond
-                 define-case-lambda-to-define
-                 define-lambda-to-define
                  if-then-begin-to-cond
                  if-else-begin-to-cond
                  if-else-cond-to-cond

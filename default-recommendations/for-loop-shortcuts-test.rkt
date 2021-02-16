@@ -1,7 +1,7 @@
 #lang resyntax/testing/refactoring-test
 
 
-require: resyntax/default-recommendations/for-loop-shortcuts for-loop-shortcuts
+require: resyntax/default-recommendations for-loop-shortcuts
 
 
 test: "for-each with short single-form body not refactorable"
