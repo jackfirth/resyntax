@@ -6,35 +6,17 @@
 
 (provide
  (contract-out
-  [miscellaneous-suggestions (listof refactoring-rule?)]))
+  [miscellaneous-suggestions refactoring-suite?]))
 
 
 (require (for-syntax racket/base)
-         (only-in racket/class
-                  define/augment
-                  define/augment-final
-                  define/augride
-                  define/overment
-                  define/override
-                  define/override-final
-                  define/public
-                  define/public-final
-                  define/pubment
-                  define/private)
-         racket/list
          racket/match
-         racket/sequence
-         racket/syntax
-         rebellion/base/immutable-string
-         rebellion/base/option
          rebellion/private/guarded-block
-         rebellion/type/object
+         rebellion/private/static-name
          resyntax/refactoring-rule
-         resyntax/default-recommendations/private/let-binding
+         resyntax/refactoring-suite
          resyntax/syntax-replacement
-         syntax/parse
-         syntax/parse/define
-         syntax/parse/lib/function-header)
+         syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -183,16 +165,18 @@
 
 
 (define miscellaneous-suggestions
-  (list and-and-to-and
-        and-match-to-match
-        cond-begin-to-cond
-        cond-else-if-to-cond
-        define-case-lambda-to-define
-        define-lambda-to-define
-        if-then-begin-to-cond
-        if-else-begin-to-cond
-        if-else-cond-to-cond
-        if-else-if-to-cond
-        if-x-else-x-to-and
-        or-cond-to-cond
-        or-or-to-or))
+  (refactoring-suite
+   #:name (name miscellaneous-suggestions)
+   #:rules (list and-and-to-and
+                 and-match-to-match
+                 cond-begin-to-cond
+                 cond-else-if-to-cond
+                 define-case-lambda-to-define
+                 define-lambda-to-define
+                 if-then-begin-to-cond
+                 if-else-begin-to-cond
+                 if-else-cond-to-cond
+                 if-else-if-to-cond
+                 if-x-else-x-to-and
+                 or-cond-to-cond
+                 or-or-to-or)))

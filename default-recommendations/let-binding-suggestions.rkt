@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [let-binding-suggestions (listof refactoring-rule?)]))
+  [let-binding-suggestions refactoring-suite?]))
 
 
 (require (for-syntax racket/base)
@@ -21,8 +21,10 @@
                   define/public-final
                   define/pubment
                   define/private)
+         rebellion/private/static-name
          resyntax/default-recommendations/private/let-binding
          resyntax/refactoring-rule
+         resyntax/refactoring-suite
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/syntax-replacement
          syntax/parse
@@ -169,9 +171,12 @@
 
 
 (define let-binding-suggestions
-  (list let-to-define
-        and-let-to-cond-define
-        cond-let-to-cond-define
-        if-then-let-to-cond-define
-        if-else-let-to-cond-define
-        let*-once-to-let))
+  (refactoring-suite
+   #:name (name let-binding-suggestions)
+   #:rules
+   (list let-to-define
+         and-let-to-cond-define
+         cond-let-to-cond-define
+         if-then-let-to-cond-define
+         if-else-let-to-cond-define
+         let*-once-to-let)))

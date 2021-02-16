@@ -6,13 +6,15 @@
 
 (provide
  (contract-out
-  [for-loop-shortcuts (listof refactoring-rule?)]))
+  [for-loop-shortcuts refactoring-suite?]))
 
 
 (require (for-syntax racket/base)
          racket/list
          racket/set
+         rebellion/private/static-name
          resyntax/refactoring-rule
+         resyntax/refactoring-suite
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/syntax-identifier-sets
@@ -157,6 +159,9 @@
 
 
 (define for-loop-shortcuts
-  (list apply-plus-to-for/sum
-        for/fold-building-hash-to-for/hash
-        for-each-to-for))
+  (refactoring-suite
+   #:name (name for-loop-shortcuts)
+   #:rules
+   (list apply-plus-to-for/sum
+         for/fold-building-hash-to-for/hash
+         for-each-to-for)))

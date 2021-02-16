@@ -1,7 +1,8 @@
 #lang racket/base
 
 
-(require racket/cmdline
+(require fancy-app
+         racket/cmdline
          racket/format
          racket/match
          racket/path
@@ -13,14 +14,18 @@
          rebellion/collection/vector/builder
          rebellion/streaming/reducer
          rebellion/streaming/transducer
+         rebellion/type/record
          rebellion/type/tuple
          resyntax
+         resyntax/default-recommendations
+         resyntax/refactoring-suite
          resyntax/source)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
+(define-record-type resyntax-options (targets suite))
 (define-tuple-type file-target (path))
 (define-tuple-type directory-target (path))
 (define-tuple-type package-target (name))
@@ -28,6 +33,7 @@
 
 (define (resyntax-analyze-parse-command-line)
   (define targets (box (make-vector-builder)))
+  (define suite (box default-recommendations))
   (define (add-target! target)
     (set-box! targets (vector-builder-add (unbox targets) target)))
   (command-line
@@ -46,12 +52,21 @@
    ("--package"
     pkgname
     "A package to analyze."
-    (add-target! (package-target pkgname))))
-  (build-vector (unbox targets)))
+    (add-target! (package-target pkgname)))
+   #:once-each
+   ("--refactoring-suite"
+    modpath
+    suite-name
+    "The refactoring suite to analyze code with."
+    (define parsed-modpath (read (open-input-string modpath)))
+    (define parsed-suite-name (read (open-input-string suite-name)))
+    (set-box! suite (dynamic-require parsed-modpath parsed-suite-name))))
+  (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
 
 
 (define (resyntax-fix-parse-command-line)
   (define targets (box (make-vector-builder)))
+  (define suite (box default-recommendations))
   (define (add-target! target)
     (set-box! targets (vector-builder-add (unbox targets) target)))
   (command-line
@@ -70,8 +85,16 @@
    ("--package"
     pkgname
     "A package to fix."
-    (add-target! (package-target pkgname))))
-  (build-vector (unbox targets)))
+    (add-target! (package-target pkgname)))
+   #:once-each
+   ("--refactoring-suite"
+    modpath
+    suite-name
+    "The refactoring suite to analyze code with."
+    (define parsed-modpath (read (open-input-string modpath)))
+    (define parsed-suite-name (read (open-input-string suite-name)))
+    (set-box! suite (dynamic-require parsed-modpath parsed-suite-name))))
+  (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
 
 
 (define (resyntax-run)
@@ -88,18 +111,19 @@
         (resyntax-fix-run))])))
 
 
-(define (refactor-target target)
+(define (refactor-target target #:suite suite)
   (match target
-    [(file-target path) (refactor-file path)]
-    [(directory-target path) (refactor-directory path)]
-    [(package-target name) (refactor-package name)]))
+    [(file-target path) (refactor-file path #:suite suite)]
+    [(directory-target path) (refactor-directory path #:suite suite)]
+    [(package-target name) (refactor-package name #:suite suite)]))
 
 
 (define (resyntax-analyze-run)
+  (define options (resyntax-analyze-parse-command-line))
   (printf "resyntax: --- analyzing code ---\n")
   (define results
-    (transduce (resyntax-analyze-parse-command-line)
-               (append-mapping refactor-target)
+    (transduce (resyntax-options-targets options)
+               (append-mapping (refactor-target _ #:suite (resyntax-options-suite options)))
                #:into into-list))
   (printf "resyntax: --- displaying results ---\n")
   (for ([result (in-list results)])
@@ -112,12 +136,12 @@
 
 
 (define (resyntax-fix-run)
+  (define options (resyntax-fix-parse-command-line))
   (printf "resyntax: --- analyzing code ---\n")
   (define all-results
-    (transduce
-     (resyntax-fix-parse-command-line)
-     (append-mapping refactor-target)
-     #:into into-list))
+    (transduce (resyntax-options-targets options)
+               (append-mapping (refactor-target _ #:suite (resyntax-options-suite options)))
+               #:into into-list))
   (define results-by-path
     (transduce
      all-results
@@ -161,7 +185,3 @@
 
 (module+ main
   (resyntax-run))
-
-
-;; Empty test submodule to avoid GUI initialization in CI.
-(module test racket/base)

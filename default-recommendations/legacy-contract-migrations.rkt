@@ -6,13 +6,15 @@
 
 (provide
  (contract-out
-  [legacy-contract-migrations (listof refactoring-rule?)]))
+  [legacy-contract-migrations refactoring-suite?]))
 
 
 (require (for-syntax racket/base)
          racket/contract
          racket/syntax
-         resyntax/refactoring-rule)
+         rebellion/private/static-name
+         resyntax/refactoring-rule
+         resyntax/refactoring-suite)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -82,11 +84,14 @@
 
 
 (define legacy-contract-migrations
-  (list box-immutable/c-migration
-        contract-struct-migration
-        define-contract-struct-migration
-        false/c-migration
-        flat-contract-migration
-        symbols-migration
-        vector-immutableof-migration
-        vector-immutable/c-migration))
+  (refactoring-suite
+   #:name (name legacy-contract-migrations)
+   #:rules
+   (list box-immutable/c-migration
+         contract-struct-migration
+         define-contract-struct-migration
+         false/c-migration
+         flat-contract-migration
+         symbols-migration
+         vector-immutableof-migration
+         vector-immutable/c-migration)))
