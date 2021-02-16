@@ -113,3 +113,85 @@ test: "lambda variable definition with commented body to definition with preserv
   ;; comment before last body form
   1)
 ------------------------------
+
+
+test: "case-lambda with default arg"
+------------------------------
+#lang racket/base
+(define f
+  (case-lambda
+    [()
+     (f 1)]
+    [(x)
+     1]))
+------------------------------
+#lang racket/base
+(define (f [x 1])
+  1)
+------------------------------
+
+
+test: "case-lambda with default arg and required args"
+------------------------------
+#lang racket/base
+(define f
+  (case-lambda
+    [(a b c)
+     (f a b c 1)]
+    [(a b c x)
+     1]))
+------------------------------
+#lang racket/base
+(define (f a b c [x 1])
+  1)
+------------------------------
+
+
+test: "case-lambda with default arg not refactorable when required args out of order"
+------------------------------
+#lang racket/base
+(define f
+  (case-lambda
+    [(a b c)
+     (f c b a 1)]
+    [(a b c x)
+     1]))
+------------------------------
+
+
+test: "case-lambda with default arg and multiple body forms"
+------------------------------
+#lang racket/base
+(define f
+  (case-lambda
+    [()
+     (f 1)]
+    [(x)
+     (void)
+     1]))
+------------------------------
+#lang racket/base
+(define (f [x 1])
+  (void)
+  1)
+------------------------------
+
+
+test: "case-lambda with default arg and body form with interior comments"
+------------------------------
+#lang racket/base
+(define f
+  (case-lambda
+    [()
+     (f 1)]
+    [(x)
+     (begin
+       ;;comment
+       1)]))
+------------------------------
+#lang racket/base
+(define (f [x 1])
+  (begin
+    ;;comment
+    1))
+------------------------------

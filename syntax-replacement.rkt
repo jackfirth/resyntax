@@ -98,7 +98,7 @@
            (loop subform-stx)))
        (define subforms-with-spaces-between
          (add-contents-between subforms-with-spaces-inside contents-to-add-between))
-       (datum->syntax #false subforms-with-spaces-between template template)]
+       (datum->syntax template subforms-with-spaces-between template template)]
       
       [else template]))
   
