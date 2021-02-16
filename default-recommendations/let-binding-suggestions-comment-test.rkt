@@ -1,7 +1,7 @@
 #lang resyntax/testing/refactoring-test
 
 
-require: resyntax/default-recommendations/let-binding-suggestions let-binding-suggestions
+require: resyntax/default-recommendations let-binding-suggestions
 
 
 test: "let binding with commented right-hand-side expression"

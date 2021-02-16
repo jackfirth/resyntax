@@ -1,6 +1,6 @@
 #lang resyntax/testing/refactoring-test
 
-require: resyntax/default-recommendations/legacy-struct-migrations legacy-struct-migrations
+require: resyntax/default-recommendations legacy-struct-migrations
 
 
 test: "define-struct without options"
