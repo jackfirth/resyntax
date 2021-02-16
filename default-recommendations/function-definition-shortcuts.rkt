@@ -36,7 +36,10 @@
 
   (pattern converted:id)
 
-  (pattern (formal ...)
+  (pattern ()
+    #:with converted #'())
+
+  (pattern (formal ...+)
     #:with converted #'((ORIGINAL-SPLICE formal ...)))
 
   (pattern (formal ... . rest-arg:id)
