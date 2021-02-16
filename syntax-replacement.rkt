@@ -79,22 +79,29 @@
 
 
 (define/guard (syntax-replacement-template-infer-spaces template)
+
   (define/guard (loop template)
     (guard (syntax-original? template) then
       template)
     (syntax-parse template
       #:literals (quote NEWLINE SPACE ORIGINAL-GAP ORIGINAL-SPLICE)
+
       [(~or (ORIGINAL-GAP _ ...) (ORIGINAL-SPLICE _ ...) (quote _ ...)) template]
+      
       [(subform ...)
        (define (contents-to-add-between left-form right-form)
          (if (or (template-separator? left-form) (template-separator? right-form))
              '()
              (list #'SPACE)))
-       (define subforms-with-spaces
+       (define subforms-with-spaces-inside
          (for/list ([subform-stx (in-syntax #'(subform ...))])
            (loop subform-stx)))
-       (datum->syntax #false (add-contents-between subforms-with-spaces contents-to-add-between))]
+       (define subforms-with-spaces-between
+         (add-contents-between subforms-with-spaces-inside contents-to-add-between))
+       (datum->syntax #false subforms-with-spaces-between template template)]
+      
       [else template]))
+  
   (define flip-fresh-scope (make-syntax-introducer))
   (flip-fresh-scope (loop (flip-fresh-scope template))))
 
