@@ -30,6 +30,16 @@ test: "lambda variable definition with no arguments to function definition"
 ------------------------------
 
 
+test: "one-line lambda variable definition to one-line function definition"
+------------------------------
+#lang racket/base
+(define f (λ (a b c) 1))
+------------------------------
+#lang racket/base
+(define (f a b c) 1)
+------------------------------
+
+
 test: "lambda variable definition with only rest argument to function definition"
 ------------------------------
 #lang racket/base
