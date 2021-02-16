@@ -125,6 +125,34 @@ test: "lambda variable definition with commented body to definition with preserv
 ------------------------------
 
 
+test: "nested lambda variable definition to function definition"
+------------------------------
+#lang racket/base
+(define f
+  (λ (a)
+    (λ (b)
+      1)))
+------------------------------
+#lang racket/base
+(define ((f a) b)
+  1)
+------------------------------
+
+
+test: "nested lambda function definition to function definition"
+------------------------------
+#lang racket/base
+(define (f a)
+  (λ (b)
+    (λ (c)
+      1)))
+------------------------------
+#lang racket/base
+(define (((f a) b) c)
+  1)
+------------------------------
+
+
 test: "case-lambda with default arg"
 ------------------------------
 #lang racket/base

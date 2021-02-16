@@ -10,6 +10,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          rebellion/private/guarded-block
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
@@ -46,13 +47,34 @@
     #:with converted #'((ORIGINAL-SPLICE formal ... rest-arg))))
 
 
+(define-syntax-class possibly-nested-lambdas
+  #:attributes ([converted-formals 1] [formatted-body 1])
+
+  (pattern (_:lambda-by-any-name first-formals:lambda-header nested:possibly-nested-lambdas)
+    #:with (converted-formals ...) #'(first-formals.converted nested.converted-formals ...)
+    #:with (formatted-body ...) #'(nested.formatted-body ...))
+
+  (pattern (_:lambda-by-any-name first-formals:lambda-header initial-body body ...)
+    #:with (converted-formals ...) #'(first-formals.converted)
+    #:with (formatted-body ...)
+    #'((ORIGINAL-GAP first-formals initial-body) (ORIGINAL-SPLICE initial-body body ...))))
+
+
+(define/guard (build-function-header original-header converted-lambda-formal-lists)
+  (guard (empty? converted-lambda-formal-lists) then
+    original-header)
+  (with-syntax ([formals (first converted-lambda-formal-lists)])
+    (build-function-header #`(#,original-header . formals) (rest converted-lambda-formal-lists))))
+
+
 (define-refactoring-rule define-lambda-to-define
-  #:description "The define form supports a shorthand for defining functions."
+  #:description
+  "The define form supports a shorthand for defining functions (including function-returning\
+ functions)."
   #:literals (define)
-  [(define header (_:lambda-by-any-name formals:lambda-header initial-body body ...))
-   (define (header . formals.converted)
-     (ORIGINAL-GAP formals initial-body)
-     (ORIGINAL-SPLICE initial-body body ...))])
+  [(define header lambda-form:possibly-nested-lambdas)
+   #:with new-header (build-function-header #'header (attribute lambda-form.converted-formals))
+   (define new-header lambda-form.formatted-body ...)])
 
 
 (define-refactoring-rule define-case-lambda-to-define
