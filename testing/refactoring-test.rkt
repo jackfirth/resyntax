@@ -49,7 +49,7 @@
 
 (define-simple-macro (refactoring-test-case name:str input:str (~optional expected:str))
   #:with check
-  (syntax/loc this-syntax (check-equal? (string-block actual) (string-block (~? expected actual))))
+  (syntax/loc this-syntax (check-equal? (string-block actual) (string-block (~? expected input))))
   (test-case name
     (define replacement (refactor input #:suite refactoring-suite-under-test))
     (with-check-info (['replacement (pretty-info replacement)])
