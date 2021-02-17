@@ -26,7 +26,6 @@
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/syntax-replacement
          syntax/parse
          syntax/parse/lib/function-header)
 
@@ -59,16 +58,16 @@
   (pattern (~seq let-values ~! header)
     #:with (formatted ...) #'(let-values header))
 
-  (pattern (seq when ~! condition)
+  (pattern (~seq when ~! condition)
     #:with (formatted ...) #'(when condition))
 
-  (pattern (seq unless ~! condition)
+  (pattern (~seq unless ~! condition)
     #:with (formatted ...) #'(unless condition))
 
-  (pattern (seq with-handlers ~! handlers)
+  (pattern (~seq with-handlers ~! handlers)
     #:with (formatted ...) #'(with-handlers handlers))
 
-  (pattern (seq parameterize ~! handlers)
+  (pattern (~seq parameterize ~! handlers)
     #:with (formatted ...) #'(parameterize handlers)))
 
 
@@ -100,83 +99,7 @@
            define/private)))
 
 
-(define-refactoring-rule and-let-to-cond-define
-  #:description "This and expression can be turned into a cond expression with internal definitions,\
- reducing nesting."
-  #:literals (and let)
-  [(and guard-expr let-expr:refactorable-let-expression)
-   (cond
-     NEWLINE [(not guard-expr) #false]
-     NEWLINE [else let-expr.refactored ...])])
-
-
-(define-syntax-class cond-clause
-  #:attributes ([formatted 1])
-  #:literals (else =>)
-  (pattern (~and clause (~or [else body ...+] [expr:expr => body-handler:expr] [expr:expr body ...+]))
-    #:with (formatted ...)
-    #'(NEWLINE clause)))
-
-
-(define-syntax-class refactorable-cond-clause
-  #:attributes ([refactored 1])
-  #:literals (else =>)
-
-  (pattern [else let-expr:body-with-refactorable-let-expression]
-    #:with (refactored ...) #'(NEWLINE [else let-expr.refactored ...]))
-  
-  (pattern (~and [expr let-expr:body-with-refactorable-let-expression] (~not [expr => _ ...]))
-    #:with (refactored ...) #'(NEWLINE [expr let-expr.refactored ...])))
-
-
-(define-refactoring-rule cond-let-to-cond-define
-  #:description "The body of a cond clause supports internal definitions, which are preferred over\
- let expressions because they reduce nesting."
-  #:literals (cond)
-  [(cond
-     clause-before:cond-clause ...
-     refactorable:refactorable-cond-clause
-     clause-after:cond-clause ...)
-   (cond
-     clause-before.formatted ... ...
-     refactorable.refactored ...
-     clause-after.formatted ... ...)])
-
-
-(define-refactoring-rule if-then-let-to-cond-define
-  #:description "This if expression can be turned into a cond expression with internal definitions,\
- reducing nesting."
-  #:literals (if)
-  [(if condition let-expr:refactorable-let-expression else-expr)
-   (cond
-     NEWLINE [condition let-expr.refactored ...]
-     NEWLINE [else NEWLINE else-expr])])
-
-
-(define-refactoring-rule if-else-let-to-cond-define
-  #:description "This if expression can be turned into a cond expression with internal definitions,\
- reducing nesting."
-  #:literals (if)
-  [(if condition then-expr let-expr:refactorable-let-expression)
-   (cond
-     NEWLINE [condition NEWLINE then-expr]
-     NEWLINE [else let-expr.refactored ...])])
-
-
-(define-refactoring-rule let*-once-to-let
-  #:description "A let* expression with a single binding is equivalent to a let expression."
-  #:literals (let*)
-  [(let* (~and header ([id:id rhs:expr])) body ...)
-   (let header (~@ NEWLINE body) ...)])
-
-
 (define let-binding-suggestions
   (refactoring-suite
    #:name (name let-binding-suggestions)
-   #:rules
-   (list let-to-define
-         and-let-to-cond-define
-         cond-let-to-cond-define
-         if-then-let-to-cond-define
-         if-else-let-to-cond-define
-         let*-once-to-let)))
+   #:rules (list let-to-define)))

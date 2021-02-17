@@ -43,26 +43,16 @@
     #:when (no-binding-overlap?
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
 
-    #:with (refactored ...)
-    (if (attribute bindings.fully-refactorable?)
-        #'(bindings.outer-definition ... body.formatted ...)
-        #'(bindings.outer-definition ...
-           NEWLINE (let-form bindings.unrefactorable
-                     bindings.inner-definition ...
-                     body.formatted ...))))
+    #:when (attribute bindings.fully-refactorable?)
+    #:with (refactored ...) #'(bindings.outer-definition ... body.formatted ...))
 
   (pattern (let* ~! bindings:refactorable-let*-bindings body:body-forms)
       
     #:when (no-binding-overlap?
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
-    
-    #:with (refactored ...)
-    (if (attribute bindings.fully-refactorable?)
-        #'(bindings.outer-definition ... body.formatted ...)
-        #'(bindings.outer-definition ...
-           NEWLINE (let* bindings.unrefactorable
-                     bindings.inner-definition ...
-                     body.formatted ...)))))
+
+    #:when (attribute bindings.fully-refactorable?)
+    #:with (refactored ...) #'(bindings.outer-definition ... body.formatted ...)))
 
 
 (define-splicing-syntax-class body-with-refactorable-let-expression
@@ -79,16 +69,13 @@
                                 (in-syntax #'(bindings.outer-bound-id ...)))
     #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
                                 (in-syntax #'(bindings.inner-bound-id ...)))
+
+    #:when (attribute bindings.fully-refactorable?)
+
     #:with (refactored ...)
-    (if (attribute bindings.fully-refactorable?)
-        #'(leading-body.formatted ...
-           bindings.outer-definition ...
-           inner-body.formatted ...)
-        #'(leading-body.formatted ...
-           bindings.outer-definition ...
-           NEWLINE (let-form bindings.unrefactorable
-                     bindings.inner-definition ...
-                     inner-body.formatted ...))))
+    #'(leading-body.formatted ...
+       bindings.outer-definition ...
+       inner-body.formatted ...))
 
   (pattern
       (~seq
@@ -98,16 +85,13 @@
                                 (in-syntax #'(bindings.outer-bound-id ...)))
     #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
                                 (in-syntax #'(bindings.inner-bound-id ...)))
+
+    #:when (attribute bindings.fully-refactorable?)
+    
     #:with (refactored ...)
-    (if (attribute bindings.fully-refactorable?)
-        #'(leading-body.formatted ...
-           bindings.outer-definition ...
-           inner-body.formatted ...)
-        #'(leading-body.formatted ...
-           bindings.outer-definition ...
-           NEWLINE (let* bindings.unrefactorable
-                     bindings.inner-definition ...
-                     inner-body.formatted ...)))))
+    #'(leading-body.formatted ...
+       bindings.outer-definition ...
+       inner-body.formatted ...)))
 
 
 (module+ test
@@ -117,226 +101,6 @@
       (syntax-parse stx
         [(let-expr:body-with-refactorable-let-expression) (syntax->datum #'(let-expr.refactored ...))]
         [_ #false]))
-
-    (test-case "refactorable let bindings before self-binding"
-      (define stx #'((let ([a 1] [b 2] [c c]) (+ a b c))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (define b 2)
-          NEWLINE
-          (let ([c c])
-            NEWLINE
-            (+ a b c))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings before self-binding"
-      (define stx #'((let* ([a 1] [b 2] [c c]) (+ a b c))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (define b 2)
-          NEWLINE
-          (let* ([c c])
-            NEWLINE
-            (+ a b c))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings after self-binding"
-      (define stx #'((let ([a a] [b 2] [c 3]) (+ a b c))))
-      (define expected
-        '(NEWLINE
-          (let ([a a])
-            NEWLINE
-            (define b 2)
-            NEWLINE
-            (define c 3)
-            NEWLINE
-            (+ a b c))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings after self-binding"
-      (define stx #'((let* ([a a] [b 2] [c 3]) (+ a b c))))
-      (define expected
-        '(NEWLINE
-          (let* ([a a])
-            NEWLINE
-            (define b 2)
-            NEWLINE
-            (define c 3)
-            NEWLINE
-            (+ a b c))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings before and after self-binding"
-      (define stx #'((let ([a 1] [b b] [c 3]) (+ a b c))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (let ([b b])
-            NEWLINE
-            (define c 3)
-            NEWLINE
-            (+ a b c))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings before and after self-binding"
-      (define stx #'((let* ([a 1] [b b] [c 3]) (+ a b c))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (let* ([b b])
-            NEWLINE
-            (define c 3)
-            NEWLINE
-            (+ a b c))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings before binding cycle"
-      (define stx #'((let ([a 1] [b 2] [c d] [d c]) (+ a b c d))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (define b 2)
-          NEWLINE
-          (let ([c d] NEWLINE [d c])
-            NEWLINE
-            (+ a b c d))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings before binding cycle"
-      (define stx #'((let* ([a 1] [b 2] [c d] [d c]) (+ a b c d))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (define b 2)
-          NEWLINE
-          (define c d)
-          NEWLINE
-          (let* ([d c])
-            NEWLINE
-            (+ a b c d))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings after binding cycle"
-      (define stx #'((let ([a b] [b a] [c 3] [d 4]) (+ a b c d))))
-      (define expected
-        '(NEWLINE
-          (let ([a b] NEWLINE [b a])
-            NEWLINE
-            (define c 3)
-            NEWLINE
-            (define d 4)
-            NEWLINE
-            (+ a b c d))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings after binding cycle"
-      (define stx #'((let* ([a b] [b a] [c 3] [d 4]) (+ a b c d))))
-      (define expected
-        '(NEWLINE
-          (define a b)
-          NEWLINE
-          (let* ([b a])
-            NEWLINE
-            (define c 3)
-            NEWLINE
-            (define d 4)
-            NEWLINE
-            (+ a b c d))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings before and after binding cycle"
-      (define stx #'((let ([a 1] [b c] [c b] [d 4]) (+ a b c d))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (let ([b c] NEWLINE [c b])
-            NEWLINE
-            (define d 4)
-            NEWLINE
-            (+ a b c d))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings before and after binding cycle"
-      (define stx #'((let* ([a 1] [b c] [c b] [d 4]) (+ a b c d))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (define b c)
-          NEWLINE
-          (let* ([c b])
-            NEWLINE
-            (define d 4)
-            NEWLINE
-            (+ a b c d))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings before and after binding cycle interspersed with bindings"
-      (define stx #'((let ([a 1] [b d] [c 3] [d b] [e 5]) (+ a b c d e))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (let ([b d] NEWLINE [c 3] NEWLINE [d b])
-            NEWLINE
-            (define e 5)
-            NEWLINE
-            (+ a b c d e))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings before and after binding cycle interspersed with bindings"
-      (define stx #'((let* ([a 1] [b d] [c 3] [d b] [e 5]) (+ a b c d e))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (define b d)
-          NEWLINE
-          (define c 3)
-          NEWLINE
-          (let* ([d b])
-            NEWLINE
-            (define e 5)
-            NEWLINE
-            (+ a b c d e))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings before and after multiple binding cycles"
-      (define stx #'((let ([a 1] [b c] [c b] [d e] [e d] [f 6]) (+ a b c d e f))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (let ([b c] NEWLINE [c b] NEWLINE [d e] NEWLINE [e d])
-            NEWLINE
-            (define f 6)
-            NEWLINE
-            (+ a b c d e f))))
-      (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let* bindings before and after multiple binding cycles"
-      (define stx #'((let* ([a 1] [b c] [c b] [d e] [e d] [f 6]) (+ a b c d e f))))
-      (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
-          (define b c)
-          NEWLINE
-          (let* ([c b] NEWLINE [d e] NEWLINE [e d])
-            NEWLINE
-            (define f 6)
-            NEWLINE
-            (+ a b c d e f))))
-      (check-equal? (parse stx) expected))
 
     (test-case "refactorable let bindings after non-conflicting definitions"
       (define stx #'((define a 1) (let ([b a]) (+ a b))))
@@ -368,90 +132,13 @@
       (define stx #'((define a 1) (let* ([a 2]) a)))
       (check-false (parse stx)))
 
-    ;; TODO: get this to work
-    #;(test-case "refactorable let bindings after partially conflicting definitions"
-        (define stx #'((define a 1) (let ([x 2] [a 3] [y 4]) a)))
-        (define expected
-          '(NEWLINE
-            (define a 1)
-            NEWLINE
-            (define x 2)
-            NEWLINE
-            (let ([a 3])
-              NEWLINE
-              (define y 4)
-              NEWLINE
-              a)))
-        (check-equal? (parse stx) expected))
-
-    ;; TODO: get this to work
-    #;(test-case "refactorable let* bindings after partially conflicting definitions"
-        (define stx #'((define a 1) (let* ([x 2] [a 3] [y 4]) a)))
-        (define expected
-          '(NEWLINE
-            (define a 1)
-            NEWLINE
-            (define x 2)
-            NEWLINE
-            (let* ([a 3])
-              NEWLINE
-              (define y 4)
-              NEWLINE
-              a)))
-        (check-equal? (parse stx) expected))
-
     (test-case "refactorable let bindings after capturing definitions"
       (define stx #'((define a x) (let ([x 1]) (+ a x))))
       (check-false (parse stx)))
 
     (test-case "refactorable let* bindings after capturing definitions"
       (define stx #'((define a x) (let* ([x 1]) (+ a x))))
-      (check-false (parse stx)))
-
-    ;; TODO: get this to work
-    #;(test-case "refactorable let bindings after partially capturing definitions"
-        (define stx #'((define a x) (let ([b 2] [x 3] [c 4]) (+ a b x c))))
-        (define expected
-          '(NEWLINE
-            (define a x)
-            NEWLINE
-            (define b 2)
-            NEWLINE
-            (let ([x 3])
-              NEWLINE
-              (define c 4)
-              NEWLINE
-              (+ a b x c))))
-        (check-equal? (parse stx) expected))
-
-    ;; TODO: get this to work
-    #;(test-case "refactorable let* bindings after partially capturing definitions"
-        (define stx #'((define a x) (let* ([b 2] [x 3] [c 4]) (+ a b x c))))
-        (define expected
-          '(NEWLINE
-            (define a x)
-            NEWLINE
-            (define b 2)
-            NEWLINE
-            (let* ([x 3])
-              NEWLINE
-              (define c 4)
-              NEWLINE
-              (+ a b x c))))
-        (check-equal? (parse stx) expected))
-
-    (test-case "refactorable let bindings colliding with later self binding"
-      (define stx #'((let ([a c] [b c] [c c]) (+ a b c))))
-      (define expected
-        '(NEWLINE
-          (define a c)
-          NEWLINE
-          (define b c)
-          NEWLINE
-          (let ([c c])
-            NEWLINE
-            (+ a b c))))
-      (check-equal? (parse stx) expected))))
+      (check-false (parse stx)))))
 
 
 (define-syntax-class refactorable-let-bindings
