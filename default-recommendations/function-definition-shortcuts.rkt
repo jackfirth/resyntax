@@ -14,6 +14,7 @@
          rebellion/private/guarded-block
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
+         resyntax/default-recommendations/private/syntax-lines
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/syntax-replacement
@@ -48,13 +49,17 @@
 
 
 (define-syntax-class possibly-nested-lambdas
-  #:attributes ([converted-formals 1] [formatted-body 1])
+  #:attributes ([converted-formals 1] [formatted-body 1] [original-formals 1])
 
   (pattern (_:lambda-by-any-name first-formals:lambda-header nested:possibly-nested-lambdas)
+    #:with (original-formals ...) #'(first-formals nested.original-formals ...)
     #:with (converted-formals ...) #'(first-formals.converted nested.converted-formals ...)
     #:with (formatted-body ...) #'(nested.formatted-body ...))
 
-  (pattern (_:lambda-by-any-name first-formals:lambda-header initial-body body ...)
+  (pattern
+      (_:lambda-by-any-name
+       first-formals:lambda-header (~and initial-body (~not _:possibly-nested-lambdas)) body ...)
+    #:with (original-formals ...) #'(first-formals)
     #:with (converted-formals ...) #'(first-formals.converted)
     #:with (formatted-body ...)
     #'((ORIGINAL-GAP first-formals initial-body) (ORIGINAL-SPLICE initial-body body ...))))
@@ -73,6 +78,11 @@
  functions)."
   #:literals (define)
   [(define header lambda-form:possibly-nested-lambdas)
+   #:do [(define multiline-lambda-header-count
+           (count multiline-syntax? (attribute lambda-form.original-formals)))]
+   #:when (< multiline-lambda-header-count 2)
+   #:when (oneline-syntax? #'header)
+   #:when (or (identifier? #'header) (zero? multiline-lambda-header-count))
    #:with new-header (build-function-header #'header (attribute lambda-form.converted-formals))
    (define new-header lambda-form.formatted-body ...)])
 

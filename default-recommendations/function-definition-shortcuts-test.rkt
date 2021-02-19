@@ -153,6 +153,42 @@ test: "nested lambda function definition to function definition"
 ------------------------------
 
 
+test: "nested lambda variable with multiple multiline headers not refactorable"
+------------------------------
+#lang racket/base
+(define f
+  (λ (a
+      b
+      c)
+    (λ (x
+        y
+        z)
+      1)))
+------------------------------
+
+
+test: "function with multiline header returning lambda not refactorable"
+------------------------------
+#lang racket/base
+(define (f a
+           b
+           c)
+  (λ (x)
+    1))
+------------------------------
+
+
+test: "function returning lambda with multiline header not refactorable"
+------------------------------
+#lang racket/base
+(define (f a)
+  (λ (x
+      y
+      z)
+    1))
+------------------------------
+
+
 test: "case-lambda with default arg"
 ------------------------------
 #lang racket/base
