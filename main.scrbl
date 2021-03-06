@@ -19,6 +19,9 @@ into one possible distant future of static analysis for Racket. Feedback, questi
 greatly appreciated and are best directed at the @hyperlink[github-repository-url]{GitHub repository}.
 
 
+@table-of-contents[]
+
+
 @(define github-repository-url "https://github.com/jackfirth/resyntax/")
 
 
