@@ -51,7 +51,7 @@
     (add-target! (directory-target complete-dirpath)))
    ("--package"
     pkgname
-    "A package to analyze."
+    "An installed package to analyze."
     (add-target! (package-target pkgname)))
    #:once-each
    ("--refactoring-suite"
@@ -84,7 +84,7 @@
     (add-target! (directory-target complete-dirpath)))
    ("--package"
     pkgname
-    "A package to fix."
+    "An installed package to fix."
     (add-target! (package-target pkgname)))
    #:once-each
    ("--refactoring-suite"
