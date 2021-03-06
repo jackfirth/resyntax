@@ -189,6 +189,43 @@ test: "function returning lambda with multiline header not refactorable"
 ------------------------------
 
 
+test: "function returning thunk not refactorable"
+------------------------------
+#lang racket/base
+(define (f a)
+  (λ ()
+    1))
+------------------------------
+
+
+test: "thunk variable refactorable to function definition"
+------------------------------
+#lang racket/base
+(define f
+  (λ ()
+    1))
+------------------------------
+#lang racket/base
+(define (f)
+  1)
+------------------------------
+
+
+test: "function returning function returning thunk refactorable to function returning thunk"
+------------------------------
+#lang racket/base
+(define (f a)
+  (λ (b)
+    (λ ()
+      1)))
+------------------------------
+#lang racket/base
+(define ((f a) b)
+  (λ ()
+    1))
+------------------------------
+
+
 test: "case-lambda with default arg"
 ------------------------------
 #lang racket/base
