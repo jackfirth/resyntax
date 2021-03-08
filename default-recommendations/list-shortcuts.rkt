@@ -41,7 +41,15 @@
   [test:null-test (null? test.subject)])
 
 
+(define-refactoring-rule list-call-to-empty-list-literal
+  #:description "An empty list literal can be written as '()."
+  #:literals (list)
+  [(list)
+   '()])
+
+
 (define list-shortcuts
   (refactoring-suite
    #:name (name list-shortcuts)
-   #:rules (list equal-null-list-to-null-predicate first-reverse-to-last)))
+   #:rules (list equal-null-list-to-null-predicate first-reverse-to-last
+                 list-call-to-empty-list-literal)))
