@@ -103,24 +103,6 @@
      (~@ NEWLINE clause) ...)])
 
 
-(define-refactoring-rule or-or-to-or
-  #:description "Nested or expressions are equivalent to a single or expression."
-  #:literals (or)
-  [(or first-clause clause ... (or inner-clause ...))
-   (or first-clause
-       (~@ NEWLINE clause) ...
-       (~@ NEWLINE inner-clause) ...)])
-
-
-(define-refactoring-rule and-and-to-and
-  #:description "Nested and expressions are equivalent to a single and expression."
-  #:literals (and)
-  [(and first-clause clause ... (and inner-clause ...))
-   (and first-clause
-        (~@ NEWLINE clause) ...
-        (~@ NEWLINE inner-clause) ...)])
-
-
 (define-refactoring-rule and-match-to-match
   #:description "This and expression can be turned into a clause of the inner match expression,\
  reducing nesting."
@@ -135,8 +117,7 @@
 (define miscellaneous-suggestions
   (refactoring-suite
    #:name (name miscellaneous-suggestions)
-   #:rules (list and-and-to-and
-                 and-match-to-match
+   #:rules (list and-match-to-match
                  cond-begin-to-cond
                  cond-else-if-to-cond
                  if-then-begin-to-cond
@@ -144,5 +125,4 @@
                  if-else-cond-to-cond
                  if-else-if-to-cond
                  if-x-else-x-to-and
-                 or-cond-to-cond
-                 or-or-to-or)))
+                 or-cond-to-cond)))
