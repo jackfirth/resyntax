@@ -10,6 +10,7 @@
                resyntax/default-recommendations/legacy-contract-migrations
                resyntax/default-recommendations/legacy-struct-migrations
                resyntax/default-recommendations/let-binding-suggestions
+               resyntax/default-recommendations/list-shortcuts
                resyntax/default-recommendations/miscellaneous-suggestions)
  (contract-out
   [default-recommendations refactoring-suite?]))
@@ -21,6 +22,7 @@
          resyntax/default-recommendations/legacy-contract-migrations
          resyntax/default-recommendations/legacy-struct-migrations
          resyntax/default-recommendations/let-binding-suggestions
+         resyntax/default-recommendations/list-shortcuts
          resyntax/default-recommendations/miscellaneous-suggestions
          resyntax/refactoring-suite)
 
@@ -37,4 +39,5 @@
            (refactoring-suite-rules legacy-contract-migrations)
            (refactoring-suite-rules legacy-struct-migrations)
            (refactoring-suite-rules let-binding-suggestions)
+           (refactoring-suite-rules list-shortcuts)
            (refactoring-suite-rules miscellaneous-suggestions))))
