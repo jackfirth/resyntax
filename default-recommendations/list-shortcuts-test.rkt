@@ -111,3 +111,13 @@ test: "list equal? to null refactorable to null? check"
 #lang racket/base
 (null? (list 1 2 3))
 ------------------------------
+
+
+test: "(list) refactorable to '() check"
+------------------------------
+#lang racket/base
+(list)
+------------------------------
+#lang racket/base
+'()
+------------------------------
