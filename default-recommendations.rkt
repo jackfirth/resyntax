@@ -6,6 +6,7 @@
 
 (provide
  (all-from-out resyntax/default-recommendations/boolean-shortcuts
+               resyntax/default-recommendations/comparison-shortcuts
                resyntax/default-recommendations/for-loop-shortcuts
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/legacy-contract-migrations
@@ -19,6 +20,7 @@
 
 (require rebellion/private/static-name
          resyntax/default-recommendations/boolean-shortcuts
+         resyntax/default-recommendations/comparison-shortcuts
          resyntax/default-recommendations/for-loop-shortcuts
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/legacy-contract-migrations
@@ -37,6 +39,7 @@
    #:name (name default-recommendations)
    #:rules
    (append (refactoring-suite-rules boolean-shortcuts)
+           (refactoring-suite-rules comparison-shortcuts)
            (refactoring-suite-rules for-loop-shortcuts)
            (refactoring-suite-rules function-definition-shortcuts)
            (refactoring-suite-rules legacy-contract-migrations)
