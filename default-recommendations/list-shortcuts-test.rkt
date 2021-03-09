@@ -121,3 +121,17 @@ test: "(list) refactorable to '() check"
 #lang racket/base
 '()
 ------------------------------
+
+
+test: "(append* (map ...)) refactorable to single-pass append-map"
+------------------------------
+#lang racket/base
+(require racket/list)
+(define (f x) (list x x x))
+(append* (map f (list 1 2 3)))
+------------------------------
+#lang racket/base
+(require racket/list)
+(define (f x) (list x x x))
+(append-map f (list 1 2 3))
+------------------------------
