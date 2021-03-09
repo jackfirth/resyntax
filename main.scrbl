@@ -11,7 +11,9 @@
 
 Resyntax is a refactoring tool for Racket. The tool can be guided by @deftech{refactoring rules},
 which are macro-like functions defined in terms of @racket[syntax-parse] that specify how to search
-for and refactor different coding patterns.
+for and refactor different coding patterns. Resyntax comes with a standard set of refactoring rules
+that improve code written in @hash-lang @racketmodname[racket/base]. To use Resyntax on your code, see
+@secref{cli}.
 
 @bold{This tool is extremely experimental.} Do not attempt to incorporate it into your projects yet.
 For now, the refactoring suggestions produced by @racketmodname[resyntax] are best viewed as glimpses
@@ -25,7 +27,7 @@ greatly appreciated and are best directed at the @hyperlink[github-repository-ur
 @(define github-repository-url "https://github.com/jackfirth/resyntax/")
 
 
-@section{The Resyntax Command-Line Interface}
+@section[#:tag "cli"]{The Resyntax Command-Line Interface}
 
 
 Resyntax provides a command-line @exec{resyntax} tool for analyzing and refactoring code. The tool has
