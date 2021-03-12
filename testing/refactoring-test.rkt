@@ -9,6 +9,8 @@
 
 
 (require (for-syntax racket/base)
+         racket/match
+         racket/port
          racket/pretty
          racket/stxparam
          rackunit
@@ -18,10 +20,13 @@
          rebellion/collection/list
          rebellion/collection/multiset
          rebellion/streaming/transducer
+         rebellion/type/tuple
          resyntax
          resyntax/refactoring-suite
          resyntax/string-replacement
-         syntax/parse/define)
+         syntax/parse
+         syntax/parse/define
+         syntax/modread)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -61,6 +66,33 @@
               #:into into-list)))
 
 
+(define-tuple-type program-output (stdout stderr))
+
+
+(define (eval-program program)
+  (define stdout (open-output-string))
+  (define stderr (open-output-string))
+  (parameterize ([current-namespace (make-base-namespace)])
+    (define (read-from-input)
+      (port-count-lines! (current-input-port))
+      (with-module-reading-parameterization read-syntax))
+    (define stx (with-input-from-string program read-from-input))
+    (define module-name
+      (syntax-parse stx #:datum-literals (module) [(module name:id _ ...) (syntax-e #'name)]))
+    (parameterize ([current-output-port stdout]
+                   [current-error-port stderr])
+      (eval stx)
+      (dynamic-require `',module-name #false)))
+  (program-output
+   (string->immutable-string (get-output-string stdout))
+   (string->immutable-string (get-output-string stderr))))
+
+
+(module+ test
+  (test-case "eval-program"
+    (check-equal? (eval-program "#lang racket/base (or 1 2 3)") (program-output "1\n" ""))))
+
+
 (define-check (check-suite-refactors suite original-program expected-program)
   (define results (refactor original-program #:suite suite))
   (define replacement
@@ -68,14 +100,24 @@
                (mapping refactoring-result-string-replacement)
                #:into union-into-string-replacement))
   (define refactored-program (string-apply-replacement original-program replacement))
-  (with-check-info (['matched-rules (refactoring-results-matched-rules-info results)]
-                    ['actual (string-block refactored-program)]
-                    ['expected (string-block expected-program)])
-    (when (equal? refactored-program original-program)
-      (fail-check "no changes were made"))
-    (when (not (equal? refactored-program expected-program))
-      (with-check-info (['original (string-block original-program)])
-        (fail-check "incorrect changes were made")))))
+  (with-check-info (['matched-rules (refactoring-results-matched-rules-info results)])
+    (with-check-info (['actual (string-block refactored-program)]
+                      ['expected (string-block expected-program)])
+      (when (equal? refactored-program original-program)
+        (fail-check "no changes were made"))
+      (when (not (equal? refactored-program expected-program))
+        (with-check-info (['original (string-block original-program)])
+          (fail-check "incorrect changes were made"))))
+    (match-define (program-output original-stdout original-stderr) (eval-program original-program))
+    (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
+    (unless (equal? original-stdout actual-stdout)
+      (with-check-info (['actual (string-block actual-stdout)]
+                        ['original (string-block original-stdout)])
+        (fail-check "output to stdout changed")))
+    (unless (equal? original-stderr actual-stderr)
+      (with-check-info (['actual (string-block actual-stderr)]
+                        ['original (string-block original-stderr)])
+        (fail-check "output to stderr changed")))))
 
 
 (define-check (check-suite-does-not-refactor suite original-program)
