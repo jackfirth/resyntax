@@ -244,12 +244,14 @@ test: "let forms inside with-handlers forms"
 test: "let forms inside parameterize forms"
 ------------------------------
 #lang racket/base
-(parameterize ([current-output-port #false])
+(define p (make-parameter #false))
+(parameterize ([p #true])
   (let ([x 1])
     1))
 ------------------------------
 #lang racket/base
-(parameterize ([current-output-port #false])
+(define p (make-parameter #false))
+(parameterize ([p #true])
   (define x 1)
   1)
 ------------------------------
