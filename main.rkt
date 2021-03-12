@@ -9,8 +9,6 @@
   [refactor! (-> (sequence/c refactoring-result?) void?)]
   [refactor (->* (string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
   [refactor-file (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
-  [refactor-directory (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
-  [refactor-package (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
   [refactoring-result? predicate/c]
   [refactoring-result
    (-> #:source source?
@@ -172,25 +170,6 @@
        (append-mapping
         (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
        #:into into-list))))
-
-
-(define (refactor-directory path-string #:suite [suite default-recommendations])
-  (define path (simple-form-path path-string))
-  (transduce (in-directory path)
-             (filtering rkt-file?)
-             (append-mapping (refactor-file _ #:suite suite))
-             #:into into-list))
-
-
-(define (refactor-package package-name #:suite [suite default-recommendations])
-  (refactor-directory (pkg-directory package-name) #:rules suite))
-
-
-(define/guard (rkt-file? path)
-  (guard (path-has-extension? path #".rkt") else
-    #false)
-  (define content (file->string path))
-  (string-prefix? content "#lang racket/base"))
 
 
 (define (refactor! results)
