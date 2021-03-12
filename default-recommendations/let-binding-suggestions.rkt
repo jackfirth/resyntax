@@ -22,10 +22,11 @@
                   define/pubment
                   define/private)
          rebellion/private/static-name
+         resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/default-recommendations/private/lambda-by-any-name
+         resyntax/syntax-replacement
          syntax/parse
          syntax/parse/lib/function-header)
 
@@ -41,7 +42,35 @@
 
 (define-splicing-syntax-class header-form-allowing-internal-definitions
   #:attributes ([formatted 1])
-  #:literals (let let* let-values when unless with-handlers parameterize)
+  #:literals (let
+                 let*
+               let-values
+               when
+               unless
+               with-handlers
+               parameterize
+               for
+               for/list
+               for/hash
+               for/hasheq
+               for/hasheqv
+               for/and
+               for/or
+               for/sum
+               for/product
+               for/first
+               for/last
+               for*
+               for*/list
+               for*/hash
+               for*/hasheq
+               for*/hasheqv
+               for*/and
+               for*/or
+               for*/sum
+               for*/product
+               for*/first
+               for*/last)
 
   (pattern (~seq lambda:lambda-by-any-name ~! formals:formals)
     #:with (formatted ...) #'(lambda formals))
@@ -68,7 +97,36 @@
     #:with (formatted ...) #'(with-handlers handlers))
 
   (pattern (~seq parameterize ~! handlers)
-    #:with (formatted ...) #'(parameterize handlers)))
+    #:with (formatted ...) #'(parameterize handlers))
+
+  (pattern
+      (~seq
+       (~and for-id
+             (~or for
+                  for/list
+                  for/hash
+                  for/hasheq
+                  for/hasheqv
+                  for/and
+                  for/or
+                  for/sum
+                  for/product
+                  for/first
+                  for/last
+                  for*
+                  for*/list
+                  for*/hash
+                  for*/hasheq
+                  for*/hasheqv
+                  for*/and
+                  for*/or
+                  for*/sum
+                  for*/product
+                  for*/first
+                  for*/last))
+       ~!
+       clauses)
+    #:with (formatted ...) #'((ORIGINAL-SPLICE for-id clauses))))
 
 
 ;; There's a lot of variants of define that support the same grammar but have different meanings. We
