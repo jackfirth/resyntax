@@ -60,3 +60,53 @@ test: "multi-line nested ifs refactorable to cond"
   ['g 'h]
   [else 'i])
 ------------------------------
+
+
+test: "if else false can be refactored to an and expression"
+------------------------------
+#lang racket/base
+(if 'a (println "true branch") #f)
+------------------------------
+#lang racket/base
+(and 'a (println "true branch"))
+------------------------------
+
+
+test: "multi-line if else false can be refactored to a multi-line and expression"
+------------------------------
+#lang racket/base
+(if 'a
+    (println "true branch")
+    #f)
+------------------------------
+#lang racket/base
+(and 'a
+     (println "true branch"))
+------------------------------
+
+
+test: "if x else x can be refactored to an and expression"
+------------------------------
+#lang racket/base
+(define x 'a)
+(if x (println "true branch") x)
+------------------------------
+#lang racket/base
+(define x 'a)
+(and x (println "true branch"))
+------------------------------
+
+
+test: "multi-line if x else x can be refactored to a multi-line and expression"
+------------------------------
+#lang racket/base
+(define x 'a)
+(if x
+    (println "true branch")
+    x)
+------------------------------
+#lang racket/base
+(define x 'a)
+(and x
+     (println "true branch"))
+------------------------------

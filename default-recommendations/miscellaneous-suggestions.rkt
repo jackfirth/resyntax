@@ -52,14 +52,6 @@
      (~@ NEWLINE clause) ...)])
 
 
-(define-refactoring-rule if-x-else-x-to-and
-  #:description "This if expression can be replaced with an equivalent and expression."
-  #:literals (if)
-  [(if x:id then-branch:expr y:id)
-   #:when (free-identifier=? #'x #'y)
-   (and x then-branch)])
-
-
 (define-refactoring-rule cond-else-if-to-cond
   #:description "The else if branch of this cond expression can be collapsed into the cond\
  expression."
@@ -113,5 +105,4 @@
                  if-then-begin-to-cond
                  if-else-begin-to-cond
                  if-else-cond-to-cond
-                 if-x-else-x-to-and
                  or-cond-to-cond)))

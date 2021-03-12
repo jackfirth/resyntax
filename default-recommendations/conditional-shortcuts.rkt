@@ -36,14 +36,32 @@
 
 
 (define-refactoring-rule nested-if-to-cond
-  #:description "If-else chains can be converted to cond."
+  #:description "This if-else chain can be converted to a cond expression."
   #:literals (cond)
   [nested:nested-if-else
    #:when (> (attribute nested.branches-size) 2)
    (cond nested.branch ...)])
 
 
+(define-refactoring-rule if-else-false-to-and
+  #:description "This conditional expression can be replaced with a simpler, equivalent expression."
+  #:literals (if)
+  [(if condition then-branch #false)
+   (and (ORIGINAL-SPLICE condition then-branch))])
+
+
+(define-refactoring-rule if-x-else-x-to-and
+  #:description "This conditional expression can be replaced with a simpler, equivalent expression."
+  #:literals (if)
+  [(if x:id then-branch:expr y:id)
+   #:when (free-identifier=? #'x #'y)
+   (and (ORIGINAL-SPLICE x then-branch))])
+
+
 (define conditional-shortcuts
   (refactoring-suite
    #:name (name conditional-shortcuts)
-   #:rules (list nested-if-to-cond)))
+   #:rules
+   (list if-else-false-to-and
+         if-x-else-x-to-and
+         nested-if-to-cond)))
