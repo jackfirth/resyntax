@@ -44,7 +44,29 @@
    (and and-tree.leaf ...)])
 
 
+(define simpler-boolean-expression
+  "This boolean expression can be replaced with a simpler, logically equivalent expression.")
+
+
+(define-refactoring-rule de-morgan-and-to-or
+  #:description simpler-boolean-expression
+  #:literals (and not)
+  [(and (not expr) ...+)
+   (not (or expr ...))])
+
+
+(define-refactoring-rule de-morgan-or-to-and
+  #:description simpler-boolean-expression
+  #:literals (or not)
+  [(or (not expr) ...+)
+   (not (and expr ...))])
+
+
 (define boolean-shortcuts
   (refactoring-suite
    #:name (name boolean-shortcuts)
-   #:rules (list nested-and-to-flat-and nested-or-to-flat-or)))
+   #:rules
+   (list de-morgan-and-to-or
+         de-morgan-or-to-and
+         nested-and-to-flat-and
+         nested-or-to-flat-or)))

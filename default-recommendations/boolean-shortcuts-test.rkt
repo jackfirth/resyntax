@@ -112,3 +112,23 @@ test: "nested ands interspersed with ors can be flattened"
 #lang racket/base
 (and 1 2 (or 3 4) 5 6)
 ------------------------------
+
+
+test: "de morgan's law can refactor ands to ors"
+------------------------------
+#lang racket/base
+(and (not 1) (not 2) (not 3))
+------------------------------
+#lang racket/base
+(not (or 1 2 3))
+------------------------------
+
+
+test: "de morgan's law can refactor ors to ands"
+------------------------------
+#lang racket/base
+(or (not 1) (not 2) (not 3))
+------------------------------
+#lang racket/base
+(not (and 1 2 3))
+------------------------------
