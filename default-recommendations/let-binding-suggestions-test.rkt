@@ -255,3 +255,17 @@ test: "let forms inside parameterize forms"
   (define x 1)
   1)
 ------------------------------
+
+
+test: "let forms inside for loop bodies"
+------------------------------
+#lang racket/base
+(for ([i (in-range 0 10)])
+  (let ([x 1])
+    (void)))
+------------------------------
+#lang racket/base
+(for ([i (in-range 0 10)])
+  (define x 1)
+  (void))
+------------------------------

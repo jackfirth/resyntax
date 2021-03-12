@@ -12,6 +12,7 @@
 (require (for-syntax racket/base)
          racket/list
          rebellion/private/static-name
+         resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          syntax/parse)
@@ -56,6 +57,16 @@
    (append-map f lst)])
 
 
+(define-refactoring-rule sort-with-keyed-comparator-to-sort-by-key
+  #:description "This sort expression can be replaced with a simpler, equivalent expression."
+  #:literals (sort <)
+  [(sort lst (_:lambda-by-any-name (x1:id y1:id) (less-than:id (f1:id x2:id) (f2:id y2:id))))
+   #:when (free-identifier=? #'x1 #'x2)
+   #:when (free-identifier=? #'y1 #'y2)
+   #:when (free-identifier=? #'f1 #'f2)
+   (sort lst less-than #:key f1)])
+
+
 (define list-shortcuts
   (refactoring-suite
    #:name (name list-shortcuts)
@@ -63,4 +74,5 @@
    (list append*-and-map-to-append-map
          equal-null-list-to-null-predicate
          first-reverse-to-last
-         list-call-to-empty-list-literal)))
+         list-call-to-empty-list-literal
+         sort-with-keyed-comparator-to-sort-by-key)))
