@@ -23,24 +23,24 @@
 
 
 (define-syntax-class nested-if-else
-  #:attributes (branches branches-size)
+  #:attributes ([branch 1] branches-size)
   #:literals (if)
-  (pattern (if cond then (~or* (~var nested nested-if-else) default))
-           #:with branches #`(NEWLINE [cond then]
-                                      #,@(if (attribute default)
-                                             #'(NEWLINE [else default])
-                                             (attribute nested.branches)))
-           #:attr branches-size (if (attribute default)
-                                    2
-                                    (+ 1 (attribute nested.branches-size)))))
+
+  (pattern (if cond then nested:nested-if-else)
+    #:with (branch ...) #'(NEWLINE [cond then] nested.branch ...)
+    #:attr branches-size (+ 1 (attribute nested.branches-size)))
+
+  (pattern (if cond then default)
+    #:with (branch ...) #'(NEWLINE [cond then] NEWLINE [else default])
+    #:attr branches-size 2))
 
 
 (define-refactoring-rule nested-if-to-cond
   #:description "If-else chains can be converted to cond."
   #:literals (cond)
-  [test:nested-if-else
-   #:when (> (attribute test.branches-size) 3)
-   (cond (~@ . test.branches))])
+  [nested:nested-if-else
+   #:when (> (attribute nested.branches-size) 2)
+   (cond nested.branch ...)])
 
 
 (define conditional-suggestions
