@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [conditional-suggestions refactoring-suite?]))
+  [conditional-shortcuts refactoring-suite?]))
 
 
 (require (for-syntax racket/base)
@@ -43,7 +43,7 @@
    (cond nested.branch ...)])
 
 
-(define conditional-suggestions
+(define conditional-shortcuts
   (refactoring-suite
-   #:name (name conditional-suggestions)
+   #:name (name conditional-shortcuts)
    #:rules (list nested-if-to-cond)))

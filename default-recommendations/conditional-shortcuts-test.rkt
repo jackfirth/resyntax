@@ -1,7 +1,7 @@
 #lang resyntax/testing/refactoring-test
 
 
-require: resyntax/default-recommendations conditional-suggestions
+require: resyntax/default-recommendations conditional-shortcuts
 
 
 test: "if without nested ifs not refactorable"
