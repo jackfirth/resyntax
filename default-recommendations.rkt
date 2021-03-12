@@ -6,6 +6,7 @@
 
 (provide
  (all-from-out resyntax/default-recommendations/boolean-shortcuts
+               resyntax/default-recommendations/comparison-shortcuts
                resyntax/default-recommendations/conditional-suggestions
                resyntax/default-recommendations/for-loop-shortcuts
                resyntax/default-recommendations/function-definition-shortcuts
@@ -20,6 +21,7 @@
 
 (require rebellion/private/static-name
          resyntax/default-recommendations/boolean-shortcuts
+         resyntax/default-recommendations/comparison-shortcuts
          resyntax/default-recommendations/conditional-suggestions
          resyntax/default-recommendations/for-loop-shortcuts
          resyntax/default-recommendations/function-definition-shortcuts
@@ -39,6 +41,7 @@
    #:name (name default-recommendations)
    #:rules
    (append (refactoring-suite-rules boolean-shortcuts)
+           (refactoring-suite-rules comparison-shortcuts)
            (refactoring-suite-rules conditional-suggestions)
            (refactoring-suite-rules for-loop-shortcuts)
            (refactoring-suite-rules function-definition-shortcuts)

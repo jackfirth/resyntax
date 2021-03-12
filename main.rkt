@@ -7,7 +7,7 @@
 (provide
  (contract-out
   [refactor! (-> (sequence/c refactoring-result?) void?)]
-  [refactor (->* (string?) (#:suite refactoring-suite?) string-replacement?)]
+  [refactor (->* (string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
   [refactor-file (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
   [refactor-directory (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
   [refactor-package (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
@@ -22,6 +22,7 @@
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
   [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]
+  [refactoring-result-string-replacement (-> refactoring-result? string-replacement?)]
   [refactoring-result-original-line (-> refactoring-result? exact-positive-integer?)]
   [refactoring-result-original-code (-> refactoring-result? code-snippet?)]
   [refactoring-result-new-code (-> refactoring-result? code-snippet?)]))
@@ -149,8 +150,7 @@
     (transduce
      (source-code-analysis-visited-forms analysis)
      (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
-     (mapping refactoring-result-string-replacement)
-     #:into union-into-string-replacement)))
+     #:into into-list)))
 
 
 (define (refactor-file path-string #:suite [suite default-recommendations])
