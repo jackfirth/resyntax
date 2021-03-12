@@ -18,6 +18,7 @@
          rebellion/type/tuple
          resyntax
          resyntax/default-recommendations
+         resyntax/file-group
          resyntax/refactoring-suite
          resyntax/source)
 
@@ -26,9 +27,6 @@
 
 
 (define-record-type resyntax-options (targets suite))
-(define-tuple-type file-target (path))
-(define-tuple-type directory-target (path))
-(define-tuple-type package-target (name))
 
 
 (define (resyntax-analyze-parse-command-line)
@@ -39,20 +37,15 @@
   (command-line
    #:program "resyntax analyze"
    #:multi
-   ("--file"
-    filepath
-    "A file to anaylze."
-    (define complete-filepath (simplify-path (path->complete-path filepath)))
-    (add-target! (file-target complete-filepath)))
+   ("--file" filepath "A file to anaylze." (add-target! (single-file-group filepath)))
    ("--directory"
     dirpath
     "A directory to anaylze, including subdirectories."
-    (define complete-dirpath (simplify-path (path->complete-path dirpath)))
-    (add-target! (directory-target complete-dirpath)))
+    (add-target! (directory-file-group dirpath)))
    ("--package"
     pkgname
     "An installed package to analyze."
-    (add-target! (package-target pkgname)))
+    (add-target! (package-file-group pkgname)))
    #:once-each
    ("--refactoring-suite"
     modpath
@@ -72,20 +65,15 @@
   (command-line
    #:program "resyntax fix"
    #:multi
-   ("--file"
-    filepath
-    "A file to fix."
-    (define complete-filepath (simplify-path (path->complete-path filepath)))
-    (add-target! (file-target complete-filepath)))
+   ("--file" filepath "A file to fix." (add-target! (single-file-group filepath)))
    ("--directory"
     dirpath
     "A directory to fix, including subdirectories."
-    (define complete-dirpath (simplify-path (path->complete-path dirpath)))
-    (add-target! (directory-target complete-dirpath)))
+    (add-target! (directory-file-group dirpath)))
    ("--package"
     pkgname
     "An installed package to fix."
-    (add-target! (package-target pkgname)))
+    (add-target! (package-file-group pkgname)))
    #:once-each
    ("--refactoring-suite"
     modpath
@@ -111,19 +99,13 @@
         (resyntax-fix-run))])))
 
 
-(define (refactor-target target #:suite suite)
-  (match target
-    [(file-target path) (refactor-file path #:suite suite)]
-    [(directory-target path) (refactor-directory path #:suite suite)]
-    [(package-target name) (refactor-package name #:suite suite)]))
-
-
 (define (resyntax-analyze-run)
   (define options (resyntax-analyze-parse-command-line))
+  (define files (file-groups-resolve (resyntax-options-targets options)))
   (printf "resyntax: --- analyzing code ---\n")
   (define results
-    (transduce (resyntax-options-targets options)
-               (append-mapping (refactor-target _ #:suite (resyntax-options-suite options)))
+    (transduce files
+               (append-mapping (refactor-file _ #:suite (resyntax-options-suite options)))
                #:into into-list))
   (printf "resyntax: --- displaying results ---\n")
   (for ([result (in-list results)])
@@ -137,10 +119,11 @@
 
 (define (resyntax-fix-run)
   (define options (resyntax-fix-parse-command-line))
+  (define files (file-groups-resolve (resyntax-options-targets options)))
   (printf "resyntax: --- analyzing code ---\n")
   (define all-results
-    (transduce (resyntax-options-targets options)
-               (append-mapping (refactor-target _ #:suite (resyntax-options-suite options)))
+    (transduce files
+               (append-mapping (refactor-file _ #:suite (resyntax-options-suite options)))
                #:into into-list))
   (define results-by-path
     (transduce
