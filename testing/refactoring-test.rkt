@@ -13,7 +13,10 @@
          racket/stxparam
          rackunit
          rackunit/private/check-info
+         rebellion/collection/entry
+         rebellion/collection/hash
          rebellion/collection/list
+         rebellion/collection/multiset
          rebellion/streaming/transducer
          resyntax
          resyntax/refactoring-suite
@@ -47,22 +50,44 @@
   (raise-syntax-error #false "can only be used within a refactoring test" stx))
 
 
+(define (refactoring-results-matched-rules-info results)
+  (define matches (transduce results (mapping refactoring-result-rule-name) #:into into-multiset))
+  (nested-info
+   (transduce (in-hash-entries (multiset-frequencies matches))
+              (mapping-values
+               (λ (match-count)
+                 (string-info (format "~a match~a" match-count (if (= match-count 1) "" "es")))))
+              (mapping (λ (e) (check-info (entry-key e) (entry-value e))))
+              #:into into-list)))
+
+
 (define-check (check-suite-refactors suite original-program expected-program)
-  (define replacement (refactor original-program #:suite suite))
+  (define results (refactor original-program #:suite suite))
+  (define replacement
+    (transduce results
+               (mapping refactoring-result-string-replacement)
+               #:into union-into-string-replacement))
   (define refactored-program (string-apply-replacement original-program replacement))
-  (with-check-info (['actual (string-block refactored-program)]
+  (with-check-info (['matched-rules (refactoring-results-matched-rules-info results)]
+                    ['actual (string-block refactored-program)]
                     ['expected (string-block expected-program)])
     (when (equal? refactored-program original-program)
       (fail-check "no changes were made"))
     (when (not (equal? refactored-program expected-program))
-      (fail-check "incorrect changes were made"))))
+      (with-check-info (['original (string-block original-program)])
+        (fail-check "incorrect changes were made")))))
 
 
 (define-check (check-suite-does-not-refactor suite original-program)
-  (define replacement (refactor original-program #:suite suite))
+  (define results (refactor original-program #:suite suite))
+  (define replacement
+    (transduce results
+               (mapping refactoring-result-string-replacement)
+               #:into union-into-string-replacement))
   (define refactored-program (string-apply-replacement original-program replacement))
-  (with-check-info (['actual (string-block refactored-program)]
-                    ['expected (string-block original-program)])
+  (with-check-info (['matched-rules (refactoring-results-matched-rules-info results)]
+                    ['actual (string-block refactored-program)]
+                    ['original (string-block original-program)])
     (unless (equal? refactored-program original-program)
       (fail-check "expected no changes, but changes were made"))))
 
