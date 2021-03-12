@@ -52,16 +52,6 @@
      (~@ NEWLINE clause) ...)])
 
 
-(define-refactoring-rule if-else-if-to-cond
-  #:description "These nested ifs can be collapsed into a single cond expression."
-  #:literals (if)
-  [(if condition then-branch (if inner-condition inner-then-branch else-branch))
-   (cond
-     NEWLINE [condition NEWLINE then-branch]
-     NEWLINE [inner-condition NEWLINE inner-then-branch]
-     NEWLINE [else else-branch])])
-
-
 (define-refactoring-rule if-x-else-x-to-and
   #:description "This if expression can be replaced with an equivalent and expression."
   #:literals (if)
@@ -123,6 +113,5 @@
                  if-then-begin-to-cond
                  if-else-begin-to-cond
                  if-else-cond-to-cond
-                 if-else-if-to-cond
                  if-x-else-x-to-and
                  or-cond-to-cond)))
