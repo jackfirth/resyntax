@@ -135,3 +135,15 @@ test: "(append* (map ...)) refactorable to single-pass append-map"
 (define (f x) (list x x x))
 (append-map f (list 1 2 3))
 ------------------------------
+
+
+test: "sort by comparator using key refactorable to sort by key"
+------------------------------
+#lang racket/base
+(define (f x) 42)
+(sort (list 1 2 3) (λ (a b) (< (f a) (f b))))
+------------------------------
+#lang racket/base
+(define (f x) 42)
+(sort (list 1 2 3) < #:key f)
+------------------------------
