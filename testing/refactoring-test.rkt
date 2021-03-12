@@ -47,14 +47,32 @@
   (raise-syntax-error #false "can only be used within a refactoring test" stx))
 
 
+(define-check (check-suite-refactors suite original-program expected-program)
+  (define replacement (refactor original-program #:suite suite))
+  (define refactored-program (string-apply-replacement original-program replacement))
+  (with-check-info (['actual (string-block refactored-program)]
+                    ['expected (string-block expected-program)])
+    (when (equal? refactored-program original-program)
+      (fail-check "no changes were made"))
+    (when (not (equal? refactored-program expected-program))
+      (fail-check "incorrect changes were made"))))
+
+
+(define-check (check-suite-does-not-refactor suite original-program)
+  (define replacement (refactor original-program #:suite suite))
+  (define refactored-program (string-apply-replacement original-program replacement))
+  (with-check-info (['actual (string-block refactored-program)]
+                    ['expected (string-block original-program)])
+    (unless (equal? refactored-program original-program)
+      (fail-check "expected no changes, but changes were made"))))
+
+
 (define-simple-macro (refactoring-test-case name:str input:str (~optional expected:str))
   #:with check
-  (syntax/loc this-syntax (check-equal? (string-block actual) (string-block (~? expected input))))
-  (test-case name
-    (define replacement (refactor input #:suite refactoring-suite-under-test))
-    (with-check-info (['replacement (pretty-info replacement)])
-      (define actual (string-apply-replacement input replacement))
-      check)))
+  (syntax/loc this-syntax
+    (~? (check-suite-refactors refactoring-suite-under-test input expected)
+        (check-suite-does-not-refactor refactoring-suite-under-test input)))
+  (test-case name check))
 
 
 (define-syntax-parameter refactoring-suite-under-test
