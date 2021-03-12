@@ -9,6 +9,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          racket/match
          racket/port
          racket/pretty
@@ -100,24 +101,28 @@
                (mapping refactoring-result-string-replacement)
                #:into union-into-string-replacement))
   (define refactored-program (string-apply-replacement original-program replacement))
-  (with-check-info (['matched-rules (refactoring-results-matched-rules-info results)])
-    (with-check-info (['actual (string-block refactored-program)]
-                      ['expected (string-block expected-program)])
-      (when (equal? refactored-program original-program)
-        (fail-check "no changes were made"))
-      (when (not (equal? refactored-program expected-program))
-        (with-check-info (['original (string-block original-program)])
-          (fail-check "incorrect changes were made"))))
-    (match-define (program-output original-stdout original-stderr) (eval-program original-program))
-    (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
-    (unless (equal? original-stdout actual-stdout)
-      (with-check-info (['actual (string-block actual-stdout)]
-                        ['original (string-block original-stdout)])
-        (fail-check "output to stdout changed")))
-    (unless (equal? original-stderr actual-stderr)
-      (with-check-info (['actual (string-block actual-stderr)]
-                        ['original (string-block original-stderr)])
-        (fail-check "output to stderr changed")))))
+  (with-check-info*
+      (if (empty? results)
+          '()
+          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
+    (λ ()
+      (with-check-info (['actual (string-block refactored-program)]
+                        ['expected (string-block expected-program)])
+        (when (equal? refactored-program original-program)
+          (fail-check "no changes were made"))
+        (when (not (equal? refactored-program expected-program))
+          (with-check-info (['original (string-block original-program)])
+            (fail-check "incorrect changes were made"))))
+      (match-define (program-output original-stdout original-stderr) (eval-program original-program))
+      (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
+      (unless (equal? original-stdout actual-stdout)
+        (with-check-info (['actual (string-block actual-stdout)]
+                          ['original (string-block original-stdout)])
+          (fail-check "output to stdout changed")))
+      (unless (equal? original-stderr actual-stderr)
+        (with-check-info (['actual (string-block actual-stderr)]
+                          ['original (string-block original-stderr)])
+          (fail-check "output to stderr changed"))))))
 
 
 (define-check (check-suite-does-not-refactor suite original-program)
@@ -127,11 +132,15 @@
                (mapping refactoring-result-string-replacement)
                #:into union-into-string-replacement))
   (define refactored-program (string-apply-replacement original-program replacement))
-  (with-check-info (['matched-rules (refactoring-results-matched-rules-info results)]
-                    ['actual (string-block refactored-program)]
-                    ['original (string-block original-program)])
-    (unless (equal? refactored-program original-program)
-      (fail-check "expected no changes, but changes were made"))))
+  (with-check-info*
+      (if (empty? results)
+          '()
+          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
+    (λ ()
+      (with-check-info (['actual (string-block refactored-program)]
+                        ['original (string-block original-program)])
+        (unless (equal? refactored-program original-program)
+          (fail-check "expected no changes, but changes were made"))))))
 
 
 (define-simple-macro (refactoring-test-case name:str input:str (~optional expected:str))
