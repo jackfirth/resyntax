@@ -8,6 +8,7 @@
  (all-from-out resyntax/default-recommendations/boolean-shortcuts
                resyntax/default-recommendations/comparison-shortcuts
                resyntax/default-recommendations/conditional-shortcuts
+               resyntax/default-recommendations/contract-shortcuts
                resyntax/default-recommendations/for-loop-shortcuts
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/hash-shortcuts
@@ -24,6 +25,7 @@
          resyntax/default-recommendations/boolean-shortcuts
          resyntax/default-recommendations/comparison-shortcuts
          resyntax/default-recommendations/conditional-shortcuts
+         resyntax/default-recommendations/contract-shortcuts
          resyntax/default-recommendations/for-loop-shortcuts
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/hash-shortcuts
@@ -45,6 +47,7 @@
    (append (refactoring-suite-rules boolean-shortcuts)
            (refactoring-suite-rules comparison-shortcuts)
            (refactoring-suite-rules conditional-shortcuts)
+           (refactoring-suite-rules contract-shortcuts)
            (refactoring-suite-rules for-loop-shortcuts)
            (refactoring-suite-rules function-definition-shortcuts)
            (refactoring-suite-rules hash-shortcuts)
