@@ -35,10 +35,10 @@
 
 (define-syntax-class refactorable-let-expression
   #:attributes ([refactored 1])
-  #:literals (let let-values let*)
+  #:literals (let let-values let* let*-values)
 
   (pattern
-      ((~and let-form (~or let let-values)) ~! bindings:refactorable-let-bindings body:body-forms)
+      ((~or* let let-values) ~! bindings:refactorable-let-bindings body:body-forms)
 
     #:when (no-binding-overlap?
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
@@ -46,7 +46,7 @@
     #:when (attribute bindings.fully-refactorable?)
     #:with (refactored ...) #'(bindings.outer-definition ... body.formatted ...))
 
-  (pattern (let* ~! bindings:refactorable-let*-bindings body:body-forms)
+  (pattern ((~or* let* let*-values) ~! bindings:refactorable-let*-bindings body:body-forms)
       
     #:when (no-binding-overlap?
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
@@ -62,8 +62,7 @@
   (pattern
       (~seq
        leading-body:body-forms
-       ((~and let-form (~or let let-values))
-        ~! bindings:refactorable-let-bindings inner-body:body-forms))
+       ((~or* let let-values) ~! bindings:refactorable-let-bindings inner-body:body-forms))
     
     #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
                                 (in-syntax #'(bindings.outer-bound-id ...)))
@@ -79,8 +78,9 @@
 
   (pattern
       (~seq
-       leading-body:body-forms (let* ~! bindings:refactorable-let*-bindings inner-body:body-forms))
-      
+       leading-body:body-forms
+       ((~or* let* let*-values) ~! bindings:refactorable-let*-bindings inner-body:body-forms))
+    
     #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
                                 (in-syntax #'(bindings.outer-bound-id ...)))
     #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))

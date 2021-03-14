@@ -45,6 +45,7 @@
   #:literals (let
                  let*
                let-values
+               let*-values
                when
                unless
                with-handlers
@@ -86,6 +87,9 @@
 
   (pattern (~seq let-values ~! header)
     #:with (formatted ...) #'(let-values header))
+
+  (pattern (~seq (~and id let*-values) ~! header)
+    #:with (formatted ...) #'((ORIGINAL-SPLICE id header)))
 
   (pattern (~seq when ~! condition)
     #:with (formatted ...) #'(when condition))
