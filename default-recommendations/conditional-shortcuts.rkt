@@ -43,19 +43,47 @@
    (cond nested.branch ...)])
 
 
+(define equivalent-conditional-description
+  "This conditional expression can be replaced with a simpler, equivalent expression.")
+
+
 (define-refactoring-rule if-else-false-to-and
-  #:description "This conditional expression can be replaced with a simpler, equivalent expression."
+  #:description equivalent-conditional-description
   #:literals (if)
   [(if condition then-branch #false)
    (and (ORIGINAL-SPLICE condition then-branch))])
 
 
 (define-refactoring-rule if-x-else-x-to-and
-  #:description "This conditional expression can be replaced with a simpler, equivalent expression."
+  #:description equivalent-conditional-description
   #:literals (if)
   [(if x:id then-branch:expr y:id)
    #:when (free-identifier=? #'x #'y)
    (and (ORIGINAL-SPLICE x then-branch))])
+
+
+(define-syntax-class block-expression
+  #:attributes ([body 1])
+  #:literals (begin let)
+  (pattern (begin body ...))
+  (pattern (let () body ...))
+  (pattern single-body #:with (body ...) #'(single-body)))
+
+
+(define-syntax-class when-or-unless-equivalent-conditional
+  #:attributes (when-or-unless condition [body 1])
+  #:literals (if void not begin let)
+
+  (pattern (if (not condition) (void) :block-expression) #:with when-or-unless #'when)
+  (pattern (if (not condition) :block-expression (void)) #:with when-or-unless #'unless)
+  (pattern (if condition (void) :block-expression) #:with when-or-unless #'unless)
+  (pattern (if condition :block-expression (void)) #:with when-or-unless #'when))
+
+
+(define-refactoring-rule if-void-to-when-or-unless
+  #:description equivalent-conditional-description
+  [conditional:when-or-unless-equivalent-conditional
+   (conditional.when-or-unless conditional.condition NEWLINE (ORIGINAL-SPLICE conditional.body ...))])
 
 
 (define conditional-shortcuts
@@ -63,5 +91,6 @@
    #:name (name conditional-shortcuts)
    #:rules
    (list if-else-false-to-and
+         if-void-to-when-or-unless
          if-x-else-x-to-and
          nested-if-to-cond)))
