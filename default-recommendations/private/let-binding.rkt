@@ -57,7 +57,7 @@
 
 (define-splicing-syntax-class body-with-refactorable-let-expression
   #:attributes ([refactored 1])
-  #:literals (let let-values let*)
+  #:literals (let let-values let* let*-values)
 
   (pattern
       (~seq
