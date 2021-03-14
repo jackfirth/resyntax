@@ -8,6 +8,7 @@ test: "define-struct without options"
 #lang racket/base
 (define-struct point (x y))
 ----------------------------------------
+----------------------------------------
 #lang racket/base
 (struct point (x y)
   #:extra-constructor-name make-point)
@@ -20,6 +21,7 @@ test: "define-struct with simple options"
 (define-struct point (x y)
   #:transparent
   #:mutable)
+----------------------------------------
 ----------------------------------------
 #lang racket/base
 (struct point (x y)
@@ -34,6 +36,7 @@ test: "one-line define-struct with simple options"
 #lang racket/base
 (define-struct point (x y) #:transparent #:mutable)
 ----------------------------------------
+----------------------------------------
 #lang racket/base
 (struct point (x y) #:transparent #:mutable
   #:extra-constructor-name make-point)
@@ -45,6 +48,7 @@ test: "define-struct with supertype"
 #lang racket/base
 (struct point ())
 (define-struct (2d-point point) (x y))
+----------------------------------------
 ----------------------------------------
 #lang racket/base
 (struct point ())
@@ -60,6 +64,7 @@ test: "define-struct with multi-form single-line options"
   #:guard (λ (x y _) (values x y))
   #:property prop:custom-print-quotable 'never
   #:inspector #false)
+----------------------------------------
 ----------------------------------------
 #lang racket/base
 (struct point (x y)
@@ -77,6 +82,7 @@ test: "define-struct with multi-line options"
   #:property prop:custom-write
   (λ (this out mode)
     (write-string "#<point>" out)))
+----------------------------------------
 ----------------------------------------
 #lang racket/base
 (struct point (x y)
@@ -98,6 +104,7 @@ test: "define-struct with options with separating whitespace"
 
   #:guard (λ (x y _) (values x y)))
 ----------------------------------------
+----------------------------------------
 #lang racket/base
 (struct point (x y)
 
@@ -116,6 +123,7 @@ test: "define-struct with field comments"
 (define-struct point (x ;; The X coordinate of the point
                       y ;; The Y coordinate of the point
                       ))
+----------------------------------------
 ----------------------------------------
 #lang racket/base
 (struct point (x ;; The X coordinate of the point
@@ -137,6 +145,7 @@ test: "define-struct with comments between options"
 
   ;; Field guard
   #:guard (λ (x y _) (values x y)))
+----------------------------------------
 ----------------------------------------
 #lang racket/base
 (struct point (x y)

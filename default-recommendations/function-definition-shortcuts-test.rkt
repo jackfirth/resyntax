@@ -11,6 +11,7 @@ test: "lambda variable definition to function definition"
   (λ (a b c)
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f a b c)
   1)
@@ -24,6 +25,7 @@ test: "lambda variable definition with no arguments to function definition"
   (λ ()
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   1)
@@ -34,6 +36,7 @@ test: "one-line lambda variable definition to one-line function definition"
 ------------------------------
 #lang racket/base
 (define f (λ (a b c) 1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f a b c) 1)
@@ -46,6 +49,7 @@ test: "lambda variable definition with only rest argument to function definition
 (define f
   (λ xs
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f . xs)
@@ -60,6 +64,7 @@ test: "lambda variable definition with rest argument to function definition"
   (λ (a b c . xs)
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f a b c . xs)
   1)
@@ -72,6 +77,7 @@ test: "lambda function definition to function definition"
 (define (f a b c)
   (λ (x y z)
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define ((f a b c) x y z)
@@ -98,6 +104,7 @@ test: "lambda variable definition with long header to function definition with p
       c)
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f a
            b
@@ -116,6 +123,7 @@ test: "lambda variable definition with commented body to definition with preserv
     ;; comment before last body form
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f a)
   ;; comment before all body forms
@@ -133,6 +141,7 @@ test: "nested lambda variable definition to function definition"
     (λ (b)
       1)))
 ------------------------------
+------------------------------
 #lang racket/base
 (define ((f a) b)
   1)
@@ -146,6 +155,7 @@ test: "nested lambda function definition to function definition"
   (λ (b)
     (λ (c)
       1)))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (((f a) b) c)
@@ -199,6 +209,7 @@ test: "case-lambda with default arg"
     [(x)
      1]))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f [x 1])
   1)
@@ -214,6 +225,7 @@ test: "case-lambda with default arg and required args"
      (f a b c 1)]
     [(a b c x)
      1]))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f a b c [x 1])
@@ -244,6 +256,7 @@ test: "case-lambda with default arg and multiple body forms"
      (void)
      1]))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f [x 1])
   (void)
@@ -262,6 +275,7 @@ test: "case-lambda with default arg and body form with interior comments"
      (begin
        ;;comment
        1)]))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f [x 1])

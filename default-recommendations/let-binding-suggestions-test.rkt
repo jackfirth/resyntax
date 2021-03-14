@@ -11,6 +11,7 @@ test: "single let binding"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define x 1)
@@ -24,6 +25,7 @@ test: "single let* binding"
 (define (f)
   (let* ([x 1])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f)
@@ -39,6 +41,7 @@ test: "single-clause let-values binding"
   (let-values ([(x y) (values 1 1)])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define-values (x y) (values 1 1))
@@ -52,6 +55,7 @@ test: "single-clause let*-values binding"
 (define (f)
   (let*-values ([(x y) (values 1 1)])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f)
@@ -67,6 +71,7 @@ test: "multiple let bindings"
   (let ([x 1]
         [y 1])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f)
@@ -84,6 +89,7 @@ test: "multiple let* bindings"
          [y 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define x 1)
@@ -100,6 +106,7 @@ test: "multiple let-values bindings"
                [(a b) (values 1 1)])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define-values (x y) (values 1 1))
@@ -115,6 +122,7 @@ test: "multiple let*-values bindings"
   (let*-values ([(x y) (values 1 1)]
                 [(a b) (values 1 1)])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f)
@@ -167,6 +175,7 @@ test: "let forms inside lambdas"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (λ ()
   (define x 1)
@@ -181,6 +190,7 @@ test: "let forms inside unrefactorable let forms"
 (let ([a a])
   (let ([x 1])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define a 1)
@@ -197,6 +207,7 @@ test: "let forms inside let loops"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (let loop ()
   (define x 1)
@@ -212,6 +223,7 @@ test: "let forms inside unrefactorable let* forms"
        [a a])
   (let ([x 1])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define a 1)
@@ -230,6 +242,7 @@ test: "let forms inside unrefactorable let-values forms"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define a 1)
 (let-values ([(a b) (values a 1)])
@@ -246,6 +259,7 @@ test: "let forms inside unrefactorable let*-values forms"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define a 1)
 (let*-values ([(a b) (values a 1)])
@@ -261,6 +275,7 @@ test: "let forms inside when forms"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (when #true
   (define x 1)
@@ -275,6 +290,7 @@ test: "let forms inside unless forms"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (unless #false
   (define x 1)
@@ -288,6 +304,7 @@ test: "let forms inside with-handlers forms"
 (with-handlers ([exn:fail? void])
   (let ([x 1])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (with-handlers ([exn:fail? void])
@@ -304,6 +321,7 @@ test: "let forms inside parameterize forms"
   (let ([x 1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define p (make-parameter #false))
 (parameterize ([p #true])
@@ -319,6 +337,7 @@ test: "let forms inside for loop bodies"
   (let ([x 1])
     (void)))
 ------------------------------
+------------------------------
 #lang racket/base
 (for ([i (in-range 0 10)])
   (define x 1)
@@ -331,6 +350,7 @@ test: "named lets which don't refer to the name are refactorable to unnamed lets
 #lang racket/base
 (let loop ([x 1])
   x)
+------------------------------
 ------------------------------
 #lang racket/base
 (let ([x 1])
