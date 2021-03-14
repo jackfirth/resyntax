@@ -1,10 +1,12 @@
 #lang racket/base
 
 
-(provide #%datum
+(provide (for-syntax #%datum)
+         #%datum
          #%module-begin
          refactoring-test
          refactoring-test-import
+         refactoring-test-header
          refactoring-test-case)
 
 
@@ -38,21 +40,39 @@
     #:attributes (require-statement suite)
     #:literals (refactoring-test-import)
     (pattern (refactoring-test-import module suite)
-      #:with require-statement #'(require (only-in module suite)))))
+      #:with require-statement #'(require (only-in module suite))))
+
+  (define-syntax-class refactoring-test-header-statement
+    #:attributes (header-block)
+    #:literals (refactoring-test-header)
+    (pattern (refactoring-test-header header-block)))
+
+  (define (make-constant-transformer constant)
+    (syntax-parser [:id #`#,constant])))
 
 
-(define-simple-macro (refactoring-test import:refactoring-test-import-statement ... case ...)
+(define-simple-macro
+  (refactoring-test
+   import:refactoring-test-import-statement ...
+   (~optional header:refactoring-test-header-statement)
+   case ...)
   (begin
     import.require-statement ...
     (define suite
       (refactoring-suite #:rules (append (refactoring-suite-rules import.suite) ...)))
-    (syntax-parameterize ([refactoring-suite-under-test (make-rename-transformer #'suite)])
+    (syntax-parameterize
+        ([refactoring-suite-under-test (make-rename-transformer #'suite)]
+         (~? (~@ [implicit-program-header (make-constant-transformer header.header-block)])))
       case ...
       ;; this void expression ensures that it's not an error if no test cases are given
       (void))))
 
 
 (define-syntax (refactoring-test-import stx)
+  (raise-syntax-error #false "can only be used within a refactoring test" stx))
+
+
+(define-syntax (refactoring-test-header stx)
   (raise-syntax-error #false "can only be used within a refactoring test" stx))
 
 
@@ -144,15 +164,22 @@
 
 
 (define-simple-macro (refactoring-test-case name:str input:str (~optional expected:str))
+  #:with input-with-header #'(string-append implicit-program-header input)
   #:with check
   (syntax/loc this-syntax
-    (~? (check-suite-refactors refactoring-suite-under-test input expected)
-        (check-suite-does-not-refactor refactoring-suite-under-test input)))
+    (~?
+     (check-suite-refactors
+      refactoring-suite-under-test input-with-header (string-append implicit-program-header expected))
+     (check-suite-does-not-refactor refactoring-suite-under-test input-with-header)))
   (test-case name check))
 
 
 (define-syntax-parameter refactoring-suite-under-test
   (λ (stx) (raise-syntax-error #false "can only be used within a refactoring test case" stx)))
+
+
+(define-syntax-parameter implicit-program-header
+  (syntax-parser #:literals (implicit-program-header) [implicit-program-header #'""]))
 
 
 (struct string-block (raw-string) #:transparent
