@@ -19,8 +19,8 @@
     #:pre/name (start end) "end cannot be before start" (<= start end)
     [_ string-replacement?])]
   [string-replacement-start (-> string-replacement? natural?)]
-  [string-replacement-end (-> string-replacement? natural?)]
-  [string-replacement-span (-> string-replacement? natural?)]
+  [string-replacement-original-end (-> string-replacement? natural?)]
+  [string-replacement-original-span (-> string-replacement? natural?)]
   [string-replacement-new-end (-> string-replacement? natural?)]
   [string-replacement-new-span (-> string-replacement? natural?)]
   [string-replacement-contents
@@ -77,7 +77,8 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-record-type string-replacement (start end span new-end new-span required-length contents)
+(define-record-type string-replacement
+  (start original-end original-span new-end new-span required-length contents)
   #:omit-root-binding)
 
 
@@ -92,8 +93,8 @@
                #:into (into-max)))
   (constructor:string-replacement
    #:start start
-   #:end end
-   #:span (- end start)
+   #:original-end end
+   #:original-span (- end start)
    #:new-end (+ start new-span)
    #:new-span new-span
    #:required-length (add1 (option-get max-end end))
@@ -101,13 +102,13 @@
 
 
 (define (string-replacement-length-change replacement)
-  (- (string-replacement-new-span replacement) (string-replacement-span replacement)))
+  (- (string-replacement-new-span replacement) (string-replacement-original-span replacement)))
 
 
 (define (string-replacement-range replacement)
   (closed-open-range
    (string-replacement-start replacement)
-   (string-replacement-end replacement)
+   (string-replacement-original-end replacement)
    #:comparator natural<=>))
 
 
@@ -158,7 +159,7 @@
 (define (string-apply-replacement string replacement)
   (define immutable-string (string->immutable-string string))
   (define start (string-replacement-start replacement))
-  (define end (string-replacement-end replacement))
+  (define end (string-replacement-original-end replacement))
   (define new-end (string-replacement-new-end replacement))
   (define contents (string-replacement-contents replacement))
   (define required-length (string-replacement-required-length replacement))
@@ -199,7 +200,7 @@
        #:start 5
        #:end 22
        #:contents replacement-pieces))
-    (check-equal? (string-replacement-span replacement) 17)
+    (check-equal? (string-replacement-original-span replacement) 17)
     (check-equal? (string-replacement-new-span replacement) 19)
     (check-equal? (string-replacement-length-change replacement) 2)
     (check-equal? (string-replacement-new-end replacement) 24)
@@ -216,10 +217,11 @@
   (guard (<= (string-replacement-start replacement1) (string-replacement-start replacement2)) else
     (string-replacement-union replacement2 replacement1))
   (define piece-between
-    (copied-string (string-replacement-end replacement1) (string-replacement-start replacement2)))
+    (copied-string
+     (string-replacement-original-end replacement1) (string-replacement-start replacement2)))
   (string-replacement
    #:start (string-replacement-start replacement1)
-   #:end (string-replacement-end replacement2)
+   #:end (string-replacement-original-end replacement2)
    #:contents
    (append
     (string-replacement-contents replacement1)
