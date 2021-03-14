@@ -4,9 +4,12 @@
 require: resyntax/default-recommendations hash-shortcuts
 
 
+header:
+- #lang racket/base
+
+
 test: "hash-ref with hash-set! lambda can be simplified to hash-ref!"
 ------------------------------
-#lang racket/base
 (define h (make-hash))
 (define k 'a)
 (hash-ref h k (λ ()
@@ -15,7 +18,6 @@ test: "hash-ref with hash-set! lambda can be simplified to hash-ref!"
                 v))
 ------------------------------
 ------------------------------
-#lang racket/base
 (define h (make-hash))
 (define k 'a)
 (hash-ref! h k (λ () 5))

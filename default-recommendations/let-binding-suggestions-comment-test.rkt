@@ -4,9 +4,12 @@
 require: resyntax/default-recommendations let-binding-suggestions
 
 
+header:
+- #lang racket/base
+
+
 test: "let binding with commented right-hand-side expression"
 ------------------------------
-#lang racket/base
 (define (f)
   (let ([x
          ;; The number one
@@ -14,7 +17,6 @@ test: "let binding with commented right-hand-side expression"
     1))
 ------------------------------
 ------------------------------
-#lang racket/base
 (define (f)
   (define x
     ;; The number one

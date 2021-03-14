@@ -48,7 +48,10 @@
 
 
 (define-tokens refactoring-test-tokens (IDENTIFIER STRING-LITERAL CODE-BLOCK))
-(define-empty-tokens empty-refactoring-test-tokens (REQUIRE-KEYWORD TEST-KEYWORD SEPARATOR-LINE))
+
+
+(define-empty-tokens empty-refactoring-test-tokens
+  (REQUIRE-KEYWORD HEADER-KEYWORD TEST-KEYWORD SEPARATOR-LINE))
 
 
 (define (string-lines str)
@@ -61,6 +64,7 @@
    [whitespace (refactoring-test-lexer input-port)]
    ["require:" (token-REQUIRE-KEYWORD)]
    ["test:" (token-TEST-KEYWORD)]
+   ["header:" (token-HEADER-KEYWORD)]
    [refactoring-test-separator-line (token-SEPARATOR-LINE)]
    [refactoring-test-code-line (token-CODE-BLOCK (string->immutable-string (substring lexeme 2)))]
    [refactoring-test-code-block
