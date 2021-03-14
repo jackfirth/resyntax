@@ -46,6 +46,20 @@ test: "single-clause let-values binding"
 ------------------------------
 
 
+test: "single-clause let*-values binding"
+------------------------------
+#lang racket/base
+(define (f)
+  (let*-values ([(x y) (values 1 1)])
+    1))
+------------------------------
+#lang racket/base
+(define (f)
+  (define-values (x y) (values 1 1))
+  1)
+------------------------------
+
+
 test: "multiple let bindings"
 ------------------------------
 #lang racket/base
@@ -94,6 +108,22 @@ test: "multiple let-values bindings"
 ------------------------------
 
 
+test: "multiple let*-values bindings"
+------------------------------
+#lang racket/base
+(define (f)
+  (let*-values ([(x y) (values 1 1)]
+                [(a b) (values 1 1)])
+    1))
+------------------------------
+#lang racket/base
+(define (f)
+  (define-values (x y) (values 1 1))
+  (define-values (a b) (values 1 1))
+  1)
+------------------------------
+
+
 test: "self-shadowing let binding isn't refactorable"
 ------------------------------
 #lang racket/base
@@ -117,6 +147,15 @@ test: "self-shadowing let-values binding clause isn't refactorable"
 #lang racket/base
 (define (f x)
   (let-values ([(x y) (values x 1)])
+    1))
+------------------------------
+
+
+test: "self-shadowing let*-values binding clause isn't refactorable"
+------------------------------
+#lang racket/base
+(define (f x)
+  (let*-values ([(x y) (values x 1)])
     1))
 ------------------------------
 
@@ -194,6 +233,22 @@ test: "let forms inside unrefactorable let-values forms"
 #lang racket/base
 (define a 1)
 (let-values ([(a b) (values a 1)])
+  (define x 1)
+  1)
+------------------------------
+
+
+test: "let forms inside unrefactorable let*-values forms"
+------------------------------
+#lang racket/base
+(define a 1)
+(let*-values ([(a b) (values a 1)])
+  (let ([x 1])
+    1))
+------------------------------
+#lang racket/base
+(define a 1)
+(let*-values ([(a b) (values a 1)])
   (define x 1)
   1)
 ------------------------------
