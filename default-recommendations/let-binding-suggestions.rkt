@@ -21,9 +21,11 @@
                   define/public-final
                   define/pubment
                   define/private)
+         racket/set
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/syntax-replacement
@@ -161,7 +163,17 @@
            define/private)))
 
 
+(define-refactoring-rule named-let-to-plain-let
+  #:description
+  "This named let loop doesn't actually perform any recursive calls, and can be replaced with an\
+ unnamed let."
+  #:literals (let)
+  [(let name:id header body ...)
+   #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'name))
+   (let (ORIGINAL-SPLICE header body ...))])
+
+
 (define let-binding-suggestions
   (refactoring-suite
    #:name (name let-binding-suggestions)
-   #:rules (list let-to-define)))
+   #:rules (list let-to-define named-let-to-plain-let)))

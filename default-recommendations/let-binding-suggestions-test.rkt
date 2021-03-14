@@ -324,3 +324,25 @@ test: "let forms inside for loop bodies"
   (define x 1)
   (void))
 ------------------------------
+
+
+test: "named lets which don't refer to the name are refactorable to unnamed lets"
+------------------------------
+#lang racket/base
+(let loop ([x 1])
+  x)
+------------------------------
+#lang racket/base
+(let ([x 1])
+  x)
+------------------------------
+
+
+test: "named lets which do refer to the name aren't refactorable to unnamed lets"
+------------------------------
+#lang racket/base
+(let loop ([x 1])
+  (if (zero? x)
+      x
+      (loop (sub1 x))))
+------------------------------
