@@ -13,6 +13,7 @@ test: "let binding with commented right-hand-side expression"
          1])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define x

@@ -11,6 +11,7 @@ test: "let binding to lambda"
   (let ([g (λ (x y) 1)])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define (g x y)
@@ -25,6 +26,7 @@ test: "let binding to lambda with keyword args"
 (define (f)
   (let ([g (λ (#:x x #:y y) 1)])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f)
@@ -41,6 +43,7 @@ test: "let binding to lambda with optional args"
   (let ([g (λ ([x 1] [y 1]) 1)])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define (g [x 1] [y 1])
@@ -56,6 +59,7 @@ test: "let binding to lambda with only rest args"
   (let ([g (λ xs 1)])
     1))
 ------------------------------
+------------------------------
 #lang racket/base
 (define (f)
   (define (g . xs)
@@ -70,6 +74,7 @@ test: "let binding to lambda with positional and rest args"
 (define (f)
   (let ([g (λ (x y . zs) 1)])
     1))
+------------------------------
 ------------------------------
 #lang racket/base
 (define (f)
