@@ -97,3 +97,71 @@ test: "multi-line if x else x can be refactored to a multi-line and expression"
 (and x
      (println "true branch"))
 ------------------------------
+
+
+test: "if expressions can be refactored to when expressions when equivalent"
+------------------------------
+(if #true
+    (begin
+      (println "first line")
+      ;; preserved comment
+      (println "second line"))
+    (void))
+------------------------------
+------------------------------
+(when #true
+  (println "first line")
+  ;; preserved comment
+  (println "second line"))
+------------------------------
+
+
+test: "negated if expressions can be refactored to when expressions when equivalent"
+------------------------------
+(if (not #true)
+    (void)
+    (begin
+      (println "first line")
+      ;; preserved comment
+      (println "second line")))
+------------------------------
+------------------------------
+(when #true
+  (println "first line")
+  ;; preserved comment
+  (println "second line"))
+------------------------------
+
+
+test: "if expressions can be refactored to unless expressions when equivalent"
+------------------------------
+(if #false
+    (void)
+    (begin
+      (println "first line")
+      ;; preserved comment
+      (println "second line")))
+------------------------------
+------------------------------
+(unless #false
+  (println "first line")
+  ;; preserved comment
+  (println "second line"))
+------------------------------
+
+
+test: "negated if expressions can be refactored to unless expressions when equivalent"
+------------------------------
+(if (not #false)
+    (begin
+      (println "first line")
+      ;; preserved comment
+      (println "second line"))
+    (void))
+------------------------------
+------------------------------
+(unless #false
+  (println "first line")
+  ;; preserved comment
+  (println "second line"))
+------------------------------
