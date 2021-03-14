@@ -25,6 +25,7 @@
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
@@ -173,7 +174,17 @@
    (let (ORIGINAL-SPLICE header body ...))])
 
 
+(define-refactoring-rule let-values-then-call-to-call-with-values
+  #:description
+  "This let-values expression can be replaced with a simpler, equivalent call-with-values expression."
+  #:literals (let-values)
+  [(let-values ([(bound-id:id ...+) expr])
+     (receiver:id arg-id:id ...+))
+   #:when (syntax-free-identifier=? #'(bound-id ...) #'(arg-id ...))
+   (call-with-values (λ () expr) receiver)])
+
+
 (define let-binding-suggestions
   (refactoring-suite
    #:name (name let-binding-suggestions)
-   #:rules (list let-to-define named-let-to-plain-let)))
+   #:rules (list let-to-define let-values-then-call-to-call-with-values named-let-to-plain-let)))
