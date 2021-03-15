@@ -8,6 +8,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: Bogdanp/setup-racket@v0.13
+      - uses: Bogdanp/setup-racket@v1.1
       - run: raco pkg install --batch --auto --link --name resyntax
       - run: xvfb-run raco test --package --drdr resyntax
