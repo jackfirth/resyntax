@@ -273,8 +273,7 @@
             (~@ NEWLINE body) ...)]
        [_
         (cond
-          [different-lines?
-           #`(define (ORIGINAL-SPLICE #,id #,rhs))]
+          [different-lines? #`(define #,id (ORIGINAL-GAP #,id-side #,rhs) #,rhs)]
           [long? #`(define #,id NEWLINE #,rhs)]
           [else #`(define #,id #,rhs)])])]
     [_

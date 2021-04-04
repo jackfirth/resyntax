@@ -47,6 +47,38 @@ test: "single-clause let-values binding"
 ------------------------------
 
 
+test: "single-clause single-identifier let-values binding"
+------------------------------
+(define (f)
+  (let-values ([(x) 1])
+    1))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  1)
+------------------------------
+
+
+test: "single-clause single-identifier multiline let-values binding"
+------------------------------
+(define (f)
+  (let-values ([(x)
+                (list 1
+                      2
+                      3)])
+    1))
+------------------------------
+------------------------------
+(define (f)
+  (define x
+    (list 1
+          2
+          3))
+  1)
+------------------------------
+
+
 test: "single-clause let*-values binding"
 ------------------------------
 (define (f)
@@ -56,6 +88,38 @@ test: "single-clause let*-values binding"
 ------------------------------
 (define (f)
   (define-values (x y) (values 1 1))
+  1)
+------------------------------
+
+
+test: "single-clause single-identifier let*-values binding"
+------------------------------
+(define (f)
+  (let*-values ([(x) 1])
+    1))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  1)
+------------------------------
+
+
+test: "single-clause single-identifier multiline let*-values binding"
+------------------------------
+(define (f)
+  (let*-values ([(x)
+                 (list 1
+                       2
+                       3)])
+    1))
+------------------------------
+------------------------------
+(define (f)
+  (define x
+    (list 1
+          2
+          3))
   1)
 ------------------------------
 
