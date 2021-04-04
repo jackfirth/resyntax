@@ -34,6 +34,7 @@
                   send)
          racket/file
          racket/path
+         racket/port
          racket/sequence
          racket/string
          rebellion/base/immutable-string
@@ -46,10 +47,11 @@
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/code-snippet
+         resyntax/default-recommendations
+         resyntax/private/comment-reader
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
          resyntax/refactoring-suite
-         resyntax/default-recommendations
          resyntax/source
          resyntax/string-replacement
          resyntax/syntax-replacement)
@@ -74,6 +76,7 @@
 (define (refactoring-result-original-position result)
   (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
   (sub1 (syntax-position original)))
+
 
 (define (refactoring-result-original-line result)
   (syntax-line (syntax-replacement-original-syntax (refactoring-result-replacement result))))
@@ -126,14 +129,18 @@
    #:contents (list (inserted-string new-code))))
 
 
-(define (refactoring-rules-refactor rules syntax source)
+
+(define (refactoring-rules-refactor rules syntax source comments)
   (define (refactor rule)
-    (option-map (refactoring-rule-refactor rule syntax)
-                (refactoring-result
-                 #:source source
-                 #:rule-name (object-name rule)
-                 #:message (refactoring-rule-description rule)
-                 #:replacement _)))
+    (option-map
+     (option-filter
+      (refactoring-rule-refactor rule syntax)
+      (syntax-replacement-preserves-comments? _ comments))
+     (refactoring-result
+      #:source source
+      #:rule-name (object-name rule)
+      #:message (refactoring-rule-description rule)
+      #:replacement _)))
   (falsey->option
    (for*/first ([rule (in-list rules)]
                 [result (in-option (refactor rule))])
@@ -143,11 +150,12 @@
 (define (refactor code-string #:suite [suite default-recommendations])
   (define rule-list (refactoring-suite-rules suite))
   (define source (string-source code-string))
+  (define comments (with-input-from-string code-string read-comment-locations))
   (parameterize ([current-namespace (make-base-namespace)])
     (define analysis (source-analyze source))
     (transduce
      (source-code-analysis-visited-forms analysis)
-     (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
+     (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
      #:into into-list)))
 
 
@@ -165,10 +173,11 @@
                   [exn:fail:filesystem:missing-module? skip])
     (parameterize ([current-namespace (make-base-namespace)])
       (define analysis (source-analyze source))
+      (define comments (with-input-from-file path read-comment-locations))
       (transduce
        (source-code-analysis-visited-forms analysis)
        (append-mapping
-        (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source))))
+        (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
        #:into into-list))))
 
 
