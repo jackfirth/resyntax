@@ -23,3 +23,24 @@ test: "let binding with commented right-hand-side expression"
     1)
   1)
 ------------------------------
+
+
+test: "let binding with commented body not refactorable (yet)"
+------------------------------
+(define (f)
+  (let ([x 1])
+    (void)
+    ;; Comment
+    1))
+------------------------------
+
+
+test: "let binding with comments before let form not refactorable (yet)"
+------------------------------
+(define (f)
+  ;; Comment
+  (void)
+  ;; Comment
+  (let ([x 1])
+    1))
+------------------------------

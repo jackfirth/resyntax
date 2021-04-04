@@ -16,7 +16,8 @@
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
-  [syntax-replacement-template-drop-leading-newline (-> syntax? syntax?)]))
+  [syntax-replacement-template-drop-leading-newline (-> syntax? syntax?)]
+  [syntax-replacement-preserves-comments? (-> syntax-replacement? range-set? boolean?)]))
 
 
 (require (for-syntax racket/base)
@@ -24,6 +25,9 @@
          racket/list
          racket/match
          racket/sequence
+         rebellion/base/comparator
+         (only-in rebellion/base/range closed-open-range)
+         rebellion/collection/range-set
          rebellion/private/guarded-block
          rebellion/private/static-name
          rebellion/type/record
@@ -289,3 +293,57 @@
            (copied-string (+ orig-start 10) (+ orig-start 11))
            (inserted-string ")"))))
        (check-equal? (syntax-replacement-render replacement) expected)])))
+
+
+(define (syntax-replacement-preserves-comments? replacement all-comment-locations)
+  (define original-syntax-range
+    (syntax-source-range (syntax-replacement-original-syntax replacement)))
+  (define comment-locations (range-subset all-comment-locations original-syntax-range))
+  (range-set-encloses-all? (syntax-replacement-preserved-locations replacement) comment-locations))
+
+
+(define (syntax-replacement-preserved-locations replacement)
+  (define stx (syntax-replacement-new-syntax replacement))
+
+  (define/guard (pieces stx)
+    (guard (syntax-original? stx) then
+      (list (syntax-source-range stx)))
+    (syntax-parse stx
+      #:literals (quote SPACE NEWLINE ORIGINAL-GAP ORIGINAL-SPLICE)
+
+      [SPACE (list)]
+      
+      [NEWLINE (list)]
+
+      [(ORIGINAL-GAP ~! before after)
+       (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
+       (define after-start (sub1 (syntax-position #'after)))
+       (list (closed-open-range before-end after-start #:comparator natural<=>))]
+      
+      [(ORIGINAL-SPLICE ~! original-subform ...+)
+       (define subforms (syntax->list #'(original-subform ...)))
+       (for ([subform-stx (in-list subforms)])
+         (unless (syntax-original? subform-stx)
+           (raise-arguments-error
+            (name syntax-replacement-render)
+            "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
+            "subform" subform-stx
+            "splice" stx)))
+       (define start (sub1 (syntax-position (first subforms))))
+       (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
+       (list (closed-open-range start end #:comparator natural<=>))]
+      
+      [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes) (list)]
+      
+      [(quote datum) (pieces #'datum)]
+      
+      [(subform ...) (append-map pieces (syntax->list #'(subform ...)))]
+      
+      [(subform ... . tail-form) (append-map pieces (syntax->list #'(subform ... tail-form)))]))
+  
+  (sequence->range-set (pieces stx)))
+
+
+(define (syntax-source-range stx)
+  (define start (sub1 (syntax-position stx)))
+  (closed-open-range start (+ start (syntax-span stx)) #:comparator natural<=>))
