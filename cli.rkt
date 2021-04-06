@@ -37,7 +37,7 @@
   (command-line
    #:program "resyntax analyze"
    #:multi
-   ("--file" filepath "A file to anaylze." (add-target! (single-file-group filepath)))
+   ("--file" filepath "A file to analyze." (add-target! (single-file-group filepath)))
    ("--directory"
     dirpath
     "A directory to anaylze, including subdirectories."
