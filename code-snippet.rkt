@@ -40,18 +40,20 @@
   
   #:methods gen:custom-write
   [(define (write-proc this out mode)
+     (define start-line (code-snippet-start-line this))
      (define end-line (code-snippet-end-line this))
+     (define end-line-digit-count (digit-count end-line))
+     (define leading-indentation (code-snippet-start-column this))
      (for ([line (in-lines (open-input-string (code-snippet-raw-text this)))]
            [n (in-naturals)])
        (define line-number-string
-         (~a (+ n (code-snippet-start-line this)) #:min-width (digit-count end-line)))
+         (~a (+ n start-line) #:min-width end-line-digit-count))
        (write-string line-number-string out)
        (write-string " " out)
        (cond
          [(zero? n) (write-string line out)]
          [else
-          (define leading-indentation (make-string (code-snippet-start-column this) #\space))
-          (write-string (string-replace line leading-indentation "" #:all? #false) out)])
+          (write-string (substring line leading-indentation) out)])
        (newline out)))])
 
 ; code-snippet-start-line and code-snippet-end-line give an inclusive-exclusive range; that is,
