@@ -11,7 +11,8 @@
    (-> string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
   [code-snippet-raw-text (-> code-snippet? immutable-string?)]
   [code-snippet-start-column (-> code-snippet? exact-nonnegative-integer?)]
-  [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]))
+  [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]
+  [code-snippet-end-line (-> code-snippet? exact-positive-integer?)]))
 
 
 (require racket/format
@@ -56,10 +57,18 @@
 
 (define (code-snippet-end-line snippet)
   (define line-count (sequence-length (in-lines (open-input-string (code-snippet-raw-text snippet)))))
-  (+ (code-snippet-start-line snippet) line-count))
+  ; If the snippet starts on line 10 and is 1 line long, then `line-count` will be 1 and the ending
+  ; line should be 10, so we use `(sub1 line-count)` instead of `line-count`.
+  (+ (code-snippet-start-line snippet) (sub1 line-count)))
 
 
 (module+ test
+  (test-case (name-string code-snippet-end-line)
+
+    (test-case "end-line is the number of the last line in the snippet"
+      (define snippet (code-snippet "(+\n 1\n 2\n 3)" 0 6))
+      (check-equal? (code-snippet-end-line snippet) 9)))
+
   (test-case (name-string code-snippet)
 
     (test-case "one-line snippet"
