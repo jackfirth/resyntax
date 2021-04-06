@@ -128,8 +128,10 @@
     (λ ()
       (with-check-info (['actual (string-block refactored-program)]
                         ['expected (string-block expected-program)])
-        (when (equal? refactored-program original-program)
+        (when (empty? results)
           (fail-check "no changes were made"))
+        (when (equal? refactored-program original-program)
+          (fail-check "fixes were made, but they left the program unchanged"))
         (when (not (equal? refactored-program expected-program))
           (with-check-info (['original (string-block original-program)])
             (fail-check "incorrect changes were made"))))
@@ -160,7 +162,10 @@
       (with-check-info (['actual (string-block refactored-program)]
                         ['original (string-block original-program)])
         (unless (equal? refactored-program original-program)
-          (fail-check "expected no changes, but changes were made"))))))
+          (fail-check "expected no changes, but changes were made")))
+      (with-check-info (['actual (string-block refactored-program)])
+        (unless (empty? results)
+          (fail-check "the program was not changed, but no-op fixes were suggested"))))))
 
 
 (define-simple-macro (refactoring-test-case name:str input:str (~optional expected:str))
