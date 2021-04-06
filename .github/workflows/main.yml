@@ -12,4 +12,4 @@ jobs:
         with:
           version: stable
       - run: raco pkg install --batch --auto --link --name resyntax
-      - run: xvfb-run raco test --package --drdr resyntax
+      - run: xvfb-run raco test --package resyntax
