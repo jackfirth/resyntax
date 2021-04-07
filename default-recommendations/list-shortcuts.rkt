@@ -57,6 +57,13 @@
    (append-map f lst)])
 
 
+(define-refactoring-rule append-single-list-to-single-list
+  #:description "The append function does nothing when applied to only one list."
+  #:literals (append)
+  [(append lst)
+   lst])
+
+
 (define-refactoring-rule sort-with-keyed-comparator-to-sort-by-key
   #:description "This sort expression can be replaced with a simpler, equivalent expression."
   #:literals (sort <)
@@ -71,7 +78,8 @@
   (refactoring-suite
    #:name (name list-shortcuts)
    #:rules
-   (list append*-and-map-to-append-map
+   (list append-single-list-to-single-list
+         append*-and-map-to-append-map
          equal-null-list-to-null-predicate
          first-reverse-to-last
          list-call-to-empty-list-literal
