@@ -17,6 +17,7 @@
                resyntax/default-recommendations/let-binding-suggestions
                resyntax/default-recommendations/list-shortcuts
                resyntax/default-recommendations/miscellaneous-suggestions
+               resyntax/default-recommendations/numeric-shortcuts
                resyntax/default-recommendations/syntax-parse-shortcuts
                resyntax/default-recommendations/syntax-rules-shortcuts)
  (contract-out
@@ -36,6 +37,7 @@
          resyntax/default-recommendations/let-binding-suggestions
          resyntax/default-recommendations/list-shortcuts
          resyntax/default-recommendations/miscellaneous-suggestions
+         resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/syntax-parse-shortcuts
          resyntax/default-recommendations/syntax-rules-shortcuts
          resyntax/refactoring-suite)
@@ -60,5 +62,6 @@
            (refactoring-suite-rules let-binding-suggestions)
            (refactoring-suite-rules list-shortcuts)
            (refactoring-suite-rules miscellaneous-suggestions)
+           (refactoring-suite-rules numeric-shortcuts)
            (refactoring-suite-rules syntax-parse-shortcuts)
            (refactoring-suite-rules syntax-rules-shortcuts))))
