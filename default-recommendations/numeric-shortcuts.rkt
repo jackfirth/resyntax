@@ -35,9 +35,27 @@
    sub1])
 
 
+(define-refactoring-rule zero-comparison-lambda-to-positive?
+  #:description "This lambda function is equivalent to the built-in positive? predicate."
+  #:literals (< >)
+  [(lambda:lambda-by-any-name (x1:id) (~or (> x2:id 0) (< 0 x2:id)))
+   #:when (free-identifier=? #'x1 #'x2)
+   positive?])
+
+
+(define-refactoring-rule zero-comparison-lambda-to-negative?
+  #:description "This lambda function is equivalent to the built-in negative? predicate."
+  #:literals (< >)
+  [(lambda:lambda-by-any-name (x1:id) (~or (< x2:id 0) (> 0 x2:id)))
+   #:when (free-identifier=? #'x1 #'x2)
+   negative?])
+
+
 (define numeric-shortcuts
   (refactoring-suite
    #:name (name numeric-shortcuts)
    #:rules
    (list add1-lambda-to-add1
-         sub1-lambda-to-sub1)))
+         sub1-lambda-to-sub1
+         zero-comparison-lambda-to-negative?
+         zero-comparison-lambda-to-positive?)))
