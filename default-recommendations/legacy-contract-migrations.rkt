@@ -1,7 +1,7 @@
 #lang racket/base
 
 
-(require racket/contract/base)
+(require racket/contract)
 
 
 (provide
@@ -10,7 +10,6 @@
 
 
 (require (for-syntax racket/base)
-         racket/contract
          racket/syntax
          rebellion/private/static-name
          resyntax/refactoring-rule

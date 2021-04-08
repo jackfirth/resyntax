@@ -13,7 +13,6 @@
          (prefix-in : br-parser-tools/lex-sre)
          racket/sequence
          rebellion/base/comparator
-         rebellion/base/immutable-string
          rebellion/base/range
          rebellion/collection/list
          rebellion/collection/range-set
