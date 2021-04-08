@@ -23,47 +23,15 @@ test: "first reverse of list refactorable to last of list"
 ------------------------------
 
 
-test: "list eq? to quoted empty list refactorable to null? check"
+test: "comparison to empty list refactorable to use of null? predicate"
 - (eq? (list 1 2 3) '())
-- (null? (list 1 2 3))
-
-
-test: "list eqv? to quoted empty list refactorable to null? check"
-- (eqv? (list 1 2 3) '())
-- (null? (list 1 2 3))
-
-
-test: "list equal? to quoted empty list refactorable to null? check"
-- (equal? (list 1 2 3) '())
-- (null? (list 1 2 3))
-
-
-test: "list eq? to (list) refactorable to null? check"
 - (eq? (list 1 2 3) (list))
-- (null? (list 1 2 3))
-
-
-test: "list eqv? to (list) refactorable to null? check"
-- (eqv? (list 1 2 3) (list))
-- (null? (list 1 2 3))
-
-
-test: "list equal? to (list) refactorable to null? check"
-- (equal? (list 1 2 3) (list))
-- (null? (list 1 2 3))
-
-
-test: "list eq? to null refactorable to null? check"
 - (eq? (list 1 2 3) null)
-- (null? (list 1 2 3))
-
-
-test: "list eqv? to null refactorable to null? check"
+- (eqv? (list 1 2 3) '())
+- (eqv? (list 1 2 3) (list))
 - (eqv? (list 1 2 3) null)
-- (null? (list 1 2 3))
-
-
-test: "list equal? to null refactorable to null? check"
+- (equal? (list 1 2 3) '())
+- (equal? (list 1 2 3) (list))
 - (equal? (list 1 2 3) null)
 - (null? (list 1 2 3))
 
