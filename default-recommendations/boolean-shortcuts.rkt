@@ -10,7 +10,6 @@
 
 
 (require (for-syntax racket/base)
-         racket/list
          rebellion/private/static-name
          resyntax/default-recommendations/private/syntax-lines
          resyntax/default-recommendations/private/syntax-tree

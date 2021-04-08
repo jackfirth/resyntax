@@ -10,7 +10,6 @@
 
 
 (require (for-syntax racket/base)
-         racket/list
          racket/syntax
          rebellion/private/static-name
          resyntax/refactoring-rule

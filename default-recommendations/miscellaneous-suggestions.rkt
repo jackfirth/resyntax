@@ -11,7 +11,6 @@
 
 (require (for-syntax racket/base)
          racket/match
-         rebellion/private/guarded-block
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
