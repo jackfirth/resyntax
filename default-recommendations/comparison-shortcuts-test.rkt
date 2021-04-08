@@ -36,3 +36,25 @@ test: "comparison of difference to zero refactorable to direct <= comparison"
 - (<= x y)
 
 
+test: "two double comparisons with same subject refactorable to triple < comparison"
+- (and (< x 10) (> x -10))
+- (and (< x 10) (< -10 x))
+- (and (> 10 x) (> x -10))
+- (and (> 10 x) (< -10 x))
+- (and (> x -10) (< x 10))
+- (and (< -10 x) (< x 10))
+- (and (> x -10) (> 10 x))
+- (and (< -10 x) (> 10 x))
+- (< -10 x 10)
+
+
+test: "two double comparisons with same subject refactorable to triple <= comparison"
+- (and (<= x 10) (>= x -10))
+- (and (<= x 10) (<= -10 x))
+- (and (>= 10 x) (>= x -10))
+- (and (>= 10 x) (<= -10 x))
+- (and (>= x -10) (<= x 10))
+- (and (<= -10 x) (<= x 10))
+- (and (>= x -10) (>= 10 x))
+- (and (<= -10 x) (>= 10 x))
+- (<= -10 x 10)

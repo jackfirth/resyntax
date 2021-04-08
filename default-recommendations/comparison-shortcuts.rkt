@@ -41,7 +41,81 @@
    comparison.direct-comparison])
 
 
+(define-syntax-class two-exclusive-comparisons
+  #:attributes (x lower-bound upper-bound)
+  #:literals (> <)
+
+  (pattern (and (< x:id upper-bound:expr) (> x2:id lower-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (> x:id lower-bound:expr) (< x2:id upper-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (< x:id upper-bound:expr) (< lower-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (< lower-bound:expr x:id) (< x2:id upper-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (> upper-bound:expr x:id) (> x2:id lower-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (> x:id lower-bound:expr) (> upper-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (> upper-bound:expr x:id) (< lower-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (< lower-bound:expr x:id) (> upper-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2)))
+
+
+(define-syntax-class two-inclusive-comparisons
+  #:attributes (x lower-bound upper-bound)
+  #:literals (>= <=)
+
+  (pattern (and (<= x:id upper-bound:expr) (>= x2:id lower-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (>= x:id lower-bound:expr) (<= x2:id upper-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (<= x:id upper-bound:expr) (<= lower-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (<= lower-bound:expr x:id) (<= x2:id upper-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (>= upper-bound:expr x:id) (>= x2:id lower-bound:expr))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (>= x:id lower-bound:expr) (>= upper-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (>= upper-bound:expr x:id) (<= lower-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2))
+
+  (pattern (and (<= lower-bound:expr x:id) (>= upper-bound:expr x2:id))
+    #:when (free-identifier=? #'x #'x2)))
+
+
+(define-refactoring-rule two-exclusive-comparisons-to-triple-comparison
+  #:description
+  "Comparison functions like < accept multiple arguments, so this condition can be simplified."
+  [comparison:two-exclusive-comparisons
+   (< comparison.lower-bound comparison.x comparison.upper-bound)])
+
+
+(define-refactoring-rule two-inclusive-comparisons-to-triple-comparison
+  #:description
+  "Comparison functions like <= accept multiple arguments, so this condition can be simplified."
+  [comparison:two-inclusive-comparisons
+   (<= comparison.lower-bound comparison.x comparison.upper-bound)])
+
+
 (define comparison-shortcuts
   (refactoring-suite
    #:name (name comparison-shortcuts)
-   #:rules (list comparison-of-difference-and-zero-to-direct-comparison)))
+   #:rules (list comparison-of-difference-and-zero-to-direct-comparison
+                 two-exclusive-comparisons-to-triple-comparison
+                 two-inclusive-comparisons-to-triple-comparison)))
