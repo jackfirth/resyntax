@@ -53,7 +53,10 @@
        (cond
          [(zero? n) (write-string line out)]
          [else
-          (write-string (substring line leading-indentation) out)])
+          (write-string (if (string-prefix? line leading-indentation)
+                            (substring line leading-indentation)
+                            line)
+                        out)])
        (newline out)))])
 
 ; code-snippet-start-line and code-snippet-end-line give an inclusive-exclusive range; that is,
