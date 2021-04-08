@@ -41,7 +41,7 @@
   #:methods gen:custom-write
   [(define (write-proc this out mode)
      (define start-line (code-snippet-start-line this))
-     (define end-line (code-snippet-end-line this))
+     (define end-line (sub1 (code-snippet-end-line this)))
      (define end-line-digit-count (digit-count end-line))
      (define leading-indentation (code-snippet-start-column this))
      (for ([line (in-lines (open-input-string (code-snippet-raw-text this)))]
