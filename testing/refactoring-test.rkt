@@ -10,7 +10,8 @@
          refactoring-test-case)
 
 
-(require (for-syntax racket/base)
+(require (for-syntax racket/base
+                     racket/sequence)
          racket/list
          racket/match
          racket/port
@@ -168,15 +169,29 @@
           (fail-check "the program was not changed, but no-op fixes were suggested"))))))
 
 
-(define-simple-macro (refactoring-test-case name:str input:str (~optional expected:str))
-  #:with input-with-header #'(string-append implicit-program-header input)
-  #:with check
-  (syntax/loc this-syntax
-    (~?
-     (check-suite-refactors
-      refactoring-suite-under-test input-with-header (string-append implicit-program-header expected))
-     (check-suite-does-not-refactor refactoring-suite-under-test input-with-header)))
-  (test-case name check))
+(define-syntax (refactoring-test-case stx)
+  (define (add-header input-stx)
+    #`(string-append implicit-program-header #,input-stx))
+  (syntax-parse stx
+    [(_ name:str input:str)
+     #:cut
+     #`(test-case name
+         #,(quasisyntax/loc this-syntax
+             (check-suite-does-not-refactor refactoring-suite-under-test #,(add-header #'input))))]
+    [(_ name:str input:str expected:str)
+     #:cut
+     #`(test-case name
+         #,(quasisyntax/loc this-syntax
+             (check-suite-refactors
+              refactoring-suite-under-test #,(add-header #'input) #,(add-header #'expected))))]
+    [(_ name:str input:str ...+ expected:str)
+     #:cut
+     #:with expected-with-header (add-header #'expected)
+     #`(test-case name
+         #,@(for/list ([input-stx (in-syntax #'(input ...))])
+              (quasisyntax/loc input-stx
+                (check-suite-refactors
+                 refactoring-suite-under-test #,(add-header input-stx) expected-with-header))))]))
 
 
 (define-syntax-parameter refactoring-suite-under-test
