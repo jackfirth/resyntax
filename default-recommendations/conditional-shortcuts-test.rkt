@@ -5,9 +5,8 @@ require: resyntax/default-recommendations conditional-shortcuts
 
 
 header:
-------------------------------
-#lang racket/base
-------------------------------
+- #lang racket/base
+
 
 test: "if without nested ifs not refactorable"
 - (if 'cond 'then 'else)
@@ -23,19 +22,8 @@ test: "singly-nested ifs refactorable to cond"
 ------------------------------
 
 
-test: "one-line nested ifs refactorable to cond"
+test: "nested ifs refactorable to cond"
 - (if 'a 'b (if 'c 'd (if 'e 'f (if 'g 'h 'i))))
-------------------------------
-(cond
-  ['a 'b]
-  ['c 'd]
-  ['e 'f]
-  ['g 'h]
-  [else 'i])
-------------------------------
-
-
-test: "multi-line nested ifs refactorable to cond"
 ------------------------------
 (if 'a
     'b
@@ -109,15 +97,6 @@ test: "if expressions can be refactored to when expressions when equivalent"
     (void))
 ------------------------------
 ------------------------------
-(when #true
-  (println "first line")
-  ;; preserved comment
-  (println "second line"))
-------------------------------
-
-
-test: "negated if expressions can be refactored to when expressions when equivalent"
-------------------------------
 (if (not #true)
     (void)
     (begin
@@ -142,15 +121,6 @@ test: "if expressions can be refactored to unless expressions when equivalent"
       ;; preserved comment
       (println "second line")))
 ------------------------------
-------------------------------
-(unless #false
-  (println "first line")
-  ;; preserved comment
-  (println "second line"))
-------------------------------
-
-
-test: "negated if expressions can be refactored to unless expressions when equivalent"
 ------------------------------
 (if (not #false)
     (begin

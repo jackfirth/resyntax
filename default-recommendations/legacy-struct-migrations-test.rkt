@@ -9,9 +9,7 @@ header:
 
 
 test: "define-struct without options"
-----------------------------------------
-(define-struct point (x y))
-----------------------------------------
+- (define-struct point (x y))
 ----------------------------------------
 (struct point (x y)
   #:extra-constructor-name make-point)
@@ -33,9 +31,7 @@ test: "define-struct with simple options"
 
 
 test: "one-line define-struct with simple options"
-----------------------------------------
-(define-struct point (x y) #:transparent #:mutable)
-----------------------------------------
+- (define-struct point (x y) #:transparent #:mutable)
 ----------------------------------------
 (struct point (x y) #:transparent #:mutable
   #:extra-constructor-name make-point)
