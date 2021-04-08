@@ -19,6 +19,7 @@
          resyntax
          resyntax/default-recommendations
          resyntax/file-group
+         resyntax/refactoring-result
          resyntax/refactoring-suite
          resyntax/source)
 

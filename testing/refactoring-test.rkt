@@ -26,6 +26,7 @@
          rebellion/streaming/transducer
          rebellion/type/tuple
          resyntax
+         resyntax/refactoring-result
          resyntax/refactoring-suite
          resyntax/string-replacement
          syntax/parse
