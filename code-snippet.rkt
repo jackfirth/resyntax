@@ -11,7 +11,7 @@
    (-> string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
   [code-snippet-raw-text (-> code-snippet? immutable-string?)]
   [code-snippet-start-column (-> code-snippet? exact-nonnegative-integer?)]
-  [code-snippet-start-line (-> code-snippet? exact-positive-integer?)
+  [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]
   [code-snippet-end-line (-> code-snippet? exact-positive-integer?)]))
 
 
