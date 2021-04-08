@@ -11,7 +11,8 @@
    (-> string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
   [code-snippet-raw-text (-> code-snippet? immutable-string?)]
   [code-snippet-start-column (-> code-snippet? exact-nonnegative-integer?)]
-  [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]))
+  [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]
+  [code-snippet-end-line (-> code-snippet? exact-positive-integer?)]))
 
 
 (require racket/format
@@ -53,15 +54,20 @@
           (write-string (string-replace line leading-indentation "" #:all? #false) out)])
        (newline out)))])
 
-
+; code-snippet-start-line and code-snippet-end-line give an inclusive-exclusive range; that is,
+; a one-line snippet on line 10 would have start and end lines of 10 and 11, respectively.
 (define (code-snippet-end-line snippet)
   (define line-count (sequence-length (in-lines (open-input-string (code-snippet-raw-text snippet)))))
   (+ (code-snippet-start-line snippet) line-count))
 
 
 (module+ test
-  (test-case (name-string code-snippet)
+  (test-case (name-string code-snippet-end-line)
+    (test-case "end-line is one greater than the number of the last line in the snippet"
+      (define snippet (code-snippet "(+\n 1\n 2\n 3)" 0 6))
+      (check-equal? (code-snippet-end-line snippet) 10)))
 
+  (test-case (name-string code-snippet)
     (test-case "one-line snippet"
       (define snippet (code-snippet "(+ 1 2 3)" 0 1))
       (check-equal? (~a snippet) "1 (+ 1 2 3)\n"))
