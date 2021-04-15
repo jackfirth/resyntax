@@ -58,7 +58,10 @@
            (refactoring-suite-rules function-definition-shortcuts)
            (refactoring-suite-rules hash-shortcuts)
            (refactoring-suite-rules legacy-contract-migrations)
-           (refactoring-suite-rules legacy-struct-migrations)
+
+           ;; TODO(https://github.com/jackfirth/resyntax/issues/47)
+           ;; (refactoring-suite-rules legacy-struct-migrations)
+
            (refactoring-suite-rules let-binding-suggestions)
            (refactoring-suite-rules list-shortcuts)
            (refactoring-suite-rules miscellaneous-suggestions)
