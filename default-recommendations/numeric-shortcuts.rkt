@@ -51,6 +51,18 @@
    negative?])
 
 
+(define-refactoring-rule single-argument-plus-to-identity
+  #:description "This expression is equivalent to the identity."
+  #:literals (+)
+  [(+ e) e])
+
+
+(define-refactoring-rule single-argument-multiply-to-identity
+  #:description "This expression is equivalent to the identity."
+  #:literals (*)
+  [(* e) e])
+
+
 (define numeric-shortcuts
   (refactoring-suite
    #:name (name numeric-shortcuts)
@@ -58,4 +70,6 @@
    (list add1-lambda-to-add1
          sub1-lambda-to-sub1
          zero-comparison-lambda-to-negative?
-         zero-comparison-lambda-to-positive?)))
+         zero-comparison-lambda-to-positive?
+         single-argument-plus-to-identity
+         single-argument-multiply-to-identity)))

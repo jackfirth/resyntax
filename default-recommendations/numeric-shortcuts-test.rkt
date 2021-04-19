@@ -31,3 +31,13 @@ test: "lambda equivalent to negative? refactorable to negative?"
 - (filter (λ (x) (< x 0)) (list -2 -1 0 1 2))
 - (filter (λ (x) (> 0 x)) (list -2 -1 0 1 2))
 - (filter negative? (list -2 -1 0 1 2))
+
+
+test: "addition of a single term is identity"
+- (+ 1)
+- 1
+
+
+test: "multiplication of a single term is identity"
+- (* 512)
+- 512
