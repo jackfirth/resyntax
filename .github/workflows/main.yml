@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
-      - uses: Bogdanp/setup-racket@v1.1
+      - uses: Bogdanp/setup-racket@v1.5
         with:
           version: stable
       - run: raco pkg install --batch --auto --link --name resyntax
