@@ -40,7 +40,7 @@
 
 (define-syntax-class two-exclusive-comparisons
   #:attributes (x lower-bound upper-bound)
-  #:literals (> <)
+  #:literals (and > <)
 
   (pattern (and (< x:id upper-bound:expr) (> x2:id lower-bound:expr))
     #:when (free-identifier=? #'x #'x2))
@@ -69,7 +69,7 @@
 
 (define-syntax-class two-inclusive-comparisons
   #:attributes (x lower-bound upper-bound)
-  #:literals (>= <=)
+  #:literals (and >= <=)
 
   (pattern (and (<= x:id upper-bound:expr) (>= x2:id lower-bound:expr))
     #:when (free-identifier=? #'x #'x2))
