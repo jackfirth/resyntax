@@ -27,8 +27,8 @@ consider the following program:
 
 This program uses @racket[let] unnecessarily. The @racket[let] expression can be replaced with a
 @racket[define] form, reducing the indentation of the code. Resyntax is capable of detecting and
-automatically fixing this issue. Running @exec{resyntax fix --file my-program.rkt} rewrites the above
-to the following:
+automatically fixing this issue. Running @exec{resyntax --fix --file my-program.rkt} rewrites the
+above to the following:
 
 @(racketmod
   #:file "my-program.rkt"
@@ -39,8 +39,8 @@ to the following:
     (set-box! x (unbox y))
     (set-box! y t)))
 
-To see a list of suggestions that Resyntax would apply, use @exec{resyntax analyze} instead of
-@exec{resyntax fix}. Each suggestion includes an explanation of why the change is being recommended.
+To see a list of suggestions that Resyntax would apply, use @exec{resyntax --analyze} instead of
+@exec{resyntax --fix}. Each suggestion includes an explanation of why the change is being recommended.
 
 @bold{This tool is extremely experimental.} Do not attempt to incorporate it into your projects yet.
 For now, the refactoring suggestions produced by @racketmodname[resyntax] are best viewed as glimpses
@@ -58,17 +58,17 @@ greatly appreciated and are best directed at the @hyperlink[github-repository-ur
 
 
 Resyntax provides a command-line @exec{resyntax} tool for analyzing and refactoring code. The tool has
-two commands: @exec{resyntax analyze} for analyzing code without changing it, and @exec{resyntax fix}
-for fixing code by applying Resyntax's suggestions.
+two commands: @exec{resyntax analyze} for analyzing code without changing it, and
+@exec{resyntax --fix} for fixing code by applying Resyntax's suggestions.
 
 Note that at present, Resyntax is limited in what files it can fix. Resyntax only analyzes files with
 the @exec{.rkt} extension where @tt{#lang racket/base} is the first line in file.
 
 
-@subsection{Running @exec{resyntax analyze}}
+@subsection{Running @exec{resyntax --analyze}}
 
 
-The @exec{resyntax analyze} command accepts flags for specifying what modules to analyze. After
+The @exec{resyntax --analyze} command accepts flags for specifying what modules to analyze. After
 analysis, suggestions are printed in the console. Any of the following flags can be specified any
 number of times:
 
@@ -83,11 +83,11 @@ number of times:
  @item{@exec{--package} @nonterm{package-name} --- An installed package to analyze.}]
 
 
-@subsection{Running @exec{resyntax fix}}
+@subsection{Running @exec{resyntax --fix}}
 
 
-The @exec{resyntax fix} command accepts the same flags as @exec{resyntax analyze} for specifying what
-modules to fix. After analysis, fixes are applied and a summary is printed.
+The @exec{resyntax --fix} command accepts the same flags as @exec{resyntax analyze} for specifying
+what modules to fix. After analysis, fixes are applied and a summary is printed.
 
 
 @itemlist[

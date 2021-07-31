@@ -7,6 +7,7 @@
          racket/match
          racket/path
          racket/string
+         racket/vector
          rebellion/base/option
          rebellion/collection/entry
          rebellion/collection/hash
@@ -21,7 +22,8 @@
          resyntax/file-group
          resyntax/refactoring-result
          resyntax/refactoring-suite
-         resyntax/source)
+         resyntax/source
+         syntax/parse/define)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -30,31 +32,43 @@
 (define-record-type resyntax-options (targets suite))
 
 
+;; If the command line arguments are empty, re-parameterize it to
+;; default to #("--help")
+(define-syntax-parse-rule (parameterize-help-if-empty-ccla body ...)
+  (let ([ccla (current-command-line-arguments)])
+    (parameterize ([current-command-line-arguments
+                    (if (vector-empty? ccla)
+                      #("--help")
+                      ccla)])
+      body ...)))
+
+
 (define (resyntax-analyze-parse-command-line)
   (define targets (box (make-vector-builder)))
   (define suite (box default-recommendations))
   (define (add-target! target)
     (set-box! targets (vector-builder-add (unbox targets) target)))
-  (command-line
-   #:program "resyntax analyze"
-   #:multi
-   ("--file" filepath "A file to analyze." (add-target! (single-file-group filepath)))
-   ("--directory"
-    dirpath
-    "A directory to anaylze, including subdirectories."
-    (add-target! (directory-file-group dirpath)))
-   ("--package"
-    pkgname
-    "An installed package to analyze."
-    (add-target! (package-file-group pkgname)))
-   #:once-each
-   ("--refactoring-suite"
-    modpath
-    suite-name
-    "The refactoring suite to analyze code with."
-    (define parsed-modpath (read (open-input-string modpath)))
-    (define parsed-suite-name (read (open-input-string suite-name)))
-    (set-box! suite (dynamic-require parsed-modpath parsed-suite-name))))
+  (parameterize-help-if-empty-ccla
+   (command-line
+    #:program "resyntax --analyze"
+    #:multi
+    ("--file" filepath "A file to analyze." (add-target! (single-file-group filepath)))
+    ("--directory"
+     dirpath
+     "A directory to anaylze, including subdirectories."
+     (add-target! (directory-file-group dirpath)))
+    ("--package"
+     pkgname
+     "An installed package to analyze."
+     (add-target! (package-file-group pkgname)))
+    #:once-each
+    ("--refactoring-suite"
+     modpath
+     suite-name
+     "The refactoring suite to analyze code with."
+     (define parsed-modpath (read (open-input-string modpath)))
+     (define parsed-suite-name (read (open-input-string suite-name)))
+     (set-box! suite (dynamic-require parsed-modpath parsed-suite-name)))))
   (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
 
 
@@ -63,41 +77,46 @@
   (define suite (box default-recommendations))
   (define (add-target! target)
     (set-box! targets (vector-builder-add (unbox targets) target)))
-  (command-line
-   #:program "resyntax fix"
-   #:multi
-   ("--file" filepath "A file to fix." (add-target! (single-file-group filepath)))
-   ("--directory"
-    dirpath
-    "A directory to fix, including subdirectories."
-    (add-target! (directory-file-group dirpath)))
-   ("--package"
-    pkgname
-    "An installed package to fix."
-    (add-target! (package-file-group pkgname)))
-   #:once-each
-   ("--refactoring-suite"
-    modpath
-    suite-name
-    "The refactoring suite to analyze code with."
-    (define parsed-modpath (read (open-input-string modpath)))
-    (define parsed-suite-name (read (open-input-string suite-name)))
-    (set-box! suite (dynamic-require parsed-modpath parsed-suite-name))))
+  (parameterize-help-if-empty-ccla
+   (command-line
+    #:program "resyntax --fix"
+    #:multi
+    ("--file" filepath "A file to fix." (add-target! (single-file-group filepath)))
+    ("--directory"
+     dirpath
+     "A directory to fix, including subdirectories."
+     (add-target! (directory-file-group dirpath)))
+    ("--package"
+     pkgname
+     "An installed package to fix."
+     (add-target! (package-file-group pkgname)))
+    #:once-each
+    ("--refactoring-suite"
+     modpath
+     suite-name
+     "The refactoring suite to analyze code with."
+     (define parsed-modpath (read (open-input-string modpath)))
+     (define parsed-suite-name (read (open-input-string suite-name)))
+     (set-box! suite (dynamic-require parsed-modpath parsed-suite-name)))))
   (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
 
 
 (define (resyntax-run)
-  (command-line
-   #:program "resyntax"
-   #:args (command . leftover-args)
-   (define leftover-arg-vector (vector->immutable-vector (list->vector leftover-args)))
-   (match command
-     ["analyze"
-      (parameterize ([current-command-line-arguments leftover-arg-vector])
-        (resyntax-analyze-run))]
-     ["fix"
-      (parameterize ([current-command-line-arguments leftover-arg-vector])
-        (resyntax-fix-run))])))
+  (parameterize-help-if-empty-ccla
+   (define ccla (current-command-line-arguments))
+   (command-line
+    #:program "resyntax"
+    #:once-any
+    ["--analyze" => (λ args (void)) ; gobble all remaining arguments
+                 '("Analyze source code without applying changes")]
+    ["--fix" => (λ args (void)) ; gobble all remaining arguments
+             '("Analyze source code and apply changes")])
+   (define command (vector-ref ccla 0))
+   (define leftover-arg-vector (vector-copy ccla 1))
+   (parameterize ([current-command-line-arguments leftover-arg-vector])
+     (case command
+       [("--analyze") (resyntax-analyze-run)]
+       [("--fix") (resyntax-fix-run)]))))
 
 
 (define (resyntax-analyze-run)
