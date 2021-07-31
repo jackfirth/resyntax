@@ -101,22 +101,25 @@
   (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
 
 
+;; Remove the first argument of the command line arguments
+(define-syntax-parse-rule (shift-command-line-arguments  body ...)
+  (λ args
+    (parameterize ([current-command-line-arguments (vector-copy (current-command-line-arguments) 1)])
+      body ...)))
+
+
 (define (resyntax-run)
   (parameterize-help-if-empty-ccla
    (define ccla (current-command-line-arguments))
    (command-line
     #:program "resyntax"
     #:once-any
-    ["--analyze" => (λ args (void)) ; gobble all remaining arguments
+    ["--analyze" => (shift-command-line-arguments
+                     (resyntax-analyze-run))
                  '("Analyze source code without applying changes")]
-    ["--fix" => (λ args (void)) ; gobble all remaining arguments
-             '("Analyze source code and apply changes")])
-   (define command (vector-ref ccla 0))
-   (define leftover-arg-vector (vector-copy ccla 1))
-   (parameterize ([current-command-line-arguments leftover-arg-vector])
-     (case command
-       [("--analyze") (resyntax-analyze-run)]
-       [("--fix") (resyntax-fix-run)]))))
+    ["--fix" => (shift-command-line-arguments
+                 (resyntax-fix-run))
+             '("Analyze source code and apply changes")])))
 
 
 (define (resyntax-analyze-run)
