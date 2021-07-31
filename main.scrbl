@@ -58,11 +58,15 @@ greatly appreciated and are best directed at the @hyperlink[github-repository-ur
 
 
 Resyntax provides a command-line @exec{resyntax} tool for analyzing and refactoring code. The tool has
-two commands: @exec{resyntax analyze} for analyzing code without changing it, and
+two commands: @exec{resyntax --analyze} for analyzing code without changing it, and
 @exec{resyntax --fix} for fixing code by applying Resyntax's suggestions.
 
 Note that at present, Resyntax is limited in what files it can fix. Resyntax only analyzes files with
 the @exec{.rkt} extension where @tt{#lang racket/base} is the first line in file.
+
+If @exec{resyntax} is not installed as a program but only as a Racket package, it can be run from
+the command line with
+@exec{racket -l- resyntax/cli --help}.
 
 
 @subsection{Running @exec{resyntax --analyze}}
@@ -86,7 +90,7 @@ number of times:
 @subsection{Running @exec{resyntax --fix}}
 
 
-The @exec{resyntax --fix} command accepts the same flags as @exec{resyntax analyze} for specifying
+The @exec{resyntax --fix} command accepts the same flags as @exec{resyntax --analyze} for specifying
 what modules to fix. After analysis, fixes are applied and a summary is printed.
 
 
