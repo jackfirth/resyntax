@@ -32,6 +32,13 @@
 (define-record-type resyntax-options (targets suite))
 
 
+;; Remove the first argument of the command line arguments
+(define-syntax-parse-rule (shift-command-line-arguments  body ...)
+  (λ args
+    (parameterize ([current-command-line-arguments (vector-copy (current-command-line-arguments) 1)])
+      body ...)))
+
+
 ;; If the command line arguments are empty, re-parameterize it to
 ;; default to #("--help")
 (define-syntax-parse-rule (parameterize-help-if-empty-ccla body ...)
@@ -101,16 +108,8 @@
   (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
 
 
-;; Remove the first argument of the command line arguments
-(define-syntax-parse-rule (shift-command-line-arguments  body ...)
-  (λ args
-    (parameterize ([current-command-line-arguments (vector-copy (current-command-line-arguments) 1)])
-      body ...)))
-
-
 (define (resyntax-run)
   (parameterize-help-if-empty-ccla
-   (define ccla (current-command-line-arguments))
    (command-line
     #:program "resyntax"
     #:once-any
