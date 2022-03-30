@@ -46,19 +46,6 @@ test: "null refactorable to '()"
 - '()
 
 
-test: "(apply append (map ...)) refactorable to single-pass append-map"
-------------------------------
-(require racket/list)
-(define (f x) (list x x x))
-(apply append (map f (list 1 2 3)))
-------------------------------
-------------------------------
-(require racket/list)
-(define (f x) (list x x x))
-(append-map f (list 1 2 3))
-------------------------------
-
-
 test: "(append* (map ...)) refactorable to single-pass append-map"
 ------------------------------
 (require racket/list)
