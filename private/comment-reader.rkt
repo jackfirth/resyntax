@@ -73,7 +73,7 @@
   (transduce (in-producer next! eof)
              (mapping srcloc-token-srcloc)
              (mapping srcloc-range)
-             #:into into-range-set))
+             #:into (into-range-set natural<=>)))
 
 
 (define (srcloc-range srcloc)

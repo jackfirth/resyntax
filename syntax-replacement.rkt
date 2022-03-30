@@ -341,7 +341,7 @@
       
       [(subform ... . tail-form) (append-map pieces (syntax->list #'(subform ... tail-form)))]))
   
-  (sequence->range-set (pieces stx)))
+  (sequence->range-set (pieces stx) #:comparator natural<=>))
 
 
 (define (syntax-source-range stx)
