@@ -89,7 +89,8 @@
                     arg-after:expr ...))
    #:when (free-identifier=? #'h1 #'h2)
    #:when (free-identifier=? #'k1 #'k2)
-   #:when (not (set-member? (syntax-identifier-symbols #'(f arg-before ... arg-after ...)) 'v))
+   #:when (for/and ([id (in-syntax-identifiers #'(f arg-before ... arg-after ...))])
+            (not (equal? (syntax-e id) 'v)))
    (hash-update! h1 k1
                  (λ (v) (f arg-before ... v arg-after ...))
                  (~? failure-result))])
