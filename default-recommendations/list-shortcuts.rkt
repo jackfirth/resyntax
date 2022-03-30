@@ -56,11 +56,11 @@
    '()])
 
 
-(define-refactoring-rule append*-and-map-to-append-map
+(define-refactoring-rule append-and-map-to-append-map
   #:description
   "The append-map function can be used to map each element into multiple elements in a single pass."
-  #:literals (append* map)
-  [(append* (map f lst))
+  #:literals (apply append append* map)
+  [(~or (append* (map f lst)) (apply append (map f lst)))
    (append-map f lst)])
 
 
@@ -86,7 +86,7 @@
    #:name (name list-shortcuts)
    #:rules
    (list append-single-list-to-single-list
-         append*-and-map-to-append-map
+         append-and-map-to-append-map
          equal-null-list-to-null-predicate
          first-reverse-to-last
          list-call-to-empty-list-literal
