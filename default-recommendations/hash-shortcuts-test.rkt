@@ -113,3 +113,25 @@ test: "hash-ref with hash-set! lambda with thunk can be simplified to hash-ref!"
 (define k 'a)
 (hash-ref! h k make-hash)
 ------------------------------
+
+
+test: "hash-set! with hash-ref can be simplified to hash-update!"
+------------------------------
+(define h (make-hash))
+(define k 'a)
+(hash-set! h k (+ 5 (hash-ref h k 0)))
+------------------------------
+------------------------------
+(define h (make-hash))
+(define k 'a)
+(hash-update! h k (λ (v) (+ 5 v)) 0)
+------------------------------
+
+
+test: "hash-set! with hash-ref cannot be simplified when v would shadow"
+------------------------------
+(define h (make-hash))
+(define k 'a)
+(define v 5)
+(hash-set! h k (+ v (hash-ref h k 0)))
+------------------------------

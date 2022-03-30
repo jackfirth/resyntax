@@ -10,9 +10,11 @@
 
 
 (require (for-syntax racket/base)
+         racket/set
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
+         resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/syntax-replacement
@@ -32,7 +34,8 @@
 (define-refactoring-rule hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
   #:description "The lambda can be removed from the failure result in this hash-ref! expression."
   #:literals (hash-ref!)
-  [((~and ref hash-ref!) h:expr k:expr (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
+  [((~and ref hash-ref!) h:expr k:expr
+                         (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
    ((ORIGINAL-SPLICE ref h k) (ORIGINAL-GAP k lambda-expr) v)])
 
 
@@ -77,10 +80,26 @@
    (hash-ref! h1 k1 v1)])
 
 
+(define-refactoring-rule hash-set!-ref-to-hash-update!
+  #:description "This expression can be replaced with a simpler, equivalent hash-update! expression."
+  #:literals (hash-ref hash-set!)
+  [(hash-set! h1:id k1:id
+              (f:id arg-before:expr ...
+                    (hash-ref h2:id k2:id (~optional failure-result))
+                    arg-after:expr ...))
+   #:when (free-identifier=? #'h1 #'h2)
+   #:when (free-identifier=? #'k1 #'k2)
+   #:when (not (set-member? (syntax-identifier-symbols #'(f arg-before ... arg-after ...)) 'v))
+   (hash-update! h1 k1
+                 (λ (v) (f arg-before ... v arg-after ...))
+                 (~? failure-result))])
+
+
 (define hash-shortcuts
   (refactoring-suite
    #:name (name hash-shortcuts)
    #:rules (list hash-ref-set!-to-hash-ref!
                  hash-ref-set!-with-constant-to-hash-ref!
                  hash-ref-with-constant-lambda-to-hash-ref-without-lambda
-                 hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda)))
+                 hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
+                 hash-set!-ref-to-hash-update!)))

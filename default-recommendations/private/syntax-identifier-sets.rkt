@@ -8,6 +8,7 @@
  (contract-out
   [in-syntax-identifiers (-> syntax? (sequence/c identifier?))]
   [syntax-identifiers (-> syntax? (set/c identifier? #:cmp 'equal))]
+  [syntax-identifier-symbols (-> syntax? (set/c symbol? #:cmp 'equal))]
   [syntax-free-identifiers (-> syntax? immutable-free-id-set?)]
   [syntax-bound-identifiers (-> syntax? immutable-bound-id-set?)]))
 
@@ -35,6 +36,11 @@
 (define (syntax-identifiers stx)
   (for/set ([id (in-syntax-identifiers stx)])
     id))
+
+
+(define (syntax-identifier-symbols stx)
+  (for/set ([id (in-syntax-identifiers stx)])
+    (syntax-e id)))
 
 
 (define (syntax-free-identifiers stx)
