@@ -21,6 +21,20 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
+(define-refactoring-rule hash-ref-with-constant-lambda-to-hash-ref-without-lambda
+  #:description "The lambda can be removed from the failure result in this hash-ref expression."
+  #:literals (hash-ref)
+  [(hash-ref h:expr k:expr (_:lambda-by-any-name () v:literal-constant))
+   (hash-ref h k v)])
+
+
+(define-refactoring-rule hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
+  #:description "The lambda can be removed from the failure result in this hash-ref! expression."
+  #:literals (hash-ref!)
+  [(hash-ref! h:expr k:expr (_:lambda-by-any-name () v:literal-constant))
+   (hash-ref! h k v)])
+
+
 (define-syntax-class value-initializer
   #:attributes (failure-result-form)
   (pattern failure-result-form:literal-constant)
@@ -66,4 +80,6 @@
   (refactoring-suite
    #:name (name hash-shortcuts)
    #:rules (list hash-ref-set!-to-hash-ref!
-                 hash-ref-set!-with-constant-to-hash-ref!)))
+                 hash-ref-set!-with-constant-to-hash-ref!
+                 hash-ref-with-constant-lambda-to-hash-ref-without-lambda
+                 hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda)))
