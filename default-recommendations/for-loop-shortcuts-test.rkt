@@ -145,3 +145,17 @@ test: "for*/fold building hash can't be refactored when referring to hash"
    (hash-has-key? h x))
   (hash-set h x 'foo))
 ------------------------------
+
+
+test: "list->vector with for/list to for/vector"
+------------------------------
+(list->vector
+ (for/list ([x (in-range 0 10)])
+   (displayln x)
+   (* x x)))
+------------------------------
+------------------------------
+(for/vector ([x (in-range 0 10)])
+  (displayln x)
+  (* x x))
+------------------------------

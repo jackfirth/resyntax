@@ -146,6 +146,15 @@
               function.body ...)])
 
 
+(define-refactoring-rule list->vector-for/list-to-for/vector
+  #:description "For loops can build vectors directly."
+  #:literals (list->vector for/list for*/list)
+  [(list->vector
+    ((~or (~and for/list (~bind [loop #'for/vector])) (~and for*/list (~bind [loop #'for*/vector])))
+     clauses ...))
+   (loop (ORIGINAL-SPLICE clauses ...))])
+
+
 (define-refactoring-rule for/fold-building-hash-to-for/hash
   #:description "This for loop is building a hash and can be simplified."
   #:literals (for/fold for*/fold hash make-immutable-hash)
@@ -164,4 +173,5 @@
    #:rules
    (list apply-plus-to-for/sum
          for/fold-building-hash-to-for/hash
-         for-each-to-for)))
+         for-each-to-for
+         list->vector-for/list-to-for/vector)))
