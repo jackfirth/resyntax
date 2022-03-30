@@ -15,6 +15,7 @@
          resyntax/default-recommendations/private/literal-constant
          resyntax/refactoring-rule
          resyntax/refactoring-suite
+         resyntax/syntax-replacement
          syntax/parse)
 
 
@@ -24,15 +25,15 @@
 (define-refactoring-rule hash-ref-with-constant-lambda-to-hash-ref-without-lambda
   #:description "The lambda can be removed from the failure result in this hash-ref expression."
   #:literals (hash-ref)
-  [(hash-ref h:expr k:expr (_:lambda-by-any-name () v:literal-constant))
-   (hash-ref h k v)])
+  [((~and ref hash-ref) h:expr k:expr (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
+   ((ORIGINAL-SPLICE ref h k) (ORIGINAL-GAP k lambda-expr) v)])
 
 
 (define-refactoring-rule hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
   #:description "The lambda can be removed from the failure result in this hash-ref! expression."
   #:literals (hash-ref!)
-  [(hash-ref! h:expr k:expr (_:lambda-by-any-name () v:literal-constant))
-   (hash-ref! h k v)])
+  [((~and ref hash-ref!) h:expr k:expr (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
+   ((ORIGINAL-SPLICE ref h k) (ORIGINAL-GAP k lambda-expr) v)])
 
 
 (define-syntax-class value-initializer
