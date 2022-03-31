@@ -78,3 +78,23 @@ test: "de morgan's law can refactor ands to ors"
 test: "de morgan's law can refactor ors to ands"
 - (or (not 1) (not 2) (not 3))
 - (not (and 1 2 3))
+
+
+test: "using if to convert a boolean expression to a boolean can be removed"
+- (if (string? "foo") #true #false)
+- (string? "foo")
+
+
+test: "if else false can be refactored to use and"
+- (if (+ 4 10) (* 4 9) #false)
+- (and (+ 4 10) (* 4 9))
+
+
+test: "using if to convert a non-boolean expression can be refactored to use and"
+- (if 4 #true #false)
+- (and 4 #true)
+
+
+test: "if then false else true can be refactored to use not"
+- (if 4 #false #true)
+- (not 4)

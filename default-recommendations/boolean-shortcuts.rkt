@@ -11,10 +11,12 @@
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
+         resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/syntax-lines
          resyntax/default-recommendations/private/syntax-tree
          resyntax/refactoring-rule
          resyntax/refactoring-suite
+         resyntax/syntax-replacement
          syntax/parse)
 
 
@@ -61,11 +63,35 @@
    (not (and expr ...))])
 
 
+(define-refactoring-rule if-then-true-else-false-to-condition
+  #:description "The condition of this if expression is already a boolean and can be used directly."
+  #:literals (if)
+  [(if condition:likely-boolean #true #false)
+   condition])
+
+
+(define-refactoring-rule if-then-false-else-true-to-not
+  #:description "This if expression can be refactored to an equivalent expression using not."
+  #:literals (if)
+  [(if condition #false #true)
+   (not condition)])
+
+
+(define-refactoring-rule if-else-false-to-and
+  #:description "This if expression can be refactored to an equivalent expression using and."
+  #:literals (if)
+  [(if condition then #false)
+   (and (ORIGINAL-SPLICE condition then))])
+
+
 (define boolean-shortcuts
   (refactoring-suite
    #:name (name boolean-shortcuts)
    #:rules
    (list de-morgan-and-to-or
          de-morgan-or-to-and
+         if-then-false-else-true-to-not
+         if-then-true-else-false-to-condition
+         if-else-false-to-and
          nested-and-to-flat-and
          nested-or-to-flat-or)))
