@@ -70,6 +70,13 @@
    condition])
 
 
+(define-refactoring-rule if-then-false-else-true-to-not
+  #:description "This if expression can be refactored to an equivalent expression using not."
+  #:literals (if)
+  [(if condition #false #true)
+   (not condition)])
+
+
 (define-refactoring-rule if-else-false-to-and
   #:description "This if expression can be refactored to an equivalent expression using and."
   #:literals (if)
@@ -83,6 +90,7 @@
    #:rules
    (list de-morgan-and-to-or
          de-morgan-or-to-and
+         if-then-false-else-true-to-not
          if-then-true-else-false-to-condition
          if-else-false-to-and
          nested-and-to-flat-and

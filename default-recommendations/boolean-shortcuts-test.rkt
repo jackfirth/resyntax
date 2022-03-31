@@ -93,3 +93,8 @@ test: "if else false can be refactored to use and"
 test: "using if to convert a non-boolean expression can be refactored to use and"
 - (if (+ 4 10) #true #false)
 - (and (+ 4 10) #true)
+
+
+test: "if then false else true can be refactored to use not"
+- (if (+ 4 10) #false #true)
+- (not (+ 4 10))
