@@ -2,7 +2,7 @@
 
 
 (provide known-false
-         known-true
+         known-not-false
          likely-boolean)
 
 
@@ -18,8 +18,12 @@
   (pattern constant:literal-constant #:when (not (attribute constant.value))))
 
 
-(define-syntax-class known-true
+(define-syntax-class known-not-false
   (pattern constant:literal-constant #:when (attribute constant.value)))
+
+
+(define-syntax-class known-true
+  (pattern constant:literal-constant #:when (equal? (attribute constant.value) #true)))
 
 
 (define-syntax-class likely-boolean
