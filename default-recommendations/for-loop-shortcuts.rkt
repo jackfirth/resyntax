@@ -167,6 +167,27 @@
    (loop (ORIGINAL-SPLICE iteration-clauses body ...) NEWLINE (values key value))])
 
 
+(define-syntax-class nested-for
+
+  #:attributes ([clause 1] [body 1])
+  #:literals (for)
+
+  (pattern (for (outer-clause) nested:nested-for)
+    #:with (clause ...) #'(outer-clause NEWLINE nested.clause ...)
+    #:with (body ...) #'(nested.body ...))
+  
+  (pattern (for (only-clause) body ...)
+    #:with (clause ...) #'(only-clause)))
+
+
+(define-refactoring-rule nested-for-to-for*
+  #:description "These nested for loops can be replaced by a single for* loop."
+  [nested:nested-for
+   (for* (nested.clause ...) NEWLINE
+     (ORIGINAL-SPLICE nested.body ...))])
+  
+
+
 (define for-loop-shortcuts
   (refactoring-suite
    #:name (name for-loop-shortcuts)
@@ -174,4 +195,5 @@
    (list apply-plus-to-for/sum
          for/fold-building-hash-to-for/hash
          for-each-to-for
-         list->vector-for/list-to-for/vector)))
+         list->vector-for/list-to-for/vector
+         nested-for-to-for*)))

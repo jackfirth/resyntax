@@ -159,3 +159,22 @@ test: "list->vector with for/list to for/vector"
   (displayln x)
   (* x x))
 ------------------------------
+
+
+test: "nested for forms can be flattened to a for* form"
+------------------------------
+(for ([x (in-range 0 5)])
+  (for ([y (in-range 0 5)])
+    (for ([z (in-range 0 5)])
+      (displayln x)
+      (displayln y)
+      (displayln z))))
+------------------------------
+------------------------------
+(for* ([x (in-range 0 5)]
+       [y (in-range 0 5)]
+       [z (in-range 0 5)])
+  (displayln x)
+  (displayln y)
+  (displayln z))
+------------------------------
