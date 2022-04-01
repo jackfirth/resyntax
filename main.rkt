@@ -15,6 +15,7 @@
          racket/path
          racket/port
          racket/sequence
+         racket/syntax-srcloc
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/base/symbol
@@ -37,17 +38,32 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
+(struct exn:fail:refactoring exn:fail (rule syntax cause)
+  #:transparent
+  #:property prop:exn:srclocs
+  (λ (this) (list (syntax-srcloc (exn:fail:refactoring-syntax this)))))
+
+
 (define (refactoring-rules-refactor rules syntax source comments)
+
   (define (refactor rule)
-    (option-map
-     (option-filter
-      (refactoring-rule-refactor rule syntax)
-      (syntax-replacement-preserves-comments? _ comments))
-     (refactoring-result
-      #:source source
-      #:rule-name (object-name rule)
-      #:message (refactoring-rule-description rule)
-      #:replacement _)))
+    (with-handlers
+        ([exn:fail?
+          (λ (e)
+            (define message
+              (format "~a: refactoring attempt failed\n  syntax: ~e\n  cause: ~e"
+                      (object-name rule) syntax e))
+            (raise (exn:fail:refactoring message (current-continuation-marks) rule syntax e)))])
+      (option-map
+       (option-filter
+        (refactoring-rule-refactor rule syntax)
+        (syntax-replacement-preserves-comments? _ comments))
+       (refactoring-result
+        #:source source
+        #:rule-name (object-name rule)
+        #:message (refactoring-rule-description rule)
+        #:replacement _))))
+  
   (falsey->option
    (for*/first ([rule (in-list rules)]
                 [result (in-option (refactor rule))])
