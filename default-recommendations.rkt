@@ -17,6 +17,7 @@
                resyntax/default-recommendations/legacy-syntax-migrations
                resyntax/default-recommendations/let-binding-suggestions
                resyntax/default-recommendations/list-shortcuts
+               resyntax/default-recommendations/match-shortcuts
                resyntax/default-recommendations/miscellaneous-suggestions
                resyntax/default-recommendations/numeric-shortcuts
                resyntax/default-recommendations/syntax-parse-shortcuts
@@ -38,6 +39,7 @@
          resyntax/default-recommendations/legacy-syntax-migrations
          resyntax/default-recommendations/let-binding-suggestions
          resyntax/default-recommendations/list-shortcuts
+         resyntax/default-recommendations/match-shortcuts
          resyntax/default-recommendations/miscellaneous-suggestions
          resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/syntax-parse-shortcuts
@@ -67,6 +69,7 @@
            (refactoring-suite-rules legacy-syntax-migrations)
            (refactoring-suite-rules let-binding-suggestions)
            (refactoring-suite-rules list-shortcuts)
+           (refactoring-suite-rules match-shortcuts)
            (refactoring-suite-rules miscellaneous-suggestions)
            (refactoring-suite-rules numeric-shortcuts)
            (refactoring-suite-rules syntax-parse-shortcuts)
