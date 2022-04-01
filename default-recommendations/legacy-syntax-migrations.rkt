@@ -13,7 +13,8 @@
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/syntax-replacement)
+         resyntax/syntax-replacement
+         syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -21,10 +22,7 @@
 
 (define-refactoring-rule datum->syntax-migration
   #:description "The fifth argument to datum->syntax is ignored."
-  ;; I have absolutely no idea why, but using (~and id datum->syntax) here it causes syntax-parse to
-  ;; report a compile error claiming that it expected an identifier not starting with ~.
-  [(id ctxt v srcloc prop ignored)
-   #:when (free-identifier=? #'id #'datum->syntax)
+  [((~and id datum->syntax) ctxt v srcloc prop ignored)
    ((ORIGINAL-SPLICE id ctxt v srcloc prop))])
 
 
