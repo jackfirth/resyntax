@@ -98,3 +98,25 @@ test: "using if to convert a non-boolean expression can be refactored to use and
 test: "if then false else true can be refactored to use not"
 - (if 4 #false #true)
 - (not 4)
+
+
+test: "when not can be refactored to use unless"
+------------------------------
+(when (not 'foo)
+  (displayln "not foo"))
+------------------------------
+------------------------------
+(unless 'foo
+  (displayln "not foo"))
+------------------------------
+
+
+test: "unless not can be refactored to use when"
+------------------------------
+(unless (not 'foo)
+  (displayln "foo"))
+------------------------------
+------------------------------
+(when 'foo
+  (displayln "foo"))
+------------------------------
