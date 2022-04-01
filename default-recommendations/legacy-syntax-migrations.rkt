@@ -22,6 +22,7 @@
 
 (define-refactoring-rule datum->syntax-migration
   #:description "The fifth argument to datum->syntax is ignored."
+  #:literals (datum->syntax)
   [((~and id datum->syntax) ctxt v srcloc prop ignored)
    ((ORIGINAL-SPLICE id ctxt v srcloc prop))])
 
