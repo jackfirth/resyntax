@@ -183,6 +183,7 @@
 (define-refactoring-rule nested-for-to-for*
   #:description "These nested for loops can be replaced by a single for* loop."
   [nested:nested-for
+   #:when (>= (length (attribute nested.clause)) 2)
    (for* (nested.clause ...) NEWLINE
      (ORIGINAL-SPLICE nested.body ...))])
   

@@ -178,3 +178,12 @@ test: "nested for forms can be flattened to a for* form"
   (displayln y)
   (displayln z))
 ------------------------------
+
+
+test: "non-nested for form isn't replaced by a for* form"
+------------------------------
+(for ([x (in-range 0 5)])
+  (displayln x)
+  (displayln x)
+  (displayln x))
+------------------------------
