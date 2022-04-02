@@ -207,25 +207,6 @@
      true-branch)])
 
 
-(define-refactoring-rule named-let-loop-to-for/first-in-vector-descending
-  #:description "This loop can be replaced by a simpler, equivalent for/first loop."
-  #:literals (let sub1 - vector-length vector-ref if and >=)
-  [(let loop1:id ([i1:id (~or (sub1 (vector-length vec1:id)) (- (vector-length vec1:id) 1))])
-     (and (>= i2:id 0)
-          (let ([x:id (vector-ref vec2:id i3:id)])
-            (if condition:expr
-                true-branch:expr
-                (loop2:id (~or (sub1 i4:id) (- i4:id 1)))))))
-   #:when (and (free-identifier=? #'loop1 #'loop2)
-               (free-identifier=? #'i1 #'i2)
-               (free-identifier=? #'i1 #'i3)
-               (free-identifier=? #'i1 #'i4)
-               (free-identifier=? #'vec1 #'vec2))
-   (for/first ([x (in-vector vec1 (sub1 (vector-length vec2)) -1 -1)]
-               NEWLINE #:when condition) NEWLINE
-     true-branch)])
-
-
 (define for-loop-shortcuts
   (refactoring-suite
    #:name (name for-loop-shortcuts)
@@ -235,5 +216,4 @@
          for-each-to-for
          list->vector-for/list-to-for/vector
          named-let-loop-to-for/first-in-vector
-         named-let-loop-to-for/first-in-vector-descending
          nested-for-to-for*)))
