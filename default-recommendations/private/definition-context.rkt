@@ -38,6 +38,7 @@
                parameterize
                for
                for/list
+               for/vector
                for/hash
                for/hasheq
                for/hasheqv
@@ -49,6 +50,7 @@
                for/last
                for*
                for*/list
+               for*/vector
                for*/hash
                for*/hasheq
                for*/hasheqv
@@ -115,6 +117,14 @@
                   for*/first
                   for*/last))
        ~!
+       clauses)
+    #:with (formatted ...) #'((ORIGINAL-SPLICE for-id clauses)))
+
+  (pattern
+      (~seq
+       (~and for-id (~or for/vector for*/vector))
+       ~!
+       (~alt (~optional (~seq #:length length-expr)) (~optional (~seq #:fill fill-expr))) ...
        clauses)
     #:with (formatted ...) #'((ORIGINAL-SPLICE for-id clauses))))
 
