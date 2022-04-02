@@ -11,6 +11,8 @@
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
+         resyntax/default-recommendations/private/definition-context
+         resyntax/default-recommendations/private/exception
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/syntax-replacement
@@ -84,11 +86,63 @@
    (conditional.when-or-unless conditional.condition NEWLINE (ORIGINAL-SPLICE conditional.body ...))])
 
 
+(define-syntax-class condition-expression
+  #:attributes (negated? base-condition)
+  #:literals (not)
+  (pattern (not base-condition:expr) #:attr negated? #true)
+  (pattern base-condition:expr #:attr negated? #false))
+
+
+(define-refactoring-rule always-throwing-if-to-when
+  #:description "Using when and unless is simplier than a conditional with an always-throwing branch."
+  #:literals (if)
+  [(header:header-form-allowing-internal-definitions
+    (if condition:condition-expression
+      fail:always-throwing-expression
+      else-expression))
+   #:with when-or-unless (if (attribute condition.negated?) #'unless #'when)
+   (header.formatted
+    ... NEWLINE
+    (when-or-unless condition.base-condition NEWLINE fail) NEWLINE
+    else-expression)])
+
+
+(define-refactoring-rule always-throwing-cond-to-when
+  #:description "Using when and unless is simplier than a conditional with an always-throwing branch."
+  #:literals (cond)
+  [(header:header-form-allowing-internal-definitions
+    (cond
+      [condition:condition-expression
+       fail:always-throwing-expression]
+      [else
+       body ...]))
+   #:with when-or-unless (if (attribute condition.negated?) #'unless #'when)
+   (header.formatted
+    ... NEWLINE
+    (when-or-unless condition.base-condition NEWLINE fail) NEWLINE
+    (ORIGINAL-SPLICE body ...))])
+
+
+(define-refactoring-rule cond-else-cond-to-cond
+  #:description
+  "The else clause of this cond expression is another cond expression and can be flattened."
+  #:literals (cond else)
+  [((~and outer-cond-id cond)
+     clause ... last-non-else-clause
+     (~and outer-else-clause [else (cond nested-clause ...)]))
+   ((ORIGINAL-SPLICE outer-cond-id clause ... last-non-else-clause)
+    (ORIGINAL-GAP last-non-else-clause outer-else-clause)
+    (ORIGINAL-SPLICE nested-clause ...))])
+
+
 (define conditional-shortcuts
   (refactoring-suite
    #:name (name conditional-shortcuts)
    #:rules
-   (list if-else-false-to-and
+   (list always-throwing-cond-to-when
+         always-throwing-if-to-when
+         cond-else-cond-to-cond
+         if-else-false-to-and
          if-void-to-when-or-unless
          if-x-else-x-to-and
          nested-if-to-cond)))
