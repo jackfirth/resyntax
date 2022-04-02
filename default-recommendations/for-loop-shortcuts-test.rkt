@@ -187,3 +187,66 @@ test: "non-nested for form isn't replaced by a for* form"
   (displayln x)
   (displayln x))
 ------------------------------
+
+
+test: "let loop over vector can be replaced by for/first"
+------------------------------------------------------------
+(define vec (vector 0 1 2 3 4 5))
+(let loop ([i 0])
+  (and (< i (vector-length vec))
+       (let ([x (vector-ref vec i)])
+         (if (> x 3)
+             (+ x 42)
+             (loop (add1 i))))))
+------------------------------------------------------------
+------------------------------------------------------------
+(define vec (vector 0 1 2 3 4 5))
+(let loop ([i 0])
+  (and (< i (vector-length vec))
+       (let ([x (vector-ref vec i)])
+         (if (> x 3)
+             (+ x 42)
+             (loop (+ i 1))))))
+------------------------------------------------------------
+------------------------------------------------------------
+(define vec (vector 0 1 2 3 4 5))
+(for/first ([x (in-vector vec)]
+            #:when (> x 3))
+  (+ x 42))
+------------------------------------------------------------
+
+
+test: "let loop over vector in reverse order can be replaced by for/first"
+------------------------------------------------------------
+(define vec (vector 0 1 2 3 4 5))
+(let loop ([i (sub1 (vector-length vec))])
+  (and (>= i 0)
+       (let ([x (vector-ref vec i)])
+         (if (< x 3)
+             (+ x 42)
+             (loop (sub1 i))))))
+------------------------------------------------------------
+------------------------------------------------------------
+(define vec (vector 0 1 2 3 4 5))
+(let loop ([i (- (vector-length vec) 1)])
+  (and (>= i 0)
+       (let ([x (vector-ref vec i)])
+         (if (< x 3)
+             (+ x 42)
+             (loop (sub1 i))))))
+------------------------------------------------------------
+------------------------------------------------------------
+(define vec (vector 0 1 2 3 4 5))
+(let loop ([i (sub1 (vector-length vec))])
+  (and (>= i 0)
+       (let ([x (vector-ref vec i)])
+         (if (< x 3)
+             (+ x 42)
+             (loop (- i 1))))))
+------------------------------------------------------------
+------------------------------------------------------------
+(define vec (vector 0 1 2 3 4 5))
+(for/first ([x (in-vector vec (sub1 (vector-length vec)) -1 -1)]
+            #:when (< x 3))
+  (+ x 42))
+------------------------------------------------------------
