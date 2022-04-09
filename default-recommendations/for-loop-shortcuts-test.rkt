@@ -107,6 +107,48 @@ test: "for-each bytes->list to for in-bytes"
 ------------------------------
 
 
+test: "ormap to for/or"
+------------------------------
+(define some-list (list 3 5 14 10 6 5 2))
+(ormap
+ (λ (x)
+   (and (number? x)
+        (positive? x)
+        (even? x)
+        (< x 10)))
+ some-list)
+------------------------------
+------------------------------
+(define some-list (list 3 5 14 10 6 5 2))
+(for/or ([x (in-list some-list)])
+  (and (number? x)
+       (positive? x)
+       (even? x)
+       (< x 10)))
+------------------------------
+
+
+test: "andmap to for/and"
+------------------------------
+(define some-list (list 3 5 14 10 6 5 2))
+(andmap
+ (λ (x)
+   (and (number? x)
+        (positive? x)
+        (even? x)
+        (< x 10)))
+ some-list)
+------------------------------
+------------------------------
+(define some-list (list 3 5 14 10 6 5 2))
+(for/and ([x (in-list some-list)])
+  (and (number? x)
+       (positive? x)
+       (even? x)
+       (< x 10)))
+------------------------------
+
+
 test: "for/fold building hash to for/hash"
 ------------------------------
 (for/fold ([h (hash)]) ([x (in-range 0 10)])

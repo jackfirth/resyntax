@@ -114,10 +114,13 @@
    (loop-type loop.loop-clauses (~@ NEWLINE loop.loop-body) ...)])
 
 
-(define-syntax-class worthwhile-for-each-function
+;; A loop body function is a lambda expression that is passed to a function like map, for-each, or
+;; ormap which calls the lambda once for each element of a list. When code is migrated to use for
+;; loops, the loop body function becomes the body of the for loop, hence the name.
+(define-syntax-class worthwhile-loop-body-function
   #:attributes (x [body 1])
 
-  ;; We always migrate for-each functions that use let expressions, since in the process of migrating
+  ;; We always migrate loop functions that use let expressions, since in the process of migrating
   ;; we can replace the let bindings with internal definitions within the for loop body.
   (pattern (_:lambda-by-any-name (x) original-body:body-with-refactorable-let-expression)
     #:with (body ...) #'(original-body.refactored ...))
@@ -140,8 +143,26 @@
 (define-refactoring-rule for-each-to-for
   #:description "This for-each operation can be replaced with a for loop."
   #:literals (for-each)
-  [(for-each function:worthwhile-for-each-function loop:for-clause-convertible-list-expression)
+  [(for-each function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
    #:with loop-type (if (attribute loop.flat?) #'for #'for*)
+   (loop-type ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
+              function.body ...)])
+
+
+(define-refactoring-rule ormap-to-for/or
+  #:description "This ormap operation can be replaced with a for/or loop."
+  #:literals (ormap)
+  [(ormap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
+   #:with loop-type (if (attribute loop.flat?) #'for/or #'for*/or)
+   (loop-type ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
+              function.body ...)])
+
+
+(define-refactoring-rule andmap-to-for/and
+  #:description "This andmap operation can be replaced with a for/and loop."
+  #:literals (andmap)
+  [(andmap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
+   #:with loop-type (if (attribute loop.flat?) #'for/and #'for*/and)
    (loop-type ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
               function.body ...)])
 
@@ -211,9 +232,11 @@
   (refactoring-suite
    #:name (name for-loop-shortcuts)
    #:rules
-   (list apply-plus-to-for/sum
+   (list andmap-to-for/and
+         apply-plus-to-for/sum
          for/fold-building-hash-to-for/hash
          for-each-to-for
          list->vector-for/list-to-for/vector
          named-let-loop-to-for/first-in-vector
-         nested-for-to-for*)))
+         nested-for-to-for*
+         ormap-to-for/or)))
