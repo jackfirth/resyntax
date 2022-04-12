@@ -11,6 +11,7 @@
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
+         resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/definition-context
          resyntax/default-recommendations/private/exception
          resyntax/refactoring-rule
@@ -84,13 +85,6 @@
   #:description equivalent-conditional-description
   [conditional:when-or-unless-equivalent-conditional
    (conditional.when-or-unless conditional.condition NEWLINE (ORIGINAL-SPLICE conditional.body ...))])
-
-
-(define-syntax-class condition-expression
-  #:attributes (negated? base-condition)
-  #:literals (not)
-  (pattern (not base-condition:expr) #:attr negated? #true)
-  (pattern base-condition:expr #:attr negated? #false))
 
 
 (define-refactoring-rule always-throwing-if-to-when

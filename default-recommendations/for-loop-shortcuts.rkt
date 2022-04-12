@@ -11,10 +11,12 @@
 
 (require (for-syntax racket/base)
          racket/list
+         racket/sequence
          racket/set
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
+         resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/syntax-identifier-sets
@@ -228,6 +230,23 @@
      true-branch)])
 
 
+(define-refactoring-rule or-in-for/and-to-filter-clause
+  #:description "The or expression in this for loop can be replaced by a filtering clause."
+  #:literals (for/and for*/and or)
+  [((~and loop-id (~or for/and for*/and))
+    (~and original-clauses (clause ...))
+    (~and original-body (or condition:condition-expression ...+ last-condition)))
+   #:with (condition-keyword ...)
+   (for/list ([negated? (in-list (attribute condition.negated?))])
+     (if negated? #'#:when #'#:unless))
+   (loop-id (ORIGINAL-GAP loop-id original-clauses)
+            ((ORIGINAL-SPLICE clause ...)
+             (~@ NEWLINE condition-keyword condition.base-condition) ...)
+            (ORIGINAL-GAP original-clauses original-body)
+            last-condition)])
+             
+
+
 (define for-loop-shortcuts
   (refactoring-suite
    #:name (name for-loop-shortcuts)
@@ -239,4 +258,5 @@
          list->vector-for/list-to-for/vector
          named-let-loop-to-for/first-in-vector
          nested-for-to-for*
+         or-in-for/and-to-filter-clause
          ormap-to-for/or)))

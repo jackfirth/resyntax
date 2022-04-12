@@ -1,7 +1,8 @@
 #lang racket/base
 
 
-(provide known-false
+(provide condition-expression
+         known-false
          known-not-false
          likely-boolean)
 
@@ -41,3 +42,10 @@
   #:literals (= < > <= >=)
   (pattern id:id #:when (string-suffix? (symbol->string (syntax-e #'id)) "?"))
   (pattern (~or = < > <= >=)))
+
+
+(define-syntax-class condition-expression
+  #:attributes (negated? base-condition)
+  #:literals (not)
+  (pattern (not base-condition:expr) #:attr negated? #true)
+  (pattern base-condition:expr #:attr negated? #false))

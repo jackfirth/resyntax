@@ -149,6 +149,25 @@ test: "andmap to for/and"
 ------------------------------
 
 
+test: "for/and with or to filter clause"
+------------------------------
+(define some-list (list 3 5 14 10 6 5 2))
+(for/and ([x (in-list some-list)])
+  (or (number? x)
+      (positive? x)
+      (not (even? x))
+      (< x 10)))
+------------------------------
+------------------------------
+(define some-list (list 3 5 14 10 6 5 2))
+(for/and ([x (in-list some-list)]
+          #:unless (number? x)
+          #:unless (positive? x)
+          #:when (even? x))
+  (< x 10))
+------------------------------
+
+
 test: "for/fold building hash to for/hash"
 ------------------------------
 (for/fold ([h (hash)]) ([x (in-range 0 10)])
