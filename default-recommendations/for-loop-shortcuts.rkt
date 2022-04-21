@@ -19,6 +19,7 @@
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/syntax-replacement
          syntax/parse)
@@ -63,12 +64,12 @@
       (append-map
        (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
        list-expression:sequence-syntax-convertible-list-expression)
-    #:attr flat? #false
+    #:with flat? #false
     #:with (leading-clause ...) #'([y list-expression.refactored])
     #:with trailing-expression #'append-map-body.refactored)
 
   (pattern list-expression:sequence-syntax-convertible-list-expression
-    #:attr flat? #true
+    #:with flat? #true
     #:with (leading-clause ...) #'()
     #:with trailing-expression #'list-expression.refactored))
 
@@ -84,7 +85,7 @@
         (_:lambda-by-any-name (y:id) filter-body:expr)
         list-expression:sequence-syntax-convertible-list-expression))
     #:when (bound-identifier=? #'x #'y)
-    #:attr nesting-loop? #false
+    #:with nesting-loop? #false
     #:with loop-clauses #'([x list-expression.refactored] NEWLINE #:when filter-body)
     #:with loop #'(for/list loop-clauses loop-body ...))
 
@@ -95,7 +96,7 @@
         (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
         list-expression:sequence-syntax-convertible-list-expression))
     #:when (not (bound-identifier=? #'x #'y))
-    #:attr nesting-loop? #true
+    #:with nesting-loop? #true
     #:with loop-clauses #'([y list-expression.refactored] NEWLINE [x append-map-body.refactored])
     #:with loop #'(for*/list loop-clauses loop-body ...))
 
@@ -103,7 +104,7 @@
       (map
        (_:lambda-by-any-name (x:id) loop-body:expr ...+)
        list-expression:sequence-syntax-convertible-list-expression)
-    #:attr nesting-loop? #false
+    #:with nesting-loop? #false
     #:with loop-clauses #'([x list-expression.refactored])
     #:with loop #'(for/list loop-clauses loop-body ...)))
 
@@ -112,8 +113,7 @@
   #:description "Applying + to a list of numbers can be replaced with a for/sum loop."
   #:literals (apply +)
   [(apply + loop:for-loop-convertible-list-expression)
-   #:with loop-type (if (attribute loop.nesting-loop?) #'for*/sum #'for/sum)
-   (loop-type loop.loop-clauses (~@ NEWLINE loop.loop-body) ...)])
+   ((~if loop.nesting-loop? for*/sum for/sum) loop.loop-clauses (~@ NEWLINE loop.loop-body) ...)])
 
 
 ;; A loop body function is a lambda expression that is passed to a function like map, for-each, or
@@ -146,17 +146,17 @@
   #:description "This for-each operation can be replaced with a for loop."
   #:literals (for-each)
   [(for-each function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
-   #:with loop-type (if (attribute loop.flat?) #'for #'for*)
-   (loop-type ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
-              function.body ...)])
+   ((~if loop.flat? for for*)
+    ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
+    function.body ...)])
 
 
 (define-refactoring-rule ormap-to-for/or
   #:description "This ormap operation can be replaced with a for/or loop."
   #:literals (ormap)
   [(ormap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
-   #:with loop-type (if (attribute loop.flat?) #'for/or #'for*/or)
-   (loop-type ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
+   ((~if loop.flat? for/or for*/or)
+    ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
               function.body ...)])
 
 
@@ -164,8 +164,8 @@
   #:description "This andmap operation can be replaced with a for/and loop."
   #:literals (andmap)
   [(andmap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
-   #:with loop-type (if (attribute loop.flat?) #'for/and #'for*/and)
-   (loop-type ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
+   ((~if loop.flat? for/and for*/and)
+    ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
               function.body ...)])
 
 
@@ -236,15 +236,11 @@
   [((~and loop-id (~or for/and for*/and))
     (~and original-clauses (clause ...))
     (~and original-body (or condition:condition-expression ...+ last-condition)))
-   #:with (condition-keyword ...)
-   (for/list ([negated? (in-list (attribute condition.negated?))])
-     (if negated? #'#:when #'#:unless))
    (loop-id (ORIGINAL-GAP loop-id original-clauses)
             ((ORIGINAL-SPLICE clause ...)
-             (~@ NEWLINE condition-keyword condition.base-condition) ...)
+             (~@ NEWLINE (~if condition.negated? #:when #:unless) condition.base-condition) ...)
             (ORIGINAL-GAP original-clauses original-body)
             last-condition)])
-             
 
 
 (define for-loop-shortcuts

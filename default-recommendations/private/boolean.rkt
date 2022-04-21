@@ -47,5 +47,5 @@
 (define-syntax-class condition-expression
   #:attributes (negated? base-condition)
   #:literals (not)
-  (pattern (not base-condition:expr) #:attr negated? #true)
-  (pattern base-condition:expr #:attr negated? #false))
+  (pattern (not base-condition:expr) #:with negated? #true)
+  (pattern base-condition:expr #:with negated? #false))

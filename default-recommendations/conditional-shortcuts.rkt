@@ -14,6 +14,7 @@
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/definition-context
          resyntax/default-recommendations/private/exception
+         resyntax/default-recommendations/private/metafunction
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/syntax-replacement
@@ -72,19 +73,20 @@
 
 
 (define-syntax-class when-or-unless-equivalent-conditional
-  #:attributes (when-or-unless condition [body 1])
+  #:attributes (negated? condition [body 1])
   #:literals (if void not begin let)
 
-  (pattern (if (not condition) (void) :block-expression) #:with when-or-unless #'when)
-  (pattern (if (not condition) :block-expression (void)) #:with when-or-unless #'unless)
-  (pattern (if condition (void) :block-expression) #:with when-or-unless #'unless)
-  (pattern (if condition :block-expression (void)) #:with when-or-unless #'when))
+  (pattern (if (not condition) (void) :block-expression) #:with negated? #false)
+  (pattern (if (not condition) :block-expression (void)) #:with negated? #true)
+  (pattern (if condition (void) :block-expression) #:with negated? #true)
+  (pattern (if condition :block-expression (void)) #:with negated? #false))
 
 
 (define-refactoring-rule if-void-to-when-or-unless
   #:description equivalent-conditional-description
   [conditional:when-or-unless-equivalent-conditional
-   (conditional.when-or-unless conditional.condition NEWLINE (ORIGINAL-SPLICE conditional.body ...))])
+   ((~if conditional.negated? unless when)
+    conditional.condition NEWLINE (ORIGINAL-SPLICE conditional.body ...))])
 
 
 (define-refactoring-rule always-throwing-if-to-when
@@ -94,10 +96,9 @@
     (if condition:condition-expression
       fail:always-throwing-expression
       else-expression))
-   #:with when-or-unless (if (attribute condition.negated?) #'unless #'when)
    (header.formatted
     ... NEWLINE
-    (when-or-unless condition.base-condition NEWLINE fail) NEWLINE
+    ((~if condition.negated? unless when) condition.base-condition NEWLINE fail) NEWLINE
     else-expression)])
 
 
@@ -110,10 +111,9 @@
        fail:always-throwing-expression]
       [else
        body ...]))
-   #:with when-or-unless (if (attribute condition.negated?) #'unless #'when)
    (header.formatted
     ... NEWLINE
-    (when-or-unless condition.base-condition NEWLINE fail) NEWLINE
+    ((~if condition.negated? unless when) condition.base-condition NEWLINE fail) NEWLINE
     (ORIGINAL-SPLICE body ...))])
 
 
