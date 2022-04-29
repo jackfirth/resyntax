@@ -114,3 +114,6 @@
                #:into into-hash))
   (for ([(path replacement) (in-hash results-by-path)])
     (file-apply-string-replacement! path replacement)))
+
+(module+ main
+  (displayln "Try `racket -l- resyntax/cli --help` instead."))
