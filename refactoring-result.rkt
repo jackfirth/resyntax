@@ -18,6 +18,7 @@
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
   [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]
   [refactoring-result-string-replacement (-> refactoring-result? string-replacement?)]
+  [refactoring-result-line-replacement (-> refactoring-result? line-replacement?)]
   [refactoring-result-original-line (-> refactoring-result? exact-positive-integer?)]
   [refactoring-result-original-code (-> refactoring-result? code-snippet?)]
   [refactoring-result-new-code (-> refactoring-result? code-snippet?)]))
@@ -33,6 +34,8 @@
          rebellion/base/symbol
          rebellion/type/record
          resyntax/code-snippet
+         resyntax/line-replacement
+         resyntax/linemap
          resyntax/source
          resyntax/string-replacement
          resyntax/syntax-replacement)
@@ -109,3 +112,56 @@
    #:end old-end
    #:contents (list (inserted-string new-code))))
 
+
+(define (refactoring-result-original-code-lines result)
+  (define source-code (source->string (refactoring-result-source result)))
+  (define map (string-linemap source-code))
+  (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
+  (define start (linemap-position-to-start-of-line (syntax-position original)))
+  (define end (linemap-position-to-end-of-line (+ (syntax-position original) (syntax-span original))))
+  (in-lines (open-input-string (string->immutable-string (substring source-code start end)))))
+
+
+(define (refactoring-result-new-code-lines result)
+  (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
+  (define original-line (syntax-line original))
+  (define original-column (syntax-column original))
+  (define start (sub1 (syntax-position original)))
+  (define replacement (syntax-replacement-render (refactoring-result-replacement result)))
+  (define end (+ start (string-replacement-new-span replacement)))
+  (define source-code (source->string (refactoring-result-source result)))
+  (define refactored-source-code (string-apply-replacement source-code replacement))
+  (define replacement-text
+    (cond
+      [(string-contains? (substring refactored-source-code start end) "\n")
+       (define text-object (new racket:text%))
+       (send text-object insert refactored-source-code)
+       (send text-object set-position start end)
+       (send text-object tabify-selection)
+       (define indented-start (send text-object get-start-position))
+       (define indented-end (send text-object get-end-position))
+       (define indented-raw-text
+         (string->immutable-string (send text-object get-text indented-start indented-end)))
+       (define map (string-linemap indented-raw-text))
+       (string->immutable-string
+        (substring indented-raw-text
+                   (linemap-position-to-start-of-line map indented-start)
+                   (linemap-position-to-end-of-line map indented-end)))]
+      [else
+       (define map (string-linemap refactored-source-code))
+       (string->immutable-string
+        (substring refactored-source-code
+                   (linemap-position-to-start-of-line map start)
+                   (linemap-position-to-end-of-line map end)))]))
+  (in-lines (open-input-string replacement-text)))
+
+
+(define (refactoring-result-line-replacement result)
+  (define old-start (refactoring-result-original-position result))
+  (define old-code (code-snippet-raw-text (refactoring-result-original-code result)))
+  (define new-code (code-snippet-raw-text (refactoring-result-new-code result)))
+  (define old-end (+ old-start (string-length old-code)))
+  (line-replacement
+   #:start (syntax-line (syntax-replacement-original-syntax (refactoring-result-replacement result)))
+   #:old-lines (refactoring-result-original-code-lines result)
+   #:new-lines (refactoring-result-new-code-lines result)))
