@@ -117,15 +117,14 @@
   (define source-code (source->string (refactoring-result-source result)))
   (define map (string-linemap source-code))
   (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
-  (define start (linemap-position-to-start-of-line (syntax-position original)))
-  (define end (linemap-position-to-end-of-line (+ (syntax-position original) (syntax-span original))))
+  (define start (linemap-position-to-start-of-line map (syntax-position original)))
+  (define end
+    (linemap-position-to-end-of-line map (+ (syntax-position original) (syntax-span original))))
   (in-lines (open-input-string (string->immutable-string (substring source-code start end)))))
 
 
 (define (refactoring-result-new-code-lines result)
   (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
-  (define original-line (syntax-line original))
-  (define original-column (syntax-column original))
   (define start (sub1 (syntax-position original)))
   (define replacement (syntax-replacement-render (refactoring-result-replacement result)))
   (define end (+ start (string-replacement-new-span replacement)))
@@ -157,10 +156,6 @@
 
 
 (define (refactoring-result-line-replacement result)
-  (define old-start (refactoring-result-original-position result))
-  (define old-code (code-snippet-raw-text (refactoring-result-original-code result)))
-  (define new-code (code-snippet-raw-text (refactoring-result-new-code result)))
-  (define old-end (+ old-start (string-length old-code)))
   (line-replacement
    #:start (syntax-line (syntax-replacement-original-syntax (refactoring-result-replacement result)))
    #:old-lines (refactoring-result-original-code-lines result)
