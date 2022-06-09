@@ -66,11 +66,11 @@
 
 
 (define (linemap-position-to-start-of-line map position)
-  (linemap-line-start-position (linemap-position-to-line map position)))
+  (linemap-line-start-position map (linemap-position-to-line map position)))
 
 
 (define (linemap-position-to-end-of-line map position)
-  (linemap-line-end-position (linemap-position-to-line map position)))
+  (linemap-line-end-position map (linemap-position-to-line map position)))
 
 
 (module+ test
