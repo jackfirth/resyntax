@@ -158,5 +158,5 @@
 (define (refactoring-result-line-replacement result)
   (line-replacement
    #:start (syntax-line (syntax-replacement-original-syntax (refactoring-result-replacement result)))
-   #:old-lines (refactoring-result-original-code-lines result)
+   #:original-lines (refactoring-result-original-code-lines result)
    #:new-lines (refactoring-result-new-code-lines result)))
