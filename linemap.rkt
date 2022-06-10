@@ -62,7 +62,7 @@
 
 (define (linemap-line-end-position map line)
   (+ (linemap-line-start-position map line)
-     (string-length (vector-ref (linemap-lines map) (sub1 line)))))
+     (string-utf-8-length (vector-ref (linemap-lines map) (sub1 line)))))
 
 
 (define (linemap-position-to-start-of-line map position)

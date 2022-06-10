@@ -120,12 +120,13 @@
   (define start (linemap-position-to-start-of-line map (syntax-position original)))
   (define end
     (linemap-position-to-end-of-line map (+ (syntax-position original) (syntax-span original))))
-  (in-lines (open-input-string (string->immutable-string (substring source-code start end)))))
+  (in-lines
+   (open-input-string (string->immutable-string (substring source-code (sub1 start) (sub1 end))))))
 
 
 (define (refactoring-result-new-code-lines result)
   (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
-  (define start (sub1 (syntax-position original)))
+  (define start (syntax-position original))
   (define replacement (syntax-replacement-render (refactoring-result-replacement result)))
   (define end (+ start (string-replacement-new-span replacement)))
   (define source-code (source->string (refactoring-result-source result)))
@@ -141,8 +142,8 @@
   (define replacement-text
     (string->immutable-string
      (substring all-indented-raw-text
-                (linemap-position-to-start-of-line map indented-start)
-                (linemap-position-to-end-of-line map indented-end))))
+                (sub1 (linemap-position-to-start-of-line map indented-start))
+                (sub1 (linemap-position-to-end-of-line map indented-end)))))
   (in-lines (open-input-string replacement-text)))
 
 
