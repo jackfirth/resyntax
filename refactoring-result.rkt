@@ -137,15 +137,15 @@
   (send text-object insert refactored-source-code)
   (send text-object set-position (sub1 start) (sub1 end))
   (send text-object tabify-all)
-  (define indented-start (send text-object get-start-position))
-  (define indented-end (send text-object get-end-position))
+  (define indented-start (add1 (send text-object get-start-position)))
+  (define indented-end (add1 (send text-object get-end-position)))
   (define all-indented-raw-text (string->immutable-string (send text-object get-text)))
   (define map (string-linemap all-indented-raw-text))
   (define replacement-text
     (string->immutable-string
      (substring all-indented-raw-text
-                (linemap-position-to-start-of-line map indented-start)
-                (linemap-position-to-end-of-line map indented-end))))
+                (sub1 (linemap-position-to-start-of-line map indented-start))
+                (sub1 (linemap-position-to-end-of-line map indented-end)))))
   (in-lines (open-input-string replacement-text)))
 
 
