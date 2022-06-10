@@ -29,6 +29,7 @@
          (only-in racket/class
                   new
                   send)
+         racket/pretty
          racket/string
          rebellion/base/immutable-string
          rebellion/base/symbol
@@ -121,7 +122,7 @@
   (define end (syntax-end-line-position original #:linemap map))
   (define original-text (string->immutable-string (substring source-code (sub1 start) (sub1 end))))
   (printf "DEBUG: original code lines raw string ~v\n\nDEBUG: linemap below\n\n~a\n\n"
-          original-text map)
+          original-text (pretty-format map))
   (in-lines (open-input-string original-text)))
 
 
