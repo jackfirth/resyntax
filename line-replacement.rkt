@@ -51,12 +51,12 @@
 
 (define (line-replacement-original-end-line replacement)
   (+ (line-replacement-start-line replacement)
-     (vector-length (line-replacement-original-lines replacement))))
+     (sub1 (vector-length (line-replacement-original-lines replacement)))))
 
 
 (define (line-replacement-new-end-line replacement)
   (+ (line-replacement-start-line replacement)
-     (vector-length (line-replacement-new-lines replacement))))
+     (sub1 (vector-length (line-replacement-new-lines replacement)))))
 
 
 (define (line-replacement-new-text replacement)
