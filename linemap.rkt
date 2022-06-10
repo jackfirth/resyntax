@@ -80,7 +80,7 @@
 
 
 (define (syntax-end-line-position stx #:linemap map)
-  (linemap-position-to-start-of-line map (+ (syntax-position stx) (syntax-span stx))))
+  (linemap-position-to-end-of-line map (+ (syntax-position stx) (syntax-span stx))))
 
 
 (module+ test
