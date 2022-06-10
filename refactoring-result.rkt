@@ -133,7 +133,7 @@
   (define refactored-source-code (string-apply-replacement source-code replacement))
   (define text-object (new racket:text%))
   (send text-object insert refactored-source-code)
-  (send text-object set-position start end)
+  (send text-object set-position (sub1 start) (sub1 end))
   (send text-object tabify-all)
   (define indented-start (send text-object get-start-position))
   (define indented-end (send text-object get-end-position))
@@ -142,8 +142,8 @@
   (define replacement-text
     (string->immutable-string
      (substring all-indented-raw-text
-                (sub1 (linemap-position-to-start-of-line map indented-start))
-                (sub1 (linemap-position-to-end-of-line map indented-end)))))
+                (linemap-position-to-start-of-line map indented-start)
+                (linemap-position-to-end-of-line map indented-end))))
   (in-lines (open-input-string replacement-text)))
 
 
