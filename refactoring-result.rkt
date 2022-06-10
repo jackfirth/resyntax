@@ -136,12 +136,11 @@
   (send text-object tabify-selection)
   (define indented-start (send text-object get-start-position))
   (define indented-end (send text-object get-end-position))
-  (define indented-raw-text
-    (string->immutable-string (send text-object get-text indented-start indented-end)))
-  (define map (string-linemap indented-raw-text))
+  (define all-indented-raw-text (string->immutable-string (send text-object get-text)))
+  (define map (string-linemap all-indented-raw-text))
   (define replacement-text
     (string->immutable-string
-     (substring indented-raw-text
+     (substring all-indented-raw-text
                 (linemap-position-to-start-of-line map indented-start)
                 (linemap-position-to-end-of-line map indented-end))))
   (in-lines (open-input-string replacement-text)))

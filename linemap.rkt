@@ -91,4 +91,6 @@
     (check-equal? (linemap-position-to-line map 13) 3)
     (check-equal? (linemap-line-start-position map 1) 1)
     (check-equal? (linemap-line-start-position map 2) 7)
-    (check-equal? (linemap-line-start-position map 3) 13)))
+    (check-equal? (linemap-line-start-position map 3) 13)
+    (check-equal? (linemap-line-end-position map 1) 6)
+    (check-equal? (linemap-line-end-position map 2) 12)))
