@@ -117,11 +117,11 @@
   (define source-code (source->string (refactoring-result-source result)))
   (define map (string-linemap source-code))
   (define original (syntax-replacement-original-syntax (refactoring-result-replacement result)))
-  (define start (linemap-position-to-start-of-line map (syntax-position original)))
-  (define end
-    (linemap-position-to-end-of-line map (+ (syntax-position original) (syntax-span original))))
-  (in-lines
-   (open-input-string (string->immutable-string (substring source-code (sub1 start) (sub1 end))))))
+  (define start (syntax-start-line-position original #:linemap map))
+  (define end (syntax-end-line-position original #:linemap map))
+  (define original-text (string->immutable-string (substring source-code (sub1 start) (sub1 end))))
+  (printf "DEBUG: original code lines raw string ~v" original-text)
+  (in-lines (open-input-string original-text)))
 
 
 (define (refactoring-result-new-code-lines result)

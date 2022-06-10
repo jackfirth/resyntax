@@ -12,7 +12,9 @@
   [linemap-position-to-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
   [linemap-line-start-position (-> linemap? exact-positive-integer? exact-positive-integer?)]
   [linemap-position-to-start-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
-  [linemap-position-to-end-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]))
+  [linemap-position-to-end-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
+  [syntax-start-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
+  [syntax-end-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]))
 
 
 (require rebellion/base/comparator
@@ -73,9 +75,17 @@
   (linemap-line-end-position map (linemap-position-to-line map position)))
 
 
+(define (syntax-start-line-position stx #:linemap map)
+  (linemap-position-to-start-of-line map (syntax-position stx)))
+
+
+(define (syntax-end-line-position stx #:linemap map)
+  (linemap-position-to-start-of-line map (+ (syntax-position stx) (syntax-span stx))))
+
+
 (module+ test
-  (test-case (name-string string-linemap)
-    (define map (string-linemap "hello\nworld\n"))
+  (define map (string-linemap "hello\nworld\n"))
+  (test-case (name-string linemap-position-to-line)
     (check-equal? (linemap-position-to-line map 1) 1)
     (check-equal? (linemap-position-to-line map 2) 1)
     (check-equal? (linemap-position-to-line map 3) 1)
@@ -88,9 +98,42 @@
     (check-equal? (linemap-position-to-line map 10) 2)
     (check-equal? (linemap-position-to-line map 11) 2)
     (check-equal? (linemap-position-to-line map 12) 2)
-    (check-equal? (linemap-position-to-line map 13) 3)
+    (check-equal? (linemap-position-to-line map 13) 3))
+
+  (test-case (name-string linemap-line-start-position)
     (check-equal? (linemap-line-start-position map 1) 1)
     (check-equal? (linemap-line-start-position map 2) 7)
-    (check-equal? (linemap-line-start-position map 3) 13)
+    (check-equal? (linemap-line-start-position map 3) 13))
+
+  (test-case (name-string linemap-line-end-position)
     (check-equal? (linemap-line-end-position map 1) 6)
-    (check-equal? (linemap-line-end-position map 2) 12)))
+    (check-equal? (linemap-line-end-position map 2) 12))
+
+  (test-case (name-string linemap-position-to-start-of-line)
+    (check-equal? (linemap-position-to-start-of-line map 1) 1)
+    (check-equal? (linemap-position-to-start-of-line map 2) 1)
+    (check-equal? (linemap-position-to-start-of-line map 3) 1)
+    (check-equal? (linemap-position-to-start-of-line map 4) 1)
+    (check-equal? (linemap-position-to-start-of-line map 5) 1)
+    (check-equal? (linemap-position-to-start-of-line map 6) 1)
+    (check-equal? (linemap-position-to-start-of-line map 7) 7)
+    (check-equal? (linemap-position-to-start-of-line map 8) 7)
+    (check-equal? (linemap-position-to-start-of-line map 9) 7)
+    (check-equal? (linemap-position-to-start-of-line map 10) 7)
+    (check-equal? (linemap-position-to-start-of-line map 11) 7)
+    (check-equal? (linemap-position-to-start-of-line map 12) 7)
+    (check-equal? (linemap-position-to-start-of-line map 13) 13))
+
+  (test-case (name-string linemap-position-to-end-of-line)
+    (check-equal? (linemap-position-to-end-of-line map 1) 6)
+    (check-equal? (linemap-position-to-end-of-line map 2) 6)
+    (check-equal? (linemap-position-to-end-of-line map 3) 6)
+    (check-equal? (linemap-position-to-end-of-line map 4) 6)
+    (check-equal? (linemap-position-to-end-of-line map 5) 6)
+    (check-equal? (linemap-position-to-end-of-line map 6) 6)
+    (check-equal? (linemap-position-to-end-of-line map 7) 12)
+    (check-equal? (linemap-position-to-end-of-line map 8) 12)
+    (check-equal? (linemap-position-to-end-of-line map 9) 12)
+    (check-equal? (linemap-position-to-end-of-line map 10) 12)
+    (check-equal? (linemap-position-to-end-of-line map 11) 12)
+    (check-equal? (linemap-position-to-end-of-line map 12) 12)))
