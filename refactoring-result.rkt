@@ -133,7 +133,7 @@
   (define text-object (new racket:text%))
   (send text-object insert refactored-source-code)
   (send text-object set-position start end)
-  (send text-object tabify-selection)
+  (send text-object tabify-all)
   (define indented-start (send text-object get-start-position))
   (define indented-end (send text-object get-end-position))
   (define all-indented-raw-text (string->immutable-string (send text-object get-text)))
