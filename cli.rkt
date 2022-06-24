@@ -31,10 +31,10 @@
 
 
 (define (resyntax-analyze-parse-command-line)
-  (define targets (box (make-vector-builder)))
-  (define suite (box default-recommendations))
+  (define targets (make-vector-builder))
+  (define suite default-recommendations)
   (define (add-target! target)
-    (set-box! targets (vector-builder-add (unbox targets) target)))
+    (vector-builder-add targets target))
   (command-line
    #:program "resyntax analyze"
    #:multi
@@ -54,8 +54,8 @@
     "The refactoring suite to analyze code with."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
-    (set-box! suite (dynamic-require parsed-modpath parsed-suite-name))))
-  (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
+    (set! suite (dynamic-require parsed-modpath parsed-suite-name))))
+  (resyntax-options #:targets (build-vector (unbox targets)) #:suite suite))
 
 
 (define (resyntax-fix-parse-command-line)
