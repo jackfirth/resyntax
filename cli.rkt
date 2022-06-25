@@ -47,6 +47,13 @@
     pkgname
     "An installed package to analyze."
     (add-target! (package-file-group pkgname)))
+   ("--local-git-repository"
+    repopath baseref
+    "A Git repository to search for modified files to analyze. The repopath argument is a directory
+path to the root of a Git repository, and the baseref argument is a Git reference (in the form \
+\"remotename/branchname\") to use as the base state of the repository. Any files that have been \
+changed relative to baseref are analyzed."
+    (add-target! (git-repository-file-group repopath baseref)))
    #:once-each
    ("--refactoring-suite"
     modpath
@@ -55,14 +62,14 @@
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name))))
-  (resyntax-options #:targets (build-vector (unbox targets)) #:suite suite))
+  (resyntax-options #:targets (build-vector targets) #:suite suite))
 
 
 (define (resyntax-fix-parse-command-line)
-  (define targets (box (make-vector-builder)))
-  (define suite (box default-recommendations))
+  (define targets (make-vector-builder))
+  (define suite default-recommendations)
   (define (add-target! target)
-    (set-box! targets (vector-builder-add (unbox targets) target)))
+    (vector-builder-add targets target))
   (command-line
    #:program "resyntax fix"
    #:multi
@@ -75,6 +82,13 @@
     pkgname
     "An installed package to fix."
     (add-target! (package-file-group pkgname)))
+   ("--local-git-repository"
+    repopath baseref
+    "A Git repository to search for modified files to fix. The repopath argument is a directory
+path to the root of a Git repository, and the baseref argument is a Git reference (in the form \
+\"remotename/branchname\") to use as the base state of the repository. Any files that have been \
+changed relative to baseref are analyzed and fixed."
+    (add-target! (git-repository-file-group repopath baseref)))
    #:once-each
    ("--refactoring-suite"
     modpath
@@ -82,8 +96,8 @@
     "The refactoring suite to analyze code with."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
-    (set-box! suite (dynamic-require parsed-modpath parsed-suite-name))))
-  (resyntax-options #:targets (build-vector (unbox targets)) #:suite (unbox suite)))
+    (set! suite (dynamic-require parsed-modpath parsed-suite-name))))
+  (resyntax-options #:targets (build-vector targets) #:suite suite))
 
 
 (define (resyntax-run)
