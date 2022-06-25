@@ -21,7 +21,8 @@
          rebellion/base/option
          rebellion/collection/entry
          rebellion/collection/sorted-map
-         rebellion/collection/vector/builder)
+         rebellion/collection/vector/builder
+         rebellion/private/guarded-block)
 
 
 (module+ test
@@ -32,30 +33,39 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(struct linemap (lines line-numbers-by-end-position start-positions-by-line-number) #:transparent)
+(struct linemap (lines line-numbers-by-start-position start-positions-by-line-number) #:transparent)
 
 
 (define (string-linemap str)
   (define lines (make-vector-builder))
-  (define line-numbers-by-end-position (make-sorted-map-builder natural<=>))
+  (define line-numbers-by-start-position (make-sorted-map-builder natural<=>))
   (define start-positions-by-line-number (make-vector-builder))
-  (sorted-map-builder-put line-numbers-by-end-position 1 1)
-  (vector-builder-add start-positions-by-line-number 1)
-  (define in (open-input-string str))
-  (for ([line (in-lines in)]
-        [line-number (in-naturals 2)])
-    (vector-builder-add lines (string->immutable-string line))
-    (define-values (unused-line unused-col position) (port-next-location in))
-    (sorted-map-builder-put line-numbers-by-end-position position line-number)
-    (vector-builder-add start-positions-by-line-number position))
+  (define char-count (string-length str))
+  (let loop ([line-number 1] [line-start-position 1] [line-start-index 0] [index 0])
+    (cond
+      [(= index char-count)
+       (define last-line (substring str line-start-index index))
+       (vector-builder-add lines last-line)
+       (sorted-map-builder-put line-numbers-by-start-position line-start-position line-number)
+       (vector-builder-add start-positions-by-line-number line-start-position)]
+      [(equal? (string-ref str index) #\newline)
+       (define next-line (substring str line-start-index index))
+       (vector-builder-add lines next-line)
+       (sorted-map-builder-put line-numbers-by-start-position line-start-position line-number)
+       (vector-builder-add start-positions-by-line-number line-start-position)
+       (define next-index (add1 index))
+       (define next-start-position (add1 (string-utf-8-length str 0 next-index)))
+       (loop (add1 line-number) next-start-position next-index next-index)]
+      [else
+       (loop line-number line-start-position line-start-index (add1 index))]))
   (linemap (build-vector lines)
-           (build-sorted-map line-numbers-by-end-position)
+           (build-sorted-map line-numbers-by-start-position)
            (build-vector start-positions-by-line-number)))
 
 
 (define (linemap-position-to-line map position)
-  (entry-value
-   (present-value (sorted-map-entry-at-most (linemap-line-numbers-by-end-position map) position))))
+  (define line-numbers (linemap-line-numbers-by-start-position map))
+  (entry-value (present-value (sorted-map-entry-at-most line-numbers position))))
 
 
 (define (linemap-line-start-position map line)
@@ -84,56 +94,122 @@
 
 
 (module+ test
-  (define map (string-linemap "hello\nworld\n"))
+
+  (test-case (name-string string-linemap)
+
+    (define (nat-map . args)
+      (apply sorted-map #:key-comparator natural<=> args))
+    
+    (check-equal? (string-linemap "") (linemap #("") (nat-map 1 1) #(1)))
+    (check-equal? (string-linemap "a") (linemap #("a") (nat-map 1 1) #(1)))
+    (check-equal? (string-linemap "a\n") (linemap #("a" "") (nat-map 1 1 3 2) #(1 3)))
+    (check-equal? (string-linemap "aaa\n") (linemap #("aaa" "") (nat-map 1 1 5 2) #(1 5)))
+    (check-equal? (string-linemap "aaa\nbbb") (linemap #("aaa" "bbb") (nat-map 1 1 5 2) #(1 5)))
+    (check-equal? (string-linemap "aaa\nbbb\n")
+                  (linemap #("aaa" "bbb" "") (nat-map 1 1 5 2 9 3) #(1 5 9)))
+    (check-equal? (string-linemap "a\n\n\nb")
+                  (linemap #("a" "" "" "b") (nat-map 1 1 3 2 4 3 5 4) #(1 3 4 5))))
+  
   (test-case (name-string linemap-position-to-line)
-    (check-equal? (linemap-position-to-line map 1) 1)
-    (check-equal? (linemap-position-to-line map 2) 1)
-    (check-equal? (linemap-position-to-line map 3) 1)
-    (check-equal? (linemap-position-to-line map 4) 1)
-    (check-equal? (linemap-position-to-line map 5) 1)
-    (check-equal? (linemap-position-to-line map 6) 1)
-    (check-equal? (linemap-position-to-line map 7) 2)
-    (check-equal? (linemap-position-to-line map 8) 2)
-    (check-equal? (linemap-position-to-line map 9) 2)
-    (check-equal? (linemap-position-to-line map 10) 2)
-    (check-equal? (linemap-position-to-line map 11) 2)
-    (check-equal? (linemap-position-to-line map 12) 2)
-    (check-equal? (linemap-position-to-line map 13) 3))
+
+    (test-case "two-line string with ending newline"
+      (define map (string-linemap "hello\nworld\n"))
+      (check-equal? (linemap-position-to-line map 1) 1)
+      (check-equal? (linemap-position-to-line map 2) 1)
+      (check-equal? (linemap-position-to-line map 3) 1)
+      (check-equal? (linemap-position-to-line map 4) 1)
+      (check-equal? (linemap-position-to-line map 5) 1)
+      (check-equal? (linemap-position-to-line map 6) 1)
+      (check-equal? (linemap-position-to-line map 7) 2)
+      (check-equal? (linemap-position-to-line map 8) 2)
+      (check-equal? (linemap-position-to-line map 9) 2)
+      (check-equal? (linemap-position-to-line map 10) 2)
+      (check-equal? (linemap-position-to-line map 11) 2)
+      (check-equal? (linemap-position-to-line map 12) 2)
+      (check-equal? (linemap-position-to-line map 13) 3))
+
+    (test-case "multiple blank lines"
+      (define map (string-linemap "a\n\nb"))
+      (check-equal? (linemap-position-to-line map 1) 1)
+      (check-equal? (linemap-position-to-line map 2) 1)
+      (check-equal? (linemap-position-to-line map 3) 2)
+      (check-equal? (linemap-position-to-line map 4) 3)
+      (check-equal? (linemap-position-to-line map 5) 3)))
 
   (test-case (name-string linemap-line-start-position)
-    (check-equal? (linemap-line-start-position map 1) 1)
-    (check-equal? (linemap-line-start-position map 2) 7)
-    (check-equal? (linemap-line-start-position map 3) 13))
+
+    (test-case "two-line string with ending newline"
+      (define map (string-linemap "hello\nworld\n"))
+      (check-equal? (linemap-line-start-position map 1) 1)
+      (check-equal? (linemap-line-start-position map 2) 7)
+      (check-equal? (linemap-line-start-position map 3) 13))
+
+    (test-case "multiple blank lines"
+      (define map (string-linemap "a\n\nb"))
+      (check-equal? (linemap-line-start-position map 1) 1)
+      (check-equal? (linemap-line-start-position map 2) 3)
+      (check-equal? (linemap-line-start-position map 3) 4)))
 
   (test-case (name-string linemap-line-end-position)
-    (check-equal? (linemap-line-end-position map 1) 6)
-    (check-equal? (linemap-line-end-position map 2) 12))
+
+    (test-case "two-line string with ending newline"
+      (define map (string-linemap "hello\nworld\n"))
+      (check-equal? (linemap-line-end-position map 1) 6)
+      (check-equal? (linemap-line-end-position map 2) 12))
+
+    (test-case "multiple blank lines"
+      (define map (string-linemap "a\n\nb"))
+      (check-equal? (linemap-line-end-position map 1) 2)
+      (check-equal? (linemap-line-end-position map 2) 3)
+      (check-equal? (linemap-line-end-position map 3) 5)))
 
   (test-case (name-string linemap-position-to-start-of-line)
-    (check-equal? (linemap-position-to-start-of-line map 1) 1)
-    (check-equal? (linemap-position-to-start-of-line map 2) 1)
-    (check-equal? (linemap-position-to-start-of-line map 3) 1)
-    (check-equal? (linemap-position-to-start-of-line map 4) 1)
-    (check-equal? (linemap-position-to-start-of-line map 5) 1)
-    (check-equal? (linemap-position-to-start-of-line map 6) 1)
-    (check-equal? (linemap-position-to-start-of-line map 7) 7)
-    (check-equal? (linemap-position-to-start-of-line map 8) 7)
-    (check-equal? (linemap-position-to-start-of-line map 9) 7)
-    (check-equal? (linemap-position-to-start-of-line map 10) 7)
-    (check-equal? (linemap-position-to-start-of-line map 11) 7)
-    (check-equal? (linemap-position-to-start-of-line map 12) 7)
-    (check-equal? (linemap-position-to-start-of-line map 13) 13))
+
+    (test-case "two-line string with ending newline"
+      (define map (string-linemap "hello\nworld\n"))
+      (check-equal? (linemap-position-to-start-of-line map 1) 1)
+      (check-equal? (linemap-position-to-start-of-line map 2) 1)
+      (check-equal? (linemap-position-to-start-of-line map 3) 1)
+      (check-equal? (linemap-position-to-start-of-line map 4) 1)
+      (check-equal? (linemap-position-to-start-of-line map 5) 1)
+      (check-equal? (linemap-position-to-start-of-line map 6) 1)
+      (check-equal? (linemap-position-to-start-of-line map 7) 7)
+      (check-equal? (linemap-position-to-start-of-line map 8) 7)
+      (check-equal? (linemap-position-to-start-of-line map 9) 7)
+      (check-equal? (linemap-position-to-start-of-line map 10) 7)
+      (check-equal? (linemap-position-to-start-of-line map 11) 7)
+      (check-equal? (linemap-position-to-start-of-line map 12) 7)
+      (check-equal? (linemap-position-to-start-of-line map 13) 13))
+
+    (test-case "multiple blank lines"
+      (define map (string-linemap "a\n\nb"))
+      (check-equal? (linemap-position-to-start-of-line map 1) 1)
+      (check-equal? (linemap-position-to-start-of-line map 2) 1)
+      (check-equal? (linemap-position-to-start-of-line map 3) 3)
+      (check-equal? (linemap-position-to-start-of-line map 4) 4)
+      (check-equal? (linemap-position-to-start-of-line map 5) 4)))
 
   (test-case (name-string linemap-position-to-end-of-line)
-    (check-equal? (linemap-position-to-end-of-line map 1) 6)
-    (check-equal? (linemap-position-to-end-of-line map 2) 6)
-    (check-equal? (linemap-position-to-end-of-line map 3) 6)
-    (check-equal? (linemap-position-to-end-of-line map 4) 6)
-    (check-equal? (linemap-position-to-end-of-line map 5) 6)
-    (check-equal? (linemap-position-to-end-of-line map 6) 6)
-    (check-equal? (linemap-position-to-end-of-line map 7) 12)
-    (check-equal? (linemap-position-to-end-of-line map 8) 12)
-    (check-equal? (linemap-position-to-end-of-line map 9) 12)
-    (check-equal? (linemap-position-to-end-of-line map 10) 12)
-    (check-equal? (linemap-position-to-end-of-line map 11) 12)
-    (check-equal? (linemap-position-to-end-of-line map 12) 12)))
+
+    (test-case "two-line string with ending newline"
+      (define map (string-linemap "hello\nworld\n"))
+      (check-equal? (linemap-position-to-end-of-line map 1) 6)
+      (check-equal? (linemap-position-to-end-of-line map 2) 6)
+      (check-equal? (linemap-position-to-end-of-line map 3) 6)
+      (check-equal? (linemap-position-to-end-of-line map 4) 6)
+      (check-equal? (linemap-position-to-end-of-line map 5) 6)
+      (check-equal? (linemap-position-to-end-of-line map 6) 6)
+      (check-equal? (linemap-position-to-end-of-line map 7) 12)
+      (check-equal? (linemap-position-to-end-of-line map 8) 12)
+      (check-equal? (linemap-position-to-end-of-line map 9) 12)
+      (check-equal? (linemap-position-to-end-of-line map 10) 12)
+      (check-equal? (linemap-position-to-end-of-line map 11) 12)
+      (check-equal? (linemap-position-to-end-of-line map 12) 12))
+
+    (test-case "multiple blank lines"
+      (define map (string-linemap "a\n\nb"))
+      (check-equal? (linemap-position-to-end-of-line map 1) 2)
+      (check-equal? (linemap-position-to-end-of-line map 2) 2)
+      (check-equal? (linemap-position-to-end-of-line map 3) 3)
+      (check-equal? (linemap-position-to-end-of-line map 4) 5)
+      (check-equal? (linemap-position-to-end-of-line map 5) 5))))
