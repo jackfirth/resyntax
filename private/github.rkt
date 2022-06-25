@@ -200,9 +200,12 @@ EOS
 (define (refactoring-results->github-review results #:file-count file-count)
   (define comments
     (transduce results (mapping refactoring-result->github-review-comment) #:into into-list))
-  (github-review-request
-   #:owner-repo (format "origin/~a" github-repository)
-   #:pull-number (git-ref->pr-number branch-ref)
-   #:body (github-review-body (not (null? comments)) file-count)
-   #:event (if (empty? comments) "APPROVE" "REQUEST_CHANGES")
-   #:comments comments))
+  (define review
+    (github-review-request
+     #:owner-repo (format "origin/~a" github-repository)
+     #:pull-number (git-ref->pr-number branch-ref)
+     #:body (github-review-body (not (null? comments)) file-count)
+     #:event (if (empty? comments) "APPROVE" "REQUEST_CHANGES")
+     #:comments comments))
+  (printf "DEBUG: github review request\n\n~v\n\n" (pretty-format review))
+  review)
