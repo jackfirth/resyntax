@@ -11,20 +11,22 @@
 
 (require racket/port
          racket/string
-         rebellion/private/guarded-block)
+         rebellion/private/static-name)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
 ; This doesn't support anything but getting stdout -- but that's OK for now!
-(define/guard (run-command cmd-name . args)
+(define (run-command cmd-name . args)
   (define cmd-path
     (or (find-executable-path cmd-name)
         ; Racket doesn't know about $PATHEXT:
         (find-executable-path (string-append cmd-name ".exe"))))
-  (guard (not cmd-path) then
-    (error (format "couldn't find ~a executable in $PATH" cmd-name)))
+  (unless cmd-path
+    (raise-arguments-error (name run-command)
+                           "couldn't find executable in $PATH"
+                           "executable" cmd-name))
   (define-values (proc stdout stdin stderr)
     (apply subprocess #f #f #f cmd-path args))
   (close-output-port stdin)
@@ -34,15 +36,15 @@
   (define stderr-string (string-trim (port->string stderr)))
   (close-input-port stdout)
   (close-input-port stderr)
-  (define (format-error . format-args)
-    (format "command '~a ~a' ~a"
-            cmd-path
-            (string-join args " ")
-            (apply format format-args)))
-  (guard (zero? exit-code) else
-    (error (format-error "exited with code ~a"
-                         exit-code)))
-  (guard (zero? (string-length stderr-string)) else
-    (error (format-error "wrote to stderr: ~a"
-                         stderr-string)))
+  (unless (zero? exit-code)
+    (raise-arguments-error (name run-command)
+                           "command exited with a nonzero exit code"
+                           "command" (string-join (cons cmd-name args) " ")
+                           "exit code" exit-code
+                           "stderr" stderr-string))
+  (when (non-empty-string? stderr-string)
+    (raise-arguments-error (name run-command)
+                           "command exited successfully, but wrote to stderr"
+                           "command" (string-join (cons cmd-name args) " ")
+                           "stderr" stderr-string))
   stdout-string)
