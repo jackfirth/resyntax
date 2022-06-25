@@ -9,7 +9,8 @@
   [github-review-request? predicate/c]
   [github-review-request-send (-> github-review-request? jsexpr?)]
   [refactoring-results->github-review
-   (-> refactoring-result? #:file-count exact-nonnegative-integer? github-review-request?)]))
+   (-> (sequence/c refactoring-result?) #:file-count exact-nonnegative-integer?
+       github-review-request?)]))
 
 
 (require json
@@ -18,6 +19,7 @@
          racket/list
          racket/match
          racket/pretty
+         racket/sequence
          racket/string
          rebellion/collection/list
          rebellion/streaming/reducer
