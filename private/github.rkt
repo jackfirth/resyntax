@@ -202,7 +202,7 @@ EOS
     (transduce results (mapping refactoring-result->github-review-comment) #:into into-list))
   (define review
     (github-review-request
-     #:owner-repo (format "origin/~a" github-repository)
+     #:owner-repo github-repository
      #:pull-number (git-ref->pr-number branch-ref)
      #:body (github-review-body (not (null? comments)) file-count)
      #:event (if (empty? comments) "APPROVE" "REQUEST_CHANGES")
