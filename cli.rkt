@@ -131,12 +131,12 @@ changed relative to baseref are analyzed and fixed."
      (for ([result (in-list results)])
        (define path (file-source-path (refactoring-result-source result)))
        (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
-       (printf "\n\n~a\n" (string-indent (refactoring-result-message result) 2))
+       (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
        (define old-code (refactoring-result-original-code result))
        (define new-code (refactoring-result-new-code result))
        (printf "\n\n~a\n\n\n~a\n\n\n"
-               (string-indent (~a old-code) 2)
-               (string-indent (~a new-code) 2)))]
+               (string-indent (~a old-code) #:amount 2)
+               (string-indent (~a new-code) #:amount 2)))]
     [(== output-as-github-review)
      (define results
        (transduce files
