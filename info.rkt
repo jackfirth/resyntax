@@ -12,13 +12,14 @@
 
 
 (define deps
-  (list "br-parser-tools-lib"
+  (list "base"
+        "br-parser-tools-lib"
         "brag-lib"
-        "rackunit-lib"
-        "gui-lib"
         "fancy-app"
+        "gui-lib"
+        "rackunit-lib"
         "rebellion"
-        "base"))
+        "uri-old"))
 
 
 (define build-deps
