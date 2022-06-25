@@ -72,7 +72,7 @@
        (sequence->list (in-directory (simple-form-path (pkg-directory package-name))))]
       [(git-repository-file-group repository-path ref)
        (parameterize ([current-directory repository-path])
-         (define null-separated-filenames (run-command "git" "diff" "--name-only" "-z" ref))
+         (define null-separated-filenames (run-command "git" "diff" "--name-only" "-z" ref "--"))
          (for/list ([filename (string-split null-separated-filenames "\0")])
            (simple-form-path filename)))]))
   (transduce files (filtering rkt-file?) #:into into-list))
