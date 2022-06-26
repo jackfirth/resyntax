@@ -22,7 +22,7 @@
 
 
 (define if-begin-to-cond-message
-  "The cond form supports multiple body expressions in each branch, making begin unnecessary.")
+  "The `cond` form supports multiple body expressions in each branch, making `begin` unnecessary.")
 
 (define-refactoring-rule if-then-begin-to-cond
   #:description if-begin-to-cond-message
@@ -52,7 +52,7 @@
 
 
 (define-refactoring-rule cond-else-if-to-cond
-  #:description "The else if branch of this cond expression can be collapsed into the cond\
+  #:description "The `else`-`if` branch of this `cond` expression can be collapsed into the `cond`\
  expression."
   #:literals (cond else if)
   [(cond clause ... [else (if inner-condition inner-then-branch else-branch)])
@@ -63,7 +63,7 @@
 
 
 (define-refactoring-rule cond-begin-to-cond
-  #:description "The bodies of cond clauses are already implicitly wrapped in begin."
+  #:description "The bodies of `cond` clauses are already implicitly wrapped in `begin`."
   #:literals (cond begin)
   [(cond clause-before ...
          [condition (begin body ...)]
@@ -75,7 +75,7 @@
 
 
 (define-refactoring-rule or-cond-to-cond
-  #:description "This or expression can be turned into a clause of the inner cond expression,\
+  #:description "This `or` expression can be turned into a clause of the inner `cond` expression,\
  reducing nesting."
   #:literals (or cond)
   [(or condition (cond clause ...))
@@ -85,7 +85,7 @@
 
 
 (define-refactoring-rule and-match-to-match
-  #:description "This and expression can be turned into a clause of the inner match expression,\
+  #:description "This `and` expression can be turned into a clause of the inner `match` expression,\
  reducing nesting."
   #:literals (and match)
   [(and and-subject:id (match match-subject:id match-clause ...))

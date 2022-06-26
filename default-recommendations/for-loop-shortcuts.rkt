@@ -110,7 +110,7 @@
 
 
 (define-refactoring-rule apply-plus-to-for/sum
-  #:description "Applying + to a list of numbers can be replaced with a for/sum loop."
+  #:description "Applying `+` to a list of numbers can be replaced with a `for/sum` loop."
   #:literals (apply +)
   [(apply + loop:for-loop-convertible-list-expression)
    ((~if loop.nesting-loop? for*/sum for/sum) loop.loop-clauses (~@ NEWLINE loop.loop-body) ...)])
@@ -143,7 +143,7 @@
 
 
 (define-refactoring-rule for-each-to-for
-  #:description "This for-each operation can be replaced with a for loop."
+  #:description "This `for-each` operation can be replaced with a `for` loop."
   #:literals (for-each)
   [(for-each function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
    ((~if loop.flat? for for*)
@@ -152,7 +152,7 @@
 
 
 (define-refactoring-rule ormap-to-for/or
-  #:description "This ormap operation can be replaced with a for/or loop."
+  #:description "This `ormap` operation can be replaced with a `for/or` loop."
   #:literals (ormap)
   [(ormap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
    ((~if loop.flat? for/or for*/or)
@@ -161,7 +161,7 @@
 
 
 (define-refactoring-rule andmap-to-for/and
-  #:description "This andmap operation can be replaced with a for/and loop."
+  #:description "This `andmap` operation can be replaced with a `for/and` loop."
   #:literals (andmap)
   [(andmap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
    ((~if loop.flat? for/and for*/and)
@@ -170,7 +170,7 @@
 
 
 (define-refactoring-rule list->vector-for/list-to-for/vector
-  #:description "For loops can build vectors directly."
+  #:description "`for` loops can build vectors directly."
   #:literals (list->vector for/list for*/list)
   [(list->vector
     ((~or (~and for/list (~bind [loop #'for/vector])) (~and for*/list (~bind [loop #'for*/vector])))
@@ -179,7 +179,7 @@
 
 
 (define-refactoring-rule for/fold-building-hash-to-for/hash
-  #:description "This for loop is building a hash and can be simplified."
+  #:description "This `for` loop is building a hash and can be simplified."
   #:literals (for/fold for*/fold hash make-immutable-hash)
   [((~or (~and for/fold (~bind [loop #'for/hash])) (~and for*/fold (~bind [loop #'for*/hash])))
     ([h:id (~or (hash) (make-immutable-hash))]) iteration-clauses
@@ -204,7 +204,7 @@
 
 
 (define-refactoring-rule nested-for-to-for*
-  #:description "These nested for loops can be replaced by a single for* loop."
+  #:description "These nested `for` loops can be replaced by a single `for*` loop."
   [nested:nested-for
    #:when (>= (length (attribute nested.clause)) 2)
    (for* (nested.clause ...) NEWLINE
@@ -212,7 +212,7 @@
 
 
 (define-refactoring-rule named-let-loop-to-for/first-in-vector
-  #:description "This loop can be replaced by a simpler, equivalent for/first loop."
+  #:description "This loop can be replaced by a simpler, equivalent `for/first` loop."
   #:literals (let add1 + vector-length vector-ref if and <)
   [(let loop1:id ([i1:id 0])
      (and (< i2:id (vector-length vec1:id))
@@ -231,7 +231,7 @@
 
 
 (define-refactoring-rule or-in-for/and-to-filter-clause
-  #:description "The or expression in this for loop can be replaced by a filtering clause."
+  #:description "The `or` expression in this `for` loop can be replaced by a filtering clause."
   #:literals (for/and for*/and or)
   [((~and loop-id (~or for/and for*/and))
     (~and original-clauses (clause ...))

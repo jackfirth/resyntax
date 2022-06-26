@@ -20,7 +20,7 @@
 
 
 (define-refactoring-rule add1-lambda-to-add1
-  #:description "This lambda function is equivalent to the built-in add1 function."
+  #:description "This lambda function is equivalent to the built-in `add1` function."
   #:literals (+)
   [(lambda:lambda-by-any-name (x1:id) (~or (+ x2:id 1) (+ 1 x2:id)))
    #:when (free-identifier=? #'x1 #'x2)
@@ -28,7 +28,7 @@
 
 
 (define-refactoring-rule sub1-lambda-to-sub1
-  #:description "This lambda function is equivalent to the built-in sub1 function."
+  #:description "This lambda function is equivalent to the built-in `sub1` function."
   #:literals (+ -)
   [(lambda:lambda-by-any-name (x1:id) (~or (- x2:id 1) (+ x2:id -1) (+ -1 x2:id)))
    #:when (free-identifier=? #'x1 #'x2)
@@ -36,7 +36,7 @@
 
 
 (define-refactoring-rule zero-comparison-lambda-to-positive?
-  #:description "This lambda function is equivalent to the built-in positive? predicate."
+  #:description "This lambda function is equivalent to the built-in `positive?` predicate."
   #:literals (< >)
   [(lambda:lambda-by-any-name (x1:id) (~or (> x2:id 0) (< 0 x2:id)))
    #:when (free-identifier=? #'x1 #'x2)
@@ -44,7 +44,7 @@
 
 
 (define-refactoring-rule zero-comparison-lambda-to-negative?
-  #:description "This lambda function is equivalent to the built-in negative? predicate."
+  #:description "This lambda function is equivalent to the built-in `negative?` predicate."
   #:literals (< >)
   [(lambda:lambda-by-any-name (x1:id) (~or (< x2:id 0) (> 0 x2:id)))
    #:when (free-identifier=? #'x1 #'x2)

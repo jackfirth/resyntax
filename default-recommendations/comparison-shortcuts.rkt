@@ -98,14 +98,14 @@
 
 (define-refactoring-rule two-exclusive-comparisons-to-triple-comparison
   #:description
-  "Comparison functions like < accept multiple arguments, so this condition can be simplified."
+  "Comparison functions like `<` accept multiple arguments, so this condition can be simplified."
   [comparison:two-exclusive-comparisons
    (< comparison.lower-bound comparison.x comparison.upper-bound)])
 
 
 (define-refactoring-rule two-inclusive-comparisons-to-triple-comparison
   #:description
-  "Comparison functions like <= accept multiple arguments, so this condition can be simplified."
+  "Comparison functions like `<=` accept multiple arguments, so this condition can be simplified."
   [comparison:two-inclusive-comparisons
    (<= comparison.lower-bound comparison.x comparison.upper-bound)])
 
