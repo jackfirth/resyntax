@@ -103,7 +103,7 @@
 
 
 (define-refactoring-rule always-throwing-cond-to-when
-  #:description "Using `when` and `unless` is simplier than a conditional with an always-throwing branch."
+  #:description "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   #:literals (cond)
   [(header:header-form-allowing-internal-definitions
     (cond
