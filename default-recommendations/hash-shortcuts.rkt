@@ -25,14 +25,14 @@
 
 
 (define-refactoring-rule hash-ref-with-constant-lambda-to-hash-ref-without-lambda
-  #:description "The lambda can be removed from the failure result in this hash-ref expression."
+  #:description "The lambda can be removed from the failure result in this `hash-ref` expression."
   #:literals (hash-ref)
   [((~and ref hash-ref) h:expr k:expr (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
    ((ORIGINAL-SPLICE ref h k) (ORIGINAL-GAP k lambda-expr) v)])
 
 
 (define-refactoring-rule hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
-  #:description "The lambda can be removed from the failure result in this hash-ref! expression."
+  #:description "The lambda can be removed from the failure result in this `hash-ref!` expression."
   #:literals (hash-ref!)
   [((~and ref hash-ref!) h:expr k:expr
                          (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
@@ -47,7 +47,7 @@
 
 
 (define-refactoring-rule hash-ref-set!-to-hash-ref!
-  #:description "This expression can be replaced with a simpler, equivalent hash-ref! expression."
+  #:description "This expression can be replaced with a simpler, equivalent `hash-ref!` expression."
   #:literals (hash-ref hash-set! define)
   [(hash-ref
     h1:id
@@ -65,7 +65,7 @@
 
 
 (define-refactoring-rule hash-ref-set!-with-constant-to-hash-ref!
-  #:description "This expression can be replaced with a simpler, equivalent hash-ref! expression."
+  #:description "This expression can be replaced with a simpler, equivalent `hash-ref!` expression."
   #:literals (hash-ref hash-set! define)
   [(hash-ref
     h1:id
@@ -81,7 +81,7 @@
 
 
 (define-refactoring-rule hash-set!-ref-to-hash-update!
-  #:description "This expression can be replaced with a simpler, equivalent hash-update! expression."
+  #:description "This expression can be replaced with a simpler, equivalent `hash-update!` expression."
   #:literals (hash-ref hash-set!)
   [(hash-set! h1:id k1:id
               (f:id arg-before:expr ...

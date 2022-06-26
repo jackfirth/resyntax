@@ -21,7 +21,7 @@
 
 
 (define-refactoring-rule define-simple-macro-to-define-syntax-parse-rule
-  #:description "The define-simple-macro form has been renamed to define-syntax-parse-rule."
+  #:description "The `define-simple-macro` form has been renamed to `define-syntax-parse-rule`."
   #:literals (define-simple-macro)
   [((~and original define-simple-macro) first-form form ...)
 

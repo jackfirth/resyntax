@@ -25,7 +25,7 @@
 
 
 (define-refactoring-rule single-clause-match-to-match-define
-  #:description "This match expression can be simplified using match-define."
+  #:description "This `match` expression can be simplified using `match-define`."
   #:literals (match)
   [(header:header-form-allowing-internal-definitions
     (match subject

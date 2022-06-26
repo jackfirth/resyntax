@@ -20,7 +20,7 @@
 
 
 (define-refactoring-rule define-syntax-syntax-rules-to-define-syntax-rule
-  #:description "This macro can be replaced with a simpler, equivalent define-syntax-rule macro."
+  #:description "This `define-syntax` macro can be replaced with a simpler, equivalent `define-syntax-rule` macro."
   #:literals (define-syntax syntax-rules)
   [(define-syntax macro:id
      (syntax-rules () [(_ . pattern) template]))

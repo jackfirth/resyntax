@@ -74,7 +74,7 @@
 
 (define-refactoring-rule define-lambda-to-define
   #:description
-  "The define form supports a shorthand for defining functions (including function-returning\
+  "The `define` form supports a shorthand for defining functions (including function-returning\
  functions)."
   #:literals (define)
   [(define header lambda-form:possibly-nested-lambdas)
@@ -88,7 +88,7 @@
 
 
 (define-refactoring-rule define-case-lambda-to-define
-  #:description "This use of case-lambda is equivalent to using define with optional arguments."
+  #:description "This use of `case-lambda` is equivalent to using `define` with optional arguments."
   #:literals (define case-lambda)
   [(define id:id
      (case-lambda

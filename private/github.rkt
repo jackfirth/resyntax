@@ -149,13 +149,14 @@
   (define replacement (refactoring-result-line-replacement result))
   (define body
     (format #<<EOS
-**`~a`** ~a
+**`~a`:** ~a
 
 ```suggestion
 ~a
 ```
 
-Debugging details below:
+<details>
+<summary>Debugging details</summary>
 
 <details>
   <summary>Textual replacement</summary>
@@ -171,6 +172,7 @@ Debugging details below:
   ```scheme
 ~a
   ```
+</details>
 </details>
 EOS
             (refactoring-result-rule-name result)

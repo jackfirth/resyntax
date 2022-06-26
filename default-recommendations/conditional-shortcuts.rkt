@@ -38,7 +38,7 @@
 
 
 (define-refactoring-rule nested-if-to-cond
-  #:description "This if-else chain can be converted to a cond expression."
+  #:description "This `if`-`else` chain can be converted to a `cond` expression."
   #:literals (cond)
   [nested:nested-if-else
    #:when (> (attribute nested.branches-size) 2)
@@ -90,7 +90,7 @@
 
 
 (define-refactoring-rule always-throwing-if-to-when
-  #:description "Using when and unless is simplier than a conditional with an always-throwing branch."
+  #:description "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   #:literals (if)
   [(header:header-form-allowing-internal-definitions
     (if condition:condition-expression
@@ -103,7 +103,7 @@
 
 
 (define-refactoring-rule always-throwing-cond-to-when
-  #:description "Using when and unless is simplier than a conditional with an always-throwing branch."
+  #:description "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   #:literals (cond)
   [(header:header-form-allowing-internal-definitions
     (cond
@@ -119,7 +119,7 @@
 
 (define-refactoring-rule cond-else-cond-to-cond
   #:description
-  "The else clause of this cond expression is another cond expression and can be flattened."
+  "The `else` clause of this `cond` expression is another `cond` expression and can be flattened."
   #:literals (cond else)
   [((~and outer-cond-id cond)
      clause ... last-non-else-clause

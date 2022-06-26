@@ -24,7 +24,7 @@
 
 
 (define-refactoring-rule nested-or-to-flat-or
-  #:description "Nested or expressions can be flattened to a single, equivalent or expression."
+  #:description "Nested `or` expressions can be flattened into a single, equivalent `or` expression."
   [or-tree
    #:declare or-tree (syntax-tree #'or)
    ;; Restricted to single-line expressions for now because the syntax-tree operations don't preserve
@@ -35,7 +35,7 @@
 
 
 (define-refactoring-rule nested-and-to-flat-and
-  #:description "Nested and expressions can be flattened to a single, equivalent and expression."
+  #:description "Nested `and` expressions can be flattened into a single, equivalent `and` expression."
   [and-tree
    #:declare and-tree (syntax-tree #'and)
    ;; Restricted to single-line expressions for now because the syntax-tree operations don't preserve
@@ -64,21 +64,21 @@
 
 
 (define-refactoring-rule if-then-true-else-false-to-condition
-  #:description "The condition of this if expression is already a boolean and can be used directly."
+  #:description "The condition of this `if` expression is already a boolean and can be used directly."
   #:literals (if)
   [(if condition:likely-boolean #true #false)
    condition])
 
 
 (define-refactoring-rule if-then-false-else-true-to-not
-  #:description "This if expression can be refactored to an equivalent expression using not."
+  #:description "This `if` expression can be refactored to an equivalent expression using `not`."
   #:literals (if)
   [(if condition #false #true)
    (not condition)])
 
 
 (define-refactoring-rule if-else-false-to-and
-  #:description "This if expression can be refactored to an equivalent expression using and."
+  #:description "This `if` expression can be refactored to an equivalent expression using `and`."
   #:literals (if)
   [(if condition then #false)
    (and (ORIGINAL-SPLICE condition then))])
@@ -94,7 +94,7 @@
 
 
 (define-refactoring-rule inverted-unless
-  #:description "This negated unless expression can be replaced by a when expression."
+  #:description "This negated `unless` expression can be replaced by a `when` expression."
   #:literals (unless not)
   [(unless (~and negated (not condition))
      body0 body ...)

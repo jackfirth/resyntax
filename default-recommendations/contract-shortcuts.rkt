@@ -22,7 +22,7 @@
 
 
 (define-refactoring-rule nested-or/c-to-flat-or/c
-  #:description "Nested or/c contracts can be flattened to a single, equivalent or/c contract."
+  #:description "Nested `or/c` contracts can be flattened to a single, equivalent `or/c` contract."
   [or-tree
    #:declare or-tree (syntax-tree #'or/c)
    ;; Restricted to single-line expressions for now because the syntax-tree operations don't preserve
@@ -33,7 +33,7 @@
 
 
 (define-refactoring-rule nested-and/c-to-flat-and/c
-  #:description "Nested and/c contracts can be flattened to a single, equivalent and/c contract."
+  #:description "Nested `and/c` contracts can be flattened to a single, equivalent `and/c` contract."
   [and-tree
    #:declare and-tree (syntax-tree #'and/c)
    ;; Restricted to single-line expressions for now because the syntax-tree operations don't preserve
@@ -44,7 +44,7 @@
 
 
 (define-refactoring-rule explicit-predicate/c-to-predicate/c
-  #:description "This contract is equivalent to the predicate/c contract."
+  #:description "This contract is equivalent to the `predicate/c` contract."
   #:literals (-> any/c boolean?)
   [(-> any/c boolean?)
    predicate/c])
