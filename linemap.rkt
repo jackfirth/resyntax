@@ -41,26 +41,28 @@
   (define line-numbers-by-start-position (make-sorted-map-builder natural<=>))
   (define start-positions-by-line-number (make-vector-builder))
   (define char-count (string-length str))
-  (let loop ([line-number 1] [line-start-position 1] [line-start-index 0] [index 0])
+  (let loop ([line-number 1] [line-start-index 0] [index 0])
     (cond
       [(= index char-count)
        (define last-line (substring str line-start-index index))
        (vector-builder-add lines last-line)
-       (sorted-map-builder-put line-numbers-by-start-position line-start-position line-number)
-       (vector-builder-add start-positions-by-line-number line-start-position)]
+       (sorted-map-builder-put line-numbers-by-start-position (add1 line-start-index) line-number)
+       (vector-builder-add start-positions-by-line-number (add1 line-start-index))]
       [(equal? (string-ref str index) #\newline)
        (define next-line (substring str line-start-index index))
        (vector-builder-add lines next-line)
-       (sorted-map-builder-put line-numbers-by-start-position line-start-position line-number)
-       (vector-builder-add start-positions-by-line-number line-start-position)
+       (sorted-map-builder-put line-numbers-by-start-position (add1 line-start-index) line-number)
+       (vector-builder-add start-positions-by-line-number (add1 line-start-index))
        (define next-index (add1 index))
-       (define next-start-position (add1 (string-utf-8-length str 0 next-index)))
-       (loop (add1 line-number) next-start-position next-index next-index)]
-      [else
-       (loop line-number line-start-position line-start-index (add1 index))]))
+       (loop (add1 line-number) next-index next-index)]
+      [else (loop line-number line-start-index (add1 index))]))
   (linemap (build-vector lines)
            (build-sorted-map line-numbers-by-start-position)
            (build-vector start-positions-by-line-number)))
+
+
+(define (linemap-line map line)
+  (vector-ref (linemap-lines map) (sub1 line)))
 
 
 (define (linemap-position-to-line map position)
@@ -74,7 +76,7 @@
 
 (define (linemap-line-end-position map line)
   (+ (linemap-line-start-position map line)
-     (string-utf-8-length (vector-ref (linemap-lines map) (sub1 line)))))
+     (string-length (linemap-line map line))))
 
 
 (define (linemap-position-to-start-of-line map position)
@@ -102,7 +104,9 @@
     
     (check-equal? (string-linemap "") (linemap #("") (nat-map 1 1) #(1)))
     (check-equal? (string-linemap "a") (linemap #("a") (nat-map 1 1) #(1)))
+    (check-equal? (string-linemap "λ") (linemap #("λ") (nat-map 1 1) #(1)))
     (check-equal? (string-linemap "a\n") (linemap #("a" "") (nat-map 1 1 3 2) #(1 3)))
+    (check-equal? (string-linemap "λ\n") (linemap #("λ" "") (nat-map 1 1 3 2) #(1 3)))
     (check-equal? (string-linemap "aaa\n") (linemap #("aaa" "") (nat-map 1 1 5 2) #(1 5)))
     (check-equal? (string-linemap "aaa\nbbb") (linemap #("aaa" "bbb") (nat-map 1 1 5 2) #(1 5)))
     (check-equal? (string-linemap "aaa\nbbb\n")
