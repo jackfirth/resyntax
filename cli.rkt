@@ -2,6 +2,7 @@
 
 
 (require fancy-app
+         json
          racket/cmdline
          racket/format
          racket/match
@@ -143,8 +144,7 @@ changed relative to baseref are analyzed and fixed."
                   (append-mapping (refactor-file _ #:suite (resyntax-options-suite options)))
                   #:into into-list))
      (define req (refactoring-results->github-review results #:file-count (length files)))
-     (define resp (github-review-request-send req))
-     (printf "Response: ~a\n" resp)]))
+     (write-json (github-review-request-jsexpr req))]))
 
 
 (define (resyntax-fix-run)

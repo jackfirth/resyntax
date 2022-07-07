@@ -7,7 +7,7 @@
 (provide
  (contract-out
   [github-review-request? predicate/c]
-  [github-review-request-send (-> github-review-request? jsexpr?)]
+  [github-review-request-jsexpr (-> github-review-request? jsexpr?)]
   [refactoring-results->github-review
    (-> (sequence/c refactoring-result?) #:file-count exact-nonnegative-integer?
        github-review-request?)]))
