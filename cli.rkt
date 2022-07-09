@@ -6,6 +6,7 @@
          racket/cmdline
          racket/format
          racket/match
+         racket/path
          racket/string
          rebellion/collection/entry
          rebellion/collection/hash
@@ -27,14 +28,16 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-enum-type resyntax-output-mode (output-to-console output-as-github-review))
-(define-record-type resyntax-options (targets suite output-mode))
+(define-enum-type resyntax-output-format (plain-text github-pull-request-review))
+(define-record-type resyntax-analyze-options (targets suite output-format output-destination))
+(define-record-type resyntax-fix-options (targets suite))
 
 
 (define (resyntax-analyze-parse-command-line)
   (define targets (make-vector-builder))
   (define suite default-recommendations)
-  (define output-mode output-to-console)
+  (define output-format plain-text)
+  (define output-destination 'console)
   (command-line
    #:program "resyntax analyze"
    #:multi
@@ -62,11 +65,19 @@ changed relative to baseref are analyzed."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
+   ("--output-to-file"
+    outputpath
+    "Store results in a file instead of printing them to the console."
+    (set! output-destination (simple-form-path outputpath)))
    ("--output-as-github-review"
     "Report results by leaving a GitHub review on the pull request currently being analyzed, as \
 determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
-    (set! output-mode output-as-github-review)))
-  (resyntax-options #:targets (build-vector targets) #:suite suite #:output-mode output-mode))
+    (set! output-format github-pull-request-review)))
+  (resyntax-analyze-options
+   #:targets (build-vector targets)
+   #:suite suite
+   #:output-format output-format
+   #:output-destination output-destination))
 
 
 (define (resyntax-fix-parse-command-line)
@@ -101,7 +112,7 @@ changed relative to baseref are analyzed and fixed."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name))))
-  (resyntax-options #:targets (build-vector targets) #:suite suite #:output-mode output-to-console))
+  (resyntax-fix-options #:targets (build-vector targets) #:suite suite))
 
 
 (define (resyntax-run)
@@ -120,15 +131,16 @@ changed relative to baseref are analyzed and fixed."
 
 (define (resyntax-analyze-run)
   (define options (resyntax-analyze-parse-command-line))
-  (define files (file-groups-resolve (resyntax-options-targets options)))
-  (match (resyntax-options-output-mode options)
-    [(== output-to-console)
-     (printf "resyntax: --- analyzing code ---\n")
-     (define results
-       (transduce files
-                  (append-mapping (refactor-file _ #:suite (resyntax-options-suite options)))
-                  #:into into-list))
-     (printf "resyntax: --- displaying results ---\n")
+  (define files (file-groups-resolve (resyntax-analyze-options-targets options)))
+  (printf "resyntax: --- analyzing code ---\n")
+  (define results
+    (transduce files
+               (append-mapping (refactor-file _ #:suite (resyntax-analyze-options-suite options)))
+               #:into into-list))
+  
+  (define (display-results)
+    (match (resyntax-analyze-options-output-format options)
+      [(== plain-text)
      (for ([result (in-list results)])
        (define path (file-source-path (refactoring-result-source result)))
        (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
@@ -138,22 +150,26 @@ changed relative to baseref are analyzed and fixed."
        (printf "\n\n~a\n\n\n~a\n\n\n"
                (string-indent (~a old-code) #:amount 2)
                (string-indent (~a new-code) #:amount 2)))]
-    [(== output-as-github-review)
-     (define results
-       (transduce files
-                  (append-mapping (refactor-file _ #:suite (resyntax-options-suite options)))
-                  #:into into-list))
+    [(== github-pull-request-review)
      (define req (refactoring-results->github-review results #:file-count (length files)))
      (write-json (github-review-request-jsexpr req))]))
+  
+  (match (resyntax-analyze-options-output-destination options)
+    ['console
+     (printf "resyntax: --- displaying results ---\n")
+     (display-results)]
+    [(? path? output-path)
+     (printf "resyntax: --- writing results to file ---\n")
+     (with-output-to-file output-path display-results #:mode 'text)]))
 
 
 (define (resyntax-fix-run)
   (define options (resyntax-fix-parse-command-line))
-  (define files (file-groups-resolve (resyntax-options-targets options)))
+  (define files (file-groups-resolve (resyntax-fix-options-targets options)))
   (printf "resyntax: --- analyzing code ---\n")
   (define all-results
     (transduce files
-               (append-mapping (refactor-file _ #:suite (resyntax-options-suite options)))
+               (append-mapping (refactor-file _ #:suite (resyntax-fix-options-suite options)))
                #:into into-list))
   (define results-by-path
     (transduce
