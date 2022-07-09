@@ -85,7 +85,7 @@ number of times:
  @item{@exec{--local-git-repository} @nonterm{repository-path} @nonterm{base-ref} --- A local Git
   repository to analyze the changed files of. Only files which have changed relative to
   @nonterm{base-ref} are analyzed. Base references must be given in the form
-  @exec{remotename/branchname}, for example @tech{origin/main} or @tech{upstream/my-feature-branch}.}]
+  @exec{remotename/branchname}, for example @exec{origin/main} or @exec{upstream/my-feature-branch}.}]
 
 
 @subsection{Running @exec{resyntax fix}}
@@ -107,7 +107,7 @@ modules to fix. After analysis, fixes are applied and a summary is printed.
  @item{@exec{--local-git-repository} @nonterm{repository-path} @nonterm{base-ref} --- A local Git
   repository to fix the changed files of. Only files which have changed relative to @nonterm{base-ref}
   are fixed. Base references must be given in the form @exec{remotename/branchname}, for example
-  @tech{origin/main} or @tech{upstream/my-feature-branch}.}]
+  @exec{origin/main} or @exec{upstream/my-feature-branch}.}]
 
 
 If two suggestions try to fix the same code, one of them will be rejected. At present, the best way to
