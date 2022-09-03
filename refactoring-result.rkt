@@ -121,8 +121,6 @@
   (define start (syntax-start-line-position original #:linemap map))
   (define end (syntax-end-line-position original #:linemap map))
   (define original-text (string->immutable-string (substring source-code (sub1 start) (sub1 end))))
-  (printf "DEBUG: original position, start position, end position, span: ~a, ~a, ~a, ~a\nDEBUG: original code lines raw string ~v\nDEBUG: linemap below\n\n~a\n\n"
-          (syntax-position original) start end (syntax-span original) original-text (pretty-format map))
   (in-lines (open-input-string original-text)))
 
 
