@@ -60,7 +60,8 @@
         'repo repo
         'body body
         'event event
-        'comments (map github-review-comment-jsexpr comments)))
+        'comments (map github-review-comment-jsexpr comments)
+        'pull_number pull-number))
 
 
 (define-record-type github-review-comment
