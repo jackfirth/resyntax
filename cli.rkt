@@ -141,18 +141,18 @@ changed relative to baseref are analyzed and fixed."
   (define (display-results)
     (match (resyntax-analyze-options-output-format options)
       [(== plain-text)
-     (for ([result (in-list results)])
-       (define path (file-source-path (refactoring-result-source result)))
-       (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
-       (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
-       (define old-code (refactoring-result-original-code result))
-       (define new-code (refactoring-result-new-code result))
-       (printf "\n\n~a\n\n\n~a\n\n\n"
-               (string-indent (~a old-code) #:amount 2)
-               (string-indent (~a new-code) #:amount 2)))]
-    [(== github-pull-request-review)
-     (define req (refactoring-results->github-review results #:file-count (length files)))
-     (write-json (github-review-request-jsexpr req))]))
+       (for ([result (in-list results)])
+         (define path (file-source-path (refactoring-result-source result)))
+         (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
+         (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
+         (define old-code (refactoring-result-original-code result))
+         (define new-code (refactoring-result-new-code result))
+         (printf "\n\n~a\n\n\n~a\n\n\n"
+                 (string-indent (~a old-code) #:amount 2)
+                 (string-indent (~a new-code) #:amount 2)))]
+      [(== github-pull-request-review)
+       (define req (refactoring-results->github-review results #:file-count (length files)))
+       (write-json (github-review-request-jsexpr req))]))
   
   (match (resyntax-analyze-options-output-destination options)
     ['console
