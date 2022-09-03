@@ -51,8 +51,16 @@
 
 
 (define (github-review-request-jsexpr req)
-  (match-define (github-review-request #:body body #:event event #:comments comments) req)
-  (hash 'body body 'event event 'comments (map github-review-comment-jsexpr comments)))
+  (match-define
+    (github-review-request
+     #:owner-repo owner-repo #:pull-number pull-number #:body body #:event event #:comments comments)
+    req)
+  (match-define (list owner repo) (string-split owner-repo "/"))
+  (hash 'owner owner
+        'repo repo
+        'body body
+        'event event
+        'comments (map github-review-comment-jsexpr comments)))
 
 
 (define-record-type github-review-comment
