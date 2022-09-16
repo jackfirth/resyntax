@@ -18,7 +18,7 @@
                   define/private)
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/syntax-replacement
+         resyntax/private/syntax-replacement
          syntax/parse
          syntax/parse/lib/function-header)
 

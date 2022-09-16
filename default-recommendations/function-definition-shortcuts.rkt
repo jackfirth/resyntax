@@ -17,7 +17,7 @@
          resyntax/default-recommendations/private/syntax-lines
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/syntax-replacement
+         resyntax/private/syntax-replacement
          syntax/parse)
 
 

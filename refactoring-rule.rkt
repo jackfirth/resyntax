@@ -21,7 +21,7 @@
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/type/object
-         resyntax/syntax-replacement
+         resyntax/private/syntax-replacement
          syntax/parse
          syntax/parse/define)
 

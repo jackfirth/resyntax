@@ -14,7 +14,7 @@
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/syntax-replacement
+         resyntax/private/syntax-replacement
          syntax/parse)
 
 
