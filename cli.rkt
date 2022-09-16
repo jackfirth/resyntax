@@ -18,11 +18,11 @@
          rebellion/type/record
          resyntax
          resyntax/default-recommendations
-         resyntax/file-group
+         resyntax/private/file-group
          resyntax/private/github
          resyntax/private/string-indent
-         resyntax/refactoring-result
-         resyntax/source)
+         resyntax/private/refactoring-result
+         resyntax/private/source)
 
 
 ;@----------------------------------------------------------------------------------------------------

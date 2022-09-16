@@ -31,7 +31,7 @@
          rebellion/private/guarded-block
          rebellion/private/static-name
          rebellion/type/record
-         resyntax/string-replacement
+         resyntax/private/string-replacement
          syntax/parse)
 
 

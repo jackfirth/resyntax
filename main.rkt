@@ -23,16 +23,16 @@
          rebellion/collection/hash
          rebellion/collection/list
          rebellion/streaming/transducer
-         resyntax/code-snippet
+         resyntax/private/code-snippet
          resyntax/default-recommendations
          resyntax/private/comment-reader
-         resyntax/refactoring-result
+         resyntax/private/refactoring-result
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
          resyntax/refactoring-suite
-         resyntax/source
-         resyntax/string-replacement
-         resyntax/syntax-replacement)
+         resyntax/private/source
+         resyntax/private/string-replacement
+         resyntax/private/syntax-replacement)
 
 
 ;@----------------------------------------------------------------------------------------------------

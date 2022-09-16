@@ -34,12 +34,12 @@
          rebellion/base/immutable-string
          rebellion/base/symbol
          rebellion/type/record
-         resyntax/code-snippet
-         resyntax/line-replacement
-         resyntax/linemap
-         resyntax/source
-         resyntax/string-replacement
-         resyntax/syntax-replacement)
+         resyntax/private/code-snippet
+         resyntax/private/line-replacement
+         resyntax/private/linemap
+         resyntax/private/source
+         resyntax/private/string-replacement
+         resyntax/private/syntax-replacement)
 
 
 ;@----------------------------------------------------------------------------------------------------

@@ -25,11 +25,11 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
-         resyntax/refactoring-result
-         resyntax/line-replacement
+         resyntax/private/refactoring-result
+         resyntax/private/line-replacement
          resyntax/private/run-command
          resyntax/private/string-indent
-         resyntax/source
+         resyntax/private/source
          uri-old)
 
 

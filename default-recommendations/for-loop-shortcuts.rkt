@@ -21,7 +21,7 @@
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/syntax-replacement
+         resyntax/private/syntax-replacement
          syntax/parse)
 
 
