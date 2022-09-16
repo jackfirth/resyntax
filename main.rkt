@@ -8,7 +8,7 @@
  (contract-out
   [refactor! (-> (sequence/c refactoring-result?) void?)]
   [refactor (->* (string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
-  [refactor-file (->* (path-string?) (#:suite refactoring-suite?) (listof refactoring-result?))]))
+  [refactor-file (->* (file-portion?) (#:suite refactoring-suite?) (listof refactoring-result?))]))
 
 
 (require fancy-app
@@ -16,23 +16,21 @@
          racket/port
          racket/sequence
          racket/syntax-srcloc
-         rebellion/base/immutable-string
          rebellion/base/option
-         rebellion/base/symbol
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
          rebellion/streaming/transducer
-         resyntax/private/code-snippet
          resyntax/default-recommendations
          resyntax/private/comment-reader
+         resyntax/private/file-group
          resyntax/private/refactoring-result
-         resyntax/refactoring-rule
-         (submod resyntax/refactoring-rule private)
-         resyntax/refactoring-suite
          resyntax/private/source
          resyntax/private/string-replacement
-         resyntax/private/syntax-replacement)
+         resyntax/private/syntax-replacement
+         resyntax/refactoring-rule
+         (submod resyntax/refactoring-rule private)
+         resyntax/refactoring-suite)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -82,8 +80,9 @@
      #:into into-list)))
 
 
-(define (refactor-file path-string #:suite [suite default-recommendations])
-  (define path (simple-form-path path-string))
+(define (refactor-file portion #:suite [suite default-recommendations])
+  (define path (file-portion-path portion))
+  (define lines (file-portion-lines portion))
   (printf "resyntax: analyzing ~a\n" path)
   (define rule-list (refactoring-suite-rules suite))
   (define source (file-source path))
@@ -95,7 +94,7 @@
   (with-handlers ([exn:fail:syntax? skip]
                   [exn:fail:filesystem:missing-module? skip])
     (parameterize ([current-namespace (make-base-namespace)])
-      (define analysis (source-analyze source))
+      (define analysis (source-analyze source #:lines lines))
       (define comments (with-input-from-file path read-comment-locations))
       (transduce
        (source-code-analysis-visited-forms analysis)

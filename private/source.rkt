@@ -11,7 +11,7 @@
   [source-directory (-> source? (or/c path? #false))]
   [source-read-syntax (-> source? syntax?)]
   [source-produced-syntax? (-> source? syntax? boolean?)]
-  [source-analyze (-> source? source-code-analysis?)]
+  [source-analyze (-> source? #:lines range-set? source-code-analysis?)]
   [file-source? predicate/c]
   [file-source (-> path-string? file-source?)]
   [file-source-path (-> file-source? path?)]
@@ -31,10 +31,12 @@
          rebellion/base/comparator
          rebellion/base/immutable-string
          rebellion/collection/list
+         rebellion/collection/range-set
          rebellion/private/guarded-block
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/private/linemap
          syntax/modread)
 
 
@@ -77,8 +79,9 @@
   (path-only path))
 
 
-(define (source-analyze code)
+(define (source-analyze code #:lines lines)
   (parameterize ([current-directory (or (source-directory code) (current-directory))])
+    (define code-linemap (string-linemap (source->string code)))
     (define stx (source-read-syntax code))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define visits-by-location (make-hash))
@@ -87,6 +90,8 @@
         (void))
       (define loc (syntax-source-location val))
       (guard (hash-has-key? visits-by-location loc) then
+        (void))
+      (guard (range-set-intersects? lines (syntax-line-range stx #:linemap code-linemap)) else
         (void))
       (hash-set! visits-by-location loc val))
     (parameterize ([current-expand-observe observe-event!])

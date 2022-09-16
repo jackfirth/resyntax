@@ -14,11 +14,13 @@
   [linemap-position-to-start-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
   [linemap-position-to-end-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
   [syntax-start-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
-  [syntax-end-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]))
+  [syntax-end-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
+  [syntax-line-range (-> syntax? #:linemap linemap? range?)]))
 
 
 (require rebellion/base/comparator
          rebellion/base/option
+         rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/sorted-map
          rebellion/collection/vector/builder
@@ -93,6 +95,11 @@
 
 (define (syntax-end-line-position stx #:linemap map)
   (linemap-position-to-end-of-line map (+ (syntax-position stx) (syntax-span stx))))
+
+
+(define (syntax-line-range stx #:linemap map)
+  (define end-line (linemap-position-to-line map (+ (syntax-position stx) (syntax-span stx))))
+  (closed-range (syntax-line stx) end-line #:comparator natural<=>))
 
 
 (module+ test
