@@ -8,9 +8,12 @@
          racket/match
          racket/path
          racket/string
+         rebellion/base/comparator
+         rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
+         rebellion/collection/range-set
          rebellion/collection/vector/builder
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -33,6 +36,9 @@
 (define-record-type resyntax-fix-options (targets suite))
 
 
+(define all-lines (range-set (unbounded-range #:comparator natural<=>)))
+
+
 (define (resyntax-analyze-parse-command-line)
   (define targets (make-vector-builder))
   (define suite default-recommendations)
@@ -41,7 +47,10 @@
   (command-line
    #:program "resyntax analyze"
    #:multi
-   ("--file" filepath "A file to analyze." (vector-builder-add targets (single-file-group filepath)))
+   ("--file"
+    filepath
+    "A file to analyze."
+    (vector-builder-add targets (single-file-group filepath all-lines)))
    ("--directory"
     dirpath
     "A directory to anaylze, including subdirectories."
@@ -88,7 +97,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (command-line
    #:program "resyntax fix"
    #:multi
-   ("--file" filepath "A file to fix." (add-target! (single-file-group filepath)))
+   ("--file" filepath "A file to fix." (add-target! (single-file-group filepath all-lines)))
    ("--directory"
     dirpath
     "A directory to fix, including subdirectories."

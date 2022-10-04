@@ -13,7 +13,7 @@
   [file-groups-resolve (-> (sequence/c file-group?) (listof file-portion?))]
   [file-group? predicate/c]
   [single-file-group? predicate/c]
-  [single-file-group (-> path-string? single-file-group?)]
+  [single-file-group (-> path-string? immutable-range-set? single-file-group?)]
   [directory-file-group? predicate/c]
   [directory-file-group (-> path-string? directory-file-group?)]
   [package-file-group? predicate/c]
@@ -35,6 +35,7 @@
          rebellion/collection/range-set
          rebellion/private/guarded-block
          rebellion/streaming/transducer
+         resyntax/private/git
          resyntax/private/run-command)
 
 
@@ -51,7 +52,7 @@
 
 (struct single-file-group file-group (path ranges)
   #:transparent
-  #:guard (λ (path _) (simple-form-path path)))
+  #:guard (λ (path ranges _) (values (simple-form-path path) ranges)))
 
 
 (struct directory-file-group file-group (path)
@@ -97,10 +98,9 @@
          (file-portion file (range-set (unbounded-range #:comparator natural<=>))))]
       [(git-repository-file-group repository-path ref)
        (parameterize ([current-directory repository-path])
-         (define null-separated-filenames
-           (run-command "git" "diff" "--name-only" "-z" "--diff-filter=AM" ref "--"))
-         (for/list ([file (string-split null-separated-filenames "\0")])
-           (file-portion file (range-set (unbounded-range #:comparator natural<=>)))))]))
+         (define diff-lines (git-diff-modified-lines ref))
+         (for/list ([(file lines) (in-hash diff-lines)])
+           (file-portion file lines)))]))
   (transduce files (filtering rkt-file?) #:into into-list))
 
 
