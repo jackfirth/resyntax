@@ -56,7 +56,9 @@
             (raise (exn:fail:refactoring message (current-continuation-marks) rule syntax e)))])
       (option-map
        (option-filter
-        (refactoring-rule-refactor rule syntax)
+        (option-filter
+         (refactoring-rule-refactor rule syntax)
+         syntax-replacement-preserves-free-identifiers?)
         (syntax-replacement-preserves-comments? _ comments))
        (refactoring-result
         #:source source

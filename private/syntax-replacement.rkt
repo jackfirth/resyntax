@@ -12,11 +12,15 @@
  (contract-out
   [syntax-replacement? predicate/c]
   [syntax-replacement
-   (-> #:original-syntax (and/c syntax? syntax-original?) #:new-syntax syntax? syntax-replacement?)]
+   (-> #:original-syntax (and/c syntax? syntax-original?)
+       #:new-syntax syntax?
+       #:introduction-scope (->* (syntax?) ((or/c 'flip 'add 'remove)) syntax?)
+       syntax-replacement?)]
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
   [syntax-replacement-template-drop-leading-newline (-> syntax? syntax?)]
+  [syntax-replacement-preserves-free-identifiers? (-> syntax-replacement? boolean?)]
   [syntax-replacement-preserves-comments? (-> syntax-replacement? range-set? boolean?)]))
 
 
@@ -79,7 +83,8 @@
     [_ template-stx]))
 
 
-(define-record-type syntax-replacement (original-syntax new-syntax))
+(define-record-type syntax-replacement
+  (original-syntax new-syntax introduction-scope))
 
 
 (define/guard (syntax-replacement-template-infer-spaces template)
@@ -276,7 +281,8 @@
        (define replacement
          (syntax-replacement
           #:original-syntax orig-stx
-          #:new-syntax new-stx))
+          #:new-syntax new-stx
+          #:introduction-scope flip))
        (define expected
          (string-replacement
           #:start orig-start
@@ -293,6 +299,35 @@
            (copied-string (+ orig-start 10) (+ orig-start 11))
            (inserted-string ")"))))
        (check-equal? (syntax-replacement-render replacement) expected)])))
+
+
+(define (syntax-replacement-preserves-free-identifiers? replacement)
+  (match replacement
+    [(syntax-replacement #:original-syntax orig
+                         #:new-syntax new
+                         #:introduction-scope intro)
+     ((stx-free-ids=?/ignore
+       (ignore-id? intro (list #'SPACE #'NEWLINE #'ORIGINAL-GAP #'ORIGINAL-SPLICE)))
+      new
+      (datum->syntax orig (syntax->datum new)))]))
+
+;; ignore-id? : (Syntax -> Syntax) (Listof Id) -> Id -> Boolean
+(define ((ignore-id? scope ignore) id)
+  (or (member id ignore free-identifier=?)
+      (bound-identifier=? id (scope id 'remove))))
+
+;; stx-e : Stx -> Any
+(define (stx-e stx) (if (syntax? stx) (syntax-e stx) stx))
+
+;; stx-free-ids=?/only : (Id -> Boolean) -> Stx Stx -> Boolean
+(define (stx-free-ids=?/ignore ignore?)
+  (define (stx-free-ids=? a b)
+    (cond
+      [(and (identifier? a) (identifier? b))
+       (or (free-identifier=? a b) (and (ignore? a) (ignore? b)))]
+      [else
+       (equal?/recur (stx-e a) (stx-e b) stx-free-ids=?)]))
+  stx-free-ids=?)
 
 
 (define (syntax-replacement-preserves-comments? replacement all-comment-locations)

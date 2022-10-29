@@ -267,3 +267,9 @@ test: "cond with nested cond in last clause without else can't be flattened"
        [else
         (displayln "else")])]))
 ------------------------------
+
+test: "`if-else-false-to-and` is not refactorable when `and` is shadowed"
+------------------------------
+(define (and x y) (list x y))
+(if 'a (println "true branch") #f)
+------------------------------
