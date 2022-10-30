@@ -312,3 +312,46 @@ test: "shadowed `define-syntax-rule`: single-clause syntax-rules macro"
      (let ([tmp a])
        (if a a b))]))
 ------------------------------
+
+
+test: "shadowed `define-syntax-rule` using `define-syntax-parse-rule` after"
+------------------------------
+(define-syntax my-or
+  (syntax-rules ()
+    [(my-or a b)
+     (let ([tmp a])
+       (if a a b))]))
+(begin
+  (define-syntax-parse-rule (define-syntax-rule new old)
+    (define-syntax-parse-rule (new . args) (old . args)))
+  (define-syntax-rule def define)
+  (def x 5)
+  x)
+------------------------------
+
+
+test: "`define-syntax-rule` isn't actually shadowed in this scope"
+------------------------------
+(define-syntax my-or
+  (syntax-rules ()
+    [(my-or a b)
+     (let ([tmp a])
+       (if a a b))]))
+(let ()
+  (define-syntax-parse-rule (define-syntax-rule new old)
+    (define-syntax-parse-rule (new . args) (old . args)))
+  (define-syntax-rule def define)
+  (def x 5)
+  x)
+------------------------------
+------------------------------
+(define-syntax-rule (my-or a b)
+  (let ([tmp a])
+    (if a a b)))
+(let ()
+  (define-syntax-parse-rule (define-syntax-rule new old)
+    (define-syntax-parse-rule (new . args) (old . args)))
+  (define-syntax-rule def define)
+  (def x 5)
+  x)
+------------------------------
