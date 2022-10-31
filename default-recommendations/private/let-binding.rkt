@@ -18,6 +18,7 @@
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/default-recommendations/private/graph
+         resyntax/private/source
          resyntax/private/syntax-replacement
          syntax/id-set
          syntax/parse
@@ -42,6 +43,8 @@
 
     #:when (no-binding-overlap?
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
+
+    #:when (no-binding-conflicts? (attribute bindings.bound-id) #'body.scopes)
 
     #:when (attribute bindings.fully-refactorable?)
     #:with (refactored ...) #'(bindings.outer-definition ... body.formatted ...))
@@ -69,6 +72,8 @@
     #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
                                 (in-syntax #'(bindings.inner-bound-id ...)))
 
+    #:when (no-binding-conflicts? (attribute bindings.bound-id) #'inner-body.scopes)
+
     #:when (attribute bindings.fully-refactorable?)
 
     #:with (refactored ...)
@@ -85,6 +90,8 @@
                                 (in-syntax #'(bindings.outer-bound-id ...)))
     #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
                                 (in-syntax #'(bindings.inner-bound-id ...)))
+
+    #:when (no-binding-conflicts? (attribute bindings.bound-id) #'inner-body.scopes)
 
     #:when (attribute bindings.fully-refactorable?)
     
@@ -142,13 +149,16 @@
 
 
 (define-syntax-class refactorable-let-bindings
-  #:attributes ([outer-bound-id 1]
+  #:attributes ([bound-id 1]
+                [outer-bound-id 1]
                 [inner-bound-id 1]
                 [outer-definition 1]
                 [inner-definition 1]
                 fully-refactorable?
                 unrefactorable)
   (pattern (clause:binding-clause ...)
+    #:with (bound-id ...)
+    (append-map parsed-binding-clause-bound-identifiers (attribute clause.parsed))
     #:do
     [(define parsed-clauses (vector->immutable-vector (list->vector (attribute clause.parsed))))
      (define deps (let-binding-clause-dependencies parsed-clauses))
@@ -168,13 +178,16 @@
 
 
 (define-syntax-class refactorable-let*-bindings
-  #:attributes ([outer-bound-id 1]
+  #:attributes ([bound-id 1]
+                [outer-bound-id 1]
                 [inner-bound-id 1]
                 [outer-definition 1]
                 [inner-definition 1]
                 fully-refactorable?
                 unrefactorable)
   (pattern (clause:binding-clause ...)
+    #:with (bound-id ...)
+    (append-map parsed-binding-clause-bound-identifiers (attribute clause.parsed))
     #:do
     [(define parsed-clauses (vector->immutable-vector (list->vector (attribute clause.parsed))))
      (define deps (let-binding-clause-dependencies parsed-clauses))
@@ -226,6 +239,12 @@
     (check-false (no-binding-overlap? (in-syntax #'(a b c)) (in-syntax #'(c d e))))
     (check-true (no-binding-overlap? (in-syntax #'(a b c)) '()))
     (check-true (no-binding-overlap? '() (in-syntax #'(d e f))))))
+
+
+(define (no-binding-conflicts? ids body-scopes)
+  (for/and ([x (in-list ids)])
+    (free-identifier=? (or (scopes-by-location x) x)
+                       (datum->syntax body-scopes (syntax-e x)))))
 
 
 (define-record-type parsed-binding-clause
@@ -420,8 +439,11 @@
 
 
 (define-splicing-syntax-class body-forms
-  #:attributes ([bound-id 1] [formatted 1])
+  #:attributes (scopes [bound-id 1] [formatted 1])
   (pattern (~seq form:body-form ...)
+    #:with scopes (or (for/first ([b (in-list (reverse (attribute form)))])
+                        (scopes-by-location b))
+                      (and (pair? (attribute form)) (last (attribute form))))
     #:with (bound-id ...) #'(form.bound-id ... ...)
     #:with (formatted ...) #'((~@ NEWLINE form) ...)))
 
