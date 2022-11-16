@@ -56,10 +56,23 @@
   #:guard (λ (contents _) (string->immutable-string contents)))
 
 
+;; source-code-analysis has fields:
+;;  * code: source, the input of the analysis
+;;  * visited-forms: (Listof Syntax), sorted by source location, containing
+;;      forms visited by the expander, with scopes put on them by expansion
+;;      steps in the surrounding context, but not yet expanded themselves
+;;  * scopes-by-location: (-> Syntax (U #f Syntax)), attempts to find the syntax
+;;      object with a matching source location that has the scopes from its
+;;      surrounding context properly added
+;;    For example, in `(let ([x a]) b)`, the expander expands it to
+;;    `(let-values ([(x) a]) b)` and adds letX-renames scopes to `x` and `b`.
+;;    The `scopes-by-location` function produces the versions of `x` and `b`
+;;    with those scopes.
 (define-record-type source-code-analysis (code visited-forms scopes-by-location))
 (define-record-type source-location (source line column position span))
 
 
+;; see the description of the scopes-by-location field of source-code-analysis
 (define (scopes-by-location stx)
   ((current-scopes-by-location) stx))
 (define current-scopes-by-location
@@ -94,18 +107,23 @@
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define visits-by-location (make-hash))
     (define others-by-location (make-hash))
-    (define/guard (add-original-location! hsh stx)
-      (guard (and (syntax? stx) (syntax-original? stx)) else (void))
-      (define loc (syntax-source-location stx))
-      (guard (hash-has-key? hsh loc) then (void))
-      (hash-set! hsh loc stx))
+    (define (add-original-location! hsh stx)
+      (when (and (syntax? stx) (syntax-original? stx))
+        (hash-ref! hsh (syntax-source-location stx) stx)))
     (define/match (observe-event! sig val)
       [('visit val)
        (add-original-location! visits-by-location val)]
+      ;; For more information on `letX-renames`, see the `make-let-values-form`
+      ;; function in the Racket Expander where it logs `letX-renames` events:
+      ;; https://github.com/racket/racket/blob/b4a85f54c20cc246d521a4cc7ea4d8c2b52a7e59/racket/src/expander/expand/expr.rkt#L248
       [('letX-renames (list-rest trans-idss _ val-idss _))
-       (for* ([trans-ids (in-list trans-idss)] [trans-id (in-list trans-ids)])
+       ;; When the expander adds scopes to `let-syntax`, it uses `trans-idss`.
+       (for* ([trans-ids (in-list trans-idss)]
+              [trans-id (in-list trans-ids)])
          (add-original-location! others-by-location trans-id))
-       (for* ([val-ids (in-list val-idss)] [val-id (in-list val-ids)])
+       ;; When the expander adds scopes to `let-values`, it uses `val-idss`.
+       (for* ([val-ids (in-list val-idss)]
+              [val-id (in-list val-ids)])
          (add-original-location! others-by-location val-id))]
       [(_ _) (void)])
     (parameterize ([current-expand-observe observe-event!])
