@@ -36,6 +36,8 @@
          rebellion/private/static-name
          rebellion/type/record
          resyntax/private/string-replacement
+         (only-in resyntax/default-recommendations/private/syntax-identifier-sets
+                  in-syntax-identifiers)
          syntax/parse)
 
 
@@ -306,28 +308,11 @@
     [(syntax-replacement #:original-syntax orig
                          #:new-syntax new
                          #:introduction-scope intro)
-     ((stx-free-ids=?/ignore
-       (ignore-id? intro (list #'SPACE #'NEWLINE #'ORIGINAL-GAP #'ORIGINAL-SPLICE)))
-      new
-      (datum->syntax orig (syntax->datum new)))]))
-
-;; ignore-id? : (Syntax -> Syntax) (Listof Id) -> Id -> Boolean
-(define ((ignore-id? scope ignore) id)
-  (or (member id ignore free-identifier=?)
-      (bound-identifier=? id (scope id 'remove))))
-
-;; stx-e : Stx -> Any
-(define (stx-e stx) (if (syntax? stx) (syntax-e stx) stx))
-
-;; stx-free-ids=?/only : (Id -> Boolean) -> Stx Stx -> Boolean
-(define (stx-free-ids=?/ignore ignore?)
-  (define (stx-free-ids=? a b)
-    (cond
-      [(and (identifier? a) (identifier? b))
-       (or (free-identifier=? a b) (and (ignore? a) (ignore? b)))]
-      [else
-       (equal?/recur (stx-e a) (stx-e b) stx-free-ids=?)]))
-  stx-free-ids=?)
+     (define ignore (list #'SPACE #'NEWLINE #'ORIGINAL-GAP #'ORIGINAL-SPLICE))
+     (for/and ([new-id (in-syntax-identifiers new)]
+               #:unless (member new-id ignore free-identifier=?)
+               #:unless (bound-identifier=? new-id (intro new-id 'remove)))
+       (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id))))]))
 
 
 (define (syntax-replacement-preserves-comments? replacement all-comment-locations)
