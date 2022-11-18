@@ -243,7 +243,7 @@
 
 (define (no-binding-conflicts? ids body-scopes)
   (for/and ([x (in-list ids)])
-    (free-identifier=? (or (scopes-by-location x) x)
+    (free-identifier=? (or (get-scopes-by-location x) x)
                        (datum->syntax body-scopes (syntax-e x)))))
 
 
@@ -442,7 +442,7 @@
   #:attributes (scopes [bound-id 1] [formatted 1])
   (pattern (~seq form:body-form ...)
     #:with scopes (or (for/first ([b (in-list (reverse (attribute form)))])
-                        (scopes-by-location b))
+                        (get-scopes-by-location b))
                       (and (pair? (attribute form)) (last (attribute form))))
     #:with (bound-id ...) #'(form.bound-id ... ...)
     #:with (formatted ...) #'((~@ NEWLINE form) ...)))

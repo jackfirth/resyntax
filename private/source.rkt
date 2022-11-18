@@ -22,12 +22,14 @@
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [source-code-analysis-scopes-by-location
-   (-> source-code-analysis? (-> syntax? (or/c #f syntax?)))]
-  [scopes-by-location (-> syntax? (or/c #f syntax?))]
-  [current-scopes-by-location (parameter/c (-> syntax? (or/c #f syntax?)))]))
+   (-> source-code-analysis? (hash/c source-location? syntax? #:immutable #t))]
+  [get-scopes-by-location (-> syntax? (or/c #f syntax?))]
+  [current-scopes-by-location
+   (parameter/c (hash/c source-location? syntax? #:immutable #t))]))
 
 
 (require racket/file
+         racket/hash
          racket/match
          racket/path
          racket/port
@@ -61,23 +63,20 @@
 ;;  * visited-forms: (Listof Syntax), sorted by source location, containing
 ;;      forms visited by the expander, with scopes put on them by expansion
 ;;      steps in the surrounding context, but not yet expanded themselves
-;;  * scopes-by-location: (-> Syntax (U #f Syntax)), attempts to find the syntax
-;;      object with a matching source location that has the scopes from its
-;;      surrounding context properly added
+;;  * scopes-by-location: (ImmHashOf source-location Syntax), containing
+;;      syntax objects that have the scopes from their surrounding context
 ;;    For example, in `(let ([x a]) b)`, the expander expands it to
 ;;    `(let-values ([(x) a]) b)` and adds letX-renames scopes to `x` and `b`.
-;;    The `scopes-by-location` function produces the versions of `x` and `b`
+;;    The `scopes-by-location` table contains the versions of `x` and `b`
 ;;    with those scopes.
 (define-record-type source-code-analysis (code visited-forms scopes-by-location))
 (define-record-type source-location (source line column position span))
 
 
 ;; see the description of the scopes-by-location field of source-code-analysis
-(define (scopes-by-location stx)
-  ((current-scopes-by-location) stx))
-(define current-scopes-by-location
-  (let ([scopes-by-location (λ (stx) #f)])
-    (make-parameter scopes-by-location)))
+(define (get-scopes-by-location stx)
+  (hash-ref (current-scopes-by-location) (syntax-source-location stx) #f))
+(define current-scopes-by-location (make-parameter (hash)))
 
 
 (define (source->string code)
@@ -128,9 +127,9 @@
       [(_ _) (void)])
     (parameterize ([current-expand-observe observe-event!])
       (expand stx))
-    (define (scopes-by-location stx)
-      (define loc (syntax-source-location stx))
-      (hash-ref visits-by-location loc (λ () (hash-ref others-by-location loc #f))))
+    (define scopes-by-location
+      (hash-union (hash) visits-by-location others-by-location
+                  #:combine (λ (a b) a)))
     (define visited
       (transduce (in-hash-pairs visits-by-location)
                  (sorting syntax-source-location<=> #:key car)
