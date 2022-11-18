@@ -441,7 +441,7 @@
 (define-splicing-syntax-class body-forms
   #:attributes (scopes [bound-id 1] [formatted 1])
   (pattern (~seq form:body-form ...)
-    #:with scopes (or (for/first ([b (in-list (reverse (attribute form)))])
+    #:with scopes (or (for/or ([b (in-list (reverse (attribute form)))])
                         (get-scopes-by-location b))
                       (and (pair? (attribute form)) (last (attribute form))))
     #:with (bound-id ...) #'(form.bound-id ... ...)
