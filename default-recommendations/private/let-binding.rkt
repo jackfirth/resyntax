@@ -155,8 +155,7 @@
                 [inner-bound-id 1]
                 [outer-definition 1]
                 [inner-definition 1]
-                fully-refactorable?
-                unrefactorable)
+                fully-refactorable?)
   (pattern (clause:binding-clause ...)
     #:with (bound-id ...)
     (append-map parsed-binding-clause-bound-identifiers (attribute clause.parsed))
@@ -174,8 +173,7 @@
     #:with (outer-bound-id ...) (split-bindings-outer-ids split)
     #:with (inner-bound-id ...) (split-bindings-inner-ids split)
     #:with (outer-definition ...) (split-bindings-outer-definitions split)
-    #:with (inner-definition ...) (split-bindings-inner-definitions split)
-    #:with unrefactorable (split-bindings-unrefactorable split)))
+    #:with (inner-definition ...) (split-bindings-inner-definitions split)))
 
 
 (define-syntax-class refactorable-let*-bindings
@@ -184,8 +182,7 @@
                 [inner-bound-id 1]
                 [outer-definition 1]
                 [inner-definition 1]
-                fully-refactorable?
-                unrefactorable)
+                fully-refactorable?)
   (pattern (clause:binding-clause ...)
     #:with (bound-id ...)
     (append-map parsed-binding-clause-bound-identifiers (attribute clause.parsed))
@@ -203,8 +200,7 @@
     #:with (outer-bound-id ...) (split-bindings-outer-ids split)
     #:with (inner-bound-id ...) (split-bindings-inner-ids split)
     #:with (outer-definition ...) (split-bindings-outer-definitions split)
-    #:with (inner-definition ...) (split-bindings-inner-definitions split)
-    #:with unrefactorable (split-bindings-unrefactorable split)))
+    #:with (inner-definition ...) (split-bindings-inner-definitions split)))
 
 
 (define (sequence->bound-id-set ids)
@@ -422,13 +418,6 @@
     (for/list ([after (in-list (split-bindings-after-cycles split))])
       (parsed-binding-clause-definition after)))
   #'((~@ NEWLINE definition) ...))
-
-
-(define (split-bindings-unrefactorable split)
-  #`(#,@(add-between
-         (for/list ([clause (in-list (split-bindings-cycles split))])
-           (parsed-binding-clause-original clause))
-         #'NEWLINE)))
 
 
 (define-syntax-class body-form
