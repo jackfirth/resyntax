@@ -44,7 +44,9 @@
   (λ (this) (list (syntax-srcloc (exn:fail:refactoring-syntax this)))))
 
 
-(define (refactoring-rules-refactor rules syntax source comments)
+(define (refactoring-rules-refactor rules syntax
+                                    #:comments comments
+                                    #:analysis analysis)
 
   (define (refactor rule)
     (with-handlers
@@ -57,11 +59,11 @@
       (option-map
        (option-filter
         (option-filter
-         (refactoring-rule-refactor rule syntax)
+         (refactoring-rule-refactor rule syntax #:analysis analysis)
          syntax-replacement-preserves-free-identifiers?)
         (syntax-replacement-preserves-comments? _ comments))
        (refactoring-result
-        #:source source
+        #:source (source-code-analysis-code analysis)
         #:rule-name (object-name rule)
         #:message (refactoring-rule-description rule)
         #:replacement _))))
@@ -78,12 +80,13 @@
   (define comments (with-input-from-string code-string read-comment-locations))
   (parameterize ([current-namespace (make-base-namespace)])
     (define analysis (source-analyze source))
-    (parameterize ([current-scopes-by-location
-                    (source-code-analysis-scopes-by-location analysis)])
-      (transduce
-       (source-code-analysis-visited-forms analysis)
-       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
-       #:into into-list))))
+    (transduce
+     (source-code-analysis-visited-forms analysis)
+     (append-mapping
+      (λ (stx)
+        (in-option
+         (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))))
+     #:into into-list)))
 
 
 (define (refactor-file path-string #:suite [suite default-recommendations])
@@ -104,7 +107,9 @@
       (transduce
        (source-code-analysis-visited-forms analysis)
        (append-mapping
-        (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
+        (λ (stx)
+          (in-option
+           (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))))
        #:into into-list))))
 
 

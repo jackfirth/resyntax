@@ -22,10 +22,8 @@
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [source-code-analysis-scopes-by-location
-   (-> source-code-analysis? (hash/c source-location? syntax? #:immutable #t))]
-  [get-scopes-by-location (-> syntax? (or/c #f syntax?))]
-  [current-scopes-by-location
-   (parameter/c (hash/c source-location? syntax? #:immutable #t))]))
+   (-> source-code-analysis? (hash/c source-location? syntax? #:immutable #true))]
+  [syntax-source-location (-> syntax? source-location?)]))
 
 
 (require racket/file
@@ -33,7 +31,6 @@
          racket/match
          racket/path
          racket/port
-         racket/pretty
          rebellion/base/comparator
          rebellion/base/immutable-string
          rebellion/collection/list
@@ -71,12 +68,6 @@
 ;;    with those scopes.
 (define-record-type source-code-analysis (code visited-forms scopes-by-location))
 (define-record-type source-location (source line column position span))
-
-
-;; see the description of the scopes-by-location field of source-code-analysis
-(define (get-scopes-by-location stx)
-  (hash-ref (current-scopes-by-location) (syntax-source-location stx) #f))
-(define current-scopes-by-location (make-parameter (hash)))
 
 
 (define (source->string code)
