@@ -20,6 +20,7 @@
          resyntax/default-recommendations/private/graph
          resyntax/private/source
          resyntax/private/syntax-replacement
+         resyntax/refactoring-rule
          syntax/id-set
          syntax/parse
          syntax/parse/lib/function-header
@@ -241,10 +242,14 @@
     (check-true (no-binding-overlap? '() (in-syntax #'(d e f))))))
 
 
-(define (no-binding-conflicts? ids body-scopes)
+(define/guard (no-binding-conflicts? ids body-scopes)
+  (define analysis (current-source-code-analysis))
   (for/and ([x (in-list ids)])
-    (free-identifier=? (or (get-scopes-by-location x) x)
-                       (datum->syntax body-scopes (syntax-e x)))))
+    (define x*
+      (if analysis
+          (hash-ref (source-code-analysis-scopes-by-location analysis) (syntax-source-location x) x)
+          x))
+    (free-identifier=? x* (datum->syntax body-scopes (syntax-e x)))))
 
 
 (define-record-type parsed-binding-clause
@@ -441,9 +446,14 @@
 (define-splicing-syntax-class body-forms
   #:attributes (scopes [bound-id 1] [formatted 1])
   (pattern (~seq form:body-form ...)
-    #:with scopes (or (for/or ([b (in-list (reverse (attribute form)))])
-                        (get-scopes-by-location b))
-                      (and (pair? (attribute form)) (last (attribute form))))
+    #:with scopes
+    (or (for/or ([b (in-list (reverse (attribute form)))])
+          (define analysis (current-source-code-analysis))
+          (and analysis
+               (hash-ref (source-code-analysis-scopes-by-location analysis)
+                         (syntax-source-location b)
+                         #false)))
+        (and (pair? (attribute form)) (last (attribute form))))
     #:with (bound-id ...) #'(form.bound-id ... ...)
     #:with (formatted ...) #'((~@ NEWLINE form) ...)))
 
