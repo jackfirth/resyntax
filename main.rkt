@@ -56,7 +56,9 @@
             (raise (exn:fail:refactoring message (current-continuation-marks) rule syntax e)))])
       (option-map
        (option-filter
-        (refactoring-rule-refactor rule syntax)
+        (option-filter
+         (refactoring-rule-refactor rule syntax)
+         syntax-replacement-preserves-free-identifiers?)
         (syntax-replacement-preserves-comments? _ comments))
        (refactoring-result
         #:source source
@@ -76,10 +78,12 @@
   (define comments (with-input-from-string code-string read-comment-locations))
   (parameterize ([current-namespace (make-base-namespace)])
     (define analysis (source-analyze source))
-    (transduce
-     (source-code-analysis-visited-forms analysis)
-     (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
-     #:into into-list)))
+    (parameterize ([current-scopes-by-location
+                    (source-code-analysis-scopes-by-location analysis)])
+      (transduce
+       (source-code-analysis-visited-forms analysis)
+       (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
+       #:into into-list))))
 
 
 (define (refactor-file path-string #:suite [suite default-recommendations])

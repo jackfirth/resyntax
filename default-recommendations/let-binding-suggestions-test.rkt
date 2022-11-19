@@ -398,3 +398,24 @@ test: "let-values expressions with an immediate call are refactorable to call-wi
 
 test: "let-values expressions with an immediate call with different order aren't refactorable"
 - (let-values ([(x y z) (values 1 2 3)]) (list z y x))
+
+
+test: "let binding with conflicting define inside"
+------------------------------
+(define (g)
+  (let ([x 'outer])
+    (define x 'inner)
+    x))
+------------------------------
+
+
+test: "let binding with obfuscated conflicting define inside"
+------------------------------
+(define (g)
+  (let ([x 'outer])
+    (define-syntax-rule (m a)
+      (begin
+        (define a 'inner)
+        x))
+    (m x)))
+------------------------------

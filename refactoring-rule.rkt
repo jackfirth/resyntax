@@ -40,7 +40,9 @@
    ((refactoring-rule-transformer rule) (rule-introduction-scope syntax))
    (λ (new-syntax)
      (syntax-replacement
-      #:original-syntax syntax #:new-syntax (rule-introduction-scope new-syntax)))))
+      #:original-syntax syntax
+      #:new-syntax (rule-introduction-scope new-syntax)
+      #:introduction-scope rule-introduction-scope))))
 
 
 (define-simple-macro
