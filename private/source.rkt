@@ -96,13 +96,26 @@
     (define stx (source-read-syntax code))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define visits-by-location (make-hash))
-    (define others-by-location (make-hash))
-    (define (add-original-location! hsh stx)
-      (when (and (syntax? stx) (syntax-original? stx))
-        (hash-ref! hsh (syntax-source-location stx) stx)))
+    (define scopes-by-location (make-hash))
+
+    (define/guard (record-scopes! stx)
+      (guard (and (syntax? stx) (syntax-original? stx)) else
+        (void))
+      (define location (syntax-source-location stx))
+      (unless (hash-has-key? scopes-by-location location)
+        (hash-set! scopes-by-location location stx)))
+
+    (define/guard (record-visit! stx)
+      (guard (and (syntax? stx) (syntax-original? stx)) else
+        (void))
+      (record-scopes! stx)
+      (define location (syntax-source-location stx))
+      (unless (hash-has-key? visits-by-location location)
+        (hash-set! visits-by-location location stx)))
+
     (define/match (observe-event! sig val)
-      [('visit val)
-       (add-original-location! visits-by-location val)]
+      [('visit stx)
+       (record-visit! stx)]
       ;; For more information on `letX-renames`, see the `make-let-values-form`
       ;; function in the Racket Expander where it logs `letX-renames` events:
       ;; https://github.com/racket/racket/blob/b4a85f54c20cc246d521a4cc7ea4d8c2b52a7e59/racket/src/expander/expand/expr.rkt#L248
@@ -110,17 +123,17 @@
        ;; When the expander adds scopes to `let-syntax`, it uses `trans-idss`.
        (for* ([trans-ids (in-list trans-idss)]
               [trans-id (in-list trans-ids)])
-         (add-original-location! others-by-location trans-id))
+         (record-scopes! trans-id))
        ;; When the expander adds scopes to `let-values`, it uses `val-idss`.
        (for* ([val-ids (in-list val-idss)]
               [val-id (in-list val-ids)])
-         (add-original-location! others-by-location val-id))]
-      [(_ _) (void)])
+         (record-scopes! val-id))]
+      [('resolve id)
+       (record-visit! id)]
+      [(_ _)
+       (void)])
     (parameterize ([current-expand-observe observe-event!])
       (expand stx))
-    (define scopes-by-location
-      (hash-union (hash) visits-by-location others-by-location
-                  #:combine (λ (a b) a)))
     (define visited
       (transduce (in-hash-pairs visits-by-location)
                  (sorting syntax-source-location<=> #:key car)
