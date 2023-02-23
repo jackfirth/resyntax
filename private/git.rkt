@@ -42,8 +42,8 @@
 
 (define (lex-line line)
   (define file-match (regexp-match #px"^\\+\\+\\+ b/(.*)$" line))
-  (define single-line-match (regexp-match #px"^@@ .* \\+(\\d+) @@$" line))
-  (define range-match (regexp-match #px"^@@ .* \\+(\\d+),(\\d+) @@$" line))
+  (define single-line-match (regexp-match #px"^@@ .* \\+(\\d+) @@" line))
+  (define range-match (regexp-match #px"^@@ .* \\+(\\d+),(\\d+) @@" line))
   (cond
     [file-match
      (match-define (list _ f) file-match)
