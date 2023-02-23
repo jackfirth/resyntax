@@ -39,7 +39,8 @@
 
 
 (define-refactoring-rule let-to-define
-  #:description "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
+  #:description
+  "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
   [(header:header-form-allowing-internal-definitions let-expr:body-with-refactorable-let-expression)
    (header.formatted ... let-expr.refactored ...)])
 
@@ -56,7 +57,8 @@
 
 (define-refactoring-rule let-values-then-call-to-call-with-values
   #:description
-  "This `let-values` expression can be replaced with a simpler, equivalent `call-with-values` expression."
+  "This `let-values` expression can be replaced with a simpler, equivalent `call-with-values`\
+ expression."
   #:literals (let-values)
   [(let-values ([(bound-id:id ...+) expr])
      (receiver:id arg-id:id ...+))

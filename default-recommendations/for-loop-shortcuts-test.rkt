@@ -275,3 +275,23 @@ test: "let loop over vector can be replaced by for/first"
             #:when (> x 3))
   (+ x 42))
 ------------------------------------------------------------
+
+
+test: "for-each and append-map can be replaced by for* with #:when"
+------------------------------------------------------------
+(require racket/list)
+(define words (list 'the 'quick 'brown 'fox))
+(for-each (λ (c)
+            (printf "Letter: ~a\n" c)
+            (printf "Letter code: ~a\n\n" (char->integer c)))
+          (append-map (λ (word) (string->list (symbol->string word)))
+                      words))
+------------------------------------------------------------
+------------------------------------------------------------
+(require racket/list)
+(define words (list 'the 'quick 'brown 'fox))
+(for* ([word (in-list words)]
+       [c (in-string (symbol->string word))])
+  (printf "Letter: ~a\n" c)
+  (printf "Letter code: ~a\n\n" (char->integer c)))
+------------------------------------------------------------

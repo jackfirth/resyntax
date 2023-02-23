@@ -76,6 +76,20 @@ test: "hash-ref with hash-set! lambda can be simplified to hash-ref!"
 ------------------------------
 
 
+test: "hash-ref with hash-set! lambda and literal keys can be simplified to hash-ref!"
+------------------------------
+(define h (make-hash))
+(hash-ref h 'a (λ ()
+                 (define v (+ 1 2 3))
+                 (hash-set! h 'a v)
+                 v))
+------------------------------
+------------------------------
+(define h (make-hash))
+(hash-ref! h 'a (λ () (+ 1 2 3)))
+------------------------------
+
+
 test: "hash-ref with hash-set! lambda with constant can be simplified to hash-ref!"
 ------------------------------
 (define h (make-hash))
@@ -125,6 +139,17 @@ test: "hash-set! with hash-ref can be simplified to hash-update!"
 (define h (make-hash))
 (define k 'a)
 (hash-update! h k (λ (v) (+ 5 v)) 0)
+------------------------------
+
+
+test: "hash-set! with hash-ref and literal keys can be simplified to hash-update!"
+------------------------------
+(define h (make-hash))
+(hash-set! h 'a (+ 5 (hash-ref h 'a 0)))
+------------------------------
+------------------------------
+(define h (make-hash))
+(hash-update! h 'a (λ (v) (+ 5 v)) 0)
 ------------------------------
 
 

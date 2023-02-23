@@ -14,6 +14,8 @@
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
+         resyntax/default-recommendations/private/pure-expression
+         resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
@@ -51,14 +53,14 @@
   #:literals (hash-ref hash-set! define)
   [(hash-ref
     h1:id
-    k1:id
+    k1:pure-expression
     (_:lambda-by-any-name
      ()
      (define v1:id initializer:value-initializer)
-     (hash-set! h2:id k2:id v2:id)
+     (hash-set! h2:id k2:pure-expression v2:id)
      v3:id))
    #:when (free-identifier=? #'h1 #'h2)
-   #:when (free-identifier=? #'k1 #'k2)
+   #:when (syntax-free-identifier=? #'k1 #'k2)
    #:when (free-identifier=? #'v1 #'v2)
    #:when (free-identifier=? #'v1 #'v3)
    (hash-ref! h1 k1 initializer.failure-result-form)])
@@ -69,26 +71,27 @@
   #:literals (hash-ref hash-set! define)
   [(hash-ref
     h1:id
-    k1:id
+    k1:pure-expression
     (_:lambda-by-any-name
      ()
-     (hash-set! h2:id k2:id v1:literal-constant)
+     (hash-set! h2:id k2:pure-expression v1:literal-constant)
      v2:literal-constant))
    #:when (free-identifier=? #'h1 #'h2)
-   #:when (free-identifier=? #'k1 #'k2)
+   #:when (syntax-free-identifier=? #'k1 #'k2)
    #:when (equal? (attribute v1.value) (attribute v2.value))
    (hash-ref! h1 k1 v1)])
 
 
 (define-refactoring-rule hash-set!-ref-to-hash-update!
-  #:description "This expression can be replaced with a simpler, equivalent `hash-update!` expression."
+  #:description
+  "This expression can be replaced with a simpler, equivalent `hash-update!` expression."
   #:literals (hash-ref hash-set!)
-  [(hash-set! h1:id k1:id
+  [(hash-set! h1:id k1:pure-expression
               (f:id arg-before:expr ...
-                    (hash-ref h2:id k2:id (~optional failure-result))
+                    (hash-ref h2:id k2:pure-expression (~optional failure-result))
                     arg-after:expr ...))
    #:when (free-identifier=? #'h1 #'h2)
-   #:when (free-identifier=? #'k1 #'k2)
+   #:when (syntax-free-identifier=? #'k1 #'k2)
    #:when (for/and ([id (in-syntax-identifiers #'(f arg-before ... arg-after ...))])
             (not (equal? (syntax-e id) 'v)))
    (hash-update! h1 k1

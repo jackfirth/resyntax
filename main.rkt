@@ -42,7 +42,9 @@
   (λ (this) (list (syntax-srcloc (exn:fail:refactoring-syntax this)))))
 
 
-(define (refactoring-rules-refactor rules syntax source comments)
+(define (refactoring-rules-refactor rules syntax
+                                    #:comments comments
+                                    #:analysis analysis)
 
   (define (refactor rule)
     (with-handlers
@@ -54,10 +56,12 @@
             (raise (exn:fail:refactoring message (current-continuation-marks) rule syntax e)))])
       (option-map
        (option-filter
-        (refactoring-rule-refactor rule syntax)
+        (option-filter
+         (refactoring-rule-refactor rule syntax #:analysis analysis)
+         syntax-replacement-preserves-free-identifiers?)
         (syntax-replacement-preserves-comments? _ comments))
        (refactoring-result
-        #:source source
+        #:source (source-code-analysis-code analysis)
         #:rule-name (object-name rule)
         #:message (refactoring-rule-description rule)
         #:replacement _))))
@@ -76,7 +80,10 @@
     (define analysis (source-analyze source))
     (transduce
      (source-code-analysis-visited-forms analysis)
-     (append-mapping (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
+     (append-mapping
+      (λ (stx)
+        (in-option
+         (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))))
      #:into into-list)))
 
 
@@ -99,7 +106,9 @@
       (transduce
        (source-code-analysis-visited-forms analysis)
        (append-mapping
-        (λ (stx) (in-option (refactoring-rules-refactor rule-list stx source comments))))
+        (λ (stx)
+          (in-option
+           (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))))
        #:into into-list))))
 
 

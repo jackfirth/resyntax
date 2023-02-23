@@ -85,6 +85,14 @@ test: "using if to convert a boolean expression to a boolean can be removed"
 - (string? "foo")
 
 
+test: "using if to convert a boolean expression to a boolean can't be removed when if is rebound"
+------------------------------
+(define (if a b c)
+  (displayln "You thought I was an if expression? Fool!"))
+(if (string? "foo") #true #false)
+------------------------------
+
+
 test: "if else false can be refactored to use and"
 - (if (+ 4 10) (* 4 9) #false)
 - (and (+ 4 10) (* 4 9))

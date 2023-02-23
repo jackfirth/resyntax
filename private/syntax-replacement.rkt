@@ -12,11 +12,15 @@
  (contract-out
   [syntax-replacement? predicate/c]
   [syntax-replacement
-   (-> #:original-syntax (and/c syntax? syntax-original?) #:new-syntax syntax? syntax-replacement?)]
+   (-> #:original-syntax (and/c syntax? syntax-original?)
+       #:new-syntax syntax?
+       #:introduction-scope (->* (syntax?) ((or/c 'flip 'add 'remove)) syntax?)
+       syntax-replacement?)]
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
   [syntax-replacement-template-drop-leading-newline (-> syntax? syntax?)]
+  [syntax-replacement-preserves-free-identifiers? (-> syntax-replacement? boolean?)]
   [syntax-replacement-preserves-comments? (-> syntax-replacement? range-set? boolean?)]))
 
 
@@ -32,6 +36,8 @@
          rebellion/private/static-name
          rebellion/type/record
          resyntax/private/string-replacement
+         (only-in resyntax/default-recommendations/private/syntax-identifier-sets
+                  in-syntax-identifiers)
          syntax/parse)
 
 
@@ -79,7 +85,8 @@
     [_ template-stx]))
 
 
-(define-record-type syntax-replacement (original-syntax new-syntax))
+(define-record-type syntax-replacement
+  (original-syntax new-syntax introduction-scope))
 
 
 (define/guard (syntax-replacement-template-infer-spaces template)
@@ -276,7 +283,8 @@
        (define replacement
          (syntax-replacement
           #:original-syntax orig-stx
-          #:new-syntax new-stx))
+          #:new-syntax new-stx
+          #:introduction-scope flip))
        (define expected
          (string-replacement
           #:start orig-start
@@ -293,6 +301,18 @@
            (copied-string (+ orig-start 10) (+ orig-start 11))
            (inserted-string ")"))))
        (check-equal? (syntax-replacement-render replacement) expected)])))
+
+
+(define (syntax-replacement-preserves-free-identifiers? replacement)
+  (match replacement
+    [(syntax-replacement #:original-syntax orig
+                         #:new-syntax new
+                         #:introduction-scope intro)
+     (define ignore (list #'SPACE #'NEWLINE #'ORIGINAL-GAP #'ORIGINAL-SPLICE))
+     (for/and ([new-id (in-syntax-identifiers new)]
+               #:unless (member new-id ignore free-identifier=?)
+               #:unless (bound-identifier=? new-id (intro new-id 'remove)))
+       (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id))))]))
 
 
 (define (syntax-replacement-preserves-comments? replacement all-comment-locations)

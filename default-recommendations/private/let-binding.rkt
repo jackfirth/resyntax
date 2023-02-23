@@ -18,7 +18,9 @@
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/default-recommendations/private/graph
+         resyntax/private/source
          resyntax/private/syntax-replacement
+         resyntax/refactoring-rule
          syntax/id-set
          syntax/parse
          syntax/parse/lib/function-header
@@ -42,6 +44,8 @@
 
     #:when (no-binding-overlap?
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
+
+    #:when (no-binding-conflicts? (attribute bindings.bound-id) #'body.scopes)
 
     #:when (attribute bindings.fully-refactorable?)
     #:with (refactored ...) #'(bindings.outer-definition ... body.formatted ...))
@@ -69,6 +73,8 @@
     #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
                                 (in-syntax #'(bindings.inner-bound-id ...)))
 
+    #:when (no-binding-conflicts? (attribute bindings.bound-id) #'inner-body.scopes)
+
     #:when (attribute bindings.fully-refactorable?)
 
     #:with (refactored ...)
@@ -85,6 +91,8 @@
                                 (in-syntax #'(bindings.outer-bound-id ...)))
     #:when (no-binding-overlap? (in-syntax #'(inner-body.bound-id ...))
                                 (in-syntax #'(bindings.inner-bound-id ...)))
+
+    #:when (no-binding-conflicts? (attribute bindings.bound-id) #'inner-body.scopes)
 
     #:when (attribute bindings.fully-refactorable?)
     
@@ -142,13 +150,15 @@
 
 
 (define-syntax-class refactorable-let-bindings
-  #:attributes ([outer-bound-id 1]
+  #:attributes ([bound-id 1]
+                [outer-bound-id 1]
                 [inner-bound-id 1]
                 [outer-definition 1]
                 [inner-definition 1]
-                fully-refactorable?
-                unrefactorable)
+                fully-refactorable?)
   (pattern (clause:binding-clause ...)
+    #:with (bound-id ...)
+    (append-map parsed-binding-clause-bound-identifiers (attribute clause.parsed))
     #:do
     [(define parsed-clauses (vector->immutable-vector (list->vector (attribute clause.parsed))))
      (define deps (let-binding-clause-dependencies parsed-clauses))
@@ -163,18 +173,19 @@
     #:with (outer-bound-id ...) (split-bindings-outer-ids split)
     #:with (inner-bound-id ...) (split-bindings-inner-ids split)
     #:with (outer-definition ...) (split-bindings-outer-definitions split)
-    #:with (inner-definition ...) (split-bindings-inner-definitions split)
-    #:with unrefactorable (split-bindings-unrefactorable split)))
+    #:with (inner-definition ...) (split-bindings-inner-definitions split)))
 
 
 (define-syntax-class refactorable-let*-bindings
-  #:attributes ([outer-bound-id 1]
+  #:attributes ([bound-id 1]
+                [outer-bound-id 1]
                 [inner-bound-id 1]
                 [outer-definition 1]
                 [inner-definition 1]
-                fully-refactorable?
-                unrefactorable)
+                fully-refactorable?)
   (pattern (clause:binding-clause ...)
+    #:with (bound-id ...)
+    (append-map parsed-binding-clause-bound-identifiers (attribute clause.parsed))
     #:do
     [(define parsed-clauses (vector->immutable-vector (list->vector (attribute clause.parsed))))
      (define deps (let-binding-clause-dependencies parsed-clauses))
@@ -189,8 +200,7 @@
     #:with (outer-bound-id ...) (split-bindings-outer-ids split)
     #:with (inner-bound-id ...) (split-bindings-inner-ids split)
     #:with (outer-definition ...) (split-bindings-outer-definitions split)
-    #:with (inner-definition ...) (split-bindings-inner-definitions split)
-    #:with unrefactorable (split-bindings-unrefactorable split)))
+    #:with (inner-definition ...) (split-bindings-inner-definitions split)))
 
 
 (define (sequence->bound-id-set ids)
@@ -226,6 +236,16 @@
     (check-false (no-binding-overlap? (in-syntax #'(a b c)) (in-syntax #'(c d e))))
     (check-true (no-binding-overlap? (in-syntax #'(a b c)) '()))
     (check-true (no-binding-overlap? '() (in-syntax #'(d e f))))))
+
+
+(define/guard (no-binding-conflicts? ids body-scopes)
+  (define analysis (current-source-code-analysis))
+  (for/and ([x (in-list ids)])
+    (define x*
+      (if analysis
+          (hash-ref (source-code-analysis-scopes-by-location analysis) (syntax-source-location x) x)
+          x))
+    (free-identifier=? x* (datum->syntax body-scopes (syntax-e x)))))
 
 
 (define-record-type parsed-binding-clause
@@ -400,13 +420,6 @@
   #'((~@ NEWLINE definition) ...))
 
 
-(define (split-bindings-unrefactorable split)
-  #`(#,@(add-between
-         (for/list ([clause (in-list (split-bindings-cycles split))])
-           (parsed-binding-clause-original clause))
-         #'NEWLINE)))
-
-
 (define-syntax-class body-form
   #:literals (define define-syntax define-values define-syntaxes)
   #:attributes ([bound-id 1])
@@ -420,8 +433,16 @@
 
 
 (define-splicing-syntax-class body-forms
-  #:attributes ([bound-id 1] [formatted 1])
+  #:attributes (scopes [bound-id 1] [formatted 1])
   (pattern (~seq form:body-form ...)
+    #:with scopes
+    (or (for/or ([b (in-list (reverse (attribute form)))])
+          (define analysis (current-source-code-analysis))
+          (and analysis
+               (hash-ref (source-code-analysis-scopes-by-location analysis)
+                         (syntax-source-location b)
+                         #false)))
+        (and (pair? (attribute form)) (last (attribute form))))
     #:with (bound-id ...) #'(form.bound-id ... ...)
     #:with (formatted ...) #'((~@ NEWLINE form) ...)))
 
