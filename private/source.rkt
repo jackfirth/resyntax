@@ -11,7 +11,7 @@
   [source-directory (-> source? (or/c path? #false))]
   [source-read-syntax (-> source? syntax?)]
   [source-produced-syntax? (-> source? syntax? boolean?)]
-  [source-analyze (-> source? source-code-analysis?)]
+  [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
   [file-source? predicate/c]
   [file-source (-> path-string? file-source?)]
   [file-source-path (-> file-source? path?)]
@@ -33,11 +33,14 @@
          racket/port
          rebellion/base/comparator
          rebellion/base/immutable-string
+         rebellion/base/range
          rebellion/collection/list
+         rebellion/collection/range-set
          rebellion/private/guarded-block
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/private/linemap
          syntax/modread)
 
 
@@ -91,15 +94,22 @@
   (path-only path))
 
 
-(define (source-analyze code)
+(define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (parameterize ([current-directory (or (source-directory code) (current-directory))])
+    (define code-linemap (string-linemap (source->string code)))
     (define stx (source-read-syntax code))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define visits-by-location (make-hash))
     (define others-by-location (make-hash))
+    
     (define (add-original-location! hsh stx)
-      (when (and (syntax? stx) (syntax-original? stx))
-        (hash-ref! hsh (syntax-source-location stx) stx)))
+      (when (and (syntax? stx)
+                 (syntax-original? stx)
+                 (range-set-intersects? lines (syntax-line-range stx #:linemap code-linemap)))
+        (define loc (syntax-source-location stx))
+        (unless (hash-has-key? hsh loc)
+          (hash-set! hsh loc stx))))
+    
     (define/match (observe-event! sig val)
       [('visit val)
        (add-original-location! visits-by-location val)]
@@ -116,6 +126,7 @@
               [val-id (in-list val-ids)])
          (add-original-location! others-by-location val-id))]
       [(_ _) (void)])
+    
     (parameterize ([current-expand-observe observe-event!])
       (expand stx))
     (define scopes-by-location
