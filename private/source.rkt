@@ -11,7 +11,7 @@
   [source-directory (-> source? (or/c path? #false))]
   [source-read-syntax (-> source? syntax?)]
   [source-produced-syntax? (-> source? syntax? boolean?)]
-  [source-analyze (-> source? #:lines range-set? source-code-analysis?)]
+  [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
   [file-source? predicate/c]
   [file-source (-> path-string? file-source?)]
   [file-source-path (-> file-source? path?)]
@@ -33,6 +33,7 @@
          racket/port
          rebellion/base/comparator
          rebellion/base/immutable-string
+         rebellion/base/range
          rebellion/collection/list
          rebellion/collection/range-set
          rebellion/private/guarded-block
@@ -93,7 +94,7 @@
   (path-only path))
 
 
-(define (source-analyze code #:lines lines)
+(define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (parameterize ([current-directory (or (source-directory code) (current-directory))])
     (define code-linemap (string-linemap (source->string code)))
     (define stx (source-read-syntax code))
