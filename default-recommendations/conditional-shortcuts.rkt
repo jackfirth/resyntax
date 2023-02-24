@@ -10,10 +10,12 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          rebellion/private/static-name
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/definition-context
          resyntax/default-recommendations/private/exception
+         resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
          resyntax/refactoring-rule
          resyntax/refactoring-suite
@@ -129,6 +131,42 @@
     (ORIGINAL-SPLICE nested-clause ...))])
 
 
+(define-syntax-class let-refactorable-cond-clause
+  #:attributes ([refactored 0])
+  (pattern
+    [condition:expr let-expr:body-with-refactorable-let-expression]
+    #:with refactored #'[condition let-expr.refactored ...]))
+
+
+(define (first-syntax stx)
+  (define as-list (syntax->list stx))
+  (and as-list (not (empty? as-list)) (first as-list)))
+
+
+(define (last-syntax stx)
+  (define as-list (syntax->list stx))
+  (and as-list (not (empty? as-list)) (last as-list)))
+
+
+(define-refactoring-rule cond-let-to-cond
+  #:description
+  "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
+  #:literals (cond)
+  [((~and outer-cond-id cond)
+    clause-before ...
+    clause:let-refactorable-cond-clause
+    clause-after ...)
+   #:with form-before (or (last-syntax #'(clause-before ...)) #'outer-cond-id)
+   #:with (gap-after ...)
+   (let ([form-after (first-syntax #'(clause-after ...))])
+     (if form-after (list #`(ORIGINAL-GAP clause #,form-after)) (list)))
+   ((ORIGINAL-SPLICE outer-cond-id clause-before ...)
+    (ORIGINAL-GAP form-before clause)
+    clause.refactored
+    gap-after ...
+    (ORIGINAL-SPLICE clause-after ...))])  
+
+
 (define conditional-shortcuts
   (refactoring-suite
    #:name (name conditional-shortcuts)
@@ -136,6 +174,7 @@
    (list always-throwing-cond-to-when
          always-throwing-if-to-when
          cond-else-cond-to-cond
+         cond-let-to-cond
          if-else-false-to-and
          if-void-to-when-or-unless
          if-x-else-x-to-and
