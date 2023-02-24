@@ -35,6 +35,7 @@
                when
                unless
                with-handlers
+               with-syntax
                parameterize
                for
                for/list
