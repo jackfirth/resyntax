@@ -293,3 +293,22 @@ test: "cond with nested let refactorable to cond with define"
      b]
     [else c]))
 ------------------------------
+
+
+test: "cond with nested let in else clause refactorable to cond with define"
+------------------------------
+(define (f a b c)
+  (cond
+    [a b]
+    [else
+     (let ([x "stuff"])
+       c)]))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a b]
+    [else
+     (define x "stuff")
+     c]))
+------------------------------

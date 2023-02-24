@@ -148,7 +148,7 @@
   (and as-list (not (empty? as-list)) (last as-list)))
 
 
-(define-refactoring-rule cond-let-to-cond
+(define-refactoring-rule cond-let-to-cond-define
   #:description
   "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
   #:literals (cond)
@@ -157,14 +157,15 @@
     clause:let-refactorable-cond-clause
     clause-after ...)
    #:with form-before (or (last-syntax #'(clause-before ...)) #'outer-cond-id)
-   #:with (gap-after ...)
+   #:with (after ...)
    (let ([form-after (first-syntax #'(clause-after ...))])
-     (if form-after (list #`(ORIGINAL-GAP clause #,form-after)) (list)))
+     (if form-after
+         #`((ORIGINAL-GAP clause #,form-after) (ORIGINAL-SPLICE clause-after ...))
+         (list)))
    ((ORIGINAL-SPLICE outer-cond-id clause-before ...)
     (ORIGINAL-GAP form-before clause)
     clause.refactored
-    gap-after ...
-    (ORIGINAL-SPLICE clause-after ...))])  
+    after ...)])
 
 
 (define conditional-shortcuts
@@ -174,7 +175,7 @@
    (list always-throwing-cond-to-when
          always-throwing-if-to-when
          cond-else-cond-to-cond
-         cond-let-to-cond
+         cond-let-to-cond-define
          if-else-false-to-and
          if-void-to-when-or-unless
          if-x-else-x-to-and
