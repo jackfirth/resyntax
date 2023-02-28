@@ -15,7 +15,7 @@ Use the Racket package manager to install in the installation scope.
 ```
 raco pkg install --installation resyntax
 ```
-The `--installation` flag (shorthand for `--scope installation`) install packages for all users of a Racket installation ensuring `resyntax` is in your `$PATH`. 
+The `--installation` flag (shorthand for `--scope installation`) installs packages for all users of a Racket installation and ensures `resyntax` is in your `$PATH`. 
 
 e.g. 
 ```
