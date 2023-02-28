@@ -53,6 +53,25 @@ greatly appreciated and are best directed at the @hyperlink[github-repository-ur
 
 @(define github-repository-url "https://github.com/jackfirth/resyntax/")
 
+@section[#:tag "install"]{Installation}
+
+Use the Racket package manager to install Resyntax in the installation scope:  
+ 
+@verbatim{
+% raco pkg install --installation resyntax
+}
+ 
+The `@tt{--installation}` flag (shorthand for `@tt{--scope installation}`) installs packages for 
+all users of a Racket installation ensuring `@tt{resyntax}` is in your `@tt{$PATH}`. 
+
+e.g. 
+@verbatim{
+ % resyntax analyze --file example.rkt
+ resyntax: --- analyzing code ---
+ resyntax: --- displaying results ---
+ %
+}
+
 
 @section[#:tag "cli"]{The Resyntax Command-Line Interface}
 
