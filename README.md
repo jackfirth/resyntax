@@ -1,6 +1,6 @@
 # resyntax [![CI Status][ci-status-badge]][ci-status] [![Documentation][docs-badge]][docs]
 
-An experimental refactoring tool for Racket built on top of `syntax-parse`.
+A refactoring tool for Racket built on top of `syntax-parse`.
 
 [ci-status]: https://github.com/jackfirth/resyntax/actions
 [ci-status-badge]: https://github.com/jackfirth/resyntax/workflows/CI/badge.svg
