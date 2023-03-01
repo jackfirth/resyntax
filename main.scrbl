@@ -42,11 +42,6 @@ to the following:
 To see a list of suggestions that Resyntax would apply, use @exec{resyntax analyze} instead of
 @exec{resyntax fix}. Each suggestion includes an explanation of why the change is being recommended.
 
-@bold{This tool is extremely experimental.} Do not attempt to incorporate it into your projects yet.
-For now, the refactoring suggestions produced by @racketmodname[resyntax] are best viewed as glimpses
-into one possible distant future of static analysis for Racket. Feedback, questions, and ideas are all
-greatly appreciated and are best directed at the @hyperlink[github-repository-url]{GitHub repository}.
-
 
 @table-of-contents[]
 
