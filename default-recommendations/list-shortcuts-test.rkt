@@ -36,16 +36,6 @@ test: "comparison to empty list refactorable to use of null? predicate"
 - (null? (list 1 2 3))
 
 
-test: "(list) refactorable to '()"
-- (list)
-- '()
-
-
-test: "null refactorable to '()"
-- null
-- '()
-
-
 test: "(append* (map ...)) refactorable to single-pass append-map"
 ------------------------------
 (require racket/list)

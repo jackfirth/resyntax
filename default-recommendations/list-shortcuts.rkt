@@ -42,20 +42,6 @@
   [test:null-test (null? test.subject)])
 
 
-(define-refactoring-rule list-call-to-empty-list-literal
-  #:description "An empty list literal can be written as `'()`."
-  #:literals (list)
-  [(list)
-   '()])
-
-
-(define-refactoring-rule null-to-empty-list-literal
-  #:description "The preferred way to write the empty list is `'()`."
-  #:literals (null)
-  [null
-   '()])
-
-
 (define-refactoring-rule append*-and-map-to-append-map
   #:description
   "The `append-map` function can be used to map each element into multiple elements in a single pass."
@@ -89,6 +75,4 @@
          append*-and-map-to-append-map
          equal-null-list-to-null-predicate
          first-reverse-to-last
-         list-call-to-empty-list-literal
-         null-to-empty-list-literal
          sort-with-keyed-comparator-to-sort-by-key)))
