@@ -12,7 +12,7 @@
 
 (require rebellion/streaming/reducer
          rebellion/streaming/transducer
-         resyntax/default-recommendations/private/syntax-identifier-sets)
+         resyntax/private/syntax-traversal)
 
 
 (module+ test
@@ -33,7 +33,7 @@
 
 
 (define (syntax-line-count stx)
-  (transduce (in-syntax-identifiers stx)
+  (transduce (leaves-in-syntax stx)
              (mapping syntax-line)
              (deduplicating)
              #:into into-count))
@@ -45,11 +45,17 @@
     (check-true (oneline-syntax? #'(a b c)))
     (check-false (oneline-syntax? #'(a
                                      b
-                                     c))))
+                                     c)))
+    (check-false (oneline-syntax? #'(1
+                                     2
+                                     3))))
 
   (test-case (name-string multiline-syntax?)
     (check-false (multiline-syntax? #'a))
     (check-false (multiline-syntax? #'(a b c)))
     (check-true (multiline-syntax? #'(a
                                       b
-                                      c)))))
+                                      c)))
+    (check-true (multiline-syntax? #'(1
+                                      2
+                                      3)))))

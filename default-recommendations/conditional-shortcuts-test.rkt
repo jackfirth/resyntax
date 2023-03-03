@@ -312,3 +312,483 @@ test: "cond with nested let in else clause refactorable to cond with define"
      (define x "stuff")
      c]))
 ------------------------------
+
+
+test: "if clause with begin in true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      (begin
+        (displayln "stuff")
+        b)
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     (displayln "stuff")
+     b]
+    [else c]))
+------------------------------
+
+
+test: "if clause with begin in false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      b
+      (begin
+        (displayln "stuff")
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a b]
+    [else
+     (displayln "stuff")
+     c]))
+------------------------------
+
+
+test: "if clause with begin in both branches refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      (begin
+        (displayln "stuff")
+        b)
+      (begin
+        (displayln "stuff")
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     (displayln "stuff")
+     b]
+    [else
+     (displayln "stuff")
+     c]))
+------------------------------
+
+
+test: "if clause with multiline condition and begin in true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if (a 1
+         2
+         3)
+      (begin
+        (displayln "stuff")
+        b)
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [(a 1
+        2
+        3)
+     (displayln "stuff")
+     b]
+    [else c]))
+------------------------------
+
+
+test: "if clause with multiline condition and begin in false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if (a 1
+         2
+         3)
+      b
+      (begin
+        (displayln "stuff")
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [(a 1
+        2
+        3)
+     b]
+    [else
+     (displayln "stuff")
+     c]))
+------------------------------
+
+
+test: "if clause with multiline condition and begin in both branches refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if (a 1
+         2
+         3)
+      (begin
+        (displayln "stuff")
+        b)
+      (begin
+        (displayln "stuff")
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [(a 1
+        2
+        3)
+     (displayln "stuff")
+     b]
+    [else
+     (displayln "stuff")
+     c]))
+------------------------------
+
+
+test: "if clause with begin in commented true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      ;; This is the true case
+      (begin
+        (displayln "stuff")
+        b)
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     ;; This is the true case
+     (displayln "stuff")
+     b]
+    [else c]))
+------------------------------
+
+
+test: "if clause with begin in commented false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      b
+      ;; This is the false case
+      (begin
+        (displayln "stuff")
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a b]
+    [else
+     ;; This is the false case
+     (displayln "stuff")
+     c]))
+------------------------------
+
+
+test: "if clause with begin in both commented branches refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      ;; This is the true case
+      (begin
+        (displayln "stuff")
+        b)
+      ;; This is the false case
+      (begin
+        (displayln "stuff")
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     ;; This is the true case
+     (displayln "stuff")
+     b]
+    [else
+     ;; This is the false case
+     (displayln "stuff")
+     c]))
+------------------------------
+
+
+
+test: "if clause with begin in true branch and commented false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      (begin
+        (displayln "stuff")
+        b)
+      ;; This is the false case
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     (displayln "stuff")
+     b]
+    ;; This is the false case
+    [else c]))
+------------------------------
+
+
+test: "if clause with begin in false branch and commented true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      ;; This is the true case
+      b
+      (begin
+        (displayln "stuff")
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    ;; This is the true case
+    [a b]
+    [else
+     (displayln "stuff")
+     c]))
+------------------------------
+
+
+test: "if clause with let in true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      (let ([x 1])
+        b)
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     (define x 1)
+     b]
+    [else c]))
+------------------------------
+
+
+test: "if clause with let in false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      b
+      (let ([x 1])
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a b]
+    [else
+     (define x 1)
+     c]))
+------------------------------
+
+
+test: "if clause with let in both branches refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      (let ([x 1])
+        b)
+      (let ([x 1])
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     (define x 1)
+     b]
+    [else
+     (define x 1)
+     c]))
+------------------------------
+
+
+test: "if clause with multiline condition and let in true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if (a 1
+         2
+         3)
+      (let ([x 1])
+        b)
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [(a 1
+        2
+        3)
+     (define x 1)
+     b]
+    [else c]))
+------------------------------
+
+
+test: "if clause with multiline condition and let in false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if (a 1
+         2
+         3)
+      b
+      (let ([x 1])
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [(a 1
+        2
+        3)
+     b]
+    [else
+     (define x 1)
+     c]))
+------------------------------
+
+
+test: "if clause with multiline condition and let in both branches refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if (a 1
+         2
+         3)
+      (let ([x 1])
+        b)
+      (let ([x 1])
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [(a 1
+        2
+        3)
+     (define x 1)
+     b]
+    [else
+     (define x 1)
+     c]))
+------------------------------
+
+
+test: "if clause with let in commented true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      ;; This is the true case
+      (let ([x 1])
+        b)
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     ;; This is the true case
+     (define x 1)
+     b]
+    [else c]))
+------------------------------
+
+
+test: "if clause with let in commented false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      b
+      ;; This is the false case
+      (let ([x 1])
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a b]
+    [else
+     ;; This is the false case
+     (define x 1)
+     c]))
+------------------------------
+
+
+test: "if clause with let in both commented branches refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      ;; This is the true case
+      (let ([x 1])
+        b)
+      ;; This is the false case
+      (let ([x 1])
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     ;; This is the true case
+     (define x 1)
+     b]
+    [else
+     ;; This is the false case
+     (define x 1)
+     c]))
+------------------------------
+
+
+
+test: "if clause with let in true branch and commented false branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      (let ([x 1])
+        b)
+      ;; This is the false case
+      c))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    [a
+     (define x 1)
+     b]
+    ;; This is the false case
+    [else c]))
+------------------------------
+
+
+test: "if clause with let in false branch and commented true branch refactorable to cond"
+------------------------------
+(define (f a b c)
+  (if a
+      ;; This is the true case
+      b
+      (let ([x 1])
+        c)))
+------------------------------
+------------------------------
+(define (f a b c)
+  (cond
+    ;; This is the true case
+    [a b]
+    [else
+     (define x 1)
+     c]))
+------------------------------

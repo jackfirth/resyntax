@@ -79,6 +79,7 @@
 
     #:with (refactored ...)
     #'(leading-body.formatted ...
+       NEWLINE
        bindings.outer-definition ...
        inner-body.formatted ...))
 
@@ -98,6 +99,7 @@
     
     #:with (refactored ...)
     #'(leading-body.formatted ...
+       NEWLINE
        bindings.outer-definition ...
        inner-body.formatted ...)))
 
@@ -406,11 +408,15 @@
     id))
 
 
-(define (split-bindings-outer-definitions split)
-  (define/with-syntax (definition ...)
+(define/guard (split-bindings-outer-definitions split)
+  (define definitions
     (for/list ([before (in-list (split-bindings-before-cycles split))])
       (parsed-binding-clause-definition before)))
-  #'((~@ NEWLINE definition) ...))
+  (cond
+    [(empty? definitions) #'()]
+    [else
+     (define/with-syntax (first-definition definition ...) definitions)
+     #'(first-definition (~@ NEWLINE definition) ...)]))
 
 
 (define (split-bindings-inner-definitions split)
