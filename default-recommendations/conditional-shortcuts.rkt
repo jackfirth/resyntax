@@ -17,6 +17,7 @@
          resyntax/default-recommendations/private/exception
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
+         resyntax/default-recommendations/private/syntax-lines
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/private/syntax-replacement
@@ -92,12 +93,13 @@
 
 
 (define-refactoring-rule always-throwing-if-to-when
-  #:description "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
+  #:description
+  "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   #:literals (if)
   [(header:header-form-allowing-internal-definitions
     (if condition:condition-expression
-      fail:always-throwing-expression
-      else-expression))
+        fail:always-throwing-expression
+        else-expression))
    (header.formatted
     ... NEWLINE
     ((~if condition.negated? unless when) condition.base-condition NEWLINE fail) NEWLINE
@@ -105,7 +107,8 @@
 
 
 (define-refactoring-rule always-throwing-cond-to-when
-  #:description "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
+  #:description
+  "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   #:literals (cond)
   [(header:header-form-allowing-internal-definitions
     (cond
@@ -124,8 +127,8 @@
   "The `else` clause of this `cond` expression is another `cond` expression and can be flattened."
   #:literals (cond else)
   [((~and outer-cond-id cond)
-     clause ... last-non-else-clause
-     (~and outer-else-clause [else (cond nested-clause ...)]))
+    clause ... last-non-else-clause
+    (~and outer-else-clause [else (cond nested-clause ...)]))
    ((ORIGINAL-SPLICE outer-cond-id clause ... last-non-else-clause)
     (ORIGINAL-GAP last-non-else-clause outer-else-clause)
     (ORIGINAL-SPLICE nested-clause ...))])
@@ -168,6 +171,67 @@
     after ...)])
 
 
+(define-syntax-class if-arm
+  #:attributes (uses-begin? uses-let? [refactored 1])
+  #:literals (begin)
+  (pattern (begin body ...)
+    #:attr uses-begin? #true
+    #:attr uses-let? #false
+    #:with (refactored ...) #'((ORIGINAL-SPLICE body ...)))
+  (pattern :refactorable-let-expression
+    #:attr uses-begin? #false
+    #:attr uses-let? #true)
+  (pattern other
+    #:with (refactored ...) #'(other)
+    #:attr uses-begin? #false
+    #:attr uses-let? #false))
+
+
+(define-refactoring-rule if-begin-to-cond
+  #:description "Using `cond` instead of `if` here makes `begin` unnecessary"
+  #:literals (if void)
+  [(if condition
+       (~and then-expr:if-arm (~not (void)))
+       (~and else-expr:if-arm (~not (void))))
+   #:when (or (attribute then-expr.uses-begin?) (attribute else-expr.uses-begin?))
+   #:with (true-branch ...)
+   (if (or (multiline-syntax? #'condition)
+           (multiline-syntax? #'then-expr)
+           (attribute then-expr.uses-begin?))
+       #'(NEWLINE [condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
+       #'((ORIGINAL-GAP condition then-expr) [condition then-expr.refactored ...]))
+   #:with (false-branch ...)
+   (if (attribute else-expr.uses-begin?)
+       #'(NEWLINE [else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
+       #'((ORIGINAL-GAP then-expr else-expr) [else else-expr.refactored ...]))
+   (cond
+     true-branch ...
+     false-branch ...)])
+
+
+(define-refactoring-rule if-let-to-cond
+  #:description
+  "`cond` with internal definitions is preferred over `if` with `let`, to reduce nesting"
+  #:literals (if void)
+  [(if condition
+       (~and then-expr:if-arm (~not (void)))
+       (~and else-expr:if-arm (~not (void))))
+   #:when (or (attribute then-expr.uses-let?) (attribute else-expr.uses-let?))
+   #:with (true-branch ...)
+   (if (or (multiline-syntax? #'condition)
+           (multiline-syntax? #'then-expr)
+           (attribute then-expr.uses-let?))
+       #'(NEWLINE [condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
+       #'((ORIGINAL-GAP condition then-expr) [condition then-expr.refactored ...]))
+   #:with (false-branch ...)
+   (if (attribute else-expr.uses-let?)
+       #'(NEWLINE [else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
+       #'((ORIGINAL-GAP then-expr else-expr) [else else-expr.refactored ...]))
+   (cond
+     true-branch ...
+     false-branch ...)])
+
+
 (define conditional-shortcuts
   (refactoring-suite
    #:name (name conditional-shortcuts)
@@ -176,7 +240,9 @@
          always-throwing-if-to-when
          cond-else-cond-to-cond
          cond-let-to-cond-define
+         if-begin-to-cond
          if-else-false-to-and
+         if-let-to-cond
          if-void-to-when-or-unless
          if-x-else-x-to-and
          nested-if-to-cond)))
