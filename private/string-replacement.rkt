@@ -231,12 +231,7 @@
 
 (define union-into-string-replacement
   (make-fold-reducer
-   (λ (accumulated replacement)
-     (cond
-       [(string-replacement-overlaps? accumulated replacement)
-        (printf "overlapped at position ~a, rejecting\n" (string-replacement-start replacement))
-        accumulated]
-       [else (string-replacement-union accumulated replacement)]))
+   string-replacement-union
    (string-replacement #:start 0 #:end 0 #:contents (list))
    #:name (name union-into-string-replacement)))
 

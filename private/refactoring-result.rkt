@@ -16,6 +16,7 @@
   [refactoring-result-source (-> refactoring-result? source?)]
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
+  [refactoring-result-modified-range (-> refactoring-result? range?)]
   [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]
   [refactoring-result-string-replacement (-> refactoring-result? string-replacement?)]
   [refactoring-result-line-replacement (-> refactoring-result? line-replacement?)]
@@ -32,6 +33,7 @@
          racket/pretty
          racket/string
          rebellion/base/immutable-string
+         rebellion/base/range
          rebellion/base/symbol
          rebellion/type/record
          resyntax/private/code-snippet
@@ -39,6 +41,7 @@
          resyntax/private/linemap
          resyntax/private/source
          resyntax/private/string-replacement
+         resyntax/private/syntax-range
          resyntax/private/syntax-replacement)
 
 
@@ -56,6 +59,10 @@
    #:rule-name rule-name
    #:message (string->immutable-string message)
    #:replacement replacement))
+
+
+(define (refactoring-result-modified-range result)
+  (syntax-source-range (syntax-replacement-original-syntax (refactoring-result-replacement result))))
 
 
 (define (refactoring-result-original-position result)
