@@ -12,14 +12,15 @@
 
 
 (require fancy-app
-         racket/path
          racket/port
          racket/sequence
          racket/syntax-srcloc
+         rebellion/base/comparator
          rebellion/base/option
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
+         rebellion/collection/range-set
          rebellion/streaming/transducer
          resyntax/default-recommendations
          resyntax/private/comment-reader
@@ -27,6 +28,7 @@
          resyntax/private/refactoring-result
          resyntax/private/source
          resyntax/private/string-replacement
+         resyntax/private/syntax-range
          resyntax/private/syntax-replacement
          resyntax/refactoring-rule
          (submod resyntax/refactoring-rule private)
@@ -78,20 +80,13 @@
   (define comments (with-input-from-string code-string read-comment-locations))
   (parameterize ([current-namespace (make-base-namespace)])
     (define analysis (source-analyze source))
-    (transduce
-     (source-code-analysis-visited-forms analysis)
-     (append-mapping
-      (λ (stx)
-        (in-option
-         (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))))
-     #:into into-list)))
+    (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments)))
 
 
 (define (refactor-file portion #:suite [suite default-recommendations])
   (define path (file-portion-path portion))
   (define lines (file-portion-lines portion))
   (printf "resyntax: analyzing ~a\n" path)
-  (define rule-list (refactoring-suite-rules suite))
   (define source (file-source path))
 
   (define (skip e)
@@ -103,13 +98,21 @@
     (parameterize ([current-namespace (make-base-namespace)])
       (define analysis (source-analyze source #:lines lines))
       (define comments (with-input-from-file path read-comment-locations))
-      (transduce
-       (source-code-analysis-visited-forms analysis)
-       (append-mapping
-        (λ (stx)
-          (in-option
-           (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))))
-       #:into into-list))))
+      (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments))))
+
+
+(define (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments)
+  (define rule-list (refactoring-suite-rules suite))
+  (for*/fold ([results '()]
+              [modified-positions (range-set #:comparator natural<=>)]
+              #:result (reverse results))
+             ([stx (in-list (source-code-analysis-visited-forms analysis))]
+              #:unless (range-set-intersects? modified-positions (syntax-source-range stx))
+              [result
+               (in-option
+                (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))])
+    (values (cons result results)
+            (range-set-add modified-positions (refactoring-result-modified-range result)))))
 
 
 (define (refactor! results)
