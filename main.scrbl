@@ -56,8 +56,8 @@ Use the Racket package manager to install Resyntax in the installation scope:
 % raco pkg install --installation resyntax
 }
  
-The `@tt{--installation}` flag (shorthand for `@tt{--scope installation}`) installs packages for 
-all users of a Racket installation ensuring `@tt{resyntax}` is in your `@tt{$PATH}`. 
+The @exec{--installation} flag (shorthand for @exec{--scope installation}) installs packages for 
+all users of a Racket installation, ensuring @exec{resyntax} is in your @envvar{PATH}. 
 
 e.g. 
 @verbatim{
