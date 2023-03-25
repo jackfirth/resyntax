@@ -10,6 +10,10 @@
 
 
 (require (for-syntax racket/base)
+         (for-template racket/match
+                       racket/provide-syntax
+                       racket/require-syntax
+                       syntax/parse)
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
@@ -55,12 +59,52 @@
    stx])
 
 
+(define-refactoring-rule syntax-local-match-introduce-migration
+  #:description
+  "The `syntax-local-match-introduce` function is a legacy function that's equivalent to\
+ `syntax-local-introduce`."
+  #:literals (syntax-local-match-introduce)
+  [((~and id syntax-local-match-introduce) stx)
+   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+
+
+(define-refactoring-rule syntax-local-provide-introduce-migration
+  #:description
+  "The `syntax-local-provide-introduce` function is a legacy function that's equivalent to\
+ `syntax-local-introduce`."
+  #:literals (syntax-local-provide-introduce)
+  [((~and id syntax-local-provide-introduce) stx)
+   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+
+
+(define-refactoring-rule syntax-local-require-introduce-migration
+  #:description
+  "The `syntax-local-require-introduce` function is a legacy function that's equivalent to\
+ `syntax-local-introduce`."
+  #:literals (syntax-local-require-introduce)
+  [((~and id syntax-local-require-introduce) stx)
+   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+
+
+(define-refactoring-rule syntax-local-syntax-parse-pattern-introduce-migration
+  #:description
+  "The `syntax-local-syntax-parse-pattern-introduce` function is a legacy function that's equivalent\
+ to `syntax-local-introduce`."
+  #:literals (syntax-local-syntax-parse-pattern-introduce)
+  [((~and id syntax-local-syntax-parse-pattern-introduce) stx)
+   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+
+
 (define legacy-syntax-migrations
   (refactoring-suite
    #:name (name legacy-syntax-migrations)
    #:rules
    (list datum->syntax-migration
          syntax-disarm-migration
+         syntax-local-match-introduce-migration
+         syntax-local-provide-introduce-migration
+         syntax-local-require-introduce-migration
+         syntax-local-syntax-parse-pattern-introduce-migration
          syntax-protect-migration
          syntax-rearm-migration
          syntax-recertify-migration)))
