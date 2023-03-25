@@ -46,3 +46,17 @@ test:
              #:before-first "The "
              #:after-last " jumped")
 ------------------------------
+
+
+test: "string-append with only one string can be removed"
+- (string-append "hello")
+- "hello"
+
+
+test: "format with only one argument can be removed"
+- (format "hello")
+- "hello"
+
+
+test: "format with only one argument can't be removed when formatting directives are present"
+- (format "hello ~a")
