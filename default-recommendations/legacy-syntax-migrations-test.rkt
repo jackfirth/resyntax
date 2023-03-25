@@ -63,3 +63,55 @@ test: "syntax-protect can be removed"
 (define stx #'foo)
 stx
 ------------------------------
+
+
+test: "syntax-local-match-introduce replaced with syntax-local-introduce"
+------------------------------
+(require (for-template racket/match))
+(define (f)
+  (syntax-local-match-introduce #'foo))
+------------------------------
+------------------------------
+(require (for-template racket/match))
+(define (f)
+  (syntax-local-introduce #'foo))
+------------------------------
+
+
+test: "syntax-local-provide-introduce replaced with syntax-local-introduce"
+------------------------------
+(require (for-template racket/provide-syntax))
+(define (f)
+  (syntax-local-provide-introduce #'foo))
+------------------------------
+------------------------------
+(require (for-template racket/provide-syntax))
+(define (f)
+  (syntax-local-introduce #'foo))
+------------------------------
+
+
+test: "syntax-local-require-introduce replaced with syntax-local-introduce"
+------------------------------
+(require (for-template racket/require-syntax))
+(define (f)
+  (syntax-local-require-introduce #'foo))
+------------------------------
+------------------------------
+(require (for-template racket/require-syntax))
+(define (f)
+  (syntax-local-introduce #'foo))
+------------------------------
+
+
+test: "syntax-local-syntax-parse-pattern-introduce replaced with syntax-local-introduce"
+------------------------------
+(require (for-template syntax/parse))
+(define (f)
+  (syntax-local-syntax-parse-pattern-introduce #'foo))
+------------------------------
+------------------------------
+(require (for-template syntax/parse))
+(define (f)
+  (syntax-local-introduce #'foo))
+------------------------------
