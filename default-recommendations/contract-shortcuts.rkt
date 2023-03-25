@@ -13,6 +13,7 @@
          rebellion/private/static-name
          resyntax/default-recommendations/private/syntax-lines
          resyntax/default-recommendations/private/syntax-tree
+         resyntax/private/syntax-replacement
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          syntax/parse)
@@ -56,11 +57,27 @@
   [(~or (or/c path? string?) (or/c string? path?)) path-string?])
 
 
+(define-refactoring-rule arrow-contract-with-rest-to-arrow-contract-with-ellipses
+  #:description "This `->*` contract can be rewritten using `->` with ellipses."
+  #:literals (->* listof)
+  [((~and arrow-id ->*)
+    (~and args (arg-contract ...))
+    (~and rest-kw #:rest) (~and rest-list (listof rest-contract))
+    result-contract)
+   (-> (ORIGINAL-GAP arrow-id args)
+       (ORIGINAL-SPLICE arg-contract ...)
+       (ORIGINAL-GAP args rest-kw)
+       rest-contract (... ...)
+       (ORIGINAL-GAP rest-list result-contract)
+       result-contract)])
+
+
 (define contract-shortcuts
   (refactoring-suite
    #:name (name contract-shortcuts)
    #:rules
-   (list explicit-path-string?-to-path-string?
+   (list arrow-contract-with-rest-to-arrow-contract-with-ellipses
+         explicit-path-string?-to-path-string?
          explicit-predicate/c-to-predicate/c
          nested-or/c-to-flat-or/c
          nested-and/c-to-flat-and/c)))
