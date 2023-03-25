@@ -76,3 +76,9 @@ test: "nested and/c contracts interspersed with or/c contracts can be flattened"
 test: "contracts equivalent to predicate/c can be refactored to predicate/c"
 - (void (-> any/c boolean?))
 - (void predicate/c)
+
+
+test: "contracts equivalent to path-string? can be refactored to path-string?"
+- (void (or/c path? string?))
+- (void (or/c string? path?))
+- (void path-string?)
