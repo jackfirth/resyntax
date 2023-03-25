@@ -9,13 +9,11 @@
   [refactoring-result? predicate/c]
   [refactoring-result
    (-> #:source source?
-       #:rule-name interned-symbol?
-       #:message string?
+       #:rule-info refactoring-info?
        #:replacement syntax-replacement?
        refactoring-result?)]
   [refactoring-result-source (-> refactoring-result? source?)]
-  [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
-  [refactoring-result-message (-> refactoring-result? immutable-string?)]
+  [refactoring-result-rule-info (-> refactoring-result? refactoring-info?)]
   [refactoring-result-modified-range (-> refactoring-result? range?)]
   [refactoring-result-replacement (-> refactoring-result? syntax-replacement?)]
   [refactoring-result-string-replacement (-> refactoring-result? string-replacement?)]
@@ -42,23 +40,14 @@
          resyntax/private/source
          resyntax/private/string-replacement
          resyntax/private/syntax-range
-         resyntax/private/syntax-replacement)
+         resyntax/private/syntax-replacement
+         resyntax/refactoring-rule)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-record-type refactoring-result (source rule-name message replacement)
-  #:omit-root-binding)
-
-
-(define (refactoring-result
-         #:source source #:rule-name rule-name #:message message #:replacement replacement)
-  (constructor:refactoring-result
-   #:source source
-   #:rule-name rule-name
-   #:message (string->immutable-string message)
-   #:replacement replacement))
+(define-record-type refactoring-result (source rule-info replacement))
 
 
 (define (refactoring-result-modified-range result)

@@ -27,6 +27,7 @@
          rebellion/type/tuple
          resyntax
          resyntax/private/refactoring-result
+         resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/private/string-replacement
          syntax/parse
@@ -79,7 +80,11 @@
 
 
 (define (refactoring-results-matched-rules-info results)
-  (define matches (transduce results (mapping refactoring-result-rule-name) #:into into-multiset))
+  (define matches
+    (transduce results
+               (mapping
+                (λ (result) (refactoring-info-rule-name (refactoring-result-rule-info result))))
+               #:into into-multiset))
   (nested-info
    (transduce (in-hash-entries (multiset-frequencies matches))
               (mapping-values

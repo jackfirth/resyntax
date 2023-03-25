@@ -22,9 +22,11 @@
          resyntax
          resyntax/default-recommendations
          resyntax/private/file-group
+         resyntax/private/git
          resyntax/private/github
          resyntax/private/string-indent
          resyntax/private/refactoring-result
+         resyntax/refactoring-rule
          resyntax/private/source)
 
 
@@ -152,8 +154,11 @@ changed relative to baseref are analyzed and fixed."
       [(== plain-text)
        (for ([result (in-list results)])
          (define path (file-source-path (refactoring-result-source result)))
-         (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
-         (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
+         (printf "resyntax: ~a [~a]\n"
+                 path (refactoring-info-rule-name (refactoring-result-rule-info result)))
+         (printf "\n\n~a\n"
+                 (string-indent (refactoring-info-message (refactoring-result-rule-info result))
+                                #:amount 2))
          (define old-code (refactoring-result-original-code result))
          (define new-code (refactoring-result-new-code result))
          (printf "\n\n~a\n\n\n~a\n\n\n"
@@ -180,29 +185,39 @@ changed relative to baseref are analyzed and fixed."
     (transduce files
                (append-mapping (refactor-file _ #:suite (resyntax-fix-options-suite options)))
                #:into into-list))
-  (define results-by-path
+  (define results-by-info-and-path
     (transduce
      all-results
-     (indexing (λ (result) (file-source-path (refactoring-result-source result))))
-     (grouping (into-transduced (sorting #:key refactoring-result-original-line) #:into into-list))
+     (indexing refactoring-result-rule-info)
+     (grouping
+      (into-transduced
+       (indexing (λ (result) (file-source-path (refactoring-result-source result))))
+       (grouping (into-transduced (sorting #:key refactoring-result-original-line) #:into into-list))
+       #:into into-hash))
      #:into into-hash))
   (printf "resyntax: --- fixing code ---\n")
-  (for ([(path results) (in-hash results-by-path)])
-    (define result-count (length results))
-    (define fix-string (if (> result-count 1) "fixes" "fix"))
-    (printf "resyntax: applying ~a ~a to ~a\n\n" result-count fix-string path)
-    (for ([result (in-list results)])
-      (define line (refactoring-result-original-line result))
-      (define message (refactoring-result-message result))
-      (printf "  * [line ~a] ~a\n" line message))
-    (refactor! results)
-    (newline))
+  (for ([(info results-by-path) (in-hash results-by-info-and-path)])
+    (for ([(path results) (in-hash results-by-path)])
+      (define result-count (length results))
+      (define fix-string (if (> result-count 1) "fixes" "fix"))
+      (printf "resyntax: applying ~a ~a to ~a\n\n" result-count fix-string path)
+      (for ([result (in-list results)])
+        (define line (refactoring-result-original-line result))
+        (define message (refactoring-info-message info))
+        (printf "  * [line ~a] ~a\n" line message))
+      (refactor! results)
+      (newline))
+    (define commit-message
+      (format "\\`~a\\`: ~a" (refactoring-info-rule-name info) (refactoring-info-message info)))
+    (git-commit! #:summary commit-message))
   (printf "resyntax: --- summary ---\n")
   (define total-fixes (length all-results))
-  (define total-files (hash-count results-by-path))
+  (define total-files
+    (transduce all-results (deduplicating #:key refactoring-result-source) #:into into-count))
   (define fix-counts-by-rule
     (transduce all-results
-               (indexing refactoring-result-rule-name)
+               (indexing
+                (λ (result) (refactoring-info-rule-name (refactoring-result-rule-info result))))
                (grouping into-count)
                (sorting #:key entry-value #:descending? #true)
                #:into into-list))

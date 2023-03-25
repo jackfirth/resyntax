@@ -64,8 +64,7 @@
         (syntax-replacement-preserves-comments? _ comments))
        (refactoring-result
         #:source (source-code-analysis-code analysis)
-        #:rule-name (object-name rule)
-        #:message (refactoring-rule-description rule)
+        #:rule-info (refactoring-rule-info rule)
         #:replacement _))))
   
   (falsey->option

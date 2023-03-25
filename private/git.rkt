@@ -6,7 +6,8 @@
 
 (provide
  (contract-out
-  [git-diff-modified-lines (-> string? (hash/c path? immutable-range-set?))]))
+  [git-diff-modified-lines (-> string? (hash/c path? immutable-range-set?))]
+  [git-commit! (-> #:summary string? void?)]))
 
 
 (require fancy-app
@@ -64,3 +65,7 @@
       'lex-line
       "a git file name line (starting with '+++ b/') or a hunk range line (starting with '@@')"
       line)]))
+
+
+(define (git-commit! #:summary summary)
+  (void (system (format "git commit -am \"~a\"" summary))))
