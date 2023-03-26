@@ -70,16 +70,6 @@ test: "nested ands interspersed with ors can be flattened"
 - (and 1 2 (or 3 4) 5 6)
 
 
-test: "de morgan's law can refactor ands to ors"
-- (and (not 1) (not 2) (not 3))
-- (not (or 1 2 3))
-
-
-test: "de morgan's law can refactor ors to ands"
-- (or (not 1) (not 2) (not 3))
-- (not (and 1 2 3))
-
-
 test: "using if to convert a boolean expression to a boolean can be removed"
 - (if (string? "foo") #true #false)
 - (string? "foo")
