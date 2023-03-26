@@ -35,7 +35,8 @@
 
 
 (define-refactoring-rule nested-and-to-flat-and
-  #:description "Nested `and` expressions can be flattened into a single, equivalent `and` expression."
+  #:description
+  "Nested `and` expressions can be flattened into a single, equivalent `and` expression."
   [and-tree
    #:declare and-tree (syntax-tree #'and)
    ;; Restricted to single-line expressions for now because the syntax-tree operations don't preserve
@@ -43,24 +44,6 @@
    #:when (oneline-syntax? #'and-tree)
    #:when (>= (attribute and-tree.rank) 2)
    (and and-tree.leaf ...)])
-
-
-(define simpler-boolean-expression
-  "This boolean expression can be replaced with a simpler, logically equivalent expression.")
-
-
-(define-refactoring-rule de-morgan-and-to-or
-  #:description simpler-boolean-expression
-  #:literals (and not)
-  [(and (not expr) ...+)
-   (not (or expr ...))])
-
-
-(define-refactoring-rule de-morgan-or-to-and
-  #:description simpler-boolean-expression
-  #:literals (or not)
-  [(or (not expr) ...+)
-   (not (and expr ...))])
 
 
 (define-refactoring-rule if-then-true-else-false-to-condition
@@ -106,9 +89,7 @@
   (refactoring-suite
    #:name (name boolean-shortcuts)
    #:rules
-   (list de-morgan-and-to-or
-         de-morgan-or-to-and
-         if-then-false-else-true-to-not
+   (list if-then-false-else-true-to-not
          if-then-true-else-false-to-condition
          if-else-false-to-and
          inverted-when
