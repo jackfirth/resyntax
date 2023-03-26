@@ -11,6 +11,7 @@
                resyntax/default-recommendations/contract-shortcuts
                resyntax/default-recommendations/for-loop-shortcuts
                resyntax/default-recommendations/function-definition-shortcuts
+               resyntax/default-recommendations/function-shortcuts
                resyntax/default-recommendations/hash-shortcuts
                resyntax/default-recommendations/legacy-contract-migrations
                resyntax/default-recommendations/legacy-struct-migrations
@@ -35,6 +36,7 @@
          resyntax/default-recommendations/contract-shortcuts
          resyntax/default-recommendations/for-loop-shortcuts
          resyntax/default-recommendations/function-definition-shortcuts
+         resyntax/default-recommendations/function-shortcuts
          resyntax/default-recommendations/hash-shortcuts
          resyntax/default-recommendations/legacy-contract-migrations
          resyntax/default-recommendations/legacy-struct-migrations
@@ -64,6 +66,7 @@
            (refactoring-suite-rules contract-shortcuts)
            (refactoring-suite-rules for-loop-shortcuts)
            (refactoring-suite-rules function-definition-shortcuts)
+           (refactoring-suite-rules function-shortcuts)
            (refactoring-suite-rules hash-shortcuts)
            (refactoring-suite-rules legacy-contract-migrations)
 
