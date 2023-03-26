@@ -13,6 +13,7 @@
          racket/list
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
+         resyntax/default-recommendations/private/literal-constant
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          syntax/parse)
@@ -67,6 +68,20 @@
    (sort lst less-than #:key f1)])
 
 
+(define-syntax-class unquoted
+  #:attributes (expr)
+  #:literals (unquote)
+  (pattern expr:literal-constant)
+  (pattern (unquote expr)))
+
+
+(define-refactoring-rule quasiquote-to-list
+  #:description "This quasiquotation is equialent to a simple `list` call."
+  #:literals (quasiquote unquote)
+  [(quasiquote (arg:unquoted ...))
+   (list arg.expr ...)])
+
+
 (define list-shortcuts
   (refactoring-suite
    #:name (name list-shortcuts)
@@ -75,4 +90,5 @@
          append*-and-map-to-append-map
          equal-null-list-to-null-predicate
          first-reverse-to-last
+         quasiquote-to-list
          sort-with-keyed-comparator-to-sort-by-key)))
