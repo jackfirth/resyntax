@@ -63,3 +63,25 @@ test: "sort by comparator using key refactorable to sort by key"
 (define (f x) 42)
 (sort (list 1 2 3) < #:key f)
 ------------------------------
+
+
+test: "unnecessary quasiquotation refactorable to list"
+------------------------------
+(define (f x y z)
+  `(,x ,y ,z))
+------------------------------
+------------------------------
+(define (f x y z)
+  (list x y z))
+------------------------------
+
+
+test: "unnecessary quasiquotation with constants refactorable to list"
+------------------------------
+(define (f x y z)
+  `(,x 1 ,y 2 ,z 3))
+------------------------------
+------------------------------
+(define (f x y z)
+  (list x 1 y 2 z 3))
+------------------------------
