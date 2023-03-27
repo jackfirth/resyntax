@@ -215,5 +215,5 @@ EOS
    #:owner-repo github-repository
    #:pull-number (git-ref->pr-number branch-ref)
    #:body (github-review-body (not (null? comments)) file-count)
-   #:event (if (empty? comments) "APPROVE" "REQUEST_CHANGES")
+   #:event (if (empty? comments) "APPROVE" "COMMENT")
    #:comments comments))
