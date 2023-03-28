@@ -5,6 +5,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/block
          (only-in racket/class
                   define/augment
                   define/augment-final
@@ -28,39 +29,59 @@
 
 (define-splicing-syntax-class header-form-allowing-internal-definitions
   #:attributes ([formatted 1])
-  #:literals (let
-                 let*
-               let-values
-               let*-values
-               when
-               unless
-               with-handlers
-               with-syntax
-               parameterize
-               for
-               for/list
-               for/vector
-               for/hash
-               for/hasheq
-               for/hasheqv
-               for/and
-               for/or
-               for/sum
-               for/product
-               for/first
-               for/last
-               for*
-               for*/list
-               for*/vector
-               for*/hash
-               for*/hasheq
-               for*/hasheqv
-               for*/and
-               for*/or
-               for*/sum
-               for*/product
-               for*/first
-               for*/last)
+  #:literals (block
+              #%module-begin
+              module
+              module*
+              module+
+              let
+              let*
+              let-values
+              let*-values
+              when
+              unless
+              with-handlers
+              with-syntax
+              parameterize
+              for
+              for/list
+              for/vector
+              for/hash
+              for/hasheq
+              for/hasheqv
+              for/and
+              for/or
+              for/sum
+              for/product
+              for/first
+              for/last
+              for*
+              for*/list
+              for*/vector
+              for*/hash
+              for*/hasheq
+              for*/hasheqv
+              for*/and
+              for*/or
+              for*/sum
+              for*/product
+              for*/first
+              for*/last)
+
+  (pattern (~seq block ~!)
+    #:with (formatted ...) #'(block))
+
+  (pattern (~seq #%module-begin ~!)
+    #:with (formatted ...) #'(#%module-begin))
+
+  (pattern (~seq module ~! id lang)
+    #:with (formatted ...) #'(module id lang))
+
+  (pattern (~seq module* ~! id lang)
+    #:with (formatted ...) #'(module id lang))
+
+  (pattern (~seq module+ ~! id)
+    #:with (formatted ...) #'(module id))
 
   (pattern (~seq lambda:lambda-by-any-name ~! formals:formals)
     #:with (formatted ...) #'(lambda formals))
@@ -93,40 +114,40 @@
     #:with (formatted ...) #'(parameterize handlers))
 
   (pattern
-      (~seq
-       (~and for-id
-             (~or for
-                  for/list
-                  for/hash
-                  for/hasheq
-                  for/hasheqv
-                  for/and
-                  for/or
-                  for/sum
-                  for/product
-                  for/first
-                  for/last
-                  for*
-                  for*/list
-                  for*/hash
-                  for*/hasheq
-                  for*/hasheqv
-                  for*/and
-                  for*/or
-                  for*/sum
-                  for*/product
-                  for*/first
-                  for*/last))
-       ~!
-       clauses)
+    (~seq
+     (~and for-id
+           (~or for
+                for/list
+                for/hash
+                for/hasheq
+                for/hasheqv
+                for/and
+                for/or
+                for/sum
+                for/product
+                for/first
+                for/last
+                for*
+                for*/list
+                for*/hash
+                for*/hasheq
+                for*/hasheqv
+                for*/and
+                for*/or
+                for*/sum
+                for*/product
+                for*/first
+                for*/last))
+     ~!
+     clauses)
     #:with (formatted ...) #'((ORIGINAL-SPLICE for-id clauses)))
 
   (pattern
-      (~seq
-       (~and for-id (~or for/vector for*/vector))
-       ~!
-       (~alt (~optional (~seq #:length length-expr)) (~optional (~seq #:fill fill-expr))) ...
-       clauses)
+    (~seq
+     (~and for-id (~or for/vector for*/vector))
+     ~!
+     (~alt (~optional (~seq #:length length-expr)) (~optional (~seq #:fill fill-expr))) ...
+     clauses)
     #:with (formatted ...) #'((ORIGINAL-SPLICE for-id clauses))))
 
 
@@ -145,14 +166,14 @@
                define/pubment
                define/private)
   (pattern
-      (~or define
-           define/augment
-           define/augment-final
-           define/augride
-           define/overment
-           define/override
-           define/override-final
-           define/public
-           define/public-final
-           define/pubment
-           define/private)))
+    (~or define
+         define/augment
+         define/augment-final
+         define/augride
+         define/overment
+         define/override
+         define/override-final
+         define/public
+         define/public-final
+         define/pubment
+         define/private)))
