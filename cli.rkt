@@ -127,6 +127,9 @@ changed relative to baseref are analyzed and fixed."
 (define (resyntax-run)
   (command-line
    #:program "resyntax"
+   #:usage-help
+    "\n<command> is one of\n\n\tanalyze\n\tfix\n\nFor help on these, use 'analyze --help' or 'fix --help'."
+   #:ps "\nSee https://docs.racket-lang.org/resyntax/index.html for details."
    #:args (command . leftover-args)
    (define leftover-arg-vector (vector->immutable-vector (list->vector leftover-args)))
    (match command
@@ -146,7 +149,7 @@ changed relative to baseref are analyzed and fixed."
     (transduce files
                (append-mapping (refactor-file _ #:suite (resyntax-analyze-options-suite options)))
                #:into into-list))
-  
+
   (define (display-results)
     (match (resyntax-analyze-options-output-format options)
       [(== plain-text)
@@ -162,7 +165,7 @@ changed relative to baseref are analyzed and fixed."
       [(== github-pull-request-review)
        (define req (refactoring-results->github-review results #:file-count (length files)))
        (write-json (github-review-request-jsexpr req))]))
-  
+
   (match (resyntax-analyze-options-output-destination options)
     ['console
      (printf "resyntax: --- displaying results ---\n")
