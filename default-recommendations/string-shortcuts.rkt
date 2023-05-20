@@ -41,6 +41,7 @@
 
 (define-syntax-class string-append-and-string-join-expression
   #:attributes (refactored)
+  #:literals (string-append)
 
   (pattern (string-append before join-call:keywordless-string-join-call)
     #:with refactored
@@ -60,7 +61,7 @@
 (define-refactoring-rule string-append-and-string-join-to-string-join
   #:description
   "This use of `string-append` can be removed by using `string-join`'s keyword arguments."
-  #:literals (string-append string-join)
+  #:literals (string-join)
   [expr:string-append-and-string-join-expression expr.refactored])
 
 
