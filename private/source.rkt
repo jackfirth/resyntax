@@ -105,7 +105,7 @@
     (define (add-original-location! hsh stx)
       (when (and (syntax? stx)
                  (syntax-original? stx)
-                 (range-set-intersects? lines (syntax-line-range stx #:linemap code-linemap)))
+                 (range-set-encloses? lines (syntax-line-range stx #:linemap code-linemap)))
         (define loc (syntax-source-location stx))
         (unless (hash-has-key? hsh loc)
           (hash-set! hsh loc stx))))
