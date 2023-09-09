@@ -44,13 +44,6 @@
    (and/c and-tree.leaf ...)])
 
 
-(define-refactoring-rule explicit-predicate/c-to-predicate/c
-  #:description "This contract is equivalent to the `predicate/c` contract."
-  #:literals (-> any/c boolean?)
-  [(-> any/c boolean?)
-   predicate/c])
-
-
 (define-refactoring-rule explicit-path-string?-to-path-string?
   #:description "This contract is equivalent to the `path-string?` predicate."
   #:literals (or/c path? string?)
@@ -78,6 +71,5 @@
    #:rules
    (list arrow-contract-with-rest-to-arrow-contract-with-ellipses
          explicit-path-string?-to-path-string?
-         explicit-predicate/c-to-predicate/c
          nested-or/c-to-flat-or/c
          nested-and/c-to-flat-and/c)))
