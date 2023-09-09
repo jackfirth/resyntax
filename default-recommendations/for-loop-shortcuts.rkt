@@ -170,13 +170,25 @@
               function.body ...)])
 
 
-(define-refactoring-rule list->vector-for/list-to-for/vector
+(define-syntax-class for-list-id
+  #:attributes (set-id vector-id)
+  #:literals (for/list for*/list)
+  (pattern for/list #:with set-id #'for/set #:with vector-id #'for/vector)
+  (pattern for*/list #:with set-id #'for*/set #:with vector-id #'for*/vector))
+
+
+(define-refactoring-rule list->vector-to-for/vector
   #:description "`for` loops can build vectors directly."
-  #:literals (list->vector for/list for*/list)
-  [(list->vector
-    ((~or (~and for/list (~bind [loop #'for/vector])) (~and for*/list (~bind [loop #'for*/vector])))
-     clauses ...))
-   (loop (ORIGINAL-SPLICE clauses ...))])
+  #:literals (list->vector)
+  [(list->vector (loop-id:for-list-id clauses body ...))
+   (loop-id.vector-id (ORIGINAL-GAP loop-id clauses) (ORIGINAL-SPLICE clauses body ...))])
+
+
+(define-refactoring-rule list->set-to-for/set
+  #:description "`for` loops can build sets directly"
+  #:literals (list->set)
+  [(list->set (loop-id:for-list-id clauses body ...))
+   (loop-id.set-id (ORIGINAL-GAP loop-id clauses) (ORIGINAL-SPLICE clauses body ...))])
 
 
 (define-refactoring-rule for/fold-building-hash-to-for/hash
@@ -278,7 +290,8 @@
          apply-plus-to-for/sum
          for/fold-building-hash-to-for/hash
          for-each-to-for
-         list->vector-for/list-to-for/vector
+         list->set-to-for/set
+         list->vector-to-for/vector
          named-let-loop-to-for/first-in-vector
          nested-for-to-for*
          or-in-for/and-to-filter-clause
