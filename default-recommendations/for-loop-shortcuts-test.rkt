@@ -222,6 +222,22 @@ test: "list->vector with for/list to for/vector"
 ------------------------------
 
 
+test: "list->set with for/list to for/set"
+------------------------------
+(require racket/set)
+(list->set
+ (for/list ([x (in-range 0 10)])
+   (displayln x)
+   (* x x)))
+------------------------------
+------------------------------
+(require racket/set)
+(for/set ([x (in-range 0 10)])
+  (displayln x)
+  (* x x))
+------------------------------
+
+
 test: "nested for forms can be flattened to a for* form"
 ------------------------------
 (for ([x (in-range 0 5)])
