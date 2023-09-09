@@ -21,6 +21,7 @@
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-identifier-sets
+         resyntax/default-recommendations/private/syntax-lines
          resyntax/private/syntax-replacement
          syntax/parse)
 
@@ -243,11 +244,37 @@
             last-condition)])
 
 
+(define-syntax-class apply-append-refactorable-for-loop
+  #:attributes (refactored-loop)
+  #:literals (for/list for*/list)
+
+  (pattern (for/list (only-clause) only-body:expr)
+    #:when (oneline-syntax? #'only-body)
+    #:with refactored-loop
+    #'(for*/list (only-clause NEWLINE [v (in-list only-body)])
+        NEWLINE v))
+
+  (pattern ((~and loop-id for*/list) (clause ...) only-body:expr)
+    #:when (oneline-syntax? #'only-body)
+    #:with refactored-loop
+    #'(loop-id ((ORIGINAL-SPLICE clause ...) NEWLINE [v (in-list only-body)])
+               NEWLINE v)))
+
+
+(define-refactoring-rule apply-append-for-loop-to-for-loop
+  #:description "Instead of using `(apply append ...)` to flatten a list of lists, consider using\
+ `for*/list` to flatten the list"
+  #:literals (apply append)
+  [(apply append loop:apply-append-refactorable-for-loop)
+   loop.refactored-loop])
+
+
 (define for-loop-shortcuts
   (refactoring-suite
    #:name (name for-loop-shortcuts)
    #:rules
    (list andmap-to-for/and
+         apply-append-for-loop-to-for-loop
          apply-plus-to-for/sum
          for/fold-building-hash-to-for/hash
          for-each-to-for
