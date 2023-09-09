@@ -65,6 +65,16 @@ test: "lambda variable definition with rest argument to function definition"
 ------------------------------
 
 
+test: "class lambda variable definition not refactorable"
+------------------------------
+(require racket/class)
+(class object%
+  (define f
+    (λ (a b c)
+      1)))
+------------------------------
+
+
 test: "lambda function definition to function definition"
 ------------------------------
 (define (f a b c)

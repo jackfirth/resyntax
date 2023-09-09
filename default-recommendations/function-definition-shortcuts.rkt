@@ -78,6 +78,7 @@
  functions)."
   #:literals (define)
   [(define header lambda-form:possibly-nested-lambdas)
+   #:when (not (syntax-property this-syntax 'class-body))
    #:do [(define multiline-lambda-header-count
            (count multiline-syntax? (attribute lambda-form.original-formals)))]
    #:when (< multiline-lambda-header-count 2)
