@@ -33,7 +33,7 @@
 
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review))
 (define-record-type resyntax-analyze-options (targets suite output-format output-destination))
-(define-record-type resyntax-fix-options (targets suite))
+(define-record-type resyntax-fix-options (targets suite max-fixes))
 
 
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
@@ -94,6 +94,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (define suite default-recommendations)
   (define (add-target! target)
     (vector-builder-add targets target))
+  (define max-fixes #false)
   (command-line
    #:program "resyntax fix"
    #:multi
@@ -120,15 +121,26 @@ changed relative to baseref are analyzed and fixed."
     "The refactoring suite to analyze code with."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
-    (set! suite (dynamic-require parsed-modpath parsed-suite-name))))
-  (resyntax-fix-options #:targets (build-vector targets) #:suite suite))
+    (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
+   ("--max-fixes-to-apply"
+    fixlimit
+    "The maximum number of fixes to apply. If not specified, all fixes found will be applied."
+    (set! max-fixes fixlimit)))
+  (resyntax-fix-options #:targets (build-vector targets) #:suite suite #:max-fixes max-fixes))
 
 
 (define (resyntax-run)
   (command-line
    #:program "resyntax"
+
    #:usage-help
-    "\n<command> is one of\n\n\tanalyze\n\tfix\n\nFor help on these, use 'analyze --help' or 'fix --help'."
+   "\n<command> is one of
+
+\tanalyze
+\tfix
+
+For help on these, use 'analyze --help' or 'fix --help'."
+
    #:ps "\nSee https://docs.racket-lang.org/resyntax/index.html for details."
    #:args (command . leftover-args)
    (define leftover-arg-vector (vector->immutable-vector (list->vector leftover-args)))
@@ -178,10 +190,12 @@ changed relative to baseref are analyzed and fixed."
 (define (resyntax-fix-run)
   (define options (resyntax-fix-parse-command-line))
   (define files (file-groups-resolve (resyntax-fix-options-targets options)))
+  (define max-fixes (resyntax-fix-options-max-fixes options))
   (printf "resyntax: --- analyzing code ---\n")
   (define all-results
     (transduce files
                (append-mapping (refactor-file _ #:suite (resyntax-fix-options-suite options)))
+               (if max-fixes (taking max-fixes) (transducer-pipe))
                #:into into-list))
   (define results-by-path
     (transduce
