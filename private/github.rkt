@@ -30,6 +30,7 @@
          resyntax/private/run-command
          resyntax/private/string-indent
          resyntax/private/source
+         resyntax/refactoring-rule
          uri-old)
 
 
@@ -184,8 +185,8 @@
 </details>
 </details>
 EOS
-            (refactoring-result-rule-name result)
-            (refactoring-result-message result)
+            (refactoring-info-rule-name (refactoring-result-rule-info result))
+            (refactoring-info-message (refactoring-result-rule-info result))
             (line-replacement-new-text replacement)
             (string-indent (pretty-format replacement) #:amount 2)
             (string-indent (pretty-format (refactoring-result-replacement result)) #:amount 2)))

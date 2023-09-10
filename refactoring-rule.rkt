@@ -9,6 +9,11 @@
  (contract-out
   [refactoring-rule? predicate/c]
   [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
+  [refactoring-rule-info (-> refactoring-rule? refactoring-info?)]
+  [refactoring-info? (-> any/c boolean?)]
+  [refactoring-info (-> #:rule-name interned-symbol? #:message string? refactoring-info?)]
+  [refactoring-info-rule-name (-> refactoring-info? interned-symbol?)]
+  [refactoring-info-message (-> refactoring-info? immutable-string?)]
   [current-source-code-analysis (-> (or/c source-code-analysis? #false))]))
 
 
@@ -23,7 +28,9 @@
 (require (for-syntax racket/base)
          rebellion/base/immutable-string
          rebellion/base/option
+         rebellion/base/symbol
          rebellion/type/object
+         rebellion/type/record
          resyntax/private/source
          resyntax/private/syntax-replacement
          syntax/parse
@@ -39,6 +46,19 @@
 (define-object-type refactoring-rule (transformer description)
   #:omit-root-binding
   #:constructor-name constructor:refactoring-rule)
+
+
+(define-record-type refactoring-info (rule-name message)
+  #:omit-root-binding)
+
+
+(define (refactoring-info #:rule-name rule-name #:message message)
+  (constructor:refactoring-info #:rule-name rule-name #:message (string->immutable-string message)))
+
+
+(define (refactoring-rule-info rule)
+  (refactoring-info #:rule-name (object-name rule)
+                    #:message (refactoring-rule-description rule)))
 
 
 (define (refactoring-rule-refactor rule syntax #:analysis analysis)
