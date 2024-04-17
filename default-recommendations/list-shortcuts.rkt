@@ -11,9 +11,11 @@
 
 (require (for-syntax racket/base)
          racket/list
+         racket/set
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
+         resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          syntax/parse)
@@ -58,6 +60,42 @@
    lst])
 
 
+(define-refactoring-rule filter-to-remove*
+  #:description
+  "The `remove*` function is a simpler way to remove all elements of one list from another."
+  #:literals (filter andmap not equal?)
+  [(filter (_:lambda-by-any-name (x1) (andmap (_:lambda-by-any-name (y1) (not (equal? x2 y2))) ys))
+           xs)
+   #:when (free-identifier=? #'x1 #'x2)
+   #:when (free-identifier=? #'y1 #'y2)
+   #:when (not (set-member? (syntax-free-identifiers #'ys) #'x1))
+   (remove* ys xs)])
+
+
+(define-refactoring-rule filter-to-remv*
+  #:description
+  "The `remv*` function is a simpler way to remove all elements of one list from another."
+  #:literals (filter andmap not eqv?)
+  [(filter (_:lambda-by-any-name (x1) (andmap (_:lambda-by-any-name (y1) (not (eqv? x2 y2))) ys))
+           xs)
+   #:when (free-identifier=? #'x1 #'x2)
+   #:when (free-identifier=? #'y1 #'y2)
+   #:when (not (set-member? (syntax-free-identifiers #'ys) #'x1))
+   (remv* ys xs)])
+
+
+(define-refactoring-rule filter-to-remq*
+  #:description
+  "The `remq*` function is a simpler way to remove all elements of one list from another."
+  #:literals (filter andmap not eq?)
+  [(filter (_:lambda-by-any-name (x1) (andmap (_:lambda-by-any-name (y1) (not (eq? x2 y2))) ys))
+           xs)
+   #:when (free-identifier=? #'x1 #'x2)
+   #:when (free-identifier=? #'y1 #'y2)
+   #:when (not (set-member? (syntax-free-identifiers #'ys) #'x1))
+   (remq* ys xs)])
+
+
 (define-refactoring-rule sort-with-keyed-comparator-to-sort-by-key
   #:description "This `sort` expression can be replaced with a simpler, equivalent expression."
   #:literals (sort <)
@@ -89,6 +127,9 @@
    (list append-single-list-to-single-list
          append*-and-map-to-append-map
          equal-null-list-to-null-predicate
+         filter-to-remove*
+         filter-to-remq*
+         filter-to-remv*
          first-reverse-to-last
          quasiquote-to-list
          sort-with-keyed-comparator-to-sort-by-key)))
