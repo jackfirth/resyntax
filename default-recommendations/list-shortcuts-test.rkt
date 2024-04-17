@@ -54,6 +54,54 @@ test: "single-list append removable"
 - (list 1 2 3)
 
 
+test: "filter with andmap and equal? to intersect lists refactorable to remove*"
+------------------------------
+(define old-ids '(a b c))
+(define new-ids '(b c d e))
+(filter (λ (id)
+          (andmap (λ (id2) (not (equal? id id2)))
+                  old-ids))
+        new-ids)
+------------------------------
+------------------------------
+(define old-ids '(a b c))
+(define new-ids '(b c d e))
+(remove* old-ids new-ids)
+------------------------------
+
+
+test: "filter with andmap and eqv? to intersect lists refactorable to remv*"
+------------------------------
+(define old-ids '(a b c))
+(define new-ids '(b c d e))
+(filter (λ (id)
+          (andmap (λ (id2) (not (eqv? id id2)))
+                  old-ids))
+        new-ids)
+------------------------------
+------------------------------
+(define old-ids '(a b c))
+(define new-ids '(b c d e))
+(remv* old-ids new-ids)
+------------------------------
+
+
+test: "filter with andmap and eq? to intersect lists refactorable to remq*"
+------------------------------
+(define old-ids '(a b c))
+(define new-ids '(b c d e))
+(filter (λ (id)
+          (andmap (λ (id2) (not (eq? id id2)))
+                  old-ids))
+        new-ids)
+------------------------------
+------------------------------
+(define old-ids '(a b c))
+(define new-ids '(b c d e))
+(remq* old-ids new-ids)
+------------------------------
+
+
 test: "sort by comparator using key refactorable to sort by key"
 ------------------------------
 (define (f x) 42)
