@@ -48,6 +48,30 @@
     #:with converted #'((ORIGINAL-SPLICE formal ... rest-arg))))
 
 
+(struct function-definition (original-syntax original-header original-body))
+
+
+(define-record-type parsed-lambda-expression (header bodies arity original))
+
+
+(define-syntax-class lambda-expression
+  #:attributes (parsed header [body 1] arity)
+
+  (pattern (_:lambda-by-any-name header:lambda-header body:expr ...+)
+    #:with arity (lambda-header-arity header)
+
+(define (parse-function-expression stx)
+  (syntax-parse stx
+    [(_:lambda-by-any-name header body:expr ...+)
+     (parsed-function-expression
+
+(define (parse-function-definition stx)
+  (syntax-parse stx
+    #:literals (define)
+
+    (pattern (define id:id ~! (_:lambda-by-any-name 
+
+
 (define-syntax-class possibly-nested-lambdas
   #:attributes ([converted-formals 1] [formatted-body 1] [original-formals 1])
 
@@ -65,11 +89,15 @@
     #'((ORIGINAL-GAP first-formals initial-body) (ORIGINAL-SPLICE initial-body body ...))))
 
 
-(define/guard (build-function-header original-header converted-lambda-formal-lists)
+(define/guard (build-function-header
+               original-header original-lambda-formal-lists converted-lambda-formal-lists)
   (guard (empty? converted-lambda-formal-lists) then
     original-header)
   (with-syntax ([formals (first converted-lambda-formal-lists)])
-    (build-function-header #`(#,original-header . formals) (rest converted-lambda-formal-lists))))
+    (build-function-header
+     #`(#,original-header . formals)
+     (rest original-lambda-formal-lists)
+     (rest converted-lambda-formal-lists))))
 
 
 (define-refactoring-rule define-lambda-to-define
