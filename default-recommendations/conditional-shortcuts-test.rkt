@@ -52,13 +52,13 @@ test: "if else false can be refactored to an and expression"
 
 test: "multi-line if else false can be refactored to a multi-line and expression"
 ------------------------------
-(if 'a
-    (println "true branch")
+(if 'some-very-long-condition-that-is-so-very-long
+    (println "some very long true branch that is so very long")
     #f)
 ------------------------------
 ------------------------------
-(and 'a
-     (println "true branch"))
+(and 'some-very-long-condition-that-is-so-very-long
+     (println "some very long true branch that is so very long"))
 ------------------------------
 
 
@@ -75,15 +75,15 @@ test: "if x else x can be refactored to an and expression"
 
 test: "multi-line if x else x can be refactored to a multi-line and expression"
 ------------------------------
-(define x 'a)
-(if x
-    (println "true branch")
-    x)
+(define some-variable 'a)
+(if some-variable
+    (println "some very long true branch that is so very very very very very very very very long")
+    some-variable)
 ------------------------------
 ------------------------------
-(define x 'a)
-(and x
-     (println "true branch"))
+(define some-variable 'a)
+(and some-variable
+     (println "some very long true branch that is so very very very very very very very very long"))
 ------------------------------
 
 
@@ -222,35 +222,32 @@ test: "cond with nested else-cond can be flattened"
 ------------------------------
 (define (f a b)
   (cond
-    [a
-     (displayln "a")]
+    [a (displayln "a")]
     [else
      (cond
-       [b
-        (displayln "b")]
-       [else
-        (displayln "else")])]))
+       [b (displayln "b")]
+       [else (displayln "else")])]))
 ------------------------------
 ------------------------------
 (define (f a b)
   (cond
-    [a
-     (displayln "a")]
-    [b
-     (displayln "b")]
-    [else
-     (displayln "else")]))
+    [a (displayln "a")]
+    [b (displayln "b")]
+    [else (displayln "else")]))
 ------------------------------
 
 
-test: "flattening nested else-cond preserves single-line formatting"
+test: "flattening nested else-cond does not preserve single-line formatting"
 ------------------------------
 (define (f a b)
   (cond [a 1] [else (cond [b 2] [else 3])]))
 ------------------------------
 ------------------------------
 (define (f a b)
-  (cond [a 1] [b 2] [else 3]))
+  (cond
+    [a 1]
+    [b 2]
+    [else 3]))
 ------------------------------
 
 
@@ -378,9 +375,9 @@ test: "if clause with begin in both branches refactorable to cond"
 test: "if clause with multiline condition and begin in true branch refactorable to cond"
 ------------------------------
 (define (f a b c)
-  (if (a 1
-         2
-         3)
+  (if (a 10000000000000000000000000000000000000
+         20000000000000000000000000000000000000
+         30000000000000000000000000000000000000)
       (begin
         (displayln "stuff")
         b)
@@ -389,9 +386,9 @@ test: "if clause with multiline condition and begin in true branch refactorable 
 ------------------------------
 (define (f a b c)
   (cond
-    [(a 1
-        2
-        3)
+    [(a 10000000000000000000000000000000000000
+        20000000000000000000000000000000000000
+        30000000000000000000000000000000000000)
      (displayln "stuff")
      b]
     [else c]))
@@ -401,9 +398,9 @@ test: "if clause with multiline condition and begin in true branch refactorable 
 test: "if clause with multiline condition and begin in false branch refactorable to cond"
 ------------------------------
 (define (f a b c)
-  (if (a 1
-         2
-         3)
+  (if (a 10000000000000000000000000000000000000
+         20000000000000000000000000000000000000
+         30000000000000000000000000000000000000)
       b
       (begin
         (displayln "stuff")
@@ -412,9 +409,9 @@ test: "if clause with multiline condition and begin in false branch refactorable
 ------------------------------
 (define (f a b c)
   (cond
-    [(a 1
-        2
-        3)
+    [(a 10000000000000000000000000000000000000
+        20000000000000000000000000000000000000
+        30000000000000000000000000000000000000)
      b]
     [else
      (displayln "stuff")
@@ -425,9 +422,9 @@ test: "if clause with multiline condition and begin in false branch refactorable
 test: "if clause with multiline condition and begin in both branches refactorable to cond"
 ------------------------------
 (define (f a b c)
-  (if (a 1
-         2
-         3)
+  (if (a 10000000000000000000000000000000000000
+         20000000000000000000000000000000000000
+         30000000000000000000000000000000000000)
       (begin
         (displayln "stuff")
         b)
@@ -438,9 +435,9 @@ test: "if clause with multiline condition and begin in both branches refactorabl
 ------------------------------
 (define (f a b c)
   (cond
-    [(a 1
-        2
-        3)
+    [(a 10000000000000000000000000000000000000
+        20000000000000000000000000000000000000
+        30000000000000000000000000000000000000)
      (displayln "stuff")
      b]
     [else
@@ -621,9 +618,9 @@ test: "if clause with let in both branches refactorable to cond"
 test: "if clause with multiline condition and let in true branch refactorable to cond"
 ------------------------------
 (define (f a b c)
-  (if (a 1
-         2
-         3)
+  (if (a 10000000000000000000000000000000000000
+         20000000000000000000000000000000000000
+         30000000000000000000000000000000000000)
       (let ([x 1])
         b)
       c))
@@ -631,9 +628,9 @@ test: "if clause with multiline condition and let in true branch refactorable to
 ------------------------------
 (define (f a b c)
   (cond
-    [(a 1
-        2
-        3)
+    [(a 10000000000000000000000000000000000000
+        20000000000000000000000000000000000000
+        30000000000000000000000000000000000000)
      (define x 1)
      b]
     [else c]))
@@ -643,9 +640,9 @@ test: "if clause with multiline condition and let in true branch refactorable to
 test: "if clause with multiline condition and let in false branch refactorable to cond"
 ------------------------------
 (define (f a b c)
-  (if (a 1
-         2
-         3)
+  (if (a 10000000000000000000000000000000000000
+         20000000000000000000000000000000000000
+         30000000000000000000000000000000000000)
       b
       (let ([x 1])
         c)))
@@ -653,9 +650,9 @@ test: "if clause with multiline condition and let in false branch refactorable t
 ------------------------------
 (define (f a b c)
   (cond
-    [(a 1
-        2
-        3)
+    [(a 10000000000000000000000000000000000000
+        20000000000000000000000000000000000000
+        30000000000000000000000000000000000000)
      b]
     [else
      (define x 1)
@@ -666,9 +663,9 @@ test: "if clause with multiline condition and let in false branch refactorable t
 test: "if clause with multiline condition and let in both branches refactorable to cond"
 ------------------------------
 (define (f a b c)
-  (if (a 1
-         2
-         3)
+  (if (a 10000000000000000000000000000000000000
+         20000000000000000000000000000000000000
+         30000000000000000000000000000000000000)
       (let ([x 1])
         b)
       (let ([x 1])
@@ -677,9 +674,9 @@ test: "if clause with multiline condition and let in both branches refactorable 
 ------------------------------
 (define (f a b c)
   (cond
-    [(a 1
-        2
-        3)
+    [(a 10000000000000000000000000000000000000
+        20000000000000000000000000000000000000
+        30000000000000000000000000000000000000)
      (define x 1)
      b]
     [else
