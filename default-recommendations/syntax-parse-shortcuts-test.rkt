@@ -14,28 +14,11 @@ header:
 test: "define-simple-macro refactorable to define-syntax-parse-rule"
 ------------------------------
 (define-simple-macro (my-or a:expr b:expr)
-  (let ([tmp a])
-    (if a a b)))
+  (let ([tmp a]) (if a a b)))
 ------------------------------
 ------------------------------
 (define-syntax-parse-rule (my-or a:expr b:expr)
-  (let ([tmp a])
-    (if a a b)))
-------------------------------
-
-
-test: "define-simple-macro with header on next line refactorable to define-syntax-parse-rule"
-------------------------------
-(define-simple-macro
-  (my-or a:expr b:expr)
-  (let ([tmp a])
-    (if a a b)))
-------------------------------
-------------------------------
-(define-syntax-parse-rule
-  (my-or a:expr b:expr)
-  (let ([tmp a])
-    (if a a b)))
+  (let ([tmp a]) (if a a b)))
 ------------------------------
 
 
@@ -43,14 +26,12 @@ test: "define-simple-macro with body comments refactorable to define-syntax-pars
 ------------------------------
 (define-simple-macro (my-or a:expr b:expr)
   ;; The let form is needed to avoid evaluating a twice.
-  (let ([tmp a])
-    (if a a b)))
+  (let ([tmp a]) (if a a b)))
 ------------------------------
 ------------------------------
 (define-syntax-parse-rule (my-or a:expr b:expr)
   ;; The let form is needed to avoid evaluating a twice.
-  (let ([tmp a])
-    (if a a b)))
+  (let ([tmp a]) (if a a b)))
 ------------------------------
 
 
@@ -58,6 +39,5 @@ test: "define-syntax-parse-rule not refactorable (https://github.com/jackfirth/r
 ------------------------------
 (define-syntax-parse-rule (my-or a:expr b:expr)
   ;; The let form is needed to avoid evaluating a twice.
-  (let ([tmp a])
-    (if a a b)))
+  (let ([tmp a]) (if a a b)))
 ------------------------------
