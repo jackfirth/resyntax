@@ -12,16 +12,12 @@ test: "hash-ref with constant lambda can be simplified to hash-ref without lambd
 ------------------------------
 (define h (make-hash))
 (define k 'a)
-(hash-ref h
-          k
-          (λ () 42))
+(hash-ref h k (λ () 42))
 ------------------------------
 ------------------------------
 (define h (make-hash))
 (define k 'a)
-(hash-ref h
-          k
-          42)
+(hash-ref h k 42)
 ------------------------------
 
 
@@ -29,7 +25,8 @@ test: "hash-ref with non-constant lambda cannot be simplified to hash-ref withou
 ------------------------------
 (define h (make-hash))
 (define k 'a)
-(define (f x) x)
+(define (f x)
+  x)
 (hash-ref h k (λ () (f 42)))
 ------------------------------
 
@@ -38,16 +35,12 @@ test: "hash-ref! with constant lambda can be simplified to hash-ref! without lam
 ------------------------------
 (define h (make-hash))
 (define k 'a)
-(hash-ref! h
-           k
-           (λ () 42))
+(hash-ref! h k (λ () 42))
 ------------------------------
 ------------------------------
 (define h (make-hash))
 (define k 'a)
-(hash-ref! h
-           k
-           42)
+(hash-ref! h k 42)
 ------------------------------
 
 
@@ -55,7 +48,8 @@ test: "hash-ref! with non-constant lambda cannot be simplified to hash-ref! with
 ------------------------------
 (define h (make-hash))
 (define k 'a)
-(define (f x) x)
+(define (f x)
+  x)
 (hash-ref! h k (λ () (f 42)))
 ------------------------------
 
