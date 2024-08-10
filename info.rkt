@@ -18,7 +18,6 @@
         "fancy-app"
         "fmt"
         "guard"
-        "gui-lib"
         "rackunit-lib"
         "rebellion"
         "uri-old"))

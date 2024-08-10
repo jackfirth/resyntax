@@ -27,12 +27,7 @@
 
 (require fancy-app
          fmt
-         framework
-         (only-in racket/class
-                  new
-                  send)
-         racket/pretty
-         racket/string
+         racket/match
          rebellion/base/immutable-string
          rebellion/base/range
          rebellion/base/symbol
@@ -212,19 +207,13 @@
   (define source-code (source->string (refactoring-result-source result)))
   (define refactored-source-code (string-apply-replacement source-code replacement))
 
-  ;; TODO: update this to use fmt instead of drracket, like in refactoring-result-string-replacement.
-  (define text-object (new racket:text%))
-  (send text-object insert refactored-source-code)
-  (send text-object set-position (sub1 start) (sub1 end))
-  (send text-object tabify-all)
-  (define indented-start (add1 (send text-object get-start-position)))
-  (define indented-end (add1 (send text-object get-end-position)))
-  (define all-indented-raw-text (string->immutable-string (send text-object get-text)))
+  (match-define (formatted-code-subrange all-formatted-raw-text _ formatted-end)
+    (format-refactored-code refactored-source-code #:start start #:end end))
 
-  (define map (string-linemap all-indented-raw-text))
+  (define map (string-linemap all-formatted-raw-text))
   (define replacement-text
     (string->immutable-string
-     (substring all-indented-raw-text
-                (sub1 (linemap-position-to-start-of-line map indented-start))
-                (sub1 (linemap-position-to-end-of-line map indented-end)))))
+     (substring all-formatted-raw-text
+                (sub1 (linemap-position-to-start-of-line map start))
+                (sub1 (linemap-position-to-end-of-line map formatted-end)))))
   (in-lines (open-input-string replacement-text)))
