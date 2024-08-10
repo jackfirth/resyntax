@@ -7,7 +7,9 @@ require: resyntax/default-recommendations default-recommendations
 header:
 ------------------------------
 #lang racket/base
-(require racket/list racket/match syntax/parse/define)
+(require racket/list
+         racket/match
+         syntax/parse/define)
 ------------------------------
 
 
@@ -60,12 +62,14 @@ test: "shadowed `unless`: when not"
 
 test: "shadowed `displayln`: when not -> unless is fine"
 ------------------------------
-(define (displayln s) s)
+(define (displayln s)
+  s)
 (when (not 'foo)
   (displayln "not foo"))
 ------------------------------
 ------------------------------
-(define (displayln s) s)
+(define (displayln s)
+  s)
 (unless 'foo
   (displayln "not foo"))
 ------------------------------
@@ -81,12 +85,14 @@ test: "shadowed `when`: unless not"
 
 test: "shadowed `displayln`: unless not -> when is fine"
 ------------------------------
-(define (displayln s) s)
+(define (displayln s)
+  s)
 (unless (not 'foo)
   (displayln "foo"))
 ------------------------------
 ------------------------------
-(define (displayln s) s)
+(define (displayln s)
+  s)
 (when 'foo
   (displayln "foo"))
 ------------------------------
@@ -110,32 +116,37 @@ test: "shadowed `and`: multi-line if-else-false-to-and"
 
 test: "shadowed `println`: single-line if-else-false-to-and is fine"
 ------------------------------
-(define (println v) v)
+(define (println v)
+  v)
 (if 'a (println "true branch") #f)
 ------------------------------
 ------------------------------
-(define (println v) v)
+(define (println v)
+  v)
 (and 'a (println "true branch"))
 ------------------------------
 
 
 test: "shadowed `println`: multi-line if-else-false-to-and is fine"
 ------------------------------
-(define (println v) v)
-(if 'a
-    (println "true branch")
+(define (println v)
+  v)
+(if 'some-long-condition-expression
+    (println "some very long true branch that should stay on its own line")
     #f)
 ------------------------------
 ------------------------------
-(define (println v) v)
-(and 'a
-     (println "true branch"))
+(define (println v)
+  v)
+(and 'some-long-condition-expression
+     (println "some very long true branch that should stay on its own line"))
 ------------------------------
 
 
 test: "shadowed `for`: for-each with long single-form body"
 ------------------------------
-(define (for lst f) (for-each f lst))
+(define (for lst f)
+  (for-each f lst))
 (define some-list (list 1 2 3))
 (for-each
  (λ (a-very-very-very-long-variable-name-thats-so-very-long)
@@ -146,7 +157,8 @@ test: "shadowed `for`: for-each with long single-form body"
 
 test: "shadowed `for`: for-each with multiple body forms"
 ------------------------------
-(define (for lst f) (for-each f lst))
+(define (for lst f)
+  (for-each f lst))
 (define some-list (list 1 2 3))
 (for-each
  (λ (x)
@@ -158,7 +170,8 @@ test: "shadowed `for`: for-each with multiple body forms"
 
 test: "shadowed `for/vector`: list->vector with for/list"
 ------------------------------
-(define (for/vector f v) (list->vector (map f (vector->list v))))
+(define (for/vector f v)
+  (list->vector (map f (vector->list v))))
 (list->vector
  (for/list ([x (in-range 0 10)])
    (displayln x)
@@ -181,7 +194,8 @@ test: "shadowed `for*`: nested for forms"
 
 test: "shadowed `for/first`: let loop over vector"
 ------------------------------------------------------------
-(define (for/first lst f) (f (first lst)))
+(define (for/first lst f)
+  (f (first lst)))
 (define vec (vector 0 1 2 3 4 5))
 (let loop ([i 0])
   (and (< i (vector-length vec))
@@ -335,22 +349,22 @@ test: "`define-syntax-rule` isn't actually shadowed in this scope"
 (define-syntax my-or
   (syntax-rules ()
     [(my-or a b)
-     (let ([tmp a])
-       (if a a b))]))
+     (let ([tmp a]) (if a a b))]))
 (let ()
   (define-syntax-parse-rule (define-syntax-rule new old)
-    (define-syntax-parse-rule (new . args) (old . args)))
+    (define-syntax-parse-rule (new . args)
+      (old . args)))
   (define-syntax-rule def define)
   (def x 5)
   x)
 ------------------------------
 ------------------------------
 (define-syntax-rule (my-or a b)
-  (let ([tmp a])
-    (if a a b)))
+  (let ([tmp a]) (if a a b)))
 (let ()
   (define-syntax-parse-rule (define-syntax-rule new old)
-    (define-syntax-parse-rule (new . args) (old . args)))
+    (define-syntax-parse-rule (new . args)
+      (old . args)))
   (define-syntax-rule def define)
   (def x 5)
   x)
