@@ -39,12 +39,14 @@ test: "comparison to empty list refactorable to use of null? predicate"
 test: "(append* (map ...)) refactorable to single-pass append-map"
 ------------------------------
 (require racket/list)
-(define (f x) (list x x x))
+(define (f x)
+  (list x x x))
 (append* (map f (list 1 2 3)))
 ------------------------------
 ------------------------------
 (require racket/list)
-(define (f x) (list x x x))
+(define (f x)
+  (list x x x))
 (append-map f (list 1 2 3))
 ------------------------------
 
@@ -104,11 +106,13 @@ test: "filter with andmap and eq? to intersect lists refactorable to remq*"
 
 test: "sort by comparator using key refactorable to sort by key"
 ------------------------------
-(define (f x) 42)
+(define (f x)
+  42)
 (sort (list 1 2 3) (λ (a b) (< (f a) (f b))))
 ------------------------------
 ------------------------------
-(define (f x) 42)
+(define (f x)
+  42)
 (sort (list 1 2 3) < #:key f)
 ------------------------------
 
