@@ -41,7 +41,7 @@
   #:attributes (keyword [expr 1] [formatted 1] [original 1])
   (pattern (~seq (~and keyword:keyword (~not :constructor-name-keyword)) expr:expr ...)
     #:with (original ...) #'(keyword expr ...)
-    #:with (formatted ...) #'(NEWLINE (ORIGINAL-SPLICE keyword expr ...))))
+    #:with (formatted ...) #'((ORIGINAL-SPLICE keyword expr ...))))
 
 
 (define-refactoring-rule define-struct-to-struct
@@ -49,7 +49,7 @@
   #:literals (define-struct)
   [(define-struct id:id-maybe-super fields option:struct-option ...)
    (struct id.migrated ... (ORIGINAL-SPLICE fields option.original ... ...)
-     NEWLINE #:extra-constructor-name id.make-id)])
+     #:extra-constructor-name id.make-id)])
 
 
 (define legacy-struct-migrations

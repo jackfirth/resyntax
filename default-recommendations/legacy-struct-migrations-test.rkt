@@ -106,14 +106,16 @@ test: "define-struct with options with separating whitespace"
 
 test: "define-struct with field comments"
 ----------------------------------------
-(define-struct point (x ;; The X coordinate of the point
-                      y ;; The Y coordinate of the point
-                      ))
+(define-struct point
+  (x ;; The X coordinate of the point
+   y ;; The Y coordinate of the point
+   ))
 ----------------------------------------
 ----------------------------------------
-(struct point (x ;; The X coordinate of the point
-               y ;; The Y coordinate of the point
-               )
+(struct point
+  (x ;; The X coordinate of the point
+   y ;; The Y coordinate of the point
+   )
   #:extra-constructor-name make-point)
 ----------------------------------------
 
@@ -124,8 +126,7 @@ test: "define-struct with comments between options"
 
   ;; Custom write implementation
   #:property prop:custom-write
-  (λ (this out mode)
-    (write-string "#<point>" out))
+  (λ (this out mode) (write-string "#<point>" out))
 
   ;; Field guard
   #:guard (λ (x y _) (values x y)))
@@ -135,8 +136,7 @@ test: "define-struct with comments between options"
 
   ;; Custom write implementation
   #:property prop:custom-write
-  (λ (this out mode)
-    (write-string "#<point>" out))
+  (λ (this out mode) (write-string "#<point>" out))
 
   ;; Field guard
   #:guard (λ (x y _) (values x y))

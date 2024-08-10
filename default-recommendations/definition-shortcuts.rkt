@@ -30,14 +30,8 @@
   [(header:header-form-allowing-internal-definitions
     (define-values (id:id ...) (values expr:expr ...))
     rest ...)
-
-   #:with ((gap ...) ...)
-   (for/list ([e (in-syntax #'(expr ...))])
-     (if (multiline-syntax? e) #'(NEWLINE) #'()))
-
    (header.formatted ...
-    NEWLINE
-    (~@ (define id gap ... expr) NEWLINE) ...
+    (define id expr) ...
     (ORIGINAL-SPLICE rest ...))])
 
 

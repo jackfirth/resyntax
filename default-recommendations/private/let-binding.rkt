@@ -79,7 +79,6 @@
 
     #:with (refactored ...)
     #'(leading-body.formatted ...
-       NEWLINE
        bindings.outer-definition ...
        inner-body.formatted ...))
 
@@ -99,7 +98,6 @@
     
     #:with (refactored ...)
     #'(leading-body.formatted ...
-       NEWLINE
        bindings.outer-definition ...
        inner-body.formatted ...)))
 
@@ -115,22 +113,16 @@
     (test-case "refactorable let bindings after non-conflicting definitions"
       (define stx #'((define a 1) (let ([b a]) (+ a b))))
       (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
+        '((define a 1)
           (define b a)
-          NEWLINE
           (+ a b)))
       (check-equal? (parse stx) expected))
 
     (test-case "refactorable let* bindings after non-conflicting definitions"
       (define stx #'((define a 1) (let* ([b a]) (+ a b))))
       (define expected
-        '(NEWLINE
-          (define a 1)
-          NEWLINE
+        '((define a 1)
           (define b a)
-          NEWLINE
           (+ a b)))
       (check-equal? (parse stx) expected))
 
@@ -277,7 +269,6 @@
 (define (parsed-binding-clause-definition clause)
   (define rhs (parsed-binding-clause-right-hand-side clause))
   (define id-side (parsed-binding-clause-identifier-side clause))
-  (define long? (> (+ (syntax-span id-side) (syntax-span rhs)) 90)) ;; conservative under-estimate
   (define different-lines? (not (equal? (syntax-line id-side) (syntax-line rhs))))
   (match (parsed-binding-clause-bound-identifiers clause)
     [(list id)
@@ -285,23 +276,21 @@
        #:literals (lambda λ)
        [((~or lambda λ) (arg:formal ...) body ...)
         #`(define (#,id (~@ (~? arg.kw) (~? [arg.name arg.default] arg.name)) ...)
-            (~@ NEWLINE body) ...)]
+            body ...)]
        [((~or lambda λ) (arg:formal ... . rest:identifier) body ...)
         #`(define (#,id (~@ (~? arg.kw) (~? [arg.name arg.default] arg.name)) ... . rest)
-            (~@ NEWLINE body) ...)]
+            body ...)]
        [((~or lambda λ) args:identifier body ...)
         #:with id* id
         #`(define (id* . args)
-            (~@ NEWLINE body) ...)]
+            body ...)]
        [_
         (cond
           [different-lines? #`(define #,id (ORIGINAL-GAP #,id-side #,rhs) #,rhs)]
-          [long? #`(define #,id NEWLINE #,rhs)]
           [else #`(define #,id #,rhs)])])]
     [_
      (cond
        [different-lines? #`(define-values (ORIGINAL-SPLICE #,id-side #,rhs))]
-       [long? #`(define-values #,id-side NEWLINE #,rhs)]
        [else #`(define-values #,id-side #,rhs)])]))
 
 
@@ -408,22 +397,18 @@
     id))
 
 
-(define/guard (split-bindings-outer-definitions split)
-  (define definitions
+(define (split-bindings-outer-definitions split)
+  (define/with-syntax (definition ...)
     (for/list ([before (in-list (split-bindings-before-cycles split))])
       (parsed-binding-clause-definition before)))
-  (cond
-    [(empty? definitions) #'()]
-    [else
-     (define/with-syntax (first-definition definition ...) definitions)
-     #'(first-definition (~@ NEWLINE definition) ...)]))
+  #'(definition ...))
 
 
 (define (split-bindings-inner-definitions split)
   (define/with-syntax (definition ...)
     (for/list ([after (in-list (split-bindings-after-cycles split))])
       (parsed-binding-clause-definition after)))
-  #'((~@ NEWLINE definition) ...))
+  #'(definition ...))
 
 
 (define-syntax-class body-form
@@ -450,7 +435,7 @@
                          #false)))
         (and (pair? (attribute form)) (last (attribute form))))
     #:with (bound-id ...) #'(form.bound-id ... ...)
-    #:with (formatted ...) #'((~@ NEWLINE form) ...)))
+    #:with (formatted ...) #'(form ...)))
 
 
 (module+ test

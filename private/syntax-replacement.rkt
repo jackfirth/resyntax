@@ -5,7 +5,6 @@
 
 
 (provide
- SPACE
  NEWLINE
  ORIGINAL-GAP
  ORIGINAL-SPLICE
@@ -97,7 +96,7 @@
       #:literals (quote NEWLINE SPACE ORIGINAL-GAP ORIGINAL-SPLICE)
 
       [(~or (ORIGINAL-GAP _ ...) (ORIGINAL-SPLICE _ ...) (quote _ ...)) template]
-      
+
       [(subform ...)
        (define (contents-to-add-between left-form right-form)
          (if (or (template-separator? left-form) (template-separator? right-form))
@@ -167,7 +166,7 @@
 
       [SPACE (list (inserted-string " "))]
       
-      [NEWLINE (list (inserted-string "\n"))]
+      [NEWLINE (list)]
 
       [(ORIGINAL-GAP ~! before after)
        (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
