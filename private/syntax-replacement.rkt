@@ -25,6 +25,7 @@
 
 
 (require (for-syntax racket/base)
+         guard
          racket/format
          racket/list
          racket/match
@@ -32,7 +33,6 @@
          rebellion/base/comparator
          (only-in rebellion/base/range closed-open-range)
          rebellion/collection/range-set
-         rebellion/private/guarded-block
          rebellion/private/static-name
          rebellion/type/record
          resyntax/private/string-replacement
@@ -89,11 +89,10 @@
   (original-syntax new-syntax introduction-scope))
 
 
-(define/guard (syntax-replacement-template-infer-spaces template)
+(define (syntax-replacement-template-infer-spaces template)
 
   (define/guard (loop template)
-    (guard (syntax-original? template) then
-      template)
+    (guard (not (syntax-original? template)) #:else template)
     (syntax-parse template
       #:literals (quote NEWLINE SPACE ORIGINAL-GAP ORIGINAL-SPLICE)
 
@@ -111,7 +110,7 @@
          (add-contents-between subforms-with-spaces-inside contents-to-add-between))
        (datum->syntax template subforms-with-spaces-between template template)]
       
-      [else template]))
+      [_ template]))
   
   (define flip-fresh-scope (make-syntax-introducer))
   (flip-fresh-scope (loop (flip-fresh-scope template))))
@@ -125,13 +124,11 @@
 
 
 (define/guard (add-contents-between lst adder)
-  (guard (empty? lst) then
-    '())
-  (define first-element (first lst))
+  (guard-match (cons first-element remaining-elements) lst #:else '())
   (cons
    first-element
    (for/list ([previous (in-list lst)]
-              [element (in-list (rest lst))]
+              [element (in-list remaining-elements)]
               #:when #true
               [inserted (append (adder previous element) (list element))])
      inserted)))
@@ -158,10 +155,10 @@
       (check-equal? actual (list 1 "left: 1" "right: 2" 2 "left: 2" "right: 3" 3)))))
 
 
-(define/guard (syntax-replacement-render replacement)
+(define (syntax-replacement-render replacement)
 
   (define/guard (pieces stx)
-    (guard (syntax-original? stx) then
+    (guard (not (syntax-original? stx)) #:else
       (define start (sub1 (syntax-position stx)))
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
@@ -235,23 +232,23 @@
 
 
 (define/guard (ends-with-newline? piece-list)
-  (guard (empty? piece-list) then #true)
+  (guard (not (empty? piece-list)) #:else #true)
   (define last-piece (last piece-list))
-  (guard (inserted-string? last-piece) else #false)
+  (guard (inserted-string? last-piece) #:else #false)
   (define str (inserted-string-contents last-piece))
   (equal? (string-ref str (sub1 (string-length str))) #\newline))
 
 
 (define/guard (starts-with-newline? piece-list)
-  (guard (empty? piece-list) then #true)
+  (guard (not (empty? piece-list)) #:else #true)
   (define first-piece (first piece-list))
-  (guard (inserted-string? first-piece) else #false)
+  (guard (inserted-string? first-piece) #:else #false)
   (define str (inserted-string-contents first-piece))
   (equal? (string-ref str 0) #\newline))
 
 
 (define/guard (join-piece-lists piece-lists)
-  (guard (empty? piece-lists) then '())
+  (guard (not (empty? piece-lists)) #:else '())
   (append
    (for/list ([piece-list (in-list piece-lists)]
               [next-piece-list (in-list (rest piece-lists))]
@@ -326,8 +323,7 @@
   (define stx (syntax-replacement-new-syntax replacement))
 
   (define/guard (pieces stx)
-    (guard (syntax-original? stx) then
-      (list (syntax-source-range stx)))
+    (guard (not (syntax-original? stx)) #:else (list (syntax-source-range stx)))
     (syntax-parse stx
       #:literals (quote SPACE NEWLINE ORIGINAL-GAP ORIGINAL-SPLICE)
 

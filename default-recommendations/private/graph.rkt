@@ -17,7 +17,8 @@
   [in-graph-edges (-> graph? (sequence/c entry?))]))
 
 
-(require racket/list
+(require guard
+         racket/list
          racket/match
          racket/math
          racket/sequence
@@ -26,7 +27,6 @@
          rebellion/base/option
          rebellion/collection/entry
          rebellion/collection/list
-         rebellion/private/guarded-block
          rebellion/private/static-name
          rebellion/streaming/transducer
          rebellion/streaming/reducer)
@@ -118,8 +118,8 @@
 (define (cycle-starting-at g i)
   (define vectors (graph-adjacency-vectors g))
   (define/guard (loop [i i] [visited '()])
-    (guard-match (? integer? previous) (index-of visited i) then
-      (reverse (take visited (add1 previous))))
+    (define previous (index-of visited i))
+    (guard (not previous) #:else (reverse (take visited (add1 previous))))
     (for/or ([child (in-vector (vector-ref vectors i))])
       (loop child (cons i visited))))
   (or (loop) '()))

@@ -12,10 +12,10 @@
   [syntax-bound-identifiers (-> syntax? immutable-bound-id-set?)]))
 
 
-(require racket/sequence
+(require guard
+         racket/sequence
          racket/set
          racket/stream
-         rebellion/private/guarded-block
          syntax/id-set)
 
 
@@ -25,9 +25,8 @@
 (define (in-syntax-identifiers stx)
   (stream*
    (guarded-block
-     (guard (identifier? stx) then
-       (stream stx))
-     (guard-match (or (cons head tail) (? syntax? (app syntax-e (cons head tail)))) stx else
+     (guard (not (identifier? stx)) #:else (stream stx))
+     (guard-match (or (cons head tail) (? syntax? (app syntax-e (cons head tail)))) stx #:else
        (stream))
      (stream-append (in-syntax-identifiers head) (in-syntax-identifiers tail)))))
 

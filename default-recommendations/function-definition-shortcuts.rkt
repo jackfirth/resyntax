@@ -10,8 +10,8 @@
 
 
 (require (for-syntax racket/base)
+         guard
          racket/list
-         rebellion/private/guarded-block
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/syntax-lines
@@ -27,8 +27,7 @@
 (define/guard (free-identifiers=? ids other-ids)
   (define id-list (syntax->list ids))
   (define other-id-list (syntax->list other-ids))
-  (guard (equal? (length id-list) (length other-id-list)) else
-    #false)
+  (guard (equal? (length id-list) (length other-id-list)) #:else #false)
   (for/and ([id (in-list id-list)] [other-id (in-list other-id-list)])
     (free-identifier=? id other-id)))
 
@@ -66,10 +65,10 @@
 
 
 (define/guard (build-function-header original-header converted-lambda-formal-lists)
-  (guard (empty? converted-lambda-formal-lists) then
+  (guard-match (cons first-formals remaining-formals) converted-lambda-formal-lists #:else
     original-header)
-  (with-syntax ([formals (first converted-lambda-formal-lists)])
-    (build-function-header #`(#,original-header . formals) (rest converted-lambda-formal-lists))))
+  (with-syntax ([formals first-formals])
+    (build-function-header #`(#,original-header . formals) remaining-formals)))
 
 
 (define-refactoring-rule define-lambda-to-define
