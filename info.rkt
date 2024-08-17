@@ -16,6 +16,7 @@
         "br-parser-tools-lib"
         "brag-lib"
         "fancy-app"
+        "guard"
         "gui-lib"
         "rackunit-lib"
         "rebellion"

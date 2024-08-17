@@ -52,7 +52,8 @@
   [copied-string-end (-> copied-string? natural?)]))
 
 
-(require racket/file
+(require guard
+         racket/file
          racket/match
          racket/math
          racket/sequence
@@ -61,7 +62,6 @@
          rebellion/base/option
          rebellion/base/range
          rebellion/collection/list
-         rebellion/private/guarded-block
          rebellion/private/static-name
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -214,7 +214,7 @@
 
 
 (define/guard (string-replacement-union replacement1 replacement2)
-  (guard (<= (string-replacement-start replacement1) (string-replacement-start replacement2)) else
+  (guard (<= (string-replacement-start replacement1) (string-replacement-start replacement2)) #:else
     (string-replacement-union replacement2 replacement1))
   (define piece-between
     (copied-string

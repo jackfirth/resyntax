@@ -23,6 +23,7 @@
 
 
 (require fancy-app
+         guard
          pkg/lib
          racket/file
          racket/match
@@ -33,7 +34,6 @@
          rebellion/base/range
          rebellion/collection/list
          rebellion/collection/range-set
-         rebellion/private/guarded-block
          rebellion/streaming/transducer
          resyntax/private/git
          resyntax/private/run-command)
@@ -106,7 +106,6 @@
 
 (define/guard (rkt-file? portion)
   (define path (file-portion-path portion))
-  (guard (path-has-extension? path #".rkt") else
-    #false)
+  (guard (path-has-extension? path #".rkt") #:else #false)
   (define content (file->string path))
   (string-prefix? content "#lang racket/base"))

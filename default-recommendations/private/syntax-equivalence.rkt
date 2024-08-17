@@ -9,9 +9,9 @@
   [syntax-free-identifier=? (-> syntax? syntax? boolean?)]))
 
 
-(require racket/list
-         racket/match
-         rebellion/private/guarded-block)
+(require guard
+         racket/list
+         racket/match)
 
 
 (module+ test
@@ -22,7 +22,7 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define/guard (syntax-free-identifier=? stx other-stx)
+(define (syntax-free-identifier=? stx other-stx)
   (define datum (syntax-e stx))
   (define other-datum (syntax-e other-stx))
   (match datum

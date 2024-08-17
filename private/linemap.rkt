@@ -23,8 +23,7 @@
          rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/sorted-map
-         rebellion/collection/vector/builder
-         rebellion/private/guarded-block)
+         rebellion/collection/vector/builder)
 
 
 (module+ test

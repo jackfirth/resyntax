@@ -26,7 +26,8 @@
   [syntax-source-location (-> syntax? source-location?)]))
 
 
-(require racket/file
+(require guard
+         racket/file
          racket/hash
          racket/match
          racket/path
@@ -36,7 +37,6 @@
          rebellion/base/range
          rebellion/collection/list
          rebellion/collection/range-set
-         rebellion/private/guarded-block
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
@@ -89,8 +89,7 @@
 
 
 (define/guard (source-directory code)
-  (guard-match (file-source path) code else
-    #false)
+  (guard-match (file-source path) code #:else #false)
   (path-only path))
 
 
@@ -156,9 +155,6 @@
 
 
 (define/guard (source-produced-syntax? code stx)
-  (guard (syntax-original? stx) else
-    #false)
-  (guard-match (file-source path) code else
-    #false)
+  (guard (syntax-original? stx) #:else #false)
+  (guard-match (file-source path) code #:else #false)
   (equal? path (syntax-source stx)))
-

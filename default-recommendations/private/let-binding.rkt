@@ -5,14 +5,14 @@
          refactorable-let-expression)
 
 
-(require racket/list
+(require guard
+         racket/list
          racket/match
          racket/sequence
          racket/set
          racket/syntax
          rebellion/base/option
          rebellion/collection/entry
-         rebellion/private/guarded-block
          rebellion/private/static-name
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -40,7 +40,7 @@
   #:literals (let let-values let* let*-values)
 
   (pattern
-      ((~or* let let-values) ~! bindings:refactorable-let-bindings body:body-forms)
+    ((~or* let let-values) ~! bindings:refactorable-let-bindings body:body-forms)
 
     #:when (no-binding-overlap?
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
@@ -64,9 +64,9 @@
   #:literals (let let-values let* let*-values)
 
   (pattern
-      (~seq
-       leading-body:body-forms
-       ((~or* let let-values) ~! bindings:refactorable-let-bindings inner-body:body-forms))
+    (~seq
+     leading-body:body-forms
+     ((~or* let let-values) ~! bindings:refactorable-let-bindings inner-body:body-forms))
     
     #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
                                 (in-syntax #'(bindings.outer-bound-id ...)))
@@ -84,9 +84,9 @@
        inner-body.formatted ...))
 
   (pattern
-      (~seq
-       leading-body:body-forms
-       ((~or* let* let*-values) ~! bindings:refactorable-let*-bindings inner-body:body-forms))
+    (~seq
+     leading-body:body-forms
+     ((~or* let* let*-values) ~! bindings:refactorable-let*-bindings inner-body:body-forms))
     
     #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
                                 (in-syntax #'(bindings.outer-bound-id ...)))
@@ -209,14 +209,14 @@
   (immutable-bound-id-set (list->set (sequence->list ids))))
 
 
-(define/guard (syntax-identifiers stx)
-  (guard (identifier? stx) then
-    (list stx))
-  (guard (stx-list? stx) else
-    (list))
-  (for*/list ([substx (in-syntax stx)]
-              [subid (in-list (syntax-identifiers substx))])
-    subid))
+(define (syntax-identifiers stx)
+  (cond
+    [(identifier? stx) (list stx)]
+    [(stx-list? stx)
+     (for*/list ([substx (in-syntax stx)]
+                 [subid (in-list (syntax-identifiers substx))])
+       subid)]
+    [else '()]))
 
 
 (module+ test
@@ -328,7 +328,7 @@
   (define binding-count (vector-length (parsed-binding-graph-clauses graph)))
   (define cycle-indices (graph-cycle-vertices (parsed-binding-graph-dependencies graph)))
   (define changed? (not (equal? (length cycle-indices) binding-count)))
-  (guard (empty? cycle-indices) then
+  (guard (not (empty? cycle-indices)) #:else
     (split-bindings
      #:before-cycles (vector->list (parsed-binding-graph-clauses graph))
      #:cycles '()
@@ -364,7 +364,7 @@
     (transduce (in-range 0 binding-count)
                (filtering referenced-by-earlier?)
                #:into into-first))
-  (guard-match (present cycle-start-index) cycle-start-index-opt else
+  (guard-match (present cycle-start-index) cycle-start-index-opt #:else
     (split-bindings
      #:before-cycles (vector->list (parsed-binding-graph-clauses graph))
      #:cycles '()
