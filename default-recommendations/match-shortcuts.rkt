@@ -30,8 +30,8 @@
   [(header:header-form-allowing-internal-definitions
     (match subject
       [pattern body ...]))
-   (header.formatted ... NEWLINE
-    (match-define pattern subject) NEWLINE
+   (header.formatted ...
+    (match-define pattern subject)
     (ORIGINAL-SPLICE body ...))])
 
 

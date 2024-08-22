@@ -5,7 +5,6 @@
 
 
 (provide
- SPACE
  NEWLINE
  ORIGINAL-GAP
  ORIGINAL-SPLICE
@@ -97,7 +96,7 @@
       #:literals (quote NEWLINE SPACE ORIGINAL-GAP ORIGINAL-SPLICE)
 
       [(~or (ORIGINAL-GAP _ ...) (ORIGINAL-SPLICE _ ...) (quote _ ...)) template]
-      
+
       [(subform ...)
        (define (contents-to-add-between left-form right-form)
          (if (or (template-separator? left-form) (template-separator? right-form))
@@ -167,25 +166,27 @@
 
       [SPACE (list (inserted-string " "))]
       
-      [NEWLINE (list (inserted-string "\n"))]
+      [NEWLINE (list)]
 
       [(ORIGINAL-GAP ~! before after)
        (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
        (define after-start (sub1 (syntax-position #'after)))
        (list (copied-string before-end after-start))]
-      
-      [(ORIGINAL-SPLICE ~! original-subform ...+)
-       (define subforms (syntax->list #'(original-subform ...)))
-       (for ([subform-stx (in-list subforms)])
-         (unless (syntax-original? subform-stx)
-           (raise-arguments-error
-            (name syntax-replacement-render)
-            "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
-            "subform" subform-stx
-            "splice" stx)))
-       (define start (sub1 (syntax-position (first subforms))))
-       (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
-       (list (copied-string start end))]
+
+      [(ORIGINAL-SPLICE ~! original-subform ...)
+       (guarded-block
+         (define subforms (syntax->list #'(original-subform ...)))
+         (guard (not (empty? subforms)) #:else (list))
+         (for ([subform-stx (in-list subforms)])
+           (unless (syntax-original? subform-stx)
+             (raise-arguments-error
+              (name syntax-replacement-render)
+              "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
+              "subform" subform-stx
+              "splice" stx)))
+         (define start (sub1 (syntax-position (first subforms))))
+         (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
+         (list (copied-string start end)))]
       
       [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
        (list (inserted-string (string->immutable-string (~s (syntax-e #'v)))))]
@@ -336,18 +337,20 @@
        (define after-start (sub1 (syntax-position #'after)))
        (list (closed-open-range before-end after-start #:comparator natural<=>))]
       
-      [(ORIGINAL-SPLICE ~! original-subform ...+)
-       (define subforms (syntax->list #'(original-subform ...)))
-       (for ([subform-stx (in-list subforms)])
-         (unless (syntax-original? subform-stx)
-           (raise-arguments-error
-            (name syntax-replacement-render)
-            "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
-            "subform" subform-stx
-            "splice" stx)))
-       (define start (sub1 (syntax-position (first subforms))))
-       (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
-       (list (closed-open-range start end #:comparator natural<=>))]
+      [(ORIGINAL-SPLICE ~! original-subform ...)
+       (guarded-block
+         (define subforms (syntax->list #'(original-subform ...)))
+         (guard (not (empty? subforms)) #:else (list))
+         (for ([subform-stx (in-list subforms)])
+           (unless (syntax-original? subform-stx)
+             (raise-arguments-error
+              (name syntax-replacement-render)
+              "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
+              "subform" subform-stx
+              "splice" stx)))
+         (define start (sub1 (syntax-position (first subforms))))
+         (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
+         (list (closed-open-range start end #:comparator natural<=>)))]
       
       [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes) (list)]
       

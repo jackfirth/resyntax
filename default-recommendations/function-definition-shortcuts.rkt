@@ -100,7 +100,7 @@
    #:when (free-identifiers=? #'(case1-arg ...) #'(case2-arg ...))
    #:when (free-identifiers=? #'(case1-arg ...) #'(usage1 ...))
    (define (id case2-arg ... [bonus-arg default])
-     (~@ NEWLINE body) ...)])
+     body ...)])
 
 
 (define function-definition-shortcuts

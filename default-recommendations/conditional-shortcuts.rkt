@@ -32,11 +32,11 @@
   #:literals (if)
 
   (pattern (if cond then nested:nested-if-else)
-    #:with (branch ...) #'(NEWLINE [cond then] nested.branch ...)
+    #:with (branch ...) #'([cond then] nested.branch ...)
     #:attr branches-size (+ 1 (attribute nested.branches-size)))
 
   (pattern (if cond then default)
-    #:with (branch ...) #'(NEWLINE [cond then] NEWLINE [else default])
+    #:with (branch ...) #'([cond then] [else default])
     #:attr branches-size 2))
 
 
@@ -89,7 +89,7 @@
   #:description equivalent-conditional-description
   [conditional:when-or-unless-equivalent-conditional
    ((~if conditional.negated? unless when)
-    conditional.condition NEWLINE (ORIGINAL-SPLICE conditional.body ...))])
+    conditional.condition (ORIGINAL-SPLICE conditional.body ...))])
 
 
 (define-refactoring-rule always-throwing-if-to-when
@@ -101,8 +101,8 @@
         fail:always-throwing-expression
         else-expression))
    (header.formatted
-    ... NEWLINE
-    ((~if condition.negated? unless when) condition.base-condition NEWLINE fail) NEWLINE
+    ...
+    ((~if condition.negated? unless when) condition.base-condition fail)
     else-expression)])
 
 
@@ -117,8 +117,8 @@
       [else
        body ...]))
    (header.formatted
-    ... NEWLINE
-    ((~if condition.negated? unless when) condition.base-condition NEWLINE fail) NEWLINE
+    ...
+    ((~if condition.negated? unless when) condition.base-condition fail)
     (ORIGINAL-SPLICE body ...))])
 
 
@@ -198,11 +198,11 @@
    (if (or (multiline-syntax? #'condition)
            (multiline-syntax? #'then-expr)
            (attribute then-expr.uses-begin?))
-       #'(NEWLINE [condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
+       #'([condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
        #'((ORIGINAL-GAP condition then-expr) [condition then-expr.refactored ...]))
    #:with (false-branch ...)
    (if (attribute else-expr.uses-begin?)
-       #'(NEWLINE [else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
+       #'([else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
        #'((ORIGINAL-GAP then-expr else-expr) [else else-expr.refactored ...]))
    (cond
      true-branch ...
@@ -221,11 +221,11 @@
    (if (or (multiline-syntax? #'condition)
            (multiline-syntax? #'then-expr)
            (attribute then-expr.uses-let?))
-       #'(NEWLINE [condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
+       #'([condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
        #'((ORIGINAL-GAP condition then-expr) [condition then-expr.refactored ...]))
    #:with (false-branch ...)
    (if (attribute else-expr.uses-let?)
-       #'(NEWLINE [else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
+       #'([else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
        #'((ORIGINAL-GAP then-expr else-expr) [else else-expr.refactored ...]))
    (cond
      true-branch ...

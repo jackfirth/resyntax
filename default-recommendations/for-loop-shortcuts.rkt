@@ -87,7 +87,7 @@
         list-expression:sequence-syntax-convertible-list-expression))
     #:when (bound-identifier=? #'x #'y)
     #:with nesting-loop? #false
-    #:with loop-clauses #'([x list-expression.refactored] NEWLINE #:when filter-body)
+    #:with loop-clauses #'([x list-expression.refactored] #:when filter-body)
     #:with loop #'(for/list loop-clauses loop-body ...))
 
   (pattern
@@ -98,7 +98,7 @@
         list-expression:sequence-syntax-convertible-list-expression))
     #:when (not (bound-identifier=? #'x #'y))
     #:with nesting-loop? #true
-    #:with loop-clauses #'([y list-expression.refactored] NEWLINE [x append-map-body.refactored])
+    #:with loop-clauses #'([y list-expression.refactored] [x append-map-body.refactored])
     #:with loop #'(for*/list loop-clauses loop-body ...))
 
   (pattern
@@ -114,7 +114,7 @@
   #:description "Applying `+` to a list of numbers can be replaced with a `for/sum` loop."
   #:literals (apply +)
   [(apply + loop:for-loop-convertible-list-expression)
-   ((~if loop.nesting-loop? for*/sum for/sum) loop.loop-clauses (~@ NEWLINE loop.loop-body) ...)])
+   ((~if loop.nesting-loop? for*/sum for/sum) loop.loop-clauses loop.loop-body ...)])
 
 
 ;; A loop body function is a lambda expression that is passed to a function like map, for-each, or
@@ -132,7 +132,7 @@
   ;; assume all such lambdas are multi-line, and multi-line for-each functions are typically easier
   ;; to read when they're in the body of a for loop.
   (pattern (_:lambda-by-any-name (x) first-body remaining-body ...+)
-    #:with (body ...) #'(NEWLINE (ORIGINAL-SPLICE first-body remaining-body ...)))
+    #:with (body ...) #'((ORIGINAL-SPLICE first-body remaining-body ...)))
 
   ;; We don't bother migrating for-each forms with only a single body form unless the body form is
   ;; exceptionally long, so that forms which span multiple lines tend to get migrated. By not
@@ -140,7 +140,7 @@
   ;; enough to need a lot of refactoring in the first place.
   (pattern (_:lambda-by-any-name (x) only-body)
     #:when (>= (syntax-span #'only-body) 60)
-    #:with (body ...) #'(NEWLINE only-body)))
+    #:with (body ...) #'(only-body)))
 
 
 (define-refactoring-rule for-each-to-for
@@ -148,7 +148,7 @@
   #:literals (for-each)
   [(for-each function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
    ((~if loop.flat? for for*)
-    ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
+    (loop.leading-clause ... [function.x loop.trailing-expression])
     function.body ...)])
 
 
@@ -157,8 +157,8 @@
   #:literals (ormap)
   [(ormap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
    ((~if loop.flat? for/or for*/or)
-    ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
-              function.body ...)])
+    (loop.leading-clause ... [function.x loop.trailing-expression])
+    function.body ...)])
 
 
 (define-refactoring-rule andmap-to-for/and
@@ -166,8 +166,8 @@
   #:literals (andmap)
   [(andmap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
    ((~if loop.flat? for/and for*/and)
-    ((~@ loop.leading-clause NEWLINE) ... [function.x loop.trailing-expression])
-              function.body ...)])
+    (loop.leading-clause ... [function.x loop.trailing-expression])
+    function.body ...)])
 
 
 (define-syntax-class for-list-id
@@ -200,7 +200,7 @@
      (hash-set h-usage:id key value))
    #:when (free-identifier=? #'h #'h-usage)
    #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'h))
-   (loop (ORIGINAL-SPLICE iteration-clauses body ...) NEWLINE (values key value))])
+   (loop (ORIGINAL-SPLICE iteration-clauses body ...) (values key value))])
 
 
 (define-syntax-class nested-for
@@ -209,7 +209,7 @@
   #:literals (for)
 
   (pattern (for (outer-clause) nested:nested-for)
-    #:with (clause ...) #'(outer-clause NEWLINE nested.clause ...)
+    #:with (clause ...) #'(outer-clause nested.clause ...)
     #:with (body ...) #'(nested.body ...))
   
   (pattern (for (only-clause) body ...)
@@ -220,7 +220,7 @@
   #:description "These nested `for` loops can be replaced by a single `for*` loop."
   [nested:nested-for
    #:when (>= (length (attribute nested.clause)) 2)
-   (for* (nested.clause ...) NEWLINE
+   (for* (nested.clause ...)
      (ORIGINAL-SPLICE nested.body ...))])
 
 
@@ -238,8 +238,7 @@
                (free-identifier=? #'i1 #'i3)
                (free-identifier=? #'i1 #'i4)
                (free-identifier=? #'vec1 #'vec2))
-   (for/first ([x (in-vector vec1)]
-               NEWLINE #:when condition) NEWLINE
+   (for/first ([x (in-vector vec1)] #:when condition)
      true-branch)])
 
 
@@ -251,7 +250,7 @@
     (~and original-body (or condition:condition-expression ...+ last-condition)))
    (loop-id (ORIGINAL-GAP loop-id original-clauses)
             ((ORIGINAL-SPLICE clause ...)
-             (~@ NEWLINE (~if condition.negated? #:when #:unless) condition.base-condition) ...)
+             (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
             (ORIGINAL-GAP original-clauses original-body)
             last-condition)])
 
@@ -263,14 +262,14 @@
   (pattern (for/list (only-clause) only-body:expr)
     #:when (oneline-syntax? #'only-body)
     #:with refactored-loop
-    #'(for*/list (only-clause NEWLINE [v (in-list only-body)])
-        NEWLINE v))
+    #'(for*/list (only-clause [v (in-list only-body)])
+        v))
 
   (pattern ((~and loop-id for*/list) (clause ...) only-body:expr)
     #:when (oneline-syntax? #'only-body)
     #:with refactored-loop
-    #'(loop-id ((ORIGINAL-SPLICE clause ...) NEWLINE [v (in-list only-body)])
-               NEWLINE v)))
+    #'(loop-id ((ORIGINAL-SPLICE clause ...) [v (in-list only-body)])
+               v)))
 
 
 (define-refactoring-rule apply-append-for-loop-to-for-loop

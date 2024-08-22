@@ -32,12 +32,13 @@ test: "lambda variable definition with no arguments to function definition"
 ------------------------------
 
 
-test: "one-line lambda variable definition to one-line function definition"
+test: "one-line lambda variable definition to function definition"
 ------------------------------
 (define f (λ (a b c) 1))
 ------------------------------
 ------------------------------
-(define (f a b c) 1)
+(define (f a b c)
+  1)
 ------------------------------
 
 
@@ -93,22 +94,6 @@ test: "lambda function definition with closed-over expressions not refactorable"
   (displayln a)
   (λ (x y z)
     1))
-------------------------------
-
-
-test: "lambda variable definition with long header to function definition with preserved formatting"
-------------------------------
-(define f
-  (λ (a
-      b
-      c)
-    1))
-------------------------------
-------------------------------
-(define (f a
-           b
-           c)
-  1)
 ------------------------------
 
 

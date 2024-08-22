@@ -11,8 +11,7 @@ header:
 test: "define-values with values refactorable to separate definitions"
 ------------------------------
 (define (foo)
-  (define-values (a b c)
-    (values 1 2 3))
+  (define-values (a b c) (values 1 2 3))
   (+ a b c))
 ------------------------------
 ------------------------------

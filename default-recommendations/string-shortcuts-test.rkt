@@ -38,13 +38,13 @@ test:
 ------------------------------
 (string-append
  "The "
- (string-join (list "fox" "hen" "dog"))
- " jumped")
+ (string-join (list "fox" "hen" "dog" "cat" "horse"))
+ " all jumped together")
 ------------------------------
 ------------------------------
-(string-join (list "fox" "hen" "dog")
+(string-join (list "fox" "hen" "dog" "cat" "horse")
              #:before-first "The "
-             #:after-last " jumped")
+             #:after-last " all jumped together")
 ------------------------------
 
 

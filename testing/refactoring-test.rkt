@@ -118,16 +118,24 @@
 
 (define-check (check-suite-refactors suite original-program expected-program)
   (define results (refactor original-program #:suite suite))
-  (define replacement
-    (transduce results
-               (mapping refactoring-result-string-replacement)
-               #:into union-into-string-replacement))
-  (define refactored-program (string-apply-replacement original-program replacement))
+  
   (with-check-info*
       (if (empty? results)
           '()
           (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
     (λ ()
+      (define replacement
+        (with-handlers
+            ([exn:fail?
+              (λ (e)
+                (with-check-info (['original (string-block original-program)]
+                                  ['expected (string-block expected-program)]
+                                  ['exception e])
+                  (fail-check "an error occurred while processing refactoring results")))])
+          (transduce results
+                     (mapping refactoring-result-string-replacement)
+                     #:into union-into-string-replacement)))
+      (define refactored-program (string-apply-replacement original-program replacement))
       (with-check-info (['actual (string-block refactored-program)]
                         ['expected (string-block expected-program)])
         (when (empty? results)

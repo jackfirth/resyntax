@@ -121,10 +121,7 @@ test: "ormap to for/or"
 ------------------------------
 (define some-list (list 3 5 14 10 6 5 2))
 (for/or ([x (in-list some-list)])
-  (and (number? x)
-       (positive? x)
-       (even? x)
-       (< x 10)))
+  (and (number? x) (positive? x) (even? x) (< x 10)))
 ------------------------------
 
 
@@ -142,10 +139,7 @@ test: "andmap to for/and"
 ------------------------------
 (define some-list (list 3 5 14 10 6 5 2))
 (for/and ([x (in-list some-list)])
-  (and (number? x)
-       (positive? x)
-       (even? x)
-       (< x 10)))
+  (and (number? x) (positive? x) (even? x) (< x 10)))
 ------------------------------
 
 
@@ -382,7 +376,7 @@ test: "(apply append ...) with a multi-clause for* loop can be removed"
         'benzene (list 'hydrogen 'carbon)))
 (apply append
        (for*/list ([k (in-hash-keys formulas)]
-                  [i (in-range 0 5)])
+                   [i (in-range 0 5)])
          (hash-ref formulas k)))
 ------------------------------------------------------------
 ------------------------------------------------------------

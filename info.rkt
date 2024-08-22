@@ -16,8 +16,8 @@
         "br-parser-tools-lib"
         "brag-lib"
         "fancy-app"
+        "fmt"
         "guard"
-        "gui-lib"
         "rackunit-lib"
         "rebellion"
         "uri-old"))
