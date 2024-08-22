@@ -90,13 +90,6 @@
   (code-snippet raw-text start-column (syntax-line original)))
 
 
-;; This exception is thrown when Resyntax detects that the fmt autoformatter modified code that it
-;; shouldn't have touched.
-(struct exn:fail:refactoring-formatting-out-of-bounds exn:fail
-  (refactored-code formatted-code start end)
-  #:transparent)
-
-
 ;; This is basically just a string slice, or a substring view. It holds a string and indices pointing
 ;; to the start and end of a substring within that string. Currently this is only used in this file to
 ;; keep track of how the end index of a source code range changes when that range is formatted.
