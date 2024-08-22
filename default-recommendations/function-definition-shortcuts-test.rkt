@@ -215,6 +215,22 @@ test: "case-lambda with default arg not refactorable when required args out of o
 ------------------------------
 
 
+test: "case-lambda with default arg not refactorable when default is a multiline expression"
+------------------------------
+(define f
+  (case-lambda
+    [(a b c)
+     (f a
+        b
+        c
+        (let ([x 42])
+          (displayln x)
+          x))]
+    [(a b c x)
+     1]))
+------------------------------
+
+
 test: "case-lambda with default arg and multiple body forms"
 ------------------------------
 (define f
