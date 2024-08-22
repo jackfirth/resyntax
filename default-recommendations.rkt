@@ -73,7 +73,11 @@
            (refactoring-suite-rules hash-shortcuts)
            (refactoring-suite-rules legacy-contract-migrations)
 
-           ;; TODO(https://github.com/jackfirth/resyntax/issues/47)
+           ;; Excluded for lots of reasons. See the following github issues:
+           ;; - jackfirth/resyntax#47
+           ;; - sorawee/fmt#29
+           ;; - sorawee/fmt#60
+           ;; - sorawee/fmt#65
            ;; (refactoring-suite-rules legacy-struct-migrations)
 
            (refactoring-suite-rules legacy-syntax-migrations)
