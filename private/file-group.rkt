@@ -108,4 +108,4 @@
   (define path (file-portion-path portion))
   (guard (path-has-extension? path #".rkt") #:else #false)
   (define content (file->string path))
-  (string-prefix? content "#lang racket/base"))
+  (string-prefix? content "#lang racket"))
