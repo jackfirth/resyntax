@@ -14,36 +14,22 @@
 
 
 (require json
-         net/url
-         net/url-connect
          racket/list
          racket/match
          racket/pretty
          racket/sequence
          racket/string
          rebellion/collection/list
-         rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/private/refactoring-result
          resyntax/private/line-replacement
          resyntax/private/run-command
          resyntax/private/string-indent
-         resyntax/private/source
-         uri-old)
+         resyntax/private/source)
 
 
 ;@----------------------------------------------------------------------------------------------------
-
-
-; https://docs.github.com/en/actions/reference/authentication-in-a-workflow#about-the-github_token-secret
-(define github-token
-  (make-parameter (getenv "GITHUB_TOKEN") #false 'github-token))
-
-
-; Returns the API URL. For example: `https://api.github.com`.
-(define github-api-url
-  (make-parameter (getenv "GITHUB_API_URL") #false 'github-api-url))
 
 
 (define-record-type github-review-request
@@ -90,59 +76,11 @@
             'side end-side)))
 
 
-; https://docs.github.com/en/rest/reference/pulls#create-a-review-for-a-pull-request
-(define (github-review-request-url req)
-  (string->url
-   (format "~a/repos/~a/pulls/~a/reviews"
-           (github-api-url)
-           (github-review-request-owner-repo req)
-           (github-review-request-pull-number req))))
-
-
-(define (github-review-request-send req)
-  (parameterize ([current-https-protocol 'secure])
-    (define response-port
-      (post-pure-port
-       (github-review-request-url req)
-       (jsexpr->bytes (github-review-request-jsexpr req))
-       ; https://docs.github.com/en/rest/reference/pulls#list-review-comments-in-a-repository-preview-notices
-       (list "Accept: application/vnd.github.comfort-fade-preview+json"
-             (format "Authorization: Bearer ~a" (github-token)))))
-    (define response-or-eof (read-json response-port))
-    (if (eof-object? response-or-eof)
-        (error (format "No response data for request to ~a"
-                       (github-review-request-url req)))
-        response-or-eof)))
-
-
-(define (github-new-issue-url #:owner owner
-                              #:repository repo
-                              #:title title
-                              #:body body
-                              #:labels [labels #()])
-  (define label-string
-    (transduce labels
-               (mapping symbol->string)
-               (mapping uri-escape-i)
-               #:into (join-into-string ",")))
-  (define label-part (if (equal? label-string "") "" (format "&labels=~a" label-string)))
-  (format "https://github.com/~a/~a/issues/new?title=~a&body=~a~a"
-          (uri-escape-i owner)
-          (uri-escape-i repo)
-          (uri-escape-i title)
-          (uri-escape-i body)
-          label-part))
-
-
 (define (git-path path)
   (string-split (run-command "git" "ls-tree" "-r" "-z" "--name-only" "HEAD" path) "\0"))
 
 
 (define git-pr-ref-regexp #rx"^refs/pull/([0-9]+)/merge$")
-
-
-(define (git-pr-ref? ref)
-  (regexp-match git-pr-ref-regexp ref))
 
 
 (define (git-ref->pr-number ref)
