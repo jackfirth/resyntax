@@ -19,8 +19,7 @@
         "fmt"
         "guard"
         "rackunit-lib"
-        "rebellion"
-        "uri-old"))
+        "rebellion"))
 
 
 (define build-deps
