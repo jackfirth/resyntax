@@ -13,8 +13,8 @@
 Resyntax is a refactoring tool for Racket. The tool can be guided by @deftech{refactoring rules},
 which are macro-like functions defined in terms of @racket[syntax-parse] that specify how to search
 for and refactor different coding patterns. Resyntax comes with a standard set of refactoring rules
-that improve code written in @racket[@#,hash-lang[] @#,racketmodname[racket/base]]. For example,
-consider the following program:
+that improve code written in @racket[@#,hash-lang[] @#,racketmodname[racket]] or
+@racket[@#,hash-lang[] @#,racketmodname[racket/base]]. For example, consider the following program:
 
 @(racketmod
   #:file "my-program.rkt"
