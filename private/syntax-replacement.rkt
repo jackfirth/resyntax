@@ -5,7 +5,6 @@
 
 
 (provide
- NEWLINE
  ORIGINAL-GAP
  ORIGINAL-SPLICE
  (contract-out
@@ -18,7 +17,6 @@
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
-  [syntax-replacement-template-drop-leading-newline (-> syntax? syntax?)]
   [syntax-replacement-preserves-free-identifiers? (-> syntax-replacement? boolean?)]
   [syntax-replacement-preserves-comments? (-> syntax-replacement? range-set? boolean?)]))
 
@@ -48,20 +46,6 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-syntax (NEWLINE stx)
-  (raise-syntax-error
-   #false
-   "should only be used by refactoring rules to indicate where newlines should be inserted"
-   stx))
-
-
-(define-syntax (SPACE stx)
-  (raise-syntax-error
-   #false
-   "should only be used by refactoring rules to indicate where a space should be inserted"
-   stx))
-
-
 (define-syntax (ORIGINAL-GAP stx)
   (raise-syntax-error
    #false
@@ -77,48 +61,14 @@
    stx))
 
 
-(define (syntax-replacement-template-drop-leading-newline template-stx)
-  (syntax-parse template-stx
-    #:literals (NEWLINE)
-    [(NEWLINE form ...) #'(form ...)]
-    [_ template-stx]))
-
-
 (define-record-type syntax-replacement
   (original-syntax new-syntax introduction-scope))
 
 
-(define (syntax-replacement-template-infer-spaces template)
-
-  (define/guard (loop template)
-    (guard (not (syntax-original? template)) #:else template)
-    (syntax-parse template
-      #:literals (quote NEWLINE SPACE ORIGINAL-GAP ORIGINAL-SPLICE)
-
-      [(~or (ORIGINAL-GAP _ ...) (ORIGINAL-SPLICE _ ...) (quote _ ...)) template]
-
-      [(subform ...)
-       (define (contents-to-add-between left-form right-form)
-         (if (or (template-separator? left-form) (template-separator? right-form))
-             '()
-             (list #'SPACE)))
-       (define subforms-with-spaces-inside
-         (for/list ([subform-stx (in-syntax #'(subform ...))])
-           (loop subform-stx)))
-       (define subforms-with-spaces-between
-         (add-contents-between subforms-with-spaces-inside contents-to-add-between))
-       (datum->syntax template subforms-with-spaces-between template template)]
-      
-      [_ template]))
-  
-  (define flip-fresh-scope (make-syntax-introducer))
-  (flip-fresh-scope (loop (flip-fresh-scope template))))
-
-
 (define (template-separator? stx)
   (syntax-parse stx
-    #:literals (NEWLINE SPACE ORIGINAL-GAP)
-    [(~or NEWLINE SPACE (ORIGINAL-GAP _ ...)) #true]
+    #:literals (ORIGINAL-GAP)
+    [(ORIGINAL-GAP _ ...) #true]
     [else #false]))
 
 
@@ -162,11 +112,7 @@
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
     (syntax-parse stx
-      #:literals (quote SPACE NEWLINE ORIGINAL-GAP ORIGINAL-SPLICE)
-
-      [SPACE (list (inserted-string " "))]
-      
-      [NEWLINE (list)]
+      #:literals (quote ORIGINAL-GAP ORIGINAL-SPLICE)
 
       [(ORIGINAL-GAP ~! before after)
        (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
@@ -197,11 +143,12 @@
        (define shape (syntax-property stx 'paren-shape))
        (define opener (match shape [#false "("] [#\[ "["] [#\{ "{"]))
        (define closer (match shape [#false ")"] [#\[ "]"] [#\{ "}"]))
+       (define subform-piece-lists
+         (for/list ([subform-stx (in-list (attribute subform))])
+           (pieces subform-stx)))
        (append
         (list (inserted-string opener))
-        (for*/list ([subform-stx (in-syntax #'(subform ...))]
-                    [piece (in-list (pieces subform-stx))])
-          piece)
+        (join-piece-lists subform-piece-lists)
         (list (inserted-string closer)))]
       
       [(subform ... . tail-form)
@@ -212,12 +159,7 @@
          (join-piece-lists
           (for/list ([subform-stx (in-syntax #'(subform ...))]) (pieces subform-stx))))
        (define tail-pieces (pieces #'tail-form))
-       (define dot-string
-         (cond
-           [(and (ends-with-newline? subform-pieces) (starts-with-newline? tail-pieces)) "."]
-           [(ends-with-newline? subform-pieces) ". "]
-           [(starts-with-newline? tail-pieces) " ."]
-           [else " . "]))
+       (define dot-string " . ")
        (append
         (list (inserted-string opener))
         subform-pieces
@@ -226,10 +168,9 @@
         (list (inserted-string closer)))]))
 
   (match-define (syntax-replacement #:original-syntax orig-stx #:new-syntax new-stx) replacement)
-  (define template (syntax-replacement-template-infer-spaces new-stx))
   (define start (sub1 (syntax-position orig-stx)))
   (string-replacement
-   #:start start #:end (+ start (syntax-span orig-stx)) #:contents (pieces template)))
+   #:start start #:end (+ start (syntax-span orig-stx)) #:contents (pieces new-stx)))
 
 
 (define/guard (ends-with-newline? piece-list)
@@ -250,17 +191,7 @@
 
 (define/guard (join-piece-lists piece-lists)
   (guard (not (empty? piece-lists)) #:else '())
-  (append
-   (for/list ([piece-list (in-list piece-lists)]
-              [next-piece-list (in-list (rest piece-lists))]
-              #:when #true
-              [piece
-               (in-list
-                (if (or (ends-with-newline? piece-list) (starts-with-newline? next-piece-list))
-                    piece-list
-                    (append piece-list (list (inserted-string " ")))))])
-     piece)
-   (last piece-lists)))
+  (apply append (add-between piece-lists (list (inserted-string " ")))))
 
 
 (module+ test
@@ -306,7 +237,7 @@
     [(syntax-replacement #:original-syntax orig
                          #:new-syntax new
                          #:introduction-scope intro)
-     (define ignore (list #'SPACE #'NEWLINE #'ORIGINAL-GAP #'ORIGINAL-SPLICE))
+     (define ignore (list #'ORIGINAL-GAP #'ORIGINAL-SPLICE))
      (for/and ([new-id (in-syntax-identifiers new)]
                #:unless (member new-id ignore free-identifier=?)
                #:unless (bound-identifier=? new-id (intro new-id 'remove)))
@@ -326,11 +257,7 @@
   (define/guard (pieces stx)
     (guard (not (syntax-original? stx)) #:else (list (syntax-source-range stx)))
     (syntax-parse stx
-      #:literals (quote SPACE NEWLINE ORIGINAL-GAP ORIGINAL-SPLICE)
-
-      [SPACE (list)]
-      
-      [NEWLINE (list)]
+      #:literals (quote ORIGINAL-GAP ORIGINAL-SPLICE)
 
       [(ORIGINAL-GAP ~! before after)
        (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
