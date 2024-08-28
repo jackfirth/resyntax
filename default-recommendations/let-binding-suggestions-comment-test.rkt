@@ -25,13 +25,20 @@ test: "let binding with commented right-hand-side expression"
 ------------------------------
 
 
-test: "let binding with commented body not refactorable (yet)"
+test: "let binding with commented body refactorable"
 ------------------------------
 (define (f)
   (let ([x 1])
     (void)
     ;; Comment
     1))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  (void)
+  ;; Comment
+  1)
 ------------------------------
 
 

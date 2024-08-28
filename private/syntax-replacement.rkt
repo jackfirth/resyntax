@@ -33,6 +33,7 @@
          rebellion/private/static-name
          rebellion/type/record
          resyntax/private/string-replacement
+         resyntax/private/syntax-neighbors
          (only-in resyntax/default-recommendations/private/syntax-identifier-sets
                   in-syntax-identifiers)
          syntax/parse)
@@ -105,26 +106,40 @@
        (define opener (match shape [#false "("] [#\[ "["] [#\{ "{"]))
        (define closer (match shape [#false ")"] [#\[ "]"] [#\{ "}"]))
        (define subform-piece-lists
-         (for/list ([subform-stx (in-list (attribute subform))])
-           (pieces subform-stx)))
+         (for/list ([subform-stx (in-list (attribute subform))]
+                    [trailing-stx (in-list (shift-left (attribute subform)))])
+           (define separator-piece
+             (and trailing-stx
+                  (or (original-separator-piece subform-stx trailing-stx) (inserted-string " "))))
+           (if separator-piece
+               (append (pieces subform-stx) (list separator-piece))
+               (pieces subform-stx))))
        (append
         (list (inserted-string opener))
-        (join-piece-lists subform-piece-lists)
+        (apply append subform-piece-lists)
         (list (inserted-string closer)))]
       
       [(subform ... . tail-form)
        (define shape (syntax-property stx 'paren-shape))
        (define opener (match shape [#false "("] [#\[ "["] [#\{ "{"]))
        (define closer (match shape [#false ")"] [#\[ "]"] [#\{ "}"]))
-       (define subform-pieces
-         (join-piece-lists
-          (for/list ([subform-stx (in-syntax #'(subform ...))]) (pieces subform-stx))))
+       (define subform-piece-lists
+         (for/list ([subform-stx (in-list (attribute subform))]
+                    [trailing-stx (in-list (shift-left (attribute subform)))])
+           (define separator-piece
+             (and trailing-stx
+                  (or (original-separator-piece subform-stx trailing-stx) (inserted-string " "))))
+           (if separator-piece
+               (append (pieces subform-stx) (list separator-piece))
+               (pieces subform-stx))))
        (define tail-pieces (pieces #'tail-form))
-       (define dot-string " . ")
+       (define dot-piece
+         (or (original-separator-piece (last (attribute subform)) #'tail-form)
+             (inserted-string " . ")))
        (append
         (list (inserted-string opener))
-        subform-pieces
-        (list (inserted-string dot-string))
+        (apply append subform-piece-lists)
+        (list dot-piece)
         tail-pieces
         (list (inserted-string closer)))]))
 
@@ -134,9 +149,16 @@
    #:start start #:end (+ start (syntax-span orig-stx)) #:contents (pieces new-stx)))
 
 
-(define/guard (join-piece-lists piece-lists)
-  (guard (not (empty? piece-lists)) #:else '())
-  (apply append (add-between piece-lists (list (inserted-string " ")))))
+(define/guard (original-separator-piece stx trailing-stx)
+  (guard (syntax-originally-neighbors? stx trailing-stx) #:else #false)
+  (define stx-end (+ (sub1 (syntax-position stx)) (syntax-span stx)))
+  (define trailing-start (sub1 (syntax-position trailing-stx)))
+  (copied-string stx-end trailing-start))
+
+
+(define/guard (shift-left vs)
+  (guard-match (cons _ shifted-vs) vs #:else '())
+  (append shifted-vs (list #false)))
 
 
 (module+ test
@@ -197,42 +219,7 @@
 
 
 (define (syntax-replacement-preserved-locations replacement)
-  (define stx (syntax-replacement-new-syntax replacement))
-
-  (define/guard (pieces stx)
-    (guard (not (syntax-original? stx)) #:else (list (syntax-source-range stx)))
-    (syntax-parse stx
-      #:literals (quote ORIGINAL-GAP ORIGINAL-SPLICE)
-
-      [(ORIGINAL-GAP ~! before after)
-       (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
-       (define after-start (sub1 (syntax-position #'after)))
-       (list (closed-open-range before-end after-start #:comparator natural<=>))]
-      
-      [(ORIGINAL-SPLICE ~! original-subform ...)
-       (guarded-block
-         (define subforms (syntax->list #'(original-subform ...)))
-         (guard (not (empty? subforms)) #:else (list))
-         (for ([subform-stx (in-list subforms)])
-           (unless (syntax-original? subform-stx)
-             (raise-arguments-error
-              (name syntax-replacement-render)
-              "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
-              "subform" subform-stx
-              "splice" stx)))
-         (define start (sub1 (syntax-position (first subforms))))
-         (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
-         (list (closed-open-range start end #:comparator natural<=>)))]
-      
-      [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes) (list)]
-      
-      [(quote datum) (pieces #'datum)]
-      
-      [(subform ...) (append-map pieces (syntax->list #'(subform ...)))]
-      
-      [(subform ... . tail-form) (append-map pieces (syntax->list #'(subform ... tail-form)))]))
-  
-  (sequence->range-set (pieces stx) #:comparator natural<=>))
+  (string-replacement-preserved-locations (syntax-replacement-render replacement)))
 
 
 (define (syntax-source-range stx)
