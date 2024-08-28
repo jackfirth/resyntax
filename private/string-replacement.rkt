@@ -25,6 +25,7 @@
   [string-replacement-new-span (-> string-replacement? natural?)]
   [string-replacement-contents
    (-> string-replacement? (listof (or/c inserted-string? copied-string?)))]
+  [string-replacement-preserved-locations (-> string-replacement? range-set?)]
   [string-replacement-overlaps? (-> string-replacement? string-replacement? boolean?)]
   [string-replacement-union
    (->i ([replacement1 string-replacement?]
@@ -62,6 +63,7 @@
          rebellion/base/option
          rebellion/base/range
          rebellion/collection/list
+         rebellion/collection/range-set
          rebellion/private/static-name
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -250,3 +252,15 @@
        #:contents (list (inserted-string "goodbye") (copied-string 5 6) (inserted-string "friend"))))
     (check-equal? union expected)
     (check-equal? (transduce (list r1 r2) #:into union-into-string-replacement) expected)))
+
+
+(define (string-replacement-preserved-locations replacement)
+  (define before-replacement
+    (less-than-range (string-replacement-start replacement) #:comparator natural<=>))
+  (define after-replacement
+    (at-least-range (string-replacement-original-end replacement) #:comparator natural<=>))
+  (for/fold ([ranges (range-set before-replacement after-replacement)])
+            ([piece (in-list (string-replacement-contents replacement))]
+             #:when (copied-string? piece))
+    (match-define (copied-string start end) piece)
+    (range-set-add ranges (closed-open-range start end #:comparator natural<=>))))
