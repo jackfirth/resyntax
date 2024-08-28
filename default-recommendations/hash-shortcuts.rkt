@@ -30,7 +30,7 @@
   #:description "The lambda can be removed from the failure result in this `hash-ref` expression."
   #:literals (hash-ref)
   [((~and ref hash-ref) h:expr k:expr (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
-   ((ORIGINAL-SPLICE ref h k) (ORIGINAL-GAP k lambda-expr) v)])
+   (ref h k (ORIGINAL-GAP k lambda-expr) v)])
 
 
 (define-refactoring-rule hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
@@ -38,7 +38,7 @@
   #:literals (hash-ref!)
   [((~and ref hash-ref!) h:expr k:expr
                          (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
-   ((ORIGINAL-SPLICE ref h k) (ORIGINAL-GAP k lambda-expr) v)])
+   (ref h k (ORIGINAL-GAP k lambda-expr) v)])
 
 
 (define-syntax-class value-initializer

@@ -58,7 +58,7 @@
     (~and rest-kw #:rest) (~and rest-list (listof rest-contract))
     result-contract)
    (-> (ORIGINAL-GAP arrow-id args)
-       (ORIGINAL-SPLICE arg-contract ...)
+       arg-contract ...
        (ORIGINAL-GAP args rest-kw)
        rest-contract (... ...)
        (ORIGINAL-GAP rest-list result-contract)

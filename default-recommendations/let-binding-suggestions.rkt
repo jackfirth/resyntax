@@ -52,7 +52,7 @@
   #:literals (let)
   [(let name:id header body ...)
    #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'name))
-   (let (ORIGINAL-SPLICE header body ...))])
+   (let header body ...)])
 
 
 (define-refactoring-rule let-values-then-call-to-call-with-values

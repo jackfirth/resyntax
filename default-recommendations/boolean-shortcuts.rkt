@@ -64,25 +64,21 @@
   #:description "This `if` expression can be refactored to an equivalent expression using `and`."
   #:literals (if)
   [(if condition then #false)
-   (and (ORIGINAL-SPLICE condition then))])
+   (and condition then)])
 
 
 (define-refactoring-rule inverted-when
   #:description "This negated when expression can be replaced by an unless expression."
   #:literals (when not)
-  [(when (~and negated (not condition))
-     body0 body ...)
-   (unless condition (ORIGINAL-GAP negated body0)
-     (ORIGINAL-SPLICE body0 body ...))])
+  [(when (~and negated (not condition)) body0 body ...)
+   (unless condition (ORIGINAL-GAP negated body0) body0 body ...)])
 
 
 (define-refactoring-rule inverted-unless
   #:description "This negated `unless` expression can be replaced by a `when` expression."
   #:literals (unless not)
-  [(unless (~and negated (not condition))
-     body0 body ...)
-   (when condition (ORIGINAL-GAP negated body0)
-     (ORIGINAL-SPLICE body0 body ...))])
+  [(unless (~and negated (not condition)) body0 body ...)
+   (when condition (ORIGINAL-GAP negated body0) body0 body ...)])
 
 
 (define boolean-shortcuts

@@ -32,7 +32,7 @@
       [pattern body ...]))
    (header.formatted ...
     (match-define pattern subject)
-    (ORIGINAL-SPLICE body ...))])
+    body ...)])
 
 
 (define match-shortcuts

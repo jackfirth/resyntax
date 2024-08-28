@@ -290,7 +290,7 @@
           [else #`(define #,id #,rhs)])])]
     [_
      (cond
-       [different-lines? #`(define-values (ORIGINAL-SPLICE #,id-side #,rhs))]
+       [different-lines? #`(define-values #,id-side #,rhs)]
        [else #`(define-values #,id-side #,rhs)])]))
 
 

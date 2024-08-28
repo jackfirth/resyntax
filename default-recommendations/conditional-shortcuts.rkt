@@ -56,7 +56,7 @@
   #:description equivalent-conditional-description
   #:literals (if)
   [(if condition then-branch #false)
-   (and (ORIGINAL-SPLICE condition then-branch))])
+   (and condition then-branch)])
 
 
 (define-refactoring-rule if-x-else-x-to-and
@@ -64,7 +64,7 @@
   #:literals (if)
   [(if x:id then-branch:expr y:id)
    #:when (free-identifier=? #'x #'y)
-   (and (ORIGINAL-SPLICE x then-branch))])
+   (and x then-branch)])
 
 
 (define-syntax-class block-expression
@@ -89,7 +89,7 @@
   #:description equivalent-conditional-description
   [conditional:when-or-unless-equivalent-conditional
    ((~if conditional.negated? unless when)
-    conditional.condition (ORIGINAL-SPLICE conditional.body ...))])
+    conditional.condition conditional.body ...)])
 
 
 (define-refactoring-rule always-throwing-if-to-when
@@ -119,7 +119,7 @@
    (header.formatted
     ...
     ((~if condition.negated? unless when) condition.base-condition fail)
-    (ORIGINAL-SPLICE body ...))])
+    body ...)])
 
 
 (define-refactoring-rule cond-else-cond-to-cond
@@ -129,9 +129,9 @@
   [((~and outer-cond-id cond)
     clause ... last-non-else-clause
     (~and outer-else-clause [else (cond nested-clause ...)]))
-   ((ORIGINAL-SPLICE outer-cond-id clause ... last-non-else-clause)
+   (outer-cond-id clause ... last-non-else-clause
     (ORIGINAL-GAP last-non-else-clause outer-else-clause)
-    (ORIGINAL-SPLICE nested-clause ...))])
+    nested-clause ...)])
 
 
 (define-syntax-class let-refactorable-cond-clause
@@ -163,9 +163,9 @@
    #:with (after ...)
    (let ([form-after (first-syntax #'(clause-after ...))])
      (if form-after
-         #`((ORIGINAL-GAP clause #,form-after) (ORIGINAL-SPLICE clause-after ...))
+         #`((ORIGINAL-GAP clause #,form-after) clause-after ...)
          (list)))
-   ((ORIGINAL-SPLICE outer-cond-id clause-before ...)
+   (outer-cond-id clause-before ...
     (ORIGINAL-GAP form-before clause)
     clause.refactored
     after ...)])
@@ -177,7 +177,7 @@
   (pattern (begin body ...)
     #:attr uses-begin? #true
     #:attr uses-let? #false
-    #:with (refactored ...) #'((ORIGINAL-SPLICE body ...)))
+    #:with (refactored ...) #'(body ...))
   (pattern :refactorable-let-expression
     #:attr uses-begin? #false
     #:attr uses-let? #true)

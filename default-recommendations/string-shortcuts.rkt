@@ -29,14 +29,14 @@
 
 
 (define-syntax-class keywordless-string-join-call
-  #:attributes (original-splice)
+  #:attributes ([original 1])
   #:literals (string-join)
 
   (pattern ((~and id string-join) strs)
-    #:with original-splice #'(ORIGINAL-SPLICE id strs))
+    #:with (original ...) #'(id strs))
 
   (pattern ((~and id string-join) strs sep)
-    #:with original-splice #'(ORIGINAL-SPLICE id sep)))
+    #:with (original ...) #'(id sep)))
 
 
 (define-syntax-class string-append-and-string-join-expression
@@ -45,15 +45,15 @@
 
   (pattern (string-append before join-call:keywordless-string-join-call)
     #:with refactored
-    #'(join-call.original-splice (ORIGINAL-GAP before join-call) #:before-first before))
+    #'(join-call.original ... (ORIGINAL-GAP before join-call) #:before-first before))
 
   (pattern (string-append join-call:keywordless-string-join-call after)
     #:with refactored
-    #'(join-call.original-splice (ORIGINAL-GAP join-call after) #:after-last after))
+    #'(join-call.original ... (ORIGINAL-GAP join-call after) #:after-last after))
 
   (pattern (string-append before join-call:keywordless-string-join-call after)
     #:with refactored
-    #'(join-call.original-splice
+    #'(join-call.original ...
        (ORIGINAL-GAP before join-call) #:before-first before
        (ORIGINAL-GAP join-call after) #:after-last after)))
 
