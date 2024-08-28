@@ -99,7 +99,7 @@
     #:with (formatted ...) #'(let-values header))
 
   (pattern (~seq (~and id let*-values) ~! header)
-    #:with (formatted ...) #'((ORIGINAL-SPLICE id header)))
+    #:with (formatted ...) #'(id header))
 
   (pattern (~seq when ~! condition)
     #:with (formatted ...) #'(when condition))
@@ -140,7 +140,7 @@
                 for*/last))
      ~!
      clauses)
-    #:with (formatted ...) #'((ORIGINAL-SPLICE for-id clauses)))
+    #:with (formatted ...) #'(for-id clauses))
 
   (pattern
     (~seq
@@ -148,7 +148,7 @@
      ~!
      (~alt (~optional (~seq #:length length-expr)) (~optional (~seq #:fill fill-expr))) ...
      clauses)
-    #:with (formatted ...) #'((ORIGINAL-SPLICE for-id clauses))))
+    #:with (formatted ...) #'(for-id clauses)))
 
 
 ;; There's a lot of variants of define that support the same grammar but have different meanings. We

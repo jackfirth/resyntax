@@ -31,7 +31,7 @@
    #:when (equal? (syntax-e #'original) 'define-simple-macro)
    
    (define-syntax-parse-rule (ORIGINAL-GAP original first-form)
-     (ORIGINAL-SPLICE first-form form ...))])
+     first-form form ...)])
 
 
 (define syntax-parse-shortcuts

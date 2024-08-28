@@ -62,7 +62,7 @@
   "The `apply` function accepts single arguments in addition to a trailing list argument."
   #:literals (apply)
   [((~and id apply) function:expr arg ... trailing-arg:trailing-list-argument)
-   ((ORIGINAL-SPLICE id function arg ...) trailing-arg.lifted ... trailing-arg.trailing)])
+   (id function arg ... trailing-arg.lifted ... trailing-arg.trailing)])
 
 
 (define function-shortcuts

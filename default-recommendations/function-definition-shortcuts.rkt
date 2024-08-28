@@ -33,35 +33,26 @@
 
 
 (define-syntax-class lambda-header
-  #:attributes (converted)
-
-  (pattern converted:id)
-
-  (pattern ()
-    #:with converted #'())
-
-  (pattern (formal ...+)
-    #:with converted #'((ORIGINAL-SPLICE formal ...)))
-
-  (pattern (formal ... . rest-arg:id)
-    #:with converted #'((ORIGINAL-SPLICE formal ... rest-arg))))
+  (pattern _:id)
+  (pattern (formal ...))
+  (pattern (formal ... . rest-arg:id)))
 
 
 (define-syntax-class possibly-nested-lambdas
-  #:attributes ([converted-formals 1] [formatted-body 1] [original-formals 1])
+  #:attributes ([argument-lists 1] [body 1])
 
-  (pattern (_:lambda-by-any-name first-formals:lambda-header nested:possibly-nested-lambdas)
-    #:with (original-formals ...) #'(first-formals nested.original-formals ...)
-    #:with (converted-formals ...) #'(first-formals.converted nested.converted-formals ...)
-    #:with (formatted-body ...) #'(nested.formatted-body ...))
+  (pattern (_:lambda-by-any-name first-argument-list:lambda-header nested:possibly-nested-lambdas)
+    #:with (argument-lists ...) (cons #'first-argument-list (attribute nested.argument-lists))
+    #:with (body ...) #'(nested.body ...))
 
   (pattern
       (_:lambda-by-any-name
-       first-formals:lambda-header (~and initial-body (~not _:possibly-nested-lambdas)) body ...)
-    #:with (original-formals ...) #'(first-formals)
-    #:with (converted-formals ...) #'(first-formals.converted)
-    #:with (formatted-body ...)
-    #'((ORIGINAL-GAP first-formals initial-body) (ORIGINAL-SPLICE initial-body body ...))))
+       first-argument-list:lambda-header
+       (~and initial-body (~not _:possibly-nested-lambdas))
+       remaining-body ...)
+    #:with (argument-lists ...) #'(first-argument-list)
+    #:with (body ...)
+    #'((ORIGINAL-GAP first-argument-list initial-body) initial-body remaining-body ...)))
 
 
 (define/guard (build-function-header original-header converted-lambda-formal-lists)
@@ -79,12 +70,12 @@
   [(define header lambda-form:possibly-nested-lambdas)
    #:when (not (syntax-property this-syntax 'class-body))
    #:do [(define multiline-lambda-header-count
-           (count multiline-syntax? (attribute lambda-form.original-formals)))]
+           (count multiline-syntax? (attribute lambda-form.argument-lists)))]
    #:when (< multiline-lambda-header-count 2)
    #:when (oneline-syntax? #'header)
    #:when (or (identifier? #'header) (zero? multiline-lambda-header-count))
-   #:with new-header (build-function-header #'header (attribute lambda-form.converted-formals))
-   (define new-header lambda-form.formatted-body ...)])
+   #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
+   (define new-header lambda-form.body ...)])
 
 
 (define-refactoring-rule define-case-lambda-to-define

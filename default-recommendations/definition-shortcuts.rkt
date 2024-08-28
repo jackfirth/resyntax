@@ -10,13 +10,10 @@
 
 
 (require (for-syntax racket/base)
-         racket/sequence
          rebellion/private/static-name
          resyntax/default-recommendations/private/definition-context
-         resyntax/default-recommendations/private/syntax-lines
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/private/syntax-replacement
          syntax/parse)
 
 
@@ -32,7 +29,7 @@
     rest ...)
    (header.formatted ...
     (define id expr) ...
-    (ORIGINAL-SPLICE rest ...))])
+    rest ...)])
 
 
 (define definition-shortcuts

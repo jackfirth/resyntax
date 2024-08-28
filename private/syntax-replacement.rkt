@@ -6,7 +6,6 @@
 
 (provide
  ORIGINAL-GAP
- ORIGINAL-SPLICE
  (contract-out
   [syntax-replacement? predicate/c]
   [syntax-replacement
@@ -55,13 +54,6 @@
    stx))
 
 
-(define-syntax (ORIGINAL-SPLICE stx)
-  (raise-syntax-error
-   #false
-   "should only be used by refactoring rules to indicate original sequences of syntax objects"
-   stx))
-
-
 (define-record-type syntax-replacement
   (original-syntax new-syntax introduction-scope))
 
@@ -74,27 +66,12 @@
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
     (syntax-parse stx
-      #:literals (quote ORIGINAL-GAP ORIGINAL-SPLICE)
+      #:literals (quote ORIGINAL-GAP)
 
       [(ORIGINAL-GAP ~! before after)
        (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
        (define after-start (sub1 (syntax-position #'after)))
        (list (copied-string before-end after-start))]
-
-      [(ORIGINAL-SPLICE ~! original-subform ...)
-       (guarded-block
-         (define subforms (syntax->list #'(original-subform ...)))
-         (guard (not (empty? subforms)) #:else (list))
-         (for ([subform-stx (in-list subforms)])
-           (unless (syntax-original? subform-stx)
-             (raise-arguments-error
-              (name syntax-replacement-render)
-              "replacement subform within an ORIGINAL-SPLICE form is not original syntax"
-              "subform" subform-stx
-              "splice" stx)))
-         (define start (sub1 (syntax-position (first subforms))))
-         (define end (+ (sub1 (syntax-position (last subforms))) (syntax-span (last subforms))))
-         (list (copied-string start end)))]
       
       [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
        (list (inserted-string (string->immutable-string (~s (syntax-e #'v)))))]
@@ -204,7 +181,7 @@
     [(syntax-replacement #:original-syntax orig
                          #:new-syntax new
                          #:introduction-scope intro)
-     (define ignore (list #'ORIGINAL-GAP #'ORIGINAL-SPLICE))
+     (define ignore (list #'ORIGINAL-GAP))
      (for/and ([new-id (in-syntax-identifiers new)]
                #:unless (member new-id ignore free-identifier=?)
                #:unless (bound-identifier=? new-id (intro new-id 'remove)))

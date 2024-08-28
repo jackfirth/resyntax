@@ -11,7 +11,6 @@
 
 (require (for-syntax racket/base)
          racket/list
-         racket/sequence
          racket/set
          rebellion/private/static-name
          resyntax/refactoring-rule
@@ -132,7 +131,7 @@
   ;; assume all such lambdas are multi-line, and multi-line for-each functions are typically easier
   ;; to read when they're in the body of a for loop.
   (pattern (_:lambda-by-any-name (x) first-body remaining-body ...+)
-    #:with (body ...) #'((ORIGINAL-SPLICE first-body remaining-body ...)))
+    #:with (body ...) #'(first-body remaining-body ...))
 
   ;; We don't bother migrating for-each forms with only a single body form unless the body form is
   ;; exceptionally long, so that forms which span multiple lines tend to get migrated. By not
@@ -181,14 +180,14 @@
   #:description "`for` loops can build vectors directly."
   #:literals (list->vector)
   [(list->vector (loop-id:for-list-id clauses body ...))
-   (loop-id.vector-id (ORIGINAL-GAP loop-id clauses) (ORIGINAL-SPLICE clauses body ...))])
+   (loop-id.vector-id (ORIGINAL-GAP loop-id clauses) clauses body ...)])
 
 
 (define-refactoring-rule list->set-to-for/set
   #:description "`for` loops can build sets directly"
   #:literals (list->set)
   [(list->set (loop-id:for-list-id clauses body ...))
-   (loop-id.set-id (ORIGINAL-GAP loop-id clauses) (ORIGINAL-SPLICE clauses body ...))])
+   (loop-id.set-id (ORIGINAL-GAP loop-id clauses) clauses body ...)])
 
 
 (define-refactoring-rule for/fold-building-hash-to-for/hash
@@ -200,7 +199,7 @@
      (hash-set h-usage:id key value))
    #:when (free-identifier=? #'h #'h-usage)
    #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'h))
-   (loop (ORIGINAL-SPLICE iteration-clauses body ...) (values key value))])
+   (loop iteration-clauses body ... (values key value))])
 
 
 (define-syntax-class nested-for
@@ -221,7 +220,7 @@
   [nested:nested-for
    #:when (>= (length (attribute nested.clause)) 2)
    (for* (nested.clause ...)
-     (ORIGINAL-SPLICE nested.body ...))])
+     nested.body ...)])
 
 
 (define-refactoring-rule named-let-loop-to-for/first-in-vector
@@ -249,8 +248,7 @@
     (~and original-clauses (clause ...))
     (~and original-body (or condition:condition-expression ...+ last-condition)))
    (loop-id (ORIGINAL-GAP loop-id original-clauses)
-            ((ORIGINAL-SPLICE clause ...)
-             (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
+            (clause ... (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
             (ORIGINAL-GAP original-clauses original-body)
             last-condition)])
 
@@ -268,8 +266,7 @@
   (pattern ((~and loop-id for*/list) (clause ...) only-body:expr)
     #:when (oneline-syntax? #'only-body)
     #:with refactored-loop
-    #'(loop-id ((ORIGINAL-SPLICE clause ...) [v (in-list only-body)])
-               v)))
+    #'(loop-id (clause ... [v (in-list only-body)]) v)))
 
 
 (define-refactoring-rule apply-append-for-loop-to-for-loop

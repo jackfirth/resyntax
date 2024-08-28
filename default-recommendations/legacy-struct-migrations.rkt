@@ -38,17 +38,16 @@
 
 
 (define-splicing-syntax-class struct-option
-  #:attributes (keyword [expr 1] [formatted 1] [original 1])
+  #:attributes (keyword [expr 1] [original 1])
   (pattern (~seq (~and keyword:keyword (~not :constructor-name-keyword)) expr:expr ...)
-    #:with (original ...) #'(keyword expr ...)
-    #:with (formatted ...) #'((ORIGINAL-SPLICE keyword expr ...))))
+    #:with (original ...) #'(keyword expr ...)))
 
 
 (define-refactoring-rule define-struct-to-struct
   #:description "The `define-struct` form exists for backwards compatibility, `struct` is preferred."
   #:literals (define-struct)
   [(define-struct id:id-maybe-super fields option:struct-option ...)
-   (struct id.migrated ... (ORIGINAL-SPLICE fields option.original ... ...)
+   (struct id.migrated ... fields option.original ... ...
      #:extra-constructor-name id.make-id)])
 
 
