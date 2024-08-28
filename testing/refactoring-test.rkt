@@ -13,6 +13,7 @@
 (require (for-syntax racket/base
                      racket/sequence)
          racket/list
+         racket/logging
          racket/match
          racket/port
          racket/pretty
@@ -23,12 +24,14 @@
          rebellion/collection/hash
          rebellion/collection/list
          rebellion/collection/multiset
+         rebellion/collection/vector/builder
          rebellion/streaming/transducer
          rebellion/type/tuple
          resyntax
+         resyntax/private/logger
          resyntax/private/refactoring-result
-         resyntax/refactoring-suite
          resyntax/private/string-replacement
+         resyntax/refactoring-suite
          syntax/parse
          syntax/parse/define
          syntax/modread)
@@ -117,12 +120,21 @@
 
 
 (define-check (check-suite-refactors suite original-program expected-program)
-  (define results (refactor original-program #:suite suite))
+  (define logged-messages-builder (make-vector-builder))
+  (define results
+    (with-intercepted-logging
+        (λ (log-entry)
+          (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
+      #:logger resyntax-logger
+      (λ () (refactor original-program #:suite suite))
+      'debug))
+  (define logged-messages (build-vector logged-messages-builder))
   
   (with-check-info*
       (if (empty? results)
-          '()
-          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
+          (list (check-info 'logs logged-messages))
+          (list (check-info 'logs logged-messages)
+                (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
     (λ ()
       (define replacement
         (with-handlers

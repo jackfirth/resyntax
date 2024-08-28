@@ -12,6 +12,7 @@
 
 
 (require fancy-app
+         guard
          racket/port
          racket/sequence
          racket/syntax-srcloc
@@ -25,6 +26,7 @@
          resyntax/default-recommendations
          resyntax/private/comment-reader
          resyntax/private/file-group
+         resyntax/private/logger
          resyntax/private/refactoring-result
          resyntax/private/source
          resyntax/private/string-replacement
@@ -56,17 +58,26 @@
               (format "~a: refactoring attempt failed\n  syntax: ~e\n  cause: ~e"
                       (object-name rule) syntax e))
             (raise (exn:fail:refactoring message (current-continuation-marks) rule syntax e)))])
-      (option-map
-       (option-filter
-        (option-filter
-         (refactoring-rule-refactor rule syntax #:analysis analysis)
-         syntax-replacement-preserves-free-identifiers?)
-        (syntax-replacement-preserves-comments? _ comments))
-       (refactoring-result
-        #:source (source-code-analysis-code analysis)
-        #:rule-name (object-name rule)
-        #:message (refactoring-rule-description rule)
-        #:replacement _))))
+      (guarded-block
+        (guard-match (present replacement)
+          (refactoring-rule-refactor rule syntax #:analysis analysis)
+          #:else absent)
+        (guard (syntax-replacement-preserves-free-identifiers? replacement) #:else
+          (log-resyntax-debug
+           "suggestion from ~a discarded because it does not preserve all free identifiers"
+           (object-name rule))
+          absent)
+        (guard (syntax-replacement-preserves-comments? replacement comments) #:else
+          (log-resyntax-debug
+           "suggestion from ~a discarded because it does not preserve all comments"
+           (object-name rule))
+          absent)
+        (present
+         (refactoring-result
+          #:source (source-code-analysis-code analysis)
+          #:rule-name (object-name rule)
+          #:message (refactoring-rule-description rule)
+          #:replacement replacement)))))
   
   (falsey->option
    (for*/first ([rule (in-list rules)]
