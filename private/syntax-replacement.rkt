@@ -65,45 +65,6 @@
   (original-syntax new-syntax introduction-scope))
 
 
-(define (template-separator? stx)
-  (syntax-parse stx
-    #:literals (ORIGINAL-GAP)
-    [(ORIGINAL-GAP _ ...) #true]
-    [else #false]))
-
-
-(define/guard (add-contents-between lst adder)
-  (guard-match (cons first-element remaining-elements) lst #:else '())
-  (cons
-   first-element
-   (for/list ([previous (in-list lst)]
-              [element (in-list remaining-elements)]
-              #:when #true
-              [inserted (append (adder previous element) (list element))])
-     inserted)))
-
-
-(module+ test
-  (test-case (name-string add-contents-between)
-
-    (define (appended-strings left right)
-      (list (format "left: ~a" left) (format "right: ~a" right)))
-    
-    (test-case "empty list"
-      (check-equal? (add-contents-between '() appended-strings) '()))
-
-    (test-case "singleton list"
-      (check-equal? (add-contents-between (list 1) appended-strings) (list 1)))
-
-    (test-case "two-element list"
-      (define actual (add-contents-between (list 1 2) appended-strings))
-      (check-equal? actual (list 1 "left: 1" "right: 2" 2)))
-
-    (test-case "many-element list"
-      (define actual (add-contents-between (list 1 2 3) appended-strings))
-      (check-equal? actual (list 1 "left: 1" "right: 2" 2 "left: 2" "right: 3" 3)))))
-
-
 (define (syntax-replacement-render replacement)
 
   (define/guard (pieces stx)
@@ -171,22 +132,6 @@
   (define start (sub1 (syntax-position orig-stx)))
   (string-replacement
    #:start start #:end (+ start (syntax-span orig-stx)) #:contents (pieces new-stx)))
-
-
-(define/guard (ends-with-newline? piece-list)
-  (guard (not (empty? piece-list)) #:else #true)
-  (define last-piece (last piece-list))
-  (guard (inserted-string? last-piece) #:else #false)
-  (define str (inserted-string-contents last-piece))
-  (equal? (string-ref str (sub1 (string-length str))) #\newline))
-
-
-(define/guard (starts-with-newline? piece-list)
-  (guard (not (empty? piece-list)) #:else #true)
-  (define first-piece (first piece-list))
-  (guard (inserted-string? first-piece) #:else #false)
-  (define str (inserted-string-contents first-piece))
-  (equal? (string-ref str 0) #\newline))
 
 
 (define/guard (join-piece-lists piece-lists)
