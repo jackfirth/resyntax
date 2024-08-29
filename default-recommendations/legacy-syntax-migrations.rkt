@@ -17,6 +17,7 @@
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
+         resyntax/private/syntax-neighbors
          resyntax/private/syntax-replacement
          syntax/parse)
 
@@ -59,8 +60,8 @@
   "The `syntax-local-match-introduce` function is a legacy function that's equivalent to\
  `syntax-local-introduce`."
   #:literals (syntax-local-match-introduce)
-  [((~and id syntax-local-match-introduce) stx)
-   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+  [(id:syntax-local-match-introduce stx)
+   ((~replacement syntax-local-introduce #:original id) stx)])
 
 
 (define-refactoring-rule syntax-local-provide-introduce-migration
@@ -68,8 +69,8 @@
   "The `syntax-local-provide-introduce` function is a legacy function that's equivalent to\
  `syntax-local-introduce`."
   #:literals (syntax-local-provide-introduce)
-  [((~and id syntax-local-provide-introduce) stx)
-   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+  [(id:syntax-local-provide-introduce stx)
+   ((~replacement syntax-local-introduce #:original id) stx)])
 
 
 (define-refactoring-rule syntax-local-require-introduce-migration
@@ -77,8 +78,8 @@
   "The `syntax-local-require-introduce` function is a legacy function that's equivalent to\
  `syntax-local-introduce`."
   #:literals (syntax-local-require-introduce)
-  [((~and id syntax-local-require-introduce) stx)
-   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+  [(id:syntax-local-require-introduce stx)
+   ((~replacement syntax-local-introduce #:original id) stx)])
 
 
 (define-refactoring-rule syntax-local-syntax-parse-pattern-introduce-migration
@@ -86,8 +87,8 @@
   "The `syntax-local-syntax-parse-pattern-introduce` function is a legacy function that's equivalent\
  to `syntax-local-introduce`."
   #:literals (syntax-local-syntax-parse-pattern-introduce)
-  [((~and id syntax-local-syntax-parse-pattern-introduce) stx)
-   (syntax-local-introduce (ORIGINAL-GAP id stx) stx)])
+  [(id:syntax-local-syntax-parse-pattern-introduce stx)
+   ((~replacement syntax-local-introduce #:original id) stx)])
 
 
 (define legacy-syntax-migrations

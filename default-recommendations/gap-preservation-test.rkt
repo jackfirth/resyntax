@@ -65,3 +65,70 @@ test: "comments preserved in splice when form inserted at end"
      c
      "foo"))
 -----------------------------------
+
+
+test: "comments preserved in splice when first form replaced"
+-----------------------------------
+(define (code replace-first-with-foo a b c)
+  (replace-first-with-foo a
+                          ; buggy comment after (sorawee/fmt#68)
+                          b
+                          c))
+-----------------------------------
+-----------------------------------
+(define (code replace-first-with-foo a b c)
+  ; buggy comment after (sorawee/fmt#68)
+("foo" b c))
+-----------------------------------
+
+
+test: "comments preserved in splice when second form replaced"
+-----------------------------------
+(define (code replace-second-with-foo a b c)
+  (replace-second-with-foo a
+                           ; buggy comment before (sorawee/fmt#68)
+                           b
+                           ; comment after
+                           c))
+-----------------------------------
+-----------------------------------
+(define (code replace-second-with-foo a b c)
+  ; buggy comment before (sorawee/fmt#68)
+(a "foo"
+   ; comment after
+   c))
+-----------------------------------
+
+
+test: "comments preserved in splice when last form replaced"
+-----------------------------------
+(define (code replace-last-with-foo a b c)
+  (replace-last-with-foo a
+                         b
+                         ; comment before
+                         c))
+-----------------------------------
+-----------------------------------
+(define (code replace-last-with-foo a b c)
+  (a b
+     ; comment before
+     "foo"))
+-----------------------------------
+
+
+test: "comments preserved in splice when first and last forms replaced"
+-----------------------------------
+(define (code replace-first-and-last-with-foo a b c)
+  (replace-first-and-last-with-foo a
+                                   ; buggy comment after (sorawee/fmt#68)
+                                   b
+                                   ; comment before
+                                   c))
+-----------------------------------
+-----------------------------------
+(define (code replace-first-and-last-with-foo a b c)
+  ; buggy comment after (sorawee/fmt#68)
+("foo" b
+       ; comment before
+       "foo"))
+-----------------------------------

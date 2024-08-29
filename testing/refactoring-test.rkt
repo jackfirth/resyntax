@@ -17,6 +17,7 @@
          racket/match
          racket/port
          racket/pretty
+         racket/string
          racket/stxparam
          rackunit
          rackunit/private/check-info
@@ -121,34 +122,39 @@
 
 (define-check (check-suite-refactors suite original-program expected-program)
   (define logged-messages-builder (make-vector-builder))
-  (define results
-    (with-intercepted-logging
-        (λ (log-entry)
-          (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
-      #:logger resyntax-logger
-      (λ () (refactor original-program #:suite suite))
-      'debug))
-  (define logged-messages (build-vector logged-messages-builder))
+
+  (define (save-log log-entry)
+    (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
+
+  (define (call-with-logs-captured proc)
+    (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug))
+
+  (define (build-logs-info)
+    (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
+
+  (define results (call-with-logs-captured (λ () (refactor original-program #:suite suite))))
   
   (with-check-info*
       (if (empty? results)
-          (list (check-info 'logs logged-messages))
-          (list (check-info 'logs logged-messages)
-                (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
+          '()
+          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
     (λ ()
       (define replacement
         (with-handlers
             ([exn:fail?
               (λ (e)
-                (with-check-info (['original (string-block original-program)]
+                (with-check-info (['logs (build-logs-info)]
+                                  ['original (string-block original-program)]
                                   ['expected (string-block expected-program)]
                                   ['exception e])
                   (fail-check "an error occurred while processing refactoring results")))])
-          (transduce results
-                     (mapping refactoring-result-string-replacement)
-                     #:into union-into-string-replacement)))
+          (call-with-logs-captured
+           (λ () (transduce results
+                            (mapping refactoring-result-string-replacement)
+                            #:into union-into-string-replacement)))))
       (define refactored-program (string-apply-replacement original-program replacement))
-      (with-check-info (['actual (string-block refactored-program)]
+      (with-check-info (['logs (build-logs-info)]
+                        ['actual (string-block refactored-program)]
                         ['expected (string-block expected-program)])
         (when (empty? results)
           (fail-check "no changes were made"))
@@ -160,11 +166,13 @@
       (match-define (program-output original-stdout original-stderr) (eval-program original-program))
       (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
       (unless (equal? original-stdout actual-stdout)
-        (with-check-info (['actual (string-block actual-stdout)]
+        (with-check-info (['logs (build-logs-info)]
+                          ['actual (string-block actual-stdout)]
                           ['original (string-block original-stdout)])
           (fail-check "output to stdout changed")))
       (unless (equal? original-stderr actual-stderr)
-        (with-check-info (['actual (string-block actual-stderr)]
+        (with-check-info (['logs (build-logs-info)]
+                          ['actual (string-block actual-stderr)]
                           ['original (string-block original-stderr)])
           (fail-check "output to stderr changed"))))))
 

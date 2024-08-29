@@ -19,7 +19,7 @@
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/private/syntax-replacement
+         resyntax/private/syntax-neighbors
          syntax/parse)
 
 
@@ -30,7 +30,7 @@
   #:description "The lambda can be removed from the failure result in this `hash-ref` expression."
   #:literals (hash-ref)
   [((~and ref hash-ref) h:expr k:expr (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
-   (ref h k (ORIGINAL-GAP k lambda-expr) v)])
+   (ref h k (~replacement v #:original lambda-expr))])
 
 
 (define-refactoring-rule hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
@@ -38,7 +38,7 @@
   #:literals (hash-ref!)
   [((~and ref hash-ref!) h:expr k:expr
                          (~and lambda-expr (_:lambda-by-any-name () v:literal-constant)))
-   (ref h k (ORIGINAL-GAP k lambda-expr) v)])
+   (ref h k (~replacement v #:original lambda-expr))])
 
 
 (define-syntax-class value-initializer

@@ -20,6 +20,7 @@
          resyntax/default-recommendations/private/syntax-lines
          resyntax/refactoring-rule
          resyntax/refactoring-suite
+         resyntax/private/syntax-neighbors
          resyntax/private/syntax-replacement
          syntax/parse)
 
@@ -130,15 +131,16 @@
     clause ... last-non-else-clause
     (~and outer-else-clause [else (cond nested-clause ...)]))
    (outer-cond-id clause ... last-non-else-clause
-    (ORIGINAL-GAP last-non-else-clause outer-else-clause)
-    nested-clause ...)])
+                  (ORIGINAL-GAP last-non-else-clause outer-else-clause)
+                  nested-clause ...)])
 
 
 (define-syntax-class let-refactorable-cond-clause
-  #:attributes ([refactored 0])
+  #:attributes (refactored)
   (pattern
-    [condition:expr let-expr:body-with-refactorable-let-expression]
-    #:with refactored #'[condition let-expr.refactored ...]))
+    (~and clause [condition:expr let-expr:body-with-refactorable-let-expression])
+    #:with refactored
+    #'(~replacement [condition let-expr.refactored ...] #:original clause)))
 
 
 (define (first-syntax stx)
@@ -155,20 +157,8 @@
   #:description
   "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
   #:literals (cond)
-  [((~and outer-cond-id cond)
-    clause-before ...
-    clause:let-refactorable-cond-clause
-    clause-after ...)
-   #:with form-before (or (last-syntax #'(clause-before ...)) #'outer-cond-id)
-   #:with (after ...)
-   (let ([form-after (first-syntax #'(clause-after ...))])
-     (if form-after
-         #`((ORIGINAL-GAP clause #,form-after) clause-after ...)
-         (list)))
-   (outer-cond-id clause-before ...
-    (ORIGINAL-GAP form-before clause)
-    clause.refactored
-    after ...)])
+  [(cond-id:cond clause-before ... clause:let-refactorable-cond-clause clause-after ...)
+   (cond-id clause-before ... clause.refactored clause-after ...)])
 
 
 (define-syntax-class if-arm
@@ -202,9 +192,7 @@
    (if (attribute else-expr.uses-begin?)
        #'([else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
        #'((ORIGINAL-GAP then-expr else-expr) [else else-expr.refactored ...]))
-   (cond
-     true-branch ...
-     false-branch ...)])
+   (cond true-branch ... false-branch ...)])
 
 
 (define-refactoring-rule if-let-to-cond

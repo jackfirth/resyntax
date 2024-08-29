@@ -16,6 +16,7 @@
          resyntax/default-recommendations/private/syntax-tree
          resyntax/refactoring-rule
          resyntax/refactoring-suite
+         resyntax/private/syntax-neighbors
          resyntax/private/syntax-replacement
          syntax/parse)
 
@@ -67,18 +68,25 @@
    (and condition then)])
 
 
+(define-syntax-class negated-condition
+  #:attributes (flipped)
+  #:literals (not)
+  (pattern (not base-condition:expr)
+    #:with flipped #`(~replacement base-condition #:original #,this-syntax)))
+
+
 (define-refactoring-rule inverted-when
-  #:description "This negated when expression can be replaced by an unless expression."
-  #:literals (when not)
-  [(when (~and negated (not condition)) body0 body ...)
-   (unless condition (ORIGINAL-GAP negated body0) body0 body ...)])
+  #:description "This negated `when` expression can be replaced by an `unless` expression."
+  #:literals (when)
+  [(when-id:when negated:negated-condition body ...)
+   ((~replacement unless #:original when-id) negated.flipped body ...)])
 
 
 (define-refactoring-rule inverted-unless
   #:description "This negated `unless` expression can be replaced by a `when` expression."
-  #:literals (unless not)
-  [(unless (~and negated (not condition)) body0 body ...)
-   (when condition (ORIGINAL-GAP negated body0) body0 body ...)])
+  #:literals (unless)
+  [(unless-id:unless negated:negated-condition body ...)
+   ((~replacement when #:original unless-id) negated.flipped body ...)])
 
 
 (define boolean-shortcuts
