@@ -21,7 +21,7 @@
          resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/syntax-lines
-         resyntax/private/syntax-replacement
+         resyntax/private/syntax-neighbors
          syntax/parse)
 
 
@@ -61,9 +61,9 @@
   #:attributes (flat? [leading-clause 1] trailing-expression)
 
   (pattern
-      (append-map
-       (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
-       list-expression:sequence-syntax-convertible-list-expression)
+    (append-map
+     (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
+     list-expression:sequence-syntax-convertible-list-expression)
     #:with flat? #false
     #:with (leading-clause ...) #'([y list-expression.refactored])
     #:with trailing-expression #'append-map-body.refactored)
@@ -79,31 +79,31 @@
   #:literals (map filter append-map)
 
   (pattern
-      (map
-       (_:lambda-by-any-name (x:id) loop-body:expr ...+)
-       (filter
-        (_:lambda-by-any-name (y:id) filter-body:expr)
-        list-expression:sequence-syntax-convertible-list-expression))
+    (map
+     (_:lambda-by-any-name (x:id) loop-body:expr ...+)
+     (filter
+      (_:lambda-by-any-name (y:id) filter-body:expr)
+      list-expression:sequence-syntax-convertible-list-expression))
     #:when (bound-identifier=? #'x #'y)
     #:with nesting-loop? #false
     #:with loop-clauses #'([x list-expression.refactored] #:when filter-body)
     #:with loop #'(for/list loop-clauses loop-body ...))
 
   (pattern
-      (map
-       (_:lambda-by-any-name (x:id) loop-body:expr ...+)
-       (append-map
-        (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
-        list-expression:sequence-syntax-convertible-list-expression))
+    (map
+     (_:lambda-by-any-name (x:id) loop-body:expr ...+)
+     (append-map
+      (_:lambda-by-any-name (y:id) append-map-body:sequence-syntax-convertible-list-expression)
+      list-expression:sequence-syntax-convertible-list-expression))
     #:when (not (bound-identifier=? #'x #'y))
     #:with nesting-loop? #true
     #:with loop-clauses #'([y list-expression.refactored] [x append-map-body.refactored])
     #:with loop #'(for*/list loop-clauses loop-body ...))
 
   (pattern
-      (map
-       (_:lambda-by-any-name (x:id) loop-body:expr ...+)
-       list-expression:sequence-syntax-convertible-list-expression)
+    (map
+     (_:lambda-by-any-name (x:id) loop-body:expr ...+)
+     list-expression:sequence-syntax-convertible-list-expression)
     #:with nesting-loop? #false
     #:with loop-clauses #'([x list-expression.refactored])
     #:with loop #'(for/list loop-clauses loop-body ...)))
@@ -180,14 +180,14 @@
   #:description "`for` loops can build vectors directly."
   #:literals (list->vector)
   [(list->vector (loop-id:for-list-id clauses body ...))
-   (loop-id.vector-id (ORIGINAL-GAP loop-id clauses) clauses body ...)])
+   ((~replacement loop-id.vector-id #:original loop-id) clauses body ...)])
 
 
 (define-refactoring-rule list->set-to-for/set
   #:description "`for` loops can build sets directly"
   #:literals (list->set)
   [(list->set (loop-id:for-list-id clauses body ...))
-   (loop-id.set-id (ORIGINAL-GAP loop-id clauses) clauses body ...)])
+   ((~replacement loop-id.set-id #:original loop-id) clauses body ...)])
 
 
 (define-refactoring-rule for/fold-building-hash-to-for/hash
@@ -195,8 +195,8 @@
   #:literals (for/fold for*/fold hash make-immutable-hash)
   [((~or (~and for/fold (~bind [loop #'for/hash])) (~and for*/fold (~bind [loop #'for*/hash])))
     ([h:id (~or (hash) (make-immutable-hash))]) iteration-clauses
-     body ...
-     (hash-set h-usage:id key value))
+    body ...
+    (hash-set h-usage:id key value))
    #:when (free-identifier=? #'h #'h-usage)
    #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'h))
    (loop iteration-clauses body ... (values key value))])
@@ -247,10 +247,11 @@
   [((~and loop-id (~or for/and for*/and))
     (~and original-clauses (clause ...))
     (~and original-body (or condition:condition-expression ...+ last-condition)))
-   (loop-id (ORIGINAL-GAP loop-id original-clauses)
-            (clause ... (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
-            (ORIGINAL-GAP original-clauses original-body)
-            last-condition)])
+   (loop-id
+    (~replacement
+     (clause ... (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
+     #:original original-clauses)
+    (~replacement last-condition #:original original-body))])
 
 
 (define-syntax-class apply-append-refactorable-for-loop

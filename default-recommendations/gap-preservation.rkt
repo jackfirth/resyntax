@@ -15,19 +15,10 @@
   [gap-preservation-rules refactoring-suite?]))
 
 
-(require (for-syntax racket/base)
-         racket/list
-         rebellion/private/static-name
-         resyntax/default-recommendations/private/boolean
-         resyntax/default-recommendations/private/definition-context
-         resyntax/default-recommendations/private/exception
-         resyntax/default-recommendations/private/let-binding
-         resyntax/default-recommendations/private/metafunction
-         resyntax/default-recommendations/private/syntax-lines
+(require rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/private/syntax-replacement
-         syntax/parse)
+         resyntax/private/syntax-neighbors)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -57,6 +48,31 @@
   [(insert-foo-first-and-last a ...) ("foo" a ... "foo")])
 
 
+(define-refactoring-rule suggest-replacing-first-with-foo
+  #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
+  #:datum-literals (replace-first-with-foo)
+  [(replace-first-with-foo old a ...) ((~replacement "foo" #:original old) a ...)])
+
+
+(define-refactoring-rule suggest-replacing-second-with-foo
+  #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
+  #:datum-literals (replace-second-with-foo)
+  [(replace-second-with-foo a0 old a ...) (a0 (~replacement "foo" #:original old) a ...)])
+
+
+(define-refactoring-rule suggest-replacing-last-with-foo
+  #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
+  #:datum-literals (replace-last-with-foo)
+  [(replace-last-with-foo a ... old) (a ... (~replacement "foo" #:original old))])
+
+
+(define-refactoring-rule suggest-replacing-first-and-last-with-foo
+  #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
+  #:datum-literals (replace-first-and-last-with-foo)
+  [(replace-first-and-last-with-foo old1 a ... old2)
+   ((~replacement "foo" #:original old1) a ... (~replacement "foo" #:original old2))])
+
+
 (define gap-preservation-rules
   (refactoring-suite
    #:name (name gap-preservation-rules)
@@ -64,4 +80,8 @@
    (list suggest-inserting-foo-first
          suggest-inserting-foo-second
          suggest-inserting-foo-last
-         suggest-inserting-foo-first-and-last)))
+         suggest-inserting-foo-first-and-last
+         suggest-replacing-first-with-foo
+         suggest-replacing-second-with-foo
+         suggest-replacing-last-with-foo
+         suggest-replacing-first-and-last-with-foo)))

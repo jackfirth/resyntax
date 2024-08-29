@@ -19,7 +19,7 @@
          rebellion/type/record
          resyntax/default-recommendations/private/graph
          resyntax/private/source
-         resyntax/private/syntax-replacement
+         resyntax/private/syntax-neighbors
          resyntax/refactoring-rule
          syntax/id-set
          syntax/parse
@@ -284,14 +284,8 @@
         #:with id* id
         #`(define (id* . args)
             body ...)]
-       [_
-        (cond
-          [different-lines? #`(define #,id (ORIGINAL-GAP #,id-side #,rhs) #,rhs)]
-          [else #`(define #,id #,rhs)])])]
-    [_
-     (cond
-       [different-lines? #`(define-values #,id-side #,rhs)]
-       [else #`(define-values #,id-side #,rhs)])]))
+       [_ #`(define (~replacement #,id #:original #,id-side) #,rhs)])]
+    [_ #`(define-values #,id-side #,rhs)]))
 
 
 (define (binding-clause-depends-on? dependant dependency)

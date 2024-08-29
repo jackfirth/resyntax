@@ -14,16 +14,19 @@
 
 
 (provide
+ ~replacement
  (contract-out
   [syntax-original-leading-neighbor (-> syntax? (or/c syntax? #false))]
   [syntax-original-trailing-neighbor (-> syntax? (or/c syntax? #false))]
   [syntax-originally-neighbors? (-> syntax? syntax? boolean?)]
-  [syntax-mark-original-neighbors (-> syntax? syntax?)]))
+  [syntax-mark-original-neighbors (-> syntax? syntax?)]
+  [syntax-extract-original (-> syntax? syntax?)]))
 
 
 (require guard
          racket/syntax-srcloc
-         syntax/parse)
+         syntax/parse
+         syntax/parse/experimental/template)
 
 
 (module+ test
@@ -71,17 +74,30 @@
   (syntax-property stx 'original-trailing-neighbor))
 
 
-(define/guard (syntax-originally-neighbors? left-stx right-stx)
-  (define left-trailer (syntax-original-trailing-neighbor left-stx))
-  (define right-leader (syntax-original-leading-neighbor right-stx))
-  (guard (and left-trailer right-leader) #:else #false)
-  (define left-srcloc (syntax-srcloc left-stx))
-  (define left-trailer-srcloc (syntax-srcloc left-trailer))
-  (define right-srcloc (syntax-srcloc right-stx))
-  (define right-leader-srcloc (syntax-srcloc right-leader))
-  (guard (and left-srcloc left-trailer-srcloc right-srcloc right-leader-srcloc) #:else #false)
-  (and (equal? left-trailer-srcloc right-srcloc)
-       (equal? right-leader-srcloc left-srcloc)))
+(define-template-metafunction (~replacement stx)
+  (syntax-parse stx
+    [(_ new-stx #:original orig-syntax)
+     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]))
+
+
+(define (syntax-extract-original stx)
+  (or (syntax-property stx 'replacement-for) stx))
+
+
+(define (syntax-originally-neighbors? left-stx right-stx)
+  (let* ([left-stx (syntax-extract-original left-stx)]
+         [right-stx (syntax-extract-original right-stx)])
+    (guarded-block
+      (define left-trailer (syntax-original-trailing-neighbor left-stx))
+      (define right-leader (syntax-original-leading-neighbor right-stx))
+      (guard (and left-trailer right-leader) #:else #false)
+      (define left-srcloc (syntax-srcloc left-stx))
+      (define left-trailer-srcloc (syntax-srcloc left-trailer))
+      (define right-srcloc (syntax-srcloc right-stx))
+      (define right-leader-srcloc (syntax-srcloc right-leader))
+      (guard (and left-srcloc left-trailer-srcloc right-srcloc right-leader-srcloc) #:else #false)
+      (and (equal? left-trailer-srcloc right-srcloc)
+           (equal? right-leader-srcloc left-srcloc)))))
 
 
 (module+ test
