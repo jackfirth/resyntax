@@ -272,10 +272,24 @@
 
 (define-refactoring-rule apply-append-for-loop-to-for-loop
   #:description "Instead of using `(apply append ...)` to flatten a list of lists, consider using\
- `for*/list` to flatten the list"
+ `for*/list` to flatten the list."
   #:literals (apply append)
   [(apply append loop:apply-append-refactorable-for-loop)
    loop.refactored-loop])
+
+
+(define-refactoring-rule when-expression-in-for-loop-to-when-keyword
+  #:description "Use the `#:when` keyword instead of `when` to reduce loop body indentation."
+  #:literals (when for for*)
+  [((~or for-id:for for-id:for*) (clause ...) (when condition body ...))
+   (for-id (clause ... #:when condition) body ...)])
+
+
+(define-refactoring-rule unless-expression-in-for-loop-to-unless-keyword
+  #:description "Use the `#:unless` keyword instead of `unless` to reduce loop body indentation."
+  #:literals (unless for for*)
+  [((~or for-id:for for-id:for*) (clause ...) (unless condition body ...))
+   (for-id (clause ... #:unless condition) body ...)])
 
 
 (define for-loop-shortcuts
@@ -292,4 +306,6 @@
          named-let-loop-to-for/first-in-vector
          nested-for-to-for*
          or-in-for/and-to-filter-clause
-         ormap-to-for/or)))
+         ormap-to-for/or
+         unless-expression-in-for-loop-to-unless-keyword
+         when-expression-in-for-loop-to-when-keyword)))
