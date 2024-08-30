@@ -99,10 +99,28 @@
                  (~? failure-result))])
 
 
+(define-refactoring-rule hash-map-to-hash-keys
+  #:description "This `hash-map` expression is equivalent to the `hash-keys` function."
+  #:literals (hash-map)
+  [(hash-map h (_:lambda-by-any-name (k1:id v) k2:id))
+   #:when (free-identifier=? #'k1 #'k2)
+   (hash-keys h)])
+
+
+(define-refactoring-rule hash-map-to-hash-values
+  #:description "This `hash-map` expression is equivalent to the `hash-values` function."
+  #:literals (hash-map)
+  [(hash-map h (_:lambda-by-any-name (k v1:id) v2:id))
+   #:when (free-identifier=? #'v1 #'v2)
+   (hash-values h)])
+
+
 (define hash-shortcuts
   (refactoring-suite
    #:name (name hash-shortcuts)
-   #:rules (list hash-ref-set!-to-hash-ref!
+   #:rules (list hash-map-to-hash-keys
+                 hash-map-to-hash-values
+                 hash-ref-set!-to-hash-ref!
                  hash-ref-set!-with-constant-to-hash-ref!
                  hash-ref-with-constant-lambda-to-hash-ref-without-lambda
                  hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
