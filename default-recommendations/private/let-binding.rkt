@@ -269,7 +269,6 @@
 (define (parsed-binding-clause-definition clause)
   (define rhs (parsed-binding-clause-right-hand-side clause))
   (define id-side (parsed-binding-clause-identifier-side clause))
-  (define different-lines? (not (equal? (syntax-line id-side) (syntax-line rhs))))
   (match (parsed-binding-clause-bound-identifiers clause)
     [(list id)
      (syntax-parse rhs
