@@ -53,6 +53,17 @@ test: "string-append with only one string can be removed"
 - "hello"
 
 
+test: "manual string-join can be replaced with real string-join"
+------------------------------
+(require racket/list)
+(apply string-append (add-between (list "apple" "orange" "banana") ", "))
+------------------------------
+------------------------------
+(require racket/list)
+(string-join (list "apple" "orange" "banana") ", ")
+------------------------------
+
+
 test: "format with only one argument can be removed"
 - (format "hello")
 - "hello"

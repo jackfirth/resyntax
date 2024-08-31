@@ -9,14 +9,14 @@
   [string-shortcuts refactoring-suite?]))
 
 
-(require racket/set
+(require racket/list
+         racket/set
          racket/string
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/private/syntax-replacement
-         syntax/parse
-         syntax/parse/define)
+         syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -71,6 +71,13 @@
   [(string-append s) s])
 
 
+(define-refactoring-rule manual-string-join
+  #:description "This use of `string-append` and `add-between` is equivalent to `string-join`."
+  #:literals (apply string-append add-between)
+  [(apply string-append (add-between strings separator))
+   (string-join strings separator)])
+
+
 (define formatting-directives
   (set "~n"
        "~%"
@@ -119,5 +126,6 @@
    #:rules
    (list display-newline-to-newline
          format-identity
+         manual-string-join
          string-append-and-string-join-to-string-join
          string-append-identity)))
