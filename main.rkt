@@ -54,10 +54,9 @@
     (with-handlers
         ([exn:fail?
           (λ (e)
-            (define message
-              (format "~a: refactoring attempt failed\n  syntax: ~e\n  cause: ~e"
-                      (object-name rule) syntax e))
-            (raise (exn:fail:refactoring message (current-continuation-marks) rule syntax e)))])
+            (log-resyntax-error "~a: refactoring attempt failed\n  syntax: ~e\n  cause: ~e"
+                                (object-name rule) syntax e)
+            absent)])
       (guarded-block
         (guard-match (present replacement)
           (refactoring-rule-refactor rule syntax #:analysis analysis)
