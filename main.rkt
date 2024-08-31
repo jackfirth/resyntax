@@ -103,7 +103,10 @@
   (define source (file-source path))
 
   (define (skip e)
-    (printf "resyntax: skipping ~a due to syntax error: ~e\n" path (exn-message e))
+    (log-resyntax-error
+     "skipping ~a\n encountered a syntax error during macro expansion\n  error:\n~a"
+     path
+     (string-indent (exn-message e) #:amount 3))
     empty-list)
   
   (with-handlers ([exn:fail:syntax? skip]
