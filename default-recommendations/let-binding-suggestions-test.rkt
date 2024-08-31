@@ -21,6 +21,25 @@ test: "single let binding"
 ------------------------------
 
 
+test: "single let binding inside cond"
+------------------------------
+(define (f c)
+  (cond
+    [c
+     (let ([x 1])
+       1)]
+    [else (displayln "else")]))
+------------------------------
+------------------------------
+(define (f c)
+  (cond
+    [c
+     (define x 1)
+     1]
+    [else (displayln "else")]))
+------------------------------
+
+
 test: "single let* binding"
 ------------------------------
 (define (f)
@@ -422,14 +441,39 @@ test: "let binding with obfuscated conflicting define inside"
 test: "variable definition with nested let binding refactorable to two variable definitions"
 ------------------------------
 (define (f)
+  (displayln "foo")
   (define y (let ([x 1]) (* x 2)))
   (* y 3))
 ------------------------------
 ------------------------------
 (define (f)
+  (displayln "foo")
   (define x 1)
   (define y (* x 2))
   (* y 3))
+------------------------------
+
+
+test:
+"variable definition with nested let binding inside cond refactorable to two variable definitions"
+------------------------------
+(define (f c)
+  (cond
+    [c
+     (displayln "foo")
+     (define y (let ([x 1]) (* x 2)))
+     (* y 3)]
+    [else (displayln "else")]))
+------------------------------
+------------------------------
+(define (f c)
+  (cond
+    [c
+     (displayln "foo")
+     (define x 1)
+     (define y (* x 2))
+     (* y 3)]
+    [else (displayln "else")]))
 ------------------------------
 
 

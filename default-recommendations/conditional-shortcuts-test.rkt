@@ -197,6 +197,27 @@ test: "negated if expressions with an always-throwing second branch can be refac
 ------------------------------
 
 
+test: "if expressions inside cond with an always-throwing first branch can be refactored to when"
+------------------------------
+(define (f c1 c2)
+  (cond
+    [c1
+     (if c2
+         (error 'oops)
+         (displayln "foo"))]
+    [else (displayln "else")]))
+------------------------------
+------------------------------
+(define (f c1 c2)
+  (cond
+    [c1
+     (when c2
+       (error 'oops))
+     (displayln "foo")]
+    [else (displayln "else")]))
+------------------------------
+
+
 test: "cond expressions with an always-throwing first branch can be refactored to when"
 ------------------------------
 (define (f c)
@@ -245,6 +266,50 @@ test: "cond expressions with an always-throwing first branch (of multiple) can't
      1]
     [condition3
      2]))
+------------------------------
+
+
+test:
+"cond expressions with multiple always-throwing branches and an else branch can be refactored"
+------------------------------
+(define (f condition1 condition2)
+  (cond
+    [condition1 (error 'oops1)]
+    [condition2 (error 'oops2)]
+    [else 2]))
+------------------------------
+------------------------------
+(define (f condition1 condition2)
+  (when condition1
+    (error 'oops1))
+  (when condition2
+    (error 'oops2))
+  2)
+------------------------------
+
+
+test: "cond expressions inside cond with an always-throwing first branch can be refactored to when"
+------------------------------
+(define (f c1 c2)
+  (cond
+    [c1
+     (cond
+       [c2
+        (error 'oops)]
+       [else
+        (displayln "foo")
+        (displayln "bar")])]
+    [else (displayln "else")]))
+------------------------------
+------------------------------
+(define (f c1 c2)
+  (cond
+    [c1
+     (when c2
+       (error 'oops))
+     (displayln "foo")
+     (displayln "bar")]
+    [else (displayln "else")]))
 ------------------------------
 
 

@@ -21,3 +21,41 @@ test: "define-values with values refactorable to separate definitions"
   (define c 3)
   (+ a b c))
 ------------------------------
+
+
+test: "define-values with values and body before refactorable to separate definitions"
+------------------------------
+(define (foo)
+  (displayln "foo")
+  (define-values (a b c) (values 1 2 3))
+  (+ a b c))
+------------------------------
+------------------------------
+(define (foo)
+  (displayln "foo")
+  (define a 1)
+  (define b 2)
+  (define c 3)
+  (+ a b c))
+------------------------------
+
+
+test: "define-values with values inside cond refactorable to separate definitions"
+------------------------------
+(define (foo condition)
+  (cond
+    [condition
+     (define-values (a b c) (values 1 2 3))
+     (+ a b c)]
+    [else (displayln "else")]))
+------------------------------
+------------------------------
+(define (foo condition)
+  (cond
+    [condition
+     (define a 1)
+     (define b 2)
+     (define c 3)
+     (+ a b c)]
+    [else (displayln "else")]))
+------------------------------

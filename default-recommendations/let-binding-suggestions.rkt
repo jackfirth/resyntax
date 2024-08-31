@@ -30,19 +30,38 @@
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/private/syntax-replacement
-         syntax/parse
-         syntax/parse/lib/function-header)
+         resyntax/private/syntax-neighbors
+         syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
+;; This syntax class exists solely so that the let-to-define rule can match two cases that are shaped
+;; very differently.
+(define-syntax-class expresion-matching-let-to-define
+  #:attributes (refactored)
+
+  (pattern (header:header-form-allowing-internal-definitions
+            let-expr:body-with-refactorable-let-expression)
+    #:with refactored
+    #'(header.original ... let-expr.refactored ...))
+
+  (pattern (branching-header:branching-form-allowing-internal-definitions-within-clauses
+            clause-before ...
+            (~and original-clause [clause-header let-expr:body-with-refactorable-let-expression])
+            clause-after ...)
+    #:with refactored
+    #'(branching-header.original ...
+       clause-before ...
+       (~replacement [clause-header let-expr.refactored ...] #:original original-clause)
+       clause-after ...)))
+
+
 (define-refactoring-rule let-to-define
   #:description
   "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
-  [(header:header-form-allowing-internal-definitions let-expr:body-with-refactorable-let-expression)
-   (header.formatted ... let-expr.refactored ...)])
+  [expression:expresion-matching-let-to-define expression.refactored])
 
 
 (define-refactoring-rule named-let-to-plain-let
@@ -66,17 +85,46 @@
    (call-with-values (λ () expr) receiver)])
 
 
+(define-splicing-syntax-class define-with-nested-let-and-body
+  #:attributes ([refactored 1])
+  #:literals (define let)
+  (pattern (~seq body-before ...
+                 (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr))
+                 body-after ...)
+    #:when (not (set-member? (syntax-bound-identifiers #'(body-before ... id body-after ...))
+                             #'nested-id))
+    #:with (refactored ...)
+    #'(body-before ...
+       (define nested-id nested-expr)
+       (define id expr)
+       body-after ...)))
+
+
+;; This syntax class exists solely so that the define-let-to-double-define rule can match two cases
+;; that are shaped very differently.
+(define-syntax-class expression-matching-define-let-to-double-define
+  #:attributes (refactored)
+
+  (pattern (header:header-form-allowing-internal-definitions
+            define-with-let:define-with-nested-let-and-body)
+    
+    #:with refactored
+    #'(header.original ... define-with-let.refactored ...))
+
+  (pattern (branching-header:branching-form-allowing-internal-definitions-within-clauses
+            clause-before ...
+            (~and original-clause [clause-header define-with-let:define-with-nested-let-and-body])
+            clause-after ...)
+    #:with refactored
+    #'(branching-header.original ...
+       clause-before ...
+       (~replacement [clause-header define-with-let.refactored ...] #:original original-clause)
+       clause-after ...)))
+
+
 (define-refactoring-rule define-let-to-double-define
   #:description "This `let` expression can be pulled up into a `define` expression."
-  #:literals (define let)
-  [(header:header-form-allowing-internal-definitions
-    (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr))
-    body ...)
-   #:when (not (set-member? (syntax-bound-identifiers #'(id body ...)) #'nested-id))
-   (header.formatted ...
-    (define nested-id nested-expr)
-    (define id expr)
-    body ...)])
+  [expression:expression-matching-define-let-to-double-define expression.refactored])
 
 
 (define-refactoring-rule delete-redundant-let

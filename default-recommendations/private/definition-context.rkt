@@ -1,7 +1,8 @@
 #lang racket/base
 
 
-(provide header-form-allowing-internal-definitions)
+(provide branching-form-allowing-internal-definitions-within-clauses
+         header-form-allowing-internal-definitions)
 
 
 (require (for-syntax racket/base)
@@ -17,6 +18,7 @@
                   define/public-final
                   define/pubment
                   define/private)
+         racket/match
          rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/private/syntax-replacement
@@ -28,7 +30,7 @@
 
 
 (define-splicing-syntax-class header-form-allowing-internal-definitions
-  #:attributes ([formatted 1])
+  #:attributes ([original 1])
   #:literals (block
               #%module-begin
               module
@@ -41,7 +43,6 @@
               when
               unless
               with-handlers
-              with-syntax
               parameterize
               for
               for/list
@@ -68,56 +69,86 @@
               for*/first
               for*/last)
 
-  (pattern (~seq block ~!)
-    #:with (formatted ...) #'(block))
+  (pattern (~seq id:header-id-with-no-header-forms)
+    #:with (original ...) #'(id))
 
-  (pattern (~seq #%module-begin ~!)
-    #:with (formatted ...) #'(#%module-begin))
+  (pattern (~seq id:header-id-with-one-header-form ~! header-form)
+    #:with (original ...) #'(id header-form))
 
-  (pattern (~seq module ~! id lang)
-    #:with (formatted ...) #'(module id lang))
+  (pattern (~seq id:header-id-with-two-header-forms ~! first-header-form second-header-form)
+    #:with (original ...) #'(id first-header-form second-header-form))
 
-  (pattern (~seq module* ~! id lang)
-    #:with (formatted ...) #'(module id lang))
+  ;; define forms have to be handled specially to ensure they're function definitions and not variable
+  ;; definitions, since only function definitions allow multi-form bodies.
+  (pattern (~seq id:define-by-any-name ~! header-form:function-header)
+    #:with (original ...) #'(id header-form))
 
-  (pattern (~seq module+ ~! id)
-    #:with (formatted ...) #'(module id))
+  ;; let forms have to be handled specially because of named lets
+  (pattern (~seq id:let ~! (~optional name:id) header)
+    #:with (original ...) #'(id (~? name) header))
 
-  (pattern (~seq lambda:lambda-by-any-name ~! formals:formals)
-    #:with (formatted ...) #'(lambda formals))
-
-  (pattern (~seq define:define-by-any-name ~! header:function-header)
-    #:with (formatted ...) #'(define header))
-
-  (pattern (~seq let ~! (~optional name:id) header)
-    #:with (formatted ...) #'(let (~? name) header))
-
-  (pattern (~seq let* ~! header)
-    #:with (formatted ...) #'(let* header))
-
-  (pattern (~seq let-values ~! header)
-    #:with (formatted ...) #'(let-values header))
-
-  (pattern (~seq (~and id let*-values) ~! header)
-    #:with (formatted ...) #'(id header))
-
-  (pattern (~seq when ~! condition)
-    #:with (formatted ...) #'(when condition))
-
-  (pattern (~seq unless ~! condition)
-    #:with (formatted ...) #'(unless condition))
-
-  (pattern (~seq with-handlers ~! handlers)
-    #:with (formatted ...) #'(with-handlers handlers))
-
-  (pattern (~seq parameterize ~! handlers)
-    #:with (formatted ...) #'(parameterize handlers))
-
+  ;; for/vector and for*/vector have keyword options
   (pattern
     (~seq
-     (~and for-id
-           (~or for
+     (~or for-id:for/vector for-id:for*/vector)
+     ~!
+     (~and (~seq keyword-option ...)
+           (~seq (~alt (~optional (~seq #:length length-expr))
+                       (~optional (~seq #:fill fill-expr))) ...))
+     clauses)
+    #:with (original ...) #'(for-id keyword-option ... clauses)))
+
+
+(define-syntax-class header-id-with-no-header-forms
+  #:literals (block #%module-begin)
+  (pattern (~or block #%module-begin)))
+
+
+(define-syntax-class header-id-with-one-header-form
+  #:literals (module+
+                 let*
+               let-values
+               let*-values
+               when
+               unless
+               with-handlers
+               parameterize
+               for
+               for/list
+               for/vector
+               for/hash
+               for/hasheq
+               for/hasheqv
+               for/and
+               for/or
+               for/sum
+               for/product
+               for/first
+               for/last
+               for*
+               for*/list
+               for*/vector
+               for*/hash
+               for*/hasheq
+               for*/hasheqv
+               for*/and
+               for*/or
+               for*/sum
+               for*/product
+               for*/first
+               for*/last)
+  (pattern (~or :lambda-by-any-name
+                module+
+                let*
+                let-values
+                let*-values
+                when
+                unless
+                with-handlers
+                parameterize
+                for
                 for/list
+                for/vector
                 for/hash
                 for/hasheq
                 for/hasheqv
@@ -129,6 +160,7 @@
                 for/last
                 for*
                 for*/list
+                for*/vector
                 for*/hash
                 for*/hasheq
                 for*/hasheqv
@@ -137,18 +169,26 @@
                 for*/sum
                 for*/product
                 for*/first
-                for*/last))
-     ~!
-     clauses)
-    #:with (formatted ...) #'(for-id clauses))
+                for*/last)))
 
-  (pattern
-    (~seq
-     (~and for-id (~or for/vector for*/vector))
-     ~!
-     (~alt (~optional (~seq #:length length-expr)) (~optional (~seq #:fill fill-expr))) ...
-     clauses)
-    #:with (formatted ...) #'(for-id clauses)))
+
+(define-syntax-class header-id-with-two-header-forms
+  #:literals (module module* for/fold for*/fold)
+  (pattern (~or module module* for/fold for*/fold)))
+
+
+(define-splicing-syntax-class branching-form-allowing-internal-definitions-within-clauses
+  #:literals (cond case-lambda match)
+  #:attributes ([original 1])
+
+  (pattern (~seq cond-id:cond ~!)
+    #:with (original ...) #'(cond-id))
+
+  (pattern (~seq case-lambda-id:case-lambda)
+    #:with (original ...) #'(case-lambda-id))
+
+  (pattern (~seq match-id:match ~! subject:expr)
+    #:with (original ...) #'(match-id subject)))
 
 
 ;; There's a lot of variants of define that support the same grammar but have different meanings. We
