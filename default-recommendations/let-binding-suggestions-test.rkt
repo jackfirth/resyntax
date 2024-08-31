@@ -417,3 +417,43 @@ test: "let binding with obfuscated conflicting define inside"
         x))
     (m x)))
 ------------------------------
+
+
+test: "variable definition with nested let binding refactorable to two variable definitions"
+------------------------------
+(define (f)
+  (define y (let ([x 1]) (* x 2)))
+  (* y 3))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  (define y (* x 2))
+  (* y 3))
+------------------------------
+
+
+test: "variable definition with nested let binding of same name not refactorable"
+------------------------------
+(define (f)
+  (define y (let ([y 1]) (* y 2)))
+  (* y 3))
+------------------------------
+
+
+test: "variable definition with nested let binding of name bound later not refactorable"
+------------------------------
+(define (f)
+  (define y (let ([x 1]) (* x 2)))
+  (define x 5)
+  (* y 3))
+------------------------------
+
+
+test: "variable definition with nested let binding of name bound earlier not refactorable"
+------------------------------
+(define (f)
+  (define x 5)
+  (define y (let ([x 1]) (* x 2)))
+  (* y 3))
+------------------------------

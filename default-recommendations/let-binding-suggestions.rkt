@@ -66,7 +66,24 @@
    (call-with-values (λ () expr) receiver)])
 
 
+(define-refactoring-rule define-let-to-double-define
+  #:description "This `let` expression can be pulled up into a `define` expression."
+  #:literals (define let)
+  [(header:header-form-allowing-internal-definitions
+    (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr))
+    body ...)
+   #:when (not (set-member? (syntax-bound-identifiers #'(id body ...)) #'nested-id))
+   (header.formatted ...
+    (define nested-id nested-expr)
+    (define id expr)
+    body ...)])
+
+
 (define let-binding-suggestions
   (refactoring-suite
    #:name (name let-binding-suggestions)
-   #:rules (list let-to-define let-values-then-call-to-call-with-values named-let-to-plain-let)))
+   #:rules
+   (list define-let-to-double-define
+         let-to-define
+         let-values-then-call-to-call-with-values
+         named-let-to-plain-let)))
