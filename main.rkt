@@ -54,8 +54,8 @@
     (with-handlers
         ([exn:fail?
           (λ (e)
-            (log-resyntax-warning "~a: refactoring attempt failed\n  syntax: ~e\n  cause: ~e"
-                                  (object-name rule) syntax e)
+            (log-resyntax-error "~a: refactoring attempt failed\n  syntax: ~e\n  cause: ~e"
+                                (object-name rule) syntax e)
             absent)])
       (guarded-block
         (guard-match (present replacement)
