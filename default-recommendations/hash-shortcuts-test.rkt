@@ -54,7 +54,7 @@ test: "hash-ref! with non-constant lambda cannot be simplified to hash-ref! with
 ------------------------------
 
 
-test: "hash-ref with hash-set! lambda can be simplified to hash-ref!"
+test: "hash-ref with hash-set! can be simplified to hash-ref!"
 ------------------------------
 (define h (make-hash))
 (define k 'a)
@@ -66,17 +66,32 @@ test: "hash-ref with hash-set! lambda can be simplified to hash-ref!"
 ------------------------------
 (define h (make-hash))
 (define k 'a)
+(or (hash-ref h k #false)
+    (let ([v (+ 1 2 3)])
+      (hash-set! h k v)
+      v))
+------------------------------
+------------------------------
+(define h (make-hash))
+(define k 'a)
 (hash-ref! h k (λ () (+ 1 2 3)))
 ------------------------------
 
 
-test: "hash-ref with hash-set! lambda and literal keys can be simplified to hash-ref!"
+test: "hash-ref with hash-set! and literal keys can be simplified to hash-ref!"
 ------------------------------
 (define h (make-hash))
 (hash-ref h 'a (λ ()
                  (define v (+ 1 2 3))
                  (hash-set! h 'a v)
                  v))
+------------------------------
+------------------------------
+(define h (make-hash))
+(or (hash-ref h 'a #false)
+    (let ([v (+ 1 2 3)])
+      (hash-set! h 'a v)
+      v))
 ------------------------------
 ------------------------------
 (define h (make-hash))
