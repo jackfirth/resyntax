@@ -31,3 +31,8 @@ test: "apply with recursive list* can be flattened"
 test: "apply with quasiquoted list can be flattened"
 - (apply + 0 `(1 2 ,@'(3 4)))
 - (apply + 0 1 2 '(3 4))
+
+
+test: "single-case case-lambda refactorable to regular lambda"
+- (case-lambda [(x y z) (+ x y z)])
+- (λ (x y z) (+ x y z))

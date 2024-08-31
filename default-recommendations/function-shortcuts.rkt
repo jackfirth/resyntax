@@ -65,8 +65,15 @@
    (id function arg ... trailing-arg.lifted ... trailing-arg.trailing)])
 
 
+(define-refactoring-rule case-lambda-with-single-case-to-lambda
+  #:description "This `case-lambda` form only has one case. Use a regular lambda instead."
+  #:literals (case-lambda)
+  [(case-lambda [args body ...]) (λ args body ...)])
+
+
 (define function-shortcuts
   (refactoring-suite
    #:name (name function-shortcuts)
    #:rules
-   (list apply-flattening)))
+   (list apply-flattening
+         case-lambda-with-single-case-to-lambda)))
