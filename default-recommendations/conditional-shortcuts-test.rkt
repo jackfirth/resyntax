@@ -152,6 +152,21 @@ test: "if expressions with an always-throwing first branch can be refactored to 
 ------------------------------
 
 
+test: "if expressions with an always-throwing second branch can be refactored to unless"
+------------------------------
+(define (f c)
+  (if c
+      (displayln "foo")
+      (error 'oops)))
+------------------------------
+------------------------------
+(define (f c)
+  (unless c
+    (error 'oops))
+  (displayln "foo"))
+------------------------------
+
+
 test: "negated if expressions with an always-throwing first branch can be refactored to unless"
 ------------------------------
 (define (f c)
@@ -162,6 +177,21 @@ test: "negated if expressions with an always-throwing first branch can be refact
 ------------------------------
 (define (f c)
   (unless c
+    (error 'oops))
+  (displayln "foo"))
+------------------------------
+
+
+test: "negated if expressions with an always-throwing second branch can be refactored to when"
+------------------------------
+(define (f c)
+  (if (not c)
+      (displayln "foo")
+      (error 'oops)))
+------------------------------
+------------------------------
+(define (f c)
+  (when c
     (error 'oops))
   (displayln "foo"))
 ------------------------------

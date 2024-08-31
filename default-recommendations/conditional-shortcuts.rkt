@@ -93,18 +93,31 @@
     conditional.condition conditional.body ...)])
 
 
+(define-syntax-class always-throwing-if-expression
+  #:attributes (equivalent-guard-expression success-expression)
+  #:literals (if)
+  (pattern (if condition:condition-expression
+               fail:always-throwing-expression
+               success-expression)
+    #:with equivalent-guard-expression
+    #'((~if condition.negated? unless when) condition.base-condition fail))
+  (pattern (if condition:condition-expression
+               success-expression
+               fail:always-throwing-expression)
+    #:with equivalent-guard-expression
+    #'((~if condition.negated? when unless) condition.base-condition fail)))
+
+
 (define-refactoring-rule always-throwing-if-to-when
   #:description
   "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   #:literals (if)
   [(header:header-form-allowing-internal-definitions
-    (if condition:condition-expression
-        fail:always-throwing-expression
-        else-expression))
+    throwing-if:always-throwing-if-expression)
    (header.formatted
     ...
-    ((~if condition.negated? unless when) condition.base-condition fail)
-    else-expression)])
+    throwing-if.equivalent-guard-expression
+    throwing-if.success-expression)])
 
 
 (define-refactoring-rule always-throwing-cond-to-when
