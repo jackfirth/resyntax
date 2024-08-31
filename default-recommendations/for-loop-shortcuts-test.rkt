@@ -8,6 +8,105 @@ header:
 - #lang racket/base
 
 
+test: "map with short single-form body not refactorable"
+------------------------------
+(define some-list (list 1 2 3))
+(map (λ (x) (* x 2)) some-list)
+------------------------------
+
+
+test: "map with long single-form body to for/list"
+------------------------------
+(define some-list (list 1 2 3))
+(map
+ (λ (a-very-very-very-long-variable-name-thats-so-very-long)
+   (* a-very-very-very-long-variable-name-thats-so-very-long 2))
+ some-list)
+------------------------------
+------------------------------
+(define some-list (list 1 2 3))
+(for/list ([a-very-very-very-long-variable-name-thats-so-very-long (in-list some-list)])
+  (* a-very-very-very-long-variable-name-thats-so-very-long 2))
+------------------------------
+
+
+test: "map with multiple body forms to for/list"
+------------------------------
+(define some-list (list 1 2 3))
+(map
+ (λ (x)
+   (define y (* x 2))
+   (+ x y))
+ some-list)
+------------------------------
+------------------------------
+(define some-list (list 1 2 3))
+(for/list ([x (in-list some-list)])
+  (define y (* x 2))
+  (+ x y))
+------------------------------
+
+
+test: "map with let expression to for/list with definitions"
+------------------------------
+(define some-list (list 1 2 3))
+(map (λ (x) (let ([y 1]) (+ x y))) some-list)
+------------------------------
+------------------------------
+(define some-list (list 1 2 3))
+(for/list ([x (in-list some-list)])
+  (define y 1)
+  (+ x y))
+------------------------------
+
+
+test: "map range to for/list"
+------------------------------
+(require racket/list)
+(map
+ (λ (x)
+   (define y 1)
+   (+ x y))
+ (range 0 10))
+------------------------------
+------------------------------
+(require racket/list)
+(for/list ([x (in-range 0 10)])
+  (define y 1)
+  (+ x y))
+------------------------------
+
+
+test: "map string->list to for/list in-string"
+------------------------------
+(map
+ (λ (c)
+   (displayln c)
+   (char-upcase c))
+ (string->list "hello"))
+------------------------------
+------------------------------
+(for/list ([c (in-string "hello")])
+  (displayln c)
+  (char-upcase c))
+------------------------------
+
+
+test: "map bytes->list to for/list in-bytes"
+------------------------------
+(map
+ (λ (b)
+   (displayln b)
+   (* b 2))
+ (bytes->list #"hello"))
+------------------------------
+------------------------------
+(for/list ([b (in-bytes #"hello")])
+  (displayln b)
+  (* b 2))
+------------------------------
+
+
 test: "for-each with short single-form body not refactorable"
 ------------------------------
 (define some-list (list 1 2 3))
