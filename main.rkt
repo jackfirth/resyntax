@@ -13,11 +13,13 @@
 
 (require fancy-app
          guard
+         racket/match
          racket/port
          racket/sequence
          racket/syntax-srcloc
          rebellion/base/comparator
          rebellion/base/option
+         rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
@@ -65,14 +67,23 @@
           (refactoring-rule-refactor rule syntax #:analysis analysis)
           #:else absent)
         (guard (syntax-replacement-preserves-free-identifiers? replacement) #:else
-          (log-resyntax-debug
+          (log-resyntax-error
            "suggestion from ~a discarded because it does not preserve all free identifiers"
            (object-name rule))
           absent)
         (guard (syntax-replacement-preserves-comments? replacement comments) #:else
-          (log-resyntax-debug
-           "suggestion from ~a discarded because it does not preserve all comments"
-           (object-name rule))
+          (log-resyntax-error
+           (string-append "~a: suggestion discarded because it does not preserve all comments\n"
+                          "  dropped comment locations:\n"
+                          "   ~v\n"
+                          "  original syntax:\n"
+                          "   ~v\n"
+                          "  replacement syntax:\n"
+                          "   ~v\n")
+           (object-name rule)
+           (syntax-replacement-dropped-comment-locations replacement comments)
+           (syntax-replacement-original-syntax replacement)
+           (syntax-replacement-new-syntax replacement))
           absent)
         (present
          (refactoring-result
@@ -113,7 +124,12 @@
                   [exn:fail:filesystem:missing-module? skip])
     (parameterize ([current-namespace (make-base-namespace)])
       (define analysis (source-analyze source #:lines lines))
-      (define comments (with-input-from-file path read-comment-locations))
+      (define comments (with-input-from-file path read-comment-locations #:mode 'text))
+      (define full-source (source->string source))
+      (for ([comment (in-range-set comments)])
+        (log-resyntax-debug "parsed comment: ~a: ~v"
+                            comment
+                            (substring-by-range full-source comment)))
       (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments))))
 
 
@@ -141,3 +157,22 @@
                #:into into-hash))
   (for ([(path replacement) (in-hash results-by-path)])
     (file-apply-string-replacement! path replacement)))
+
+
+(define (substring-by-range str rng)
+  (define lower-bound (range-lower-bound rng))
+  (define start
+    (cond
+      [(equal? lower-bound unbounded) 0]
+      [(equal? (range-bound-type lower-bound) inclusive)
+       (range-bound-endpoint lower-bound)]
+      [else
+       (max 0 (sub1 (range-bound-endpoint lower-bound)))]))
+  (define upper-bound (range-upper-bound rng))
+  (define end
+    (cond
+      [(equal? upper-bound unbounded) (string-length str)]
+      [(equal? (range-bound-type upper-bound) inclusive)
+       (min (string-length str) (+ (range-bound-endpoint upper-bound) 1))]
+      [else (range-bound-endpoint upper-bound)]))
+  (substring str start end))

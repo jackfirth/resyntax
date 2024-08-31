@@ -17,7 +17,8 @@
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
   [syntax-replacement-preserves-free-identifiers? (-> syntax-replacement? boolean?)]
-  [syntax-replacement-preserves-comments? (-> syntax-replacement? range-set? boolean?)]))
+  [syntax-replacement-preserves-comments? (-> syntax-replacement? range-set? boolean?)]
+  [syntax-replacement-dropped-comment-locations (-> syntax-replacement? range-set? range-set?)]))
 
 
 (require (for-syntax racket/base)
@@ -188,6 +189,13 @@
                #:unless (member new-id ignore free-identifier=?)
                #:unless (bound-identifier=? new-id (intro new-id 'remove)))
        (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id))))]))
+
+
+(define (syntax-replacement-dropped-comment-locations replacement all-comment-locations)
+  (define original-syntax-range
+    (syntax-source-range (syntax-replacement-original-syntax replacement)))
+  (define comment-locations (range-subset all-comment-locations original-syntax-range))
+  (range-set-remove-all comment-locations (syntax-replacement-preserved-locations replacement)))
 
 
 (define (syntax-replacement-preserves-comments? replacement all-comment-locations)

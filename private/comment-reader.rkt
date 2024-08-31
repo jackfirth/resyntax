@@ -69,6 +69,7 @@
 
 
 (define (read-comment-locations [in (current-input-port)])
+  (port-count-lines! in)
   (define next! (λ () (comment-lexer in)))
   (transduce (in-producer next! eof)
              (mapping srcloc-token-srcloc)
@@ -118,13 +119,16 @@
       (closed-open-range start end #:comparator natural<=>))
 
     (define (read-comments-for-test test-program)
-      (define input (open-input-string test-program 'test-program))
-      (port-count-lines! input)
-      (read-comment-locations input))
+      (read-comment-locations (open-input-string test-program 'test-program)))
 
     (test-case "line comments"
       (define input "; This is a comment\n")
       (define expected (range-set (natural-range 0 20)))
+      (check-equal? (read-comments-for-test input) expected))
+
+    (test-case "double semicolon line comments"
+      (define input ";; This is a comment\n")
+      (define expected (range-set (natural-range 0 21)))
       (check-equal? (read-comments-for-test input) expected))
 
     (test-case "line comments after expressions"
@@ -135,6 +139,11 @@
     (test-case "line comments above expressions"
       (define input "; This is a comment\n(void)\n")
       (define expected (range-set (natural-range 0 20)))
+      (check-equal? (read-comments-for-test input) expected))
+
+    (test-case "line comments with non-ASCII characters"
+      (define input "; λλλλλ\n")
+      (define expected (range-set (natural-range 0 8)))
       (check-equal? (read-comments-for-test input) expected))
 
     (test-case "block comments"
