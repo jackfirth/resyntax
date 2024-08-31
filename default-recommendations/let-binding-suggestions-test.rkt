@@ -187,7 +187,7 @@ test: "multiple let*-values bindings"
 test: "self-shadowing let binding isn't refactorable"
 ------------------------------
 (define (f x)
-  (let ([x x])
+  (let ([x (+ x 1)])
     1))
 ------------------------------
 
@@ -195,7 +195,7 @@ test: "self-shadowing let binding isn't refactorable"
 test: "self-shadowing let* binding isn't refactorable"
 ------------------------------
 (define (f x)
-  (let* ([x x])
+  (let* ([x (+ x 1)])
     1))
 ------------------------------
 
@@ -232,13 +232,13 @@ test: "let forms inside lambdas"
 test: "let forms inside unrefactorable let forms"
 ------------------------------
 (define a 1)
-(let ([a a])
+(let ([a (+ a 1)])
   (let ([x 1])
     1))
 ------------------------------
 ------------------------------
 (define a 1)
-(let ([a a])
+(let ([a (+ a 1)])
   (define x 1)
   1)
 ------------------------------
@@ -456,4 +456,16 @@ test: "variable definition with nested let binding of name bound earlier not ref
   (define x 5)
   (define y (let ([x 1]) (* x 2)))
   (* y 3))
+------------------------------
+
+
+test: "redundant let bindings can be removed"
+------------------------------
+(define x 1)
+(let ([x x])
+  (* x 2))
+------------------------------
+------------------------------
+(define x 1)
+(* x 2)
 ------------------------------

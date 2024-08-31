@@ -79,11 +79,20 @@
     body ...)])
 
 
+(define-refactoring-rule delete-redundant-let
+  #:description "This `let` binding does nothing and can be removed."
+  #:literals (let)
+  [(let ([left-id:id right-id:id]) body)
+   #:when (bound-identifier=? #'left-id #'right-id)
+   body])
+
+
 (define let-binding-suggestions
   (refactoring-suite
    #:name (name let-binding-suggestions)
    #:rules
    (list define-let-to-double-define
+         delete-redundant-let
          let-to-define
          let-values-then-call-to-call-with-values
          named-let-to-plain-let)))
