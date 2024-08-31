@@ -154,3 +154,25 @@ test: "hash-set! with hash-ref cannot be simplified when v would shadow"
 (define v 5)
 (hash-set! h k (+ v (hash-ref h k 0)))
 ------------------------------
+
+
+test: "hash-map with key-returning lamda can be refactored to hash-keys"
+------------------------------
+(define h (make-hash))
+(hash-map h (λ (k v) k))
+------------------------------
+------------------------------
+(define h (make-hash))
+(hash-keys h)
+------------------------------
+
+
+test: "hash-map with value-returning lamda can be refactored to hash-values"
+------------------------------
+(define h (make-hash))
+(hash-map h (λ (k v) v))
+------------------------------
+------------------------------
+(define h (make-hash))
+(hash-values h)
+------------------------------
