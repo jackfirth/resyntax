@@ -248,6 +248,25 @@ test: "cond expressions with an always-throwing first branch (of multiple) can't
 ------------------------------
 
 
+test:
+"cond expressions with multiple always-throwing branches and an else branch can be refactored"
+------------------------------
+(define (f condition1 condition2)
+  (cond
+    [condition1 (error 'oops1)]
+    [condition2 (error 'oops2)]
+    [else 2]))
+------------------------------
+------------------------------
+(define (f condition1 condition2)
+  (when condition1
+    (error 'oops1))
+  (when condition2
+    (error 'oops2))
+  2)
+------------------------------
+
+
 test: "cond with nested else-cond can be flattened"
 ------------------------------
 (define (f a b)

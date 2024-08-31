@@ -128,11 +128,12 @@
     (cond
       [condition:condition-expression
        fail:always-throwing-expression]
+      ...+
       [else
        body ...]))
    (header.formatted
     ...
-    ((~if condition.negated? unless when) condition.base-condition fail)
+    ((~if condition.negated? unless when) condition.base-condition fail) ...
     body ...)])
 
 
