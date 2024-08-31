@@ -142,6 +142,15 @@
     #:with (body ...) #'(only-body)))
 
 
+(define-refactoring-rule map-to-for
+  #:description "This `map` operation can be replaced with a `for/list` loop."
+  #:literals (map)
+  [(map function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
+   ((~if loop.flat? for/list for*/list)
+    (loop.leading-clause ... [function.x loop.trailing-expression])
+    function.body ...)])
+
+
 (define-refactoring-rule for-each-to-for
   #:description "This `for-each` operation can be replaced with a `for` loop."
   #:literals (for-each)
@@ -303,6 +312,7 @@
          for-each-to-for
          list->set-to-for/set
          list->vector-to-for/vector
+         map-to-for
          named-let-loop-to-for/first-in-vector
          nested-for-to-for*
          or-in-for/and-to-filter-clause
