@@ -178,17 +178,20 @@
 
 
 (define-splicing-syntax-class branching-form-allowing-internal-definitions-within-clauses
-  #:literals (cond case-lambda match)
+  #:literals (cond case case-lambda match)
   #:attributes ([original 1])
 
-  (pattern (~seq cond-id:cond ~!)
-    #:with (original ...) #'(cond-id))
+  (pattern (~seq id:cond ~!)
+    #:with (original ...) #'(id))
 
-  (pattern (~seq case-lambda-id:case-lambda)
-    #:with (original ...) #'(case-lambda-id))
+  (pattern (~seq id:case ~!)
+    #:with (original ...) #'(id))
 
-  (pattern (~seq match-id:match ~! subject:expr)
-    #:with (original ...) #'(match-id subject)))
+  (pattern (~seq id:case-lambda ~!)
+    #:with (original ...) #'(id))
+
+  (pattern (~seq id:match ~! subject:expr)
+    #:with (original ...) #'(id subject)))
 
 
 ;; There's a lot of variants of define that support the same grammar but have different meanings. We
