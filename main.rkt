@@ -68,14 +68,13 @@
           #:else absent)
         (guard (syntax-replacement-preserves-free-identifiers? replacement) #:else
           (log-resyntax-error
-           "suggestion from ~a discarded because it does not preserve all free identifiers"
+           "~a: suggestion discarded because it does not preserve all free identifiers"
            (object-name rule))
           absent)
         (guard (syntax-replacement-preserves-comments? replacement comments) #:else
-          (log-resyntax-error
+          (log-resyntax-warning
            (string-append "~a: suggestion discarded because it does not preserve all comments\n"
-                          "  dropped comment locations:\n"
-                          "   ~v\n"
+                          "  dropped comment locations: ~v\n"
                           "  original syntax:\n"
                           "   ~v\n"
                           "  replacement syntax:\n"
@@ -115,7 +114,7 @@
 
   (define (skip e)
     (log-resyntax-error
-     "skipping ~a\n encountered a syntax error during macro expansion\n  error:\n~a"
+     "skipping ~a\n encountered an error during macro expansion\n  error:\n~a"
      path
      (string-indent (exn-message e) #:amount 3))
     empty-list)
