@@ -43,15 +43,7 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(struct exn:fail:refactoring exn:fail (rule syntax cause)
-  #:transparent
-  #:property prop:exn:srclocs
-  (λ (this) (list (syntax-srcloc (exn:fail:refactoring-syntax this)))))
-
-
-(define (refactoring-rules-refactor rules syntax
-                                    #:comments comments
-                                    #:analysis analysis)
+(define (refactoring-rules-refactor rules syntax #:comments comments #:analysis analysis)
 
   (define (refactor rule)
     (with-handlers
