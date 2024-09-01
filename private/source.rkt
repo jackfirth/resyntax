@@ -96,7 +96,8 @@
 (define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (parameterize ([current-directory (or (source-directory code) (current-directory))])
     (define code-linemap (string-linemap (source->string code)))
-    (define stx (source-read-syntax code))
+    (define program-stx (source-read-syntax code))
+    (define program-source-name (syntax-source program-stx))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define visits-by-location (make-hash))
     (define others-by-location (make-hash))
@@ -104,6 +105,13 @@
     (define (add-original-location! hsh stx)
       (when (and (syntax? stx)
                  (syntax-original? stx)
+                 ;; Some macros are able to bend hygiene and syntax properties in such a way that they
+                 ;; introduce syntax objects into the program that are syntax-original?, but from a
+                 ;; different file than the one being expanded. So in addition to checking for
+                 ;; originality, we also check that they come from the same source as the main program
+                 ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
+                 ;; in this way, and is what originally motivated the addition of this check.
+                 (equal? (syntax-source stx) program-source-name)
                  (range-set-encloses? lines (syntax-line-range stx #:linemap code-linemap)))
         (define loc (syntax-source-location stx))
         (unless (hash-has-key? hsh loc)
@@ -127,7 +135,7 @@
       [(_ _) (void)])
     
     (parameterize ([current-expand-observe observe-event!])
-      (expand stx))
+      (expand program-stx))
     (define scopes-by-location
       (hash-union (hash) visits-by-location others-by-location
                   #:combine (λ (a b) a)))
