@@ -53,15 +53,13 @@
 (define-refactoring-rule arrow-contract-with-rest-to-arrow-contract-with-ellipses
   #:description "This `->*` contract can be rewritten using `->` with ellipses."
   #:literals (->* listof)
-  [((~and arrow-id ->*)
-    (~and args (arg-contract ...))
+  [(->*
+    (arg-contract ...)
     (~optional ())
-    (~and rest-kw #:rest) (~and rest-list (listof rest-contract))
+    #:rest (~and rest-list (listof rest-contract))
     result-contract)
-   (-> (ORIGINAL-GAP arrow-id args)
-       arg-contract ...
+   (-> arg-contract ...
        rest-contract (... ...)
-       (ORIGINAL-GAP rest-list result-contract)
        result-contract)])
 
 

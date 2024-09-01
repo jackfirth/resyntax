@@ -47,9 +47,12 @@
        (for/list ([leading (in-list leading-neighbors)]
                   [trailing (in-list trailing-neighbors)]
                   [subform-stx (in-list (attribute subform))])
+         (define leading-pos (and leading (syntax-position leading)))
+         (define trailing-pos (and trailing (syntax-position trailing)))
+         (define subform-pos (syntax-position subform-stx))
          (mark-neighbors (syntax-mark-original-neighbors subform-stx)
-                         #:leading-neighbor leading
-                         #:trailing-neighbor trailing)))
+                         #:leading-neighbor (and leading (< leading-pos subform-pos) leading)
+                         #:trailing-neighbor (and trailing (< subform-pos trailing-pos) trailing))))
      (datum->syntax stx results stx stx)]
     [_ stx]))
 
