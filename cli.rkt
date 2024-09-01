@@ -5,9 +5,9 @@
          json
          racket/cmdline
          racket/format
+         racket/hash
          racket/match
          racket/path
-         racket/string
          rebellion/base/comparator
          rebellion/base/range
          rebellion/collection/entry
@@ -33,7 +33,7 @@
 
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review))
 (define-record-type resyntax-analyze-options (targets suite output-format output-destination))
-(define-record-type resyntax-fix-options (targets suite max-fixes))
+(define-record-type resyntax-fix-options (targets suite max-fixes max-pass-count))
 
 
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
@@ -94,7 +94,8 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (define suite default-recommendations)
   (define (add-target! target)
     (vector-builder-add targets target))
-  (define max-fixes #false)
+  (define max-fixes +inf.0)
+  (define max-pass-count 10)
   (command-line
    #:program "resyntax fix"
    #:multi
@@ -122,11 +123,20 @@ changed relative to baseref are analyzed and fixed."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
+   ("--max-pass-count"
+    passcount
+    "The maximum number of times Resyntax will fix each file. By default, Resyntax runs at most 10 \
+passes over each file (or fewer, if no fixes would be made by additional passes). Multiple passes \
+are needed when applying a fix unlocks further fixes."
+    (set! max-pass-count (string->number passcount)))
    ("--max-fixes-to-apply"
     fixlimit
     "The maximum number of fixes to apply. If not specified, all fixes found will be applied."
-    (set! max-fixes fixlimit)))
-  (resyntax-fix-options #:targets (build-vector targets) #:suite suite #:max-fixes max-fixes))
+    (set! max-fixes (string->number fixlimit))))
+  (resyntax-fix-options #:targets (build-vector targets)
+                        #:suite suite
+                        #:max-fixes max-fixes
+                        #:max-pass-count max-pass-count))
 
 
 (define (resyntax-run)
@@ -189,13 +199,59 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
 (define (resyntax-fix-run)
   (define options (resyntax-fix-parse-command-line))
-  (define files (file-groups-resolve (resyntax-fix-options-targets options)))
-  (define max-fixes (resyntax-fix-options-max-fixes options))
+  (define files
+    (transduce (file-groups-resolve (resyntax-fix-options-targets options))
+               (indexing file-portion-path)
+               (grouping into-list)
+               #:into into-hash))
+  (define results-by-path
+    (for/fold ([all-results (hash)]
+               [files files]
+               [max-fixes (resyntax-fix-options-max-fixes options)]
+               #:result all-results)
+              ([pass-number (in-range 1 10)]
+               #:do [(printf "resyntax: --- pass ~a ---\n" pass-number)
+                     (define pass-results (resyntax-fix-run-one-pass options files max-fixes))]
+               #:break (hash-empty? pass-results))
+      (define pass-fix-count
+        (for/sum ([(_ results) (in-hash all-results)])
+          (length results)))
+      (define new-files (hash-filter-keys files (hash-has-key? pass-results _)))
+      (values (hash-union all-results pass-results #:combine append)
+              new-files
+              (- max-fixes pass-fix-count))))
+  (printf "resyntax: --- summary ---\n")
+  (define total-fixes
+    (for/sum ([(_ results) (in-hash results-by-path)])
+      (length results)))
+  (define total-files (hash-count results-by-path))
+  (define fix-counts-by-rule
+    (transduce (hash-values results-by-path)
+               (append-mapping values)
+               (indexing refactoring-result-rule-name)
+               (grouping into-count)
+               (sorting #:key entry-value #:descending? #true)
+               #:into into-list))
+  (define issue-string (if (> total-fixes 1) "issues" "issue"))
+  (define file-string (if (> total-files 1) "files" "file"))
+  (if (zero? total-fixes)
+      (print "\n  No issues found.\n")
+      (printf "\n  Fixed ~a ~a in ~a ~a.\n\n" total-fixes issue-string total-files file-string))
+  (for ([rule+count (in-list fix-counts-by-rule)])
+    (match-define (entry rule count) rule+count)
+    (define occurrence-string (if (> count 1) "occurrences" "occurrence"))
+    (printf "  * Fixed ~a ~a of ~a\n" count occurrence-string rule))
+  (unless (zero? total-fixes)
+    (newline)))
+
+
+(define (resyntax-fix-run-one-pass options files max-fixes)
   (printf "resyntax: --- analyzing code ---\n")
   (define all-results
-    (transduce files
+    (transduce (hash-values files)
+               (append-mapping values)
                (append-mapping (refactor-file _ #:suite (resyntax-fix-options-suite options)))
-               (if max-fixes (taking max-fixes) (transducer-pipe))
+               (if (equal? max-fixes +inf.0) (transducer-pipe) (taking max-fixes))
                #:into into-list))
   (define results-by-path
     (transduce
@@ -214,21 +270,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
       (printf "  * [line ~a] ~a\n" line message))
     (refactor! results)
     (newline))
-  (printf "resyntax: --- summary ---\n")
-  (define total-fixes (length all-results))
-  (define total-files (hash-count results-by-path))
-  (define fix-counts-by-rule
-    (transduce all-results
-               (indexing refactoring-result-rule-name)
-               (grouping into-count)
-               (sorting #:key entry-value #:descending? #true)
-               #:into into-list))
-  (printf "\n  Fixed ~a issues in ~a files.\n\n" total-fixes total-files)
-  (for ([rule+count (in-list fix-counts-by-rule)])
-    (match-define (entry rule count) rule+count)
-    (define occurrence-string (if (> count 1) "occurences" "occurence"))
-    (printf "  * Fixed ~a ~a of ~a\n" count occurrence-string rule))
-  (newline))
+  results-by-path)
 
 
 (module+ main
