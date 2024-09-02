@@ -129,7 +129,7 @@ changed relative to baseref are analyzed and fixed."
 passes over each file (or fewer, if no fixes would be made by additional passes). Multiple passes \
 are needed when applying a fix unlocks further fixes."
     (set! max-pass-count (string->number passcount)))
-   ("--max-fixes-to-apply"
+   ("--max-fixes"
     fixlimit
     "The maximum number of fixes to apply. If not specified, all fixes found will be applied."
     (set! max-fixes (string->number fixlimit))))
@@ -211,15 +211,17 @@ For help on these, use 'analyze --help' or 'fix --help'."
                #:result all-results)
               ([pass-number (in-range 1 10)]
                #:do [(printf "resyntax: --- pass ~a ---\n" pass-number)
-                     (define pass-results (resyntax-fix-run-one-pass options files max-fixes))]
-               #:break (hash-empty? pass-results))
-      (define pass-fix-count
-        (for/sum ([(_ results) (in-hash all-results)])
-          (length results)))
+                     (define pass-results (resyntax-fix-run-one-pass options files max-fixes))
+                     (define pass-fix-count
+                       (for/sum ([(_ results) (in-hash pass-results)])
+                         (length results)))
+                     (define new-max-fixes (- max-fixes pass-fix-count))]
+               #:break (hash-empty? pass-results)
+               #:final (zero? new-max-fixes))
       (define new-files (hash-filter-keys files (hash-has-key? pass-results _)))
       (values (hash-union all-results pass-results #:combine append)
               new-files
-              (- max-fixes pass-fix-count))))
+              new-max-fixes)))
   (printf "resyntax: --- summary ---\n")
   (define total-fixes
     (for/sum ([(_ results) (in-hash results-by-path)])
