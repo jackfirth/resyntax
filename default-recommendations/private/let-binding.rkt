@@ -148,7 +148,6 @@
                 [outer-bound-id 1]
                 [inner-bound-id 1]
                 [outer-definition 1]
-                [inner-definition 1]
                 fully-refactorable?)
   (pattern (clause:binding-clause ...)
     #:with (bound-id ...)
@@ -166,8 +165,7 @@
     #:attr fully-refactorable? (split-bindings-fully-refactorable? split)
     #:with (outer-bound-id ...) (split-bindings-outer-ids split)
     #:with (inner-bound-id ...) (split-bindings-inner-ids split)
-    #:with (outer-definition ...) (split-bindings-outer-definitions split)
-    #:with (inner-definition ...) (split-bindings-inner-definitions split)))
+    #:with (outer-definition ...) (split-bindings-outer-definitions split)))
 
 
 (define-syntax-class refactorable-let*-bindings
@@ -175,7 +173,6 @@
                 [outer-bound-id 1]
                 [inner-bound-id 1]
                 [outer-definition 1]
-                [inner-definition 1]
                 fully-refactorable?)
   (pattern (clause:binding-clause ...)
     #:with (bound-id ...)
@@ -193,8 +190,7 @@
     #:attr fully-refactorable? (split-bindings-fully-refactorable? split)
     #:with (outer-bound-id ...) (split-bindings-outer-ids split)
     #:with (inner-bound-id ...) (split-bindings-inner-ids split)
-    #:with (outer-definition ...) (split-bindings-outer-definitions split)
-    #:with (inner-definition ...) (split-bindings-inner-definitions split)))
+    #:with (outer-definition ...) (split-bindings-outer-definitions split)))
 
 
 (define (sequence->bound-id-set ids)
@@ -269,7 +265,8 @@
 (define (parsed-binding-clause-definition clause)
   (define rhs (parsed-binding-clause-right-hand-side clause))
   (define id-side (parsed-binding-clause-identifier-side clause))
-  (match (parsed-binding-clause-bound-identifiers clause)
+  (define definition
+    (match (parsed-binding-clause-bound-identifiers clause)
     [(list id)
      (syntax-parse rhs
        #:literals (lambda λ)
@@ -285,6 +282,7 @@
             body ...)]
        [_ #`(define (~replacement #,id #:original #,id-side) #,rhs)])]
     [_ #`(define-values #,id-side #,rhs)]))
+  #`(~replacement #,definition #:original #,(parsed-binding-clause-original clause)))
 
 
 (define (binding-clause-depends-on? dependant dependency)
@@ -394,13 +392,6 @@
   (define/with-syntax (definition ...)
     (for/list ([before (in-list (split-bindings-before-cycles split))])
       (parsed-binding-clause-definition before)))
-  #'(definition ...))
-
-
-(define (split-bindings-inner-definitions split)
-  (define/with-syntax (definition ...)
-    (for/list ([after (in-list (split-bindings-after-cycles split))])
-      (parsed-binding-clause-definition after)))
   #'(definition ...))
 
 
