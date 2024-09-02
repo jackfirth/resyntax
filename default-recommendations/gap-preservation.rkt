@@ -27,50 +27,57 @@
 (define-refactoring-rule suggest-inserting-foo-first
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (insert-foo-first)
-  [(insert-foo-first a ...) ("foo" a ...)])
+  (insert-foo-first a ...)
+  ("foo" a ...))
 
 
 (define-refactoring-rule suggest-inserting-foo-second
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (insert-foo-second)
-  [(insert-foo-second a0 a ...) (a0 "foo" a ...)])
+  (insert-foo-second a0 a ...)
+  (a0 "foo" a ...))
 
 
 (define-refactoring-rule suggest-inserting-foo-last
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (insert-foo-last)
-  [(insert-foo-last a ...) (a ... "foo")])
+  (insert-foo-last a ...)
+  (a ... "foo"))
 
 
 (define-refactoring-rule suggest-inserting-foo-first-and-last
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (insert-foo-first-and-last)
-  [(insert-foo-first-and-last a ...) ("foo" a ... "foo")])
+  (insert-foo-first-and-last a ...)
+  ("foo" a ... "foo"))
 
 
 (define-refactoring-rule suggest-replacing-first-with-foo
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (replace-first-with-foo)
-  [(replace-first-with-foo old a ...) ((~replacement "foo" #:original old) a ...)])
+  (replace-first-with-foo old a ...)
+  ((~replacement "foo" #:original old) a ...))
 
 
 (define-refactoring-rule suggest-replacing-second-with-foo
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (replace-second-with-foo)
-  [(replace-second-with-foo a0 old a ...) (a0 (~replacement "foo" #:original old) a ...)])
+  (replace-second-with-foo a0 old a ...)
+  (a0 (~replacement "foo" #:original old) a ...))
 
 
 (define-refactoring-rule suggest-replacing-last-with-foo
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (replace-last-with-foo)
-  [(replace-last-with-foo a ... old) (a ... (~replacement "foo" #:original old))])
+  (replace-last-with-foo a ... old)
+  (a ... (~replacement "foo" #:original old)))
 
 
 (define-refactoring-rule suggest-replacing-first-and-last-with-foo
   #:description "This refactoring rule is for testing Resyntax, ignore its suggestions."
   #:datum-literals (replace-first-and-last-with-foo)
-  [(replace-first-and-last-with-foo old1 a ... old2)
-   ((~replacement "foo" #:original old1) a ... (~replacement "foo" #:original old2))])
+  (replace-first-and-last-with-foo old1 a ... old2)
+  ((~replacement "foo" #:original old1) a ... (~replacement "foo" #:original old2)))
 
 
 (define gap-preservation-rules

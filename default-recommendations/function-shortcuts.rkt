@@ -61,14 +61,15 @@
   #:description
   "The `apply` function accepts single arguments in addition to a trailing list argument."
   #:literals (apply)
-  [((~and id apply) function:expr arg ... trailing-arg:trailing-list-argument)
-   (id function arg ... trailing-arg.lifted ... trailing-arg.trailing)])
+  ((~and id apply) function:expr arg ... trailing-arg:trailing-list-argument)
+  (id function arg ... trailing-arg.lifted ... trailing-arg.trailing))
 
 
 (define-refactoring-rule case-lambda-with-single-case-to-lambda
   #:description "This `case-lambda` form only has one case. Use a regular lambda instead."
   #:literals (case-lambda)
-  [(case-lambda [args body ...]) (λ args body ...)])
+  (case-lambda [args body ...])
+  (λ args body ...))
 
 
 (define function-shortcuts

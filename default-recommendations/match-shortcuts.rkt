@@ -29,10 +29,10 @@
 (define-definition-context-refactoring-rule single-clause-match-to-match-define
   #:description "This `match` expression can be simplified using `match-define`."
   #:literals (match)
-  [(~seq body-before ... (match subject [pattern body-after ...]))
-   #:when (set-empty? (set-intersect (syntax-bound-identifiers #'(body-before ...))
-                                     (syntax-bound-identifiers #'pattern)))
-   (body-before ... (match-define pattern subject) body-after ...)])
+  (~seq body-before ... (match subject [pattern body-after ...]))
+  #:when (set-empty? (set-intersect (syntax-bound-identifiers #'(body-before ...))
+                                    (syntax-bound-identifiers #'pattern)))
+  (body-before ... (match-define pattern subject) body-after ...))
 
 
 (define match-shortcuts

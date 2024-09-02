@@ -46,9 +46,9 @@
 (define-refactoring-rule define-struct-to-struct
   #:description "The `define-struct` form exists for backwards compatibility, `struct` is preferred."
   #:literals (define-struct)
-  [(define-struct id:id-maybe-super fields option:struct-option ...)
-   (struct id.migrated ... fields option.original ... ...
-     #:extra-constructor-name id.make-id)])
+  (define-struct id:id-maybe-super fields option:struct-option ...)
+  (struct id.migrated ... fields option.original ... ...
+    #:extra-constructor-name id.make-id))
 
 
 (define legacy-struct-migrations

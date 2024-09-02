@@ -34,8 +34,8 @@
 
 (define-refactoring-rule comparison-of-difference-and-zero-to-direct-comparison
   #:description "This comparison can be replaced with a simpler, more direct comparison."
-  [comparison:comparison-of-difference-and-zero
-   comparison.direct-comparison])
+  comparison:comparison-of-difference-and-zero
+  comparison.direct-comparison)
 
 
 (define-syntax-class two-exclusive-comparisons
@@ -99,15 +99,15 @@
 (define-refactoring-rule two-exclusive-comparisons-to-triple-comparison
   #:description
   "Comparison functions like `<` accept multiple arguments, so this condition can be simplified."
-  [comparison:two-exclusive-comparisons
-   (< comparison.lower-bound comparison.x comparison.upper-bound)])
+  comparison:two-exclusive-comparisons
+  (< comparison.lower-bound comparison.x comparison.upper-bound))
 
 
 (define-refactoring-rule two-inclusive-comparisons-to-triple-comparison
   #:description
   "Comparison functions like `<=` accept multiple arguments, so this condition can be simplified."
-  [comparison:two-inclusive-comparisons
-   (<= comparison.lower-bound comparison.x comparison.upper-bound)])
+  comparison:two-inclusive-comparisons
+  (<= comparison.lower-bound comparison.x comparison.upper-bound))
 
 
 (define comparison-shortcuts

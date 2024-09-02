@@ -36,12 +36,12 @@
  syntax object arguments."
   #:literals (format-id syntax-e)
 
-  [(format-id lctx:expr fmt:expr arg:format-id-argument ...+)
-   #:when
-   (for/or ([uses-syntax-e? (attribute arg.uses-syntax-e?)])
-     (syntax-e uses-syntax-e?))
+  (format-id lctx:expr fmt:expr arg:format-id-argument ...+)
+  #:when
+  (for/or ([uses-syntax-e? (attribute arg.uses-syntax-e?)])
+    (syntax-e uses-syntax-e?))
 
-   (format-id lctx fmt arg.simplified ...)])
+  (format-id lctx fmt arg.simplified ...))
 
 
 (define syntax-shortcuts

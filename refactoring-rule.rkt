@@ -70,7 +70,9 @@
   (define-refactoring-rule id:id
     #:description description
     parse-option:syntax-parse-option ...
-    [pattern pattern-directive:syntax-parse-pattern-directive ... replacement])
+    pattern
+    pattern-directive:syntax-parse-pattern-directive ...
+    replacement)
   #:declare description (expr/c #'string?)
   (define id
     (constructor:refactoring-rule
@@ -89,9 +91,9 @@
   (define-definition-context-refactoring-rule id:id
     #:description (~var description (expr/c #'string?))
     parse-option:syntax-parse-option ...
-    [splicing-pattern
-     pattern-directive:syntax-parse-pattern-directive ...
-     (splicing-replacement ...)])
+    splicing-pattern
+    pattern-directive:syntax-parse-pattern-directive ...
+    (splicing-replacement ...))
 
   ;; These identifiers are macro-introduced, but we use format-id on them anyway so that the expanded
   ;; code is more readable and it's clearer which refactoring rule these syntax classes are derived
@@ -129,4 +131,5 @@
 
     (define-refactoring-rule id
       #:description description
-      [(~var expression expression-matching-id) expression.refactored])))
+      (~var expression expression-matching-id)
+      expression.refactored)))

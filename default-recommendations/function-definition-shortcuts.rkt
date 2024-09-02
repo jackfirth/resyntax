@@ -46,10 +46,10 @@
     #:with (body ...) #'(nested.body ...))
 
   (pattern
-      (_:lambda-by-any-name
-       first-argument-list:lambda-header
-       (~and initial-body (~not _:possibly-nested-lambdas))
-       remaining-body ...)
+    (_:lambda-by-any-name
+     first-argument-list:lambda-header
+     (~and initial-body (~not _:possibly-nested-lambdas))
+     remaining-body ...)
     #:with (argument-lists ...) #'(first-argument-list)
     #:with (body ...)
     #'((ORIGINAL-GAP first-argument-list initial-body) initial-body remaining-body ...)))
@@ -67,32 +67,30 @@
   "The `define` form supports a shorthand for defining functions (including function-returning\
  functions)."
   #:literals (define)
-  [(define header lambda-form:possibly-nested-lambdas)
-   #:when (not (syntax-property this-syntax 'class-body))
-   #:do [(define multiline-lambda-header-count
-           (count multiline-syntax? (attribute lambda-form.argument-lists)))]
-   #:when (< multiline-lambda-header-count 2)
-   #:when (oneline-syntax? #'header)
-   #:when (or (identifier? #'header) (zero? multiline-lambda-header-count))
-   #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
-   (define new-header lambda-form.body ...)])
+  (define header lambda-form:possibly-nested-lambdas)
+  #:when (not (syntax-property this-syntax 'class-body))
+  #:do [(define multiline-lambda-header-count
+          (count multiline-syntax? (attribute lambda-form.argument-lists)))]
+  #:when (< multiline-lambda-header-count 2)
+  #:when (oneline-syntax? #'header)
+  #:when (or (identifier? #'header) (zero? multiline-lambda-header-count))
+  #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
+  (define new-header lambda-form.body ...))
 
 
 (define-refactoring-rule define-case-lambda-to-define
   #:description "This use of `case-lambda` is equivalent to using `define` with optional arguments."
   #:literals (define case-lambda)
-  [(define id:id
-     (case-lambda
-       [(case1-arg:id ...)
-        (usage:id usage1:id ... default:expr)]
-       [(case2-arg:id ... bonus-arg:id)
-        body ...]))
-   #:when (oneline-syntax? #'default)
-   #:when (free-identifier=? #'id #'usage)
-   #:when (free-identifiers=? #'(case1-arg ...) #'(case2-arg ...))
-   #:when (free-identifiers=? #'(case1-arg ...) #'(usage1 ...))
-   (define (id case2-arg ... [bonus-arg default])
-     body ...)])
+  (define id:id
+    (case-lambda
+      [(case1-arg:id ...) (usage:id usage1:id ... default:expr)]
+      [(case2-arg:id ... bonus-arg:id) body ...]))
+  #:when (oneline-syntax? #'default)
+  #:when (free-identifier=? #'id #'usage)
+  #:when (free-identifiers=? #'(case1-arg ...) #'(case2-arg ...))
+  #:when (free-identifiers=? #'(case1-arg ...) #'(usage1 ...))
+  (define (id case2-arg ... [bonus-arg default])
+    body ...))
 
 
 (define function-definition-shortcuts

@@ -28,31 +28,36 @@
 (define-refactoring-rule datum->syntax-migration
   #:description "The fifth argument to `datum->syntax` is ignored."
   #:literals (datum->syntax)
-  [((~and id datum->syntax) ctxt v srcloc prop ignored) (id ctxt v srcloc prop)])
+  ((~and id datum->syntax) ctxt v srcloc prop ignored)
+  (id ctxt v srcloc prop))
 
 
 (define-refactoring-rule syntax-recertify-migration
   #:description "The `syntax-recertify` function is a legacy function that does nothing."
   #:literals (syntax-recertify)
-  [(syntax-recertify stx _ _ _) stx])
+  (syntax-recertify stx _ _ _)
+  stx)
 
 
 (define-refactoring-rule syntax-disarm-migration
   #:description "The `syntax-disarm` function is a legacy function that does nothing."
   #:literals (syntax-disarm)
-  [(syntax-disarm stx _) stx])
+  (syntax-disarm stx _)
+  stx)
 
 
 (define-refactoring-rule syntax-rearm-migration
   #:description "The `syntax-rearm` function is a legacy function that does nothing."
   #:literals (syntax-rearm)
-  [(syntax-rearm stx _ ...) stx])
+  (syntax-rearm stx _ ...)
+  stx)
 
 
 (define-refactoring-rule syntax-protect-migration
   #:description "The `syntax-protect` function is a legacy function that does nothing."
   #:literals (syntax-protect)
-  [(syntax-protect stx) stx])
+  (syntax-protect stx)
+  stx)
 
 
 (define-refactoring-rule syntax-local-match-introduce-migration
@@ -60,8 +65,8 @@
   "The `syntax-local-match-introduce` function is a legacy function that's equivalent to\
  `syntax-local-introduce`."
   #:literals (syntax-local-match-introduce)
-  [(id:syntax-local-match-introduce stx)
-   ((~replacement syntax-local-introduce #:original id) stx)])
+  (id:syntax-local-match-introduce stx)
+  ((~replacement syntax-local-introduce #:original id) stx))
 
 
 (define-refactoring-rule syntax-local-provide-introduce-migration
@@ -69,8 +74,8 @@
   "The `syntax-local-provide-introduce` function is a legacy function that's equivalent to\
  `syntax-local-introduce`."
   #:literals (syntax-local-provide-introduce)
-  [(id:syntax-local-provide-introduce stx)
-   ((~replacement syntax-local-introduce #:original id) stx)])
+  (id:syntax-local-provide-introduce stx)
+  ((~replacement syntax-local-introduce #:original id) stx))
 
 
 (define-refactoring-rule syntax-local-require-introduce-migration
@@ -78,8 +83,8 @@
   "The `syntax-local-require-introduce` function is a legacy function that's equivalent to\
  `syntax-local-introduce`."
   #:literals (syntax-local-require-introduce)
-  [(id:syntax-local-require-introduce stx)
-   ((~replacement syntax-local-introduce #:original id) stx)])
+  (id:syntax-local-require-introduce stx)
+  ((~replacement syntax-local-introduce #:original id) stx))
 
 
 (define-refactoring-rule syntax-local-syntax-parse-pattern-introduce-migration
@@ -87,8 +92,8 @@
   "The `syntax-local-syntax-parse-pattern-introduce` function is a legacy function that's equivalent\
  to `syntax-local-introduce`."
   #:literals (syntax-local-syntax-parse-pattern-introduce)
-  [(id:syntax-local-syntax-parse-pattern-introduce stx)
-   ((~replacement syntax-local-introduce #:original id) stx)])
+  (id:syntax-local-syntax-parse-pattern-introduce stx)
+  ((~replacement syntax-local-introduce #:original id) stx))
 
 
 (define legacy-syntax-migrations

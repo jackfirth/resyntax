@@ -112,8 +112,8 @@
 (define-refactoring-rule apply-plus-to-for/sum
   #:description "Applying `+` to a list of numbers can be replaced with a `for/sum` loop."
   #:literals (apply +)
-  [(apply + loop:for-loop-convertible-list-expression)
-   ((~if loop.nesting-loop? for*/sum for/sum) loop.loop-clauses loop.loop-body ...)])
+  (apply + loop:for-loop-convertible-list-expression)
+  ((~if loop.nesting-loop? for*/sum for/sum) loop.loop-clauses loop.loop-body ...))
 
 
 ;; A loop body function is a lambda expression that is passed to a function like map, for-each, or
@@ -145,37 +145,37 @@
 (define-refactoring-rule map-to-for
   #:description "This `map` operation can be replaced with a `for/list` loop."
   #:literals (map)
-  [(map function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
-   ((~if loop.flat? for/list for*/list)
-    (loop.leading-clause ... [function.x loop.trailing-expression])
-    function.body ...)])
+  (map function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
+  ((~if loop.flat? for/list for*/list)
+   (loop.leading-clause ... [function.x loop.trailing-expression])
+   function.body ...))
 
 
 (define-refactoring-rule for-each-to-for
   #:description "This `for-each` operation can be replaced with a `for` loop."
   #:literals (for-each)
-  [(for-each function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
-   ((~if loop.flat? for for*)
-    (loop.leading-clause ... [function.x loop.trailing-expression])
-    function.body ...)])
+  (for-each function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
+  ((~if loop.flat? for for*)
+   (loop.leading-clause ... [function.x loop.trailing-expression])
+   function.body ...))
 
 
 (define-refactoring-rule ormap-to-for/or
   #:description "This `ormap` operation can be replaced with a `for/or` loop."
   #:literals (ormap)
-  [(ormap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
-   ((~if loop.flat? for/or for*/or)
-    (loop.leading-clause ... [function.x loop.trailing-expression])
-    function.body ...)])
+  (ormap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
+  ((~if loop.flat? for/or for*/or)
+   (loop.leading-clause ... [function.x loop.trailing-expression])
+   function.body ...))
 
 
 (define-refactoring-rule andmap-to-for/and
   #:description "This `andmap` operation can be replaced with a `for/and` loop."
   #:literals (andmap)
-  [(andmap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
-   ((~if loop.flat? for/and for*/and)
-    (loop.leading-clause ... [function.x loop.trailing-expression])
-    function.body ...)])
+  (andmap function:worthwhile-loop-body-function loop:for-clause-convertible-list-expression)
+  ((~if loop.flat? for/and for*/and)
+   (loop.leading-clause ... [function.x loop.trailing-expression])
+   function.body ...))
 
 
 (define-syntax-class for-list-id
@@ -188,27 +188,27 @@
 (define-refactoring-rule list->vector-to-for/vector
   #:description "`for` loops can build vectors directly."
   #:literals (list->vector)
-  [(list->vector (loop-id:for-list-id clauses body ...))
-   ((~replacement loop-id.vector-id #:original loop-id) clauses body ...)])
+  (list->vector (loop-id:for-list-id clauses body ...))
+  ((~replacement loop-id.vector-id #:original loop-id) clauses body ...))
 
 
 (define-refactoring-rule list->set-to-for/set
   #:description "`for` loops can build sets directly"
   #:literals (list->set)
-  [(list->set (loop-id:for-list-id clauses body ...))
-   ((~replacement loop-id.set-id #:original loop-id) clauses body ...)])
+  (list->set (loop-id:for-list-id clauses body ...))
+  ((~replacement loop-id.set-id #:original loop-id) clauses body ...))
 
 
 (define-refactoring-rule for/fold-building-hash-to-for/hash
   #:description "This `for` loop is building a hash and can be simplified."
   #:literals (for/fold for*/fold hash make-immutable-hash)
-  [((~or (~and for/fold (~bind [loop #'for/hash])) (~and for*/fold (~bind [loop #'for*/hash])))
-    ([h:id (~or (hash) (make-immutable-hash))]) iteration-clauses
-    body ...
-    (hash-set h-usage:id key value))
-   #:when (free-identifier=? #'h #'h-usage)
-   #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'h))
-   (loop iteration-clauses body ... (values key value))])
+  ((~or (~and for/fold (~bind [loop #'for/hash])) (~and for*/fold (~bind [loop #'for*/hash])))
+   ([h:id (~or (hash) (make-immutable-hash))]) iteration-clauses
+   body ...
+   (hash-set h-usage:id key value))
+  #:when (free-identifier=? #'h #'h-usage)
+  #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'h))
+  (loop iteration-clauses body ... (values key value)))
 
 
 (define-definition-context-refactoring-rule for/fold-result-keyword
@@ -216,29 +216,29 @@
   "Only one of the `for/fold` expression's result values is used. Use the `#:result` keyword to \
 return just that result."
   #:literals (define-values for/fold for*/fold)
-  [(~seq body-before ...
-         (~and original-definition
-               (define-values (result-id:id ...)
-           ((~or for-id:for/fold for-id:for*/fold)
-            ([accumulator-id:id initializer:expr] ...)
-            loop-clauses loop-body ...)))
-         body-after ...)
-   #:do [(define used-ids
-           (for/list ([id (in-list (attribute result-id))]
-                      #:when (set-member? (syntax-free-identifiers #'(body-after ...)) id))
-             id))]
-   #:when (equal? (length used-ids) 1)
-   #:cut
-   #:do [(define used-index (index-of (attribute result-id) (first used-ids)))
-         (define used-accumulator (list-ref (attribute accumulator-id) used-index))]
-   #:with replacement-definition
-   #`(define #,(first used-ids)
-       (for-id ([accumulator-id initializer] ...
-                #:result #,used-accumulator)
-               loop-clauses loop-body ...))
-   (body-before ...
-    (~replacement replacement-definition #:original original-definition)
-    body-after ...)])
+  (~seq body-before ...
+        (~and original-definition
+              (define-values (result-id:id ...)
+                ((~or for-id:for/fold for-id:for*/fold)
+                 ([accumulator-id:id initializer:expr] ...)
+                 loop-clauses loop-body ...)))
+        body-after ...)
+  #:do [(define used-ids
+          (for/list ([id (in-list (attribute result-id))]
+                     #:when (set-member? (syntax-free-identifiers #'(body-after ...)) id))
+            id))]
+  #:when (equal? (length used-ids) 1)
+  #:cut
+  #:do [(define used-index (index-of (attribute result-id) (first used-ids)))
+        (define used-accumulator (list-ref (attribute accumulator-id) used-index))]
+  #:with replacement-definition
+  #`(define #,(first used-ids)
+      (for-id ([accumulator-id initializer] ...
+               #:result #,used-accumulator)
+              loop-clauses loop-body ...))
+  (body-before ...
+   (~replacement replacement-definition #:original original-definition)
+   body-after ...))
 
 
 (define-syntax-class nested-for
@@ -256,41 +256,41 @@ return just that result."
 
 (define-refactoring-rule nested-for-to-for*
   #:description "These nested `for` loops can be replaced by a single `for*` loop."
-  [nested:nested-for
-   #:when (>= (length (attribute nested.clause)) 2)
-   (for* (nested.clause ...)
-     nested.body ...)])
+  nested:nested-for
+  #:when (>= (length (attribute nested.clause)) 2)
+  (for* (nested.clause ...)
+    nested.body ...))
 
 
 (define-refactoring-rule named-let-loop-to-for/first-in-vector
   #:description "This loop can be replaced by a simpler, equivalent `for/first` loop."
   #:literals (let add1 + vector-length vector-ref if and <)
-  [(let loop1:id ([i1:id 0])
-     (and (< i2:id (vector-length vec1:id))
-          (let ([x:id (vector-ref vec2:id i3:id)])
-            (if condition:expr
-                true-branch:expr
-                (loop2:id (~or (add1 i4:id) (+ i4:id 1) (+ 1 i4:id)))))))
-   #:when (and (free-identifier=? #'loop1 #'loop2)
-               (free-identifier=? #'i1 #'i2)
-               (free-identifier=? #'i1 #'i3)
-               (free-identifier=? #'i1 #'i4)
-               (free-identifier=? #'vec1 #'vec2))
-   (for/first ([x (in-vector vec1)] #:when condition)
-     true-branch)])
+  (let loop1:id ([i1:id 0])
+    (and (< i2:id (vector-length vec1:id))
+         (let ([x:id (vector-ref vec2:id i3:id)])
+           (if condition:expr
+               true-branch:expr
+               (loop2:id (~or (add1 i4:id) (+ i4:id 1) (+ 1 i4:id)))))))
+  #:when (and (free-identifier=? #'loop1 #'loop2)
+              (free-identifier=? #'i1 #'i2)
+              (free-identifier=? #'i1 #'i3)
+              (free-identifier=? #'i1 #'i4)
+              (free-identifier=? #'vec1 #'vec2))
+  (for/first ([x (in-vector vec1)] #:when condition)
+    true-branch))
 
 
 (define-refactoring-rule or-in-for/and-to-filter-clause
   #:description "The `or` expression in this `for` loop can be replaced by a filtering clause."
   #:literals (for/and for*/and or)
-  [((~and loop-id (~or for/and for*/and))
-    (~and original-clauses (clause ...))
-    (~and original-body (or condition:condition-expression ...+ last-condition)))
-   (loop-id
-    (~replacement
-     (clause ... (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
-     #:original original-clauses)
-    (~replacement last-condition #:original original-body))])
+  ((~and loop-id (~or for/and for*/and))
+   (~and original-clauses (clause ...))
+   (~and original-body (or condition:condition-expression ...+ last-condition)))
+  (loop-id
+   (~replacement
+    (clause ... (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
+    #:original original-clauses)
+   (~replacement last-condition #:original original-body)))
 
 
 (define-syntax-class apply-append-refactorable-for-loop
@@ -313,22 +313,22 @@ return just that result."
   #:description "Instead of using `(apply append ...)` to flatten a list of lists, consider using\
  `for*/list` to flatten the list."
   #:literals (apply append)
-  [(apply append loop:apply-append-refactorable-for-loop)
-   loop.refactored-loop])
+  (apply append loop:apply-append-refactorable-for-loop)
+  loop.refactored-loop)
 
 
 (define-refactoring-rule when-expression-in-for-loop-to-when-keyword
   #:description "Use the `#:when` keyword instead of `when` to reduce loop body indentation."
   #:literals (when for for*)
-  [((~or for-id:for for-id:for*) (clause ...) (when condition body ...))
-   (for-id (clause ... #:when condition) body ...)])
+  ((~or for-id:for for-id:for*) (clause ...) (when condition body ...))
+  (for-id (clause ... #:when condition) body ...))
 
 
 (define-refactoring-rule unless-expression-in-for-loop-to-unless-keyword
   #:description "Use the `#:unless` keyword instead of `unless` to reduce loop body indentation."
   #:literals (unless for for*)
-  [((~or for-id:for for-id:for*) (clause ...) (unless condition body ...))
-   (for-id (clause ... #:unless condition) body ...)])
+  ((~or for-id:for for-id:for*) (clause ...) (unless condition body ...))
+  (for-id (clause ... #:unless condition) body ...))
 
 
 (define for-loop-shortcuts

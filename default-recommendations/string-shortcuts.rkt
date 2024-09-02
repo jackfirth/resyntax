@@ -25,7 +25,8 @@
 (define-refactoring-rule display-newline-to-newline
   #:description "The `newline` function can be used to print a single newline character."
   #:literals (display displayln)
-  [(~or (display "\n") (displayln "")) (newline)])
+  (~or (display "\n") (displayln ""))
+  (newline))
 
 
 (define-syntax-class keywordless-string-join-call
@@ -62,20 +63,22 @@
   #:description
   "This use of `string-append` can be removed by using `string-join`'s keyword arguments."
   #:literals (string-join)
-  [expr:string-append-and-string-join-expression expr.refactored])
+  expr:string-append-and-string-join-expression
+  expr.refactored)
 
 
 (define-refactoring-rule string-append-identity
   #:description "This use of `string-append` does nothing."
   #:literals (string-append)
-  [(string-append s) s])
+  (string-append s)
+  s)
 
 
 (define-refactoring-rule manual-string-join
   #:description "This use of `string-append` and `add-between` is equivalent to `string-join`."
   #:literals (apply string-append add-between)
-  [(apply string-append (add-between strings separator))
-   (string-join strings separator)])
+  (apply string-append (add-between strings separator))
+  (string-join strings separator))
 
 
 (define formatting-directives
@@ -115,9 +118,9 @@
 (define-refactoring-rule format-identity
   #:description "This use of `format` does nothing."
   #:literals (format)
-  [(format s:str)
-   #:when (not (string-contains-formatting-directives? (syntax-e #'s)))
-   s])
+  (format s:str)
+  #:when (not (string-contains-formatting-directives? (syntax-e #'s)))
+  s)
 
 
 (define string-shortcuts
