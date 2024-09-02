@@ -47,8 +47,8 @@
   (pattern (~seq #:declare ~! pvar-id:id
                  (~or syntax-class-id:id (syntax-class-id:id arg ...))
                  (~optional (~seq #:role role-expr:expr))))
-  (pattern (~seq #:post ~! action-pattern:syntax-parse-action-pattern))
-  (pattern (~seq #:and ~! action-pattern:syntax-parse-action-pattern))
+  (pattern (~seq #:post ~! action-pattern))
+  (pattern (~seq #:and ~! action-pattern))
   (pattern (~seq #:with ~! syntax-pattern stx-expr:expr))
   (pattern (~seq #:attr ~! (~or attr-name-id:id (attr-name-id:id depth)) expr:expr))
   (pattern (~seq #:fail-when ~! condition-expr:expr message-expr:expr))
@@ -57,21 +57,3 @@
   (pattern (~seq #:do ~! [defn-or-expr ...]))
   (pattern (~seq #:undo ~! [defn-or-expr ...]))
   (pattern #:cut))
-
-
-(define-syntax-class syntax-parse-action-pattern
-  #:literals (~! ~bind ~fail ~parse ~and ~do ~undo ~post)
-  (pattern :~!)
-  (pattern (:~bind [(~or attr-name-id:id (attr-name-id:id depth)) expr:expr] ...))
-  (pattern
-    (:~fail (~optional fail-condition:syntax-parse-fail-condition) (~optional mesage-expr:expr)))
-  (pattern (:~parse S-pattern stx-expr:expr))
-  (pattern (:~and A-pattern:syntax-parse-action-pattern ...+))
-  (pattern (:~do defn-or-expr ...))
-  (pattern (:~undo defn-or-expr ...))
-  (pattern (:~post A-pattern:syntax-parse-action-pattern)))
-
-
-(define-splicing-syntax-class syntax-parse-fail-condition
-  (pattern (~seq #:when condition-expr:expr))
-  (pattern (~seq #:unless condition-expr:expr)))
