@@ -224,12 +224,10 @@ For help on these, use 'analyze --help' or 'fix --help'."
                [max-fixes (resyntax-fix-options-max-fixes options)]
                #:result all-results)
               ([pass-number (in-inclusive-range 1 (resyntax-fix-options-max-pass-count options))]
-               #:do [(match output-format
-                       [(== plain-text)
-                        (unless (equal? pass-number 1)
-                          (printf "resyntax: --- pass ~a ---\n" pass-number))]
-                       [(== git-commit-message) (printf "#### Pass ~a\n\n" pass-number)])
-                     (define pass-results (resyntax-fix-run-one-pass options files max-fixes))
+               #:do [(define pass-results
+                       (resyntax-fix-run-one-pass options files
+                                                  #:max-fixes max-fixes
+                                                  #:pass-number pass-number))
                      (define pass-fix-count
                        (for/sum ([(_ results) (in-hash pass-results)])
                          (length results)))
@@ -275,10 +273,13 @@ For help on these, use 'analyze --help' or 'fix --help'."
     (newline)))
 
 
-(define (resyntax-fix-run-one-pass options files max-fixes)
+(define (resyntax-fix-run-one-pass options files #:max-fixes max-fixes #:pass-number pass-number)
   (define output-format (resyntax-fix-options-output-format options))
   (match output-format
-    [(== plain-text) (printf "resyntax: --- analyzing code ---\n")]
+    [(== plain-text)
+     (unless (equal? pass-number 1)
+       (printf "resyntax: --- pass ~a ---\n" pass-number))
+     (printf "resyntax: --- analyzing code ---\n")]
     [_ (void)])
   (define all-results
     (transduce (hash-values files)
@@ -294,7 +295,9 @@ For help on these, use 'analyze --help' or 'fix --help'."
      #:into into-hash))
   (match output-format
     [(== plain-text) (printf "resyntax: --- fixing code ---\n")]
-    [_ (void)])
+    [(== git-commit-message)
+     (unless (hash-empty? results-by-path)
+       (printf "#### Pass ~a\n\n" pass-number))])
   (for ([(path results) (in-hash results-by-path)])
     (define result-count (length results))
     (define fix-string (if (> result-count 1) "fixes" "fix"))
