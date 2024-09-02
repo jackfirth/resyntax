@@ -137,3 +137,20 @@ test: "unnecessary quasiquotation with constants refactorable to list"
 (define (f x y z)
   (list x 1 y 2 z 3))
 ------------------------------
+
+
+test: "ignored map expression refactorable to for-each"
+------------------------------
+(define (f func xs ys zs)
+  ; comment before
+  (map func xs ys zs)
+  ; comment after
+  (displayln "foo"))
+------------------------------
+------------------------------
+(define (f func xs ys zs)
+  ; comment before
+  (for-each func xs ys zs)
+  ; comment after
+  (displayln "foo"))
+------------------------------
