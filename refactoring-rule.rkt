@@ -23,10 +23,10 @@
 
 (require (for-syntax racket/base
                      racket/syntax)
+         (for-template resyntax/default-recommendations/private/definition-context)
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/type/object
-         resyntax/default-recommendations/private/definition-context
          resyntax/private/source
          resyntax/private/syntax-replacement
          resyntax/private/syntax-neighbors
@@ -108,11 +108,11 @@
     (define-syntax-class expression-matching-id
       #:attributes (refactored)
 
-      (pattern (header:header-form-allowing-internal-definitions (~var body body-matching-id))
+      (pattern ((~var header header-form-allowing-internal-definitions) (~var body body-matching-id))
         #:cut
         #:with refactored #'(header.original (... ...) body.refactored (... ...)))
 
-      (pattern (branching-header:branching-form-allowing-internal-definitions-within-clauses
+      (pattern ((~var branching-header branching-form-allowing-internal-definitions-within-clauses)
                 clause-before (... ...)
                 (~and original-clause [clause-header (~var body body-matching-id)])
                 clause-after (... ...))
