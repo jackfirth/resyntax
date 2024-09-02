@@ -59,3 +59,24 @@ test: "define-values with values inside cond refactorable to separate definition
      (+ a b c)]
     [else (displayln "else")]))
 ------------------------------
+
+
+test: "immediately returned variable definition can be inlined"
+------------------------------
+(define (foo)
+  (define x 1)
+  x)
+------------------------------
+------------------------------
+(define (foo)
+  1)
+------------------------------
+
+
+test: "immediately returned function definition cannot be inlined"
+------------------------------
+(define (foo)
+  (define (x)
+    1)
+  x)
+------------------------------
