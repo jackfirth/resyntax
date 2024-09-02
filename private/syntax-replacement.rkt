@@ -131,8 +131,7 @@
 
 (define/guard (original-separator-piece stx trailing-stx)
   (guard (syntax-originally-neighbors? stx trailing-stx) #:else #false)
-  (let* ([stx (syntax-extract-original stx)]
-         [trailing-stx (syntax-extract-original trailing-stx)])
+  (let-values ([(stx trailing-stx) (syntax-extract-originals-from-pair stx trailing-stx)])
     (define stx-end (+ (sub1 (syntax-position stx)) (syntax-span stx)))
     (define trailing-start (sub1 (syntax-position trailing-stx)))
     (copied-string stx-end trailing-start)))

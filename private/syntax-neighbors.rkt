@@ -15,12 +15,13 @@
 
 (provide
  ~replacement
+ ~splicing-replacement
  (contract-out
   [syntax-original-leading-neighbor (-> syntax? (or/c syntax? #false))]
   [syntax-original-trailing-neighbor (-> syntax? (or/c syntax? #false))]
   [syntax-originally-neighbors? (-> syntax? syntax? boolean?)]
   [syntax-mark-original-neighbors (-> syntax? syntax?)]
-  [syntax-extract-original (-> syntax? syntax?)]))
+  [syntax-extract-originals-from-pair (-> syntax? syntax? (values syntax? syntax?))]))
 
 
 (require guard
@@ -83,13 +84,38 @@
      (syntax-property #'new-stx 'replacement-for #'orig-syntax)]))
 
 
-(define (syntax-extract-original stx)
-  (or (syntax-property stx 'replacement-for) stx))
+(define-template-metafunction (~splicing-replacement stx)
+  (syntax-parse stx
+    [(_ (~and new-stx (first-subform subform ... last-subform)) #:original orig-syntax)
+     (define first-with-prop (syntax-property #'first-subform 'head-replacement-for #'orig-syntax))
+     (define last-with-prop (syntax-property #'last-subform 'tail-replacement-for #'orig-syntax))
+     (define new-stx-with-subform-props
+       (datum->syntax #'new-stx
+                      #`(#,first-with-prop subform ... #,last-with-prop)
+                      #'new-stx
+                      #'new-stx))
+     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]
+    [(_ (~and new-stx (only-subform)) #:original orig-syntax)
+     (define subform-with-props
+       (syntax-property (syntax-property #'only-subform 'head-replacement-for #'orig-syntax)
+                        'tail-replacement-for
+                        #'orig-syntax))
+     (define new-stx-with-subform-props
+       (datum->syntax #'new-stx #`(#,subform-with-props) #'new-stx #'new-stx))
+     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]))
+
+
+(define (syntax-extract-originals-from-pair left-stx right-stx)
+  (values (or (syntax-property left-stx 'tail-replacement-for)
+              (syntax-property left-stx 'replacement-for)
+              left-stx)
+          (or (syntax-property right-stx 'head-replacement-for)
+              (syntax-property right-stx 'replacement-for)
+              right-stx)))
 
 
 (define (syntax-originally-neighbors? left-stx right-stx)
-  (let* ([left-stx (syntax-extract-original left-stx)]
-         [right-stx (syntax-extract-original right-stx)])
+  (let-values ([(left-stx right-stx) (syntax-extract-originals-from-pair left-stx right-stx)])
     (guarded-block
       (define left-trailer (syntax-original-trailing-neighbor left-stx))
       (define right-leader (syntax-original-leading-neighbor right-stx))

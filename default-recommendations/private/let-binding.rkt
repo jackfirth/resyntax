@@ -48,7 +48,10 @@
     #:when (no-binding-conflicts? (attribute bindings.bound-id) #'body.scopes)
 
     #:when (attribute bindings.fully-refactorable?)
-    #:with (refactored ...) #'(bindings.outer-definition ... body.formatted ...))
+    #:with (binding-definition ...)
+    #'(~splicing-replacement (bindings.outer-definition ...) #:original bindings)
+    #:with (refactored ...)
+    #`(~splicing-replacement (binding-definition ... body.formatted ...) #:original #,this-syntax))
 
   (pattern ((~or* let* let*-values) ~! bindings:refactorable-let*-bindings body:body-forms)
       
@@ -56,7 +59,11 @@
             (in-syntax #'(body.bound-id ...)) (in-syntax #'(bindings.inner-bound-id ...)))
 
     #:when (attribute bindings.fully-refactorable?)
-    #:with (refactored ...) #'(bindings.outer-definition ... body.formatted ...)))
+    #:with (binding-definition ...)
+    #'(~splicing-replacement (bindings.outer-definition ...) #:original bindings)
+    #:with (refactored ...)
+    #`(~splicing-replacement (binding-definition ... body.formatted ...)
+                             #:original #,this-syntax)))
 
 
 (define-splicing-syntax-class body-with-refactorable-let-expression
@@ -66,7 +73,8 @@
   (pattern
     (~seq
      leading-body:body-forms
-     ((~or* let let-values) ~! bindings:refactorable-let-bindings inner-body:body-forms))
+     (~and let-expression
+           ((~or* let let-values) ~! bindings:refactorable-let-bindings inner-body:body-forms)))
     
     #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
                                 (in-syntax #'(bindings.outer-bound-id ...)))
@@ -77,15 +85,19 @@
 
     #:when (attribute bindings.fully-refactorable?)
 
+    #:with (binding-definition ...)
+    #'(~splicing-replacement (bindings.outer-definition ...) #:original bindings)
+
     #:with (refactored ...)
     #'(leading-body.formatted ...
-       bindings.outer-definition ...
-       inner-body.formatted ...))
+       (~@ . (~splicing-replacement (binding-definition ... inner-body.formatted ...)
+                                    #:original let-expression))))
 
   (pattern
     (~seq
      leading-body:body-forms
-     ((~or* let* let*-values) ~! bindings:refactorable-let*-bindings inner-body:body-forms))
+     (~and let-expression
+           ((~or* let* let*-values) ~! bindings:refactorable-let*-bindings inner-body:body-forms)))
     
     #:when (no-binding-overlap? (syntax-identifiers #'leading-body)
                                 (in-syntax #'(bindings.outer-bound-id ...)))
@@ -95,11 +107,14 @@
     #:when (no-binding-conflicts? (attribute bindings.bound-id) #'inner-body.scopes)
 
     #:when (attribute bindings.fully-refactorable?)
+
+    #:with (binding-definition ...)
+    #'(~splicing-replacement (bindings.outer-definition ...) #:original bindings)
     
     #:with (refactored ...)
     #'(leading-body.formatted ...
-       bindings.outer-definition ...
-       inner-body.formatted ...)))
+       (~@ . (~splicing-replacement (binding-definition ... inner-body.formatted ...)
+                                    #:original let-expression)))))
 
 
 (module+ test

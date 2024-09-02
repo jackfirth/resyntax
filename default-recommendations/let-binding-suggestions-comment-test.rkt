@@ -50,7 +50,24 @@ test: "let binding with commented first clause not refactorable (yet)"
 ------------------------------
 
 
-test: "let binding with commented body refactorable"
+test: "let binding with commented first body form refactorable"
+------------------------------
+(define (f)
+  (let ([x 1])
+    ;; Comment
+    (void)
+    1))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  ;; Comment
+  (void)
+  1)
+------------------------------
+
+
+test: "let binding with commented second body form refactorable"
 ------------------------------
 (define (f)
   (let ([x 1])
@@ -67,7 +84,7 @@ test: "let binding with commented body refactorable"
 ------------------------------
 
 
-test: "let binding with comments before let form not refactorable (yet)"
+test: "let binding with comments before let form refactorable"
 ------------------------------
 (define (f)
   ;; Comment
@@ -75,4 +92,12 @@ test: "let binding with comments before let form not refactorable (yet)"
   ;; Comment
   (let ([x 1])
     1))
+------------------------------
+------------------------------
+(define (f)
+  ;; Comment
+  (void)
+  ;; Comment
+  (define x 1)
+  1)
 ------------------------------
