@@ -503,6 +503,20 @@ test: "variable definition with nested let binding of name bound earlier not ref
 ------------------------------
 
 
+test: "let binding nested in begin0 extractable to definition"
+------------------------------
+(define (f)
+  (begin0 (let ([x 1]) x)
+    (displayln "foo")))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  (begin0 x
+    (displayln "foo")))
+------------------------------
+
+
 test: "redundant let bindings can be removed"
 ------------------------------
 (define x 1)

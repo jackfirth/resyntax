@@ -78,6 +78,20 @@
     body-after ...)])
 
 
+(define-definition-context-refactoring-rule begin0-let-to-define-begin0
+  #:description "This `let` expression can be pulled up into a `define` expression."
+  #:literals (begin0 let)
+  [(~seq body-before ...
+         (begin0
+           (~and original-let (let ([nested-id:id nested-expr:expr]) result-expr:expr))
+           body-after ...))
+   #:when (not
+           (set-member? (syntax-bound-identifiers #'(body-before ... body-after ...)) #'nested-id))
+   (body-before ...
+    (define nested-id nested-expr)
+    (begin0 (~replacement result-expr #:original original-let) body-after ...))])
+
+
 (define-refactoring-rule delete-redundant-let
   #:description "This `let` binding does nothing and can be removed."
   #:literals (let)
@@ -90,7 +104,8 @@
   (refactoring-suite
    #:name (name let-binding-suggestions)
    #:rules
-   (list define-let-to-double-define
+   (list begin0-let-to-define-begin0
+         define-let-to-double-define
          delete-redundant-let
          let-to-define
          let-values-then-call-to-call-with-values
