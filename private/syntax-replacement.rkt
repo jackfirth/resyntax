@@ -16,7 +16,9 @@
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
-  [syntax-replacement-preserves-free-identifiers? (-> syntax-replacement? boolean?)]
+  [syntax-replacement-introduces-incorrect-bindings? (-> syntax-replacement? boolean?)]
+  [syntax-replacement-introduced-incorrect-identifiers
+   (-> syntax-replacement? (listof identifier?))]
   [syntax-replacement-preserves-comments? (-> syntax-replacement? range-set? boolean?)]
   [syntax-replacement-dropped-comment-locations (-> syntax-replacement? range-set? range-set?)]))
 
@@ -179,16 +181,29 @@
        (check-equal? (syntax-replacement-render replacement) expected)])))
 
 
-(define (syntax-replacement-preserves-free-identifiers? replacement)
-  (match replacement
-    [(syntax-replacement #:original-syntax orig
-                         #:new-syntax new
-                         #:introduction-scope intro)
-     (define ignore (list #'ORIGINAL-GAP))
-     (for/and ([new-id (in-syntax-identifiers new)]
-               #:unless (member new-id ignore free-identifier=?)
-               #:unless (bound-identifier=? new-id (intro new-id 'remove)))
-       (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id))))]))
+(define (syntax-replacement-introduces-incorrect-bindings? replacement)
+  (match-define (syntax-replacement #:original-syntax orig
+                                    #:new-syntax new
+                                    #:introduction-scope intro)
+    replacement)
+  (define ignore (list #'ORIGINAL-GAP))
+  (for/and ([new-id (in-syntax-identifiers new)]
+            #:unless (member new-id ignore free-identifier=?)
+            #:unless (bound-identifier=? new-id (intro new-id 'remove)))
+    (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id)))))
+
+
+(define (syntax-replacement-introduced-incorrect-identifiers replacement)
+  (match-define (syntax-replacement #:original-syntax orig
+                                    #:new-syntax new
+                                    #:introduction-scope intro)
+    replacement)
+  (define ignore (list #'ORIGINAL-GAP))
+  (for/list ([new-id (in-syntax-identifiers new)]
+             #:unless (member new-id ignore free-identifier=?)
+             #:unless (bound-identifier=? new-id (intro new-id 'remove))
+             #:unless (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id))))
+    new-id))
 
 
 (define (syntax-replacement-dropped-comment-locations replacement all-comment-locations)

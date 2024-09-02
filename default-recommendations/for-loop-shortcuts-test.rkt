@@ -301,6 +301,30 @@ test: "for*/fold building hash can't be refactored when referring to hash"
 ------------------------------
 
 
+test: "multi-accumulator for/fold with one used result refactorable to for/fold using #:result"
+------------------------------
+(define (foo)
+  (define-values (x y z)
+    (for/fold ([accum1 0]
+               [accum2 0]
+               [accum3 0])
+              ([n (in-naturals)])
+      (values 0 0 0)))
+  (* x 2))
+------------------------------
+------------------------------
+(define (foo)
+  (define x
+    (for/fold ([accum1 0]
+               [accum2 0]
+               [accum3 0]
+               #:result accum1)
+              ([n (in-naturals)])
+      (values 0 0 0)))
+  (* x 2))
+------------------------------
+
+
 test: "list->vector with for/list to for/vector"
 ------------------------------
 (list->vector
