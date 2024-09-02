@@ -24,6 +24,31 @@ test: "let binding with commented right-hand-side expression"
   1)
 ------------------------------
 
+test: "let binding with commented second clause"
+------------------------------
+(define (f)
+  (let ([x 1]
+        ;; The number two
+        [y 2])
+    1))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  ;; The number two
+  (define y 2)
+  1)
+------------------------------
+
+
+test: "let binding with commented first clause not refactorable (yet)"
+------------------------------
+(define (f)
+  (let (;; The number one
+        [x 1])
+    1))
+------------------------------
+
 
 test: "let binding with commented body refactorable"
 ------------------------------
