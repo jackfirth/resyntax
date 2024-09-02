@@ -154,3 +154,10 @@ test: "ignored map expression refactorable to for-each"
   ; comment after
   (displayln "foo"))
 ------------------------------
+
+
+test: "used map expression not refactorable to for-each"
+------------------------------
+(define (f func xs ys zs)
+  (map func xs ys zs))
+------------------------------

@@ -122,7 +122,7 @@
 (define-definition-context-refactoring-rule ignored-map-to-for-each
   #:description "The result of this `map` expression is unused. Consider using `for-each` instead."
   #:literals (map)
-  (~seq body-before ... (~and map-expr (map proc list ...)) body-after ...)
+  (~seq body-before ... (~and map-expr (map proc list ...)) body-after ...+)
   (body-before ... (~replacement (for-each proc list ...) #:original map-expr) body-after ...))
 
 
