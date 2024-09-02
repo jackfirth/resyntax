@@ -59,7 +59,7 @@
           (refactoring-rule-refactor rule syntax #:analysis analysis)
           #:else absent)
         (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
-          (log-resyntax-error
+          (log-resyntax-warning
            (string-append
             "~a: suggestion discarded because it introduces identifiers with incorrect bindings\n"
             "  incorrect identifiers: ~a")
