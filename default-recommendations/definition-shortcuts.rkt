@@ -11,10 +11,8 @@
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
-         resyntax/default-recommendations/private/definition-context
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/private/syntax-neighbors
          syntax/parse)
 
 
@@ -33,7 +31,7 @@
 (define-definition-context-refactoring-rule inline-unnecessary-define
   #:description "This variable is returned immediately and can be inlined."
   #:literals (define)
-  (~seq body-before ... (define id1:id expr) id2)
+  (~seq body-before ... (define id1:id expr) id2:id)
   #:when (free-identifier=? #'id1 #'id2)
   (body-before ... expr))
 

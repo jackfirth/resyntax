@@ -80,3 +80,11 @@ test: "immediately returned function definition cannot be inlined"
     1)
   x)
 ------------------------------
+
+
+test: "immediately used variable definition cannot be inlined"
+------------------------------
+(define (foo)
+  (define x 1)
+  (* x 2))
+------------------------------
