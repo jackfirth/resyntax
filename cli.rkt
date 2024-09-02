@@ -302,8 +302,13 @@ For help on these, use 'analyze --help' or 'fix --help'."
     (define result-count (length results))
     (define fix-string (if (> result-count 1) "fixes" "fix"))
     (match output-format
-      [(== plain-text) (printf "resyntax: applying ~a ~a to ~a\n\n" result-count fix-string path)]
-      [(== git-commit-message) (printf "Applied ~a ~a to `~a`\n\n" result-count fix-string path)])
+      [(== plain-text)
+       (printf "resyntax: applying ~a ~a to ~a\n\n" result-count fix-string path)]
+      [(== git-commit-message)
+       ;; For a commit message, we always use a relative path since we're likely running inside
+       ;; some CI runner.
+       (define relative-path (find-relative-path (current-directory) path))
+       (printf "Applied ~a ~a to `~a`\n\n" result-count fix-string relative-path)])
     (for ([result (in-list results)])
       (define line (refactoring-result-original-line result))
       (define rule (refactoring-result-rule-name result))
