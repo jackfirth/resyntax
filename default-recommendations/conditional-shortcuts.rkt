@@ -108,42 +108,13 @@
     #'((~if condition.negated? when unless) condition.base-condition fail)))
 
 
-;; This syntax class exists solely so that the always-throwing-if-to-when rule can match two cases
-;; that are shaped very differently.
-(define-syntax-class expresion-matching-always-throwing-if-to-when
-  #:attributes (refactored)
-
-  (pattern (header:header-form-allowing-internal-definitions
-            body-before ...
-            throwing-if:always-throwing-if-expression)
-    #:with refactored
-    #'(header.original ...
-       body-before ...
-       throwing-if.equivalent-guard-expression
-       throwing-if.success-expression))
-  
-  (pattern (branching-header:branching-form-allowing-internal-definitions-within-clauses
-            clause-before ...
-            (~and original-clause
-                  [clause-header
-                   body-before ...
-                   throwing-if:always-throwing-if-expression])
-            clause-after ...)
-    #:with refactored
-    #'(branching-header.original ...
-       clause-before ...
-       (~replacement [clause-header
-                      body-before ...
-                      throwing-if.equivalent-guard-expression
-                      throwing-if.success-expression]
-                     #:original original-clause)
-       clause-after ...)))
-
-
-(define-refactoring-rule always-throwing-if-to-when
+(define-definition-context-refactoring-rule always-throwing-if-to-when
   #:description
   "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
-  [expression:expresion-matching-always-throwing-if-to-when expression.refactored])
+  [(~seq body-before ... throwing-if:always-throwing-if-expression)
+   (body-before ...
+    throwing-if.equivalent-guard-expression
+    throwing-if.success-expression)])
 
 
 (define-syntax-class always-throwing-cond-expression
@@ -156,41 +127,13 @@
     #'(((~if condition.negated? unless when) condition.base-condition fail) ...)))
 
 
-;; This syntax class exists solely so that the always-throwing-cond-to-when rule can match two cases
-;; that are shaped very differently.
-(define-syntax-class expression-matching-always-throwing-cond-to-when
-  #:attributes (refactored)
-
-  (pattern (header:header-form-allowing-internal-definitions
-            body-before ...
-            throwing-cond:always-throwing-cond-expression)
-    #:with refactored
-    #'(header.original ...
-       body-before ...
-       throwing-cond.guard-expression ...
-       throwing-cond.body ...))
-
-  (pattern (branching-header:branching-form-allowing-internal-definitions-within-clauses
-            clause-before ...
-            (~and original-clause
-                  [clause-header
-                   body-before ...
-                   throwing-cond:always-throwing-cond-expression])
-            clause-after ...)
-    #:with refactored
-    #'(branching-header.original ...
-       clause-before ...
-       (~replacement [clause-header
-                      body-before ...
-                      throwing-cond.guard-expression ...
-                      throwing-cond.body ...]
-                     #:original original-clause)
-       clause-after ...)))
-
-(define-refactoring-rule always-throwing-cond-to-when
+(define-definition-context-refactoring-rule always-throwing-cond-to-when
   #:description
   "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
-  [expression:expression-matching-always-throwing-cond-to-when expression.refactored])
+  [(~seq body-before ... throwing-cond:always-throwing-cond-expression)
+   (body-before ...
+    throwing-cond.guard-expression ...
+    throwing-cond.body ...)])
 
 
 (define-refactoring-rule cond-else-cond-to-cond
