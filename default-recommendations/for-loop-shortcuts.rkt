@@ -211,6 +211,36 @@
    (loop iteration-clauses body ... (values key value))])
 
 
+(define-definition-context-refactoring-rule for/fold-result-keyword
+  #:description
+  "Only one of the `for/fold` expression's result values is used. Use the `#:result` keyword to \
+return just that result."
+  #:literals (define-values for/fold for*/fold)
+  [(~seq body-before ...
+         (~and original-definition
+               (define-values (result-id:id ...)
+           ((~or for-id:for/fold for-id:for*/fold)
+            ([accumulator-id:id initializer:expr] ...)
+            loop-clauses loop-body ...)))
+         body-after ...)
+   #:do [(define used-ids
+           (for/list ([id (in-list (attribute result-id))]
+                      #:when (set-member? (syntax-free-identifiers #'(body-after ...)) id))
+             id))]
+   #:when (equal? (length used-ids) 1)
+   #:cut
+   #:do [(define used-index (index-of (attribute result-id) (first used-ids)))
+         (define used-accumulator (list-ref (attribute accumulator-id) used-index))]
+   #:with replacement-definition
+   #`(define #,(first used-ids)
+       (for-id ([accumulator-id initializer] ...
+                #:result #,used-accumulator)
+               loop-clauses loop-body ...))
+   (body-before ...
+    (~replacement replacement-definition #:original original-definition)
+    body-after ...)])
+
+
 (define-syntax-class nested-for
 
   #:attributes ([clause 1] [body 1])
@@ -309,6 +339,7 @@
          apply-append-for-loop-to-for-loop
          apply-plus-to-for/sum
          for/fold-building-hash-to-for/hash
+         for/fold-result-keyword
          for-each-to-for
          list->set-to-for/set
          list->vector-to-for/vector

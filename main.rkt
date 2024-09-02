@@ -58,10 +58,13 @@
         (guard-match (present replacement)
           (refactoring-rule-refactor rule syntax #:analysis analysis)
           #:else absent)
-        (guard (syntax-replacement-preserves-free-identifiers? replacement) #:else
+        (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
           (log-resyntax-error
-           "~a: suggestion discarded because it does not preserve all free identifiers"
-           (object-name rule))
+           (string-append
+            "~a: suggestion discarded because it introduces identifiers with incorrect bindings\n"
+            "  incorrect identifiers: ~a")
+           (object-name rule)
+           (syntax-replacement-introduced-incorrect-identifiers replacement))
           absent)
         (guard (syntax-replacement-preserves-comments? replacement comments) #:else
           (log-resyntax-warning
