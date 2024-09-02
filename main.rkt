@@ -104,7 +104,7 @@
 (define (refactor-file portion #:suite [suite default-recommendations])
   (define path (file-portion-path portion))
   (define lines (file-portion-lines portion))
-  (printf "resyntax: analyzing ~a\n" path)
+  (log-resyntax-info "analyzing ~a" path)
   (define source (file-source path))
 
   (define (skip e)
