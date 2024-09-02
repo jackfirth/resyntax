@@ -22,11 +22,12 @@
 
 
 (require (for-syntax racket/base
-                     racket/syntax)
-         (for-template resyntax/default-recommendations/private/definition-context)
+                     racket/syntax
+                     resyntax/private/more-syntax-parse-classes)
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/type/object
+         resyntax/default-recommendations/private/definition-context
          resyntax/private/source
          resyntax/private/syntax-replacement
          resyntax/private/syntax-neighbors
@@ -68,8 +69,8 @@
 (define-syntax-parse-rule
   (define-refactoring-rule id:id
     #:description description
-    parse-option ...
-    [pattern pattern-directive ... replacement])
+    parse-option:syntax-parse-option ...
+    [pattern pattern-directive:syntax-parse-pattern-directive ... replacement])
   #:declare description (expr/c #'string?)
   (define id
     (constructor:refactoring-rule
@@ -79,16 +80,18 @@
      (λ (stx analysis)
        (parameterize ([current-source-code-analysis analysis])
          (syntax-parse stx
-           parse-option ...
-           [pattern pattern-directive ... (present #'replacement)]
+           (~@ . parse-option) ...
+           [pattern (~@ . pattern-directive) ... (present #'replacement)]
            [_ absent]))))))
 
 
 (define-syntax-parse-rule
   (define-definition-context-refactoring-rule id:id
     #:description (~var description (expr/c #'string?))
-    parse-option ...
-    [splicing-pattern pattern-directive ... (splicing-replacement ...)])
+    parse-option:syntax-parse-option ...
+    [splicing-pattern
+     pattern-directive:syntax-parse-pattern-directive ...
+     (splicing-replacement ...)])
 
   ;; These identifiers are macro-introduced, but we use format-id on them anyway so that the expanded
   ;; code is more readable and it's clearer which refactoring rule these syntax classes are derived
@@ -100,9 +103,9 @@
 
     (define-splicing-syntax-class body-matching-id
       #:attributes ([refactored 1])
-      parse-option ...
+      (~@ . parse-option) ...
       (pattern splicing-pattern
-        pattern-directive ...
+        (~@ . pattern-directive) ...
         #:with (refactored (... ...)) #'(splicing-replacement ...)))
 
     (define-syntax-class expression-matching-id
