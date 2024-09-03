@@ -5,13 +5,24 @@
 
 
 (provide
+ syntax-traverse
  (contract-out
-  [leaves-in-syntax (->* (syntax?) ((-> syntax? boolean?)) (sequence/c syntax?))]))
+  [leaves-in-syntax (->* (syntax?) ((-> syntax? boolean?)) (sequence/c syntax?))]
+  [syntax-directly-enclosing-expressions (-> syntax? identifier? (listof syntax?))]))
 
 
-(require racket/match
+(require (for-syntax racket/base
+                     resyntax/private/more-syntax-parse-classes)
+         racket/match
          racket/sequence
-         racket/stream)
+         racket/stream
+         syntax/parse
+         syntax/parse/define)
+
+
+(module+ test
+  (require (submod "..")
+           rackunit))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -45,3 +56,66 @@
       (boolean? datum)
       (regexp? datum)
       (keyword? datum)))
+
+
+(define (syntax-directly-enclosing-expressions stx id)
+
+  (define (directly-encloses? subform)
+    (syntax-parse subform
+      [(part ...)
+       (for/or ([part-stx (in-list (attribute part))])
+         (and (identifier? part-stx) (free-identifier=? id part-stx)))]
+      [(part ... . tail-part)
+       (for/or ([part-stx (in-list (cons #'tail-part (attribute part)))])
+         (and (identifier? part-stx) (free-identifier=? id part-stx)))]
+      [_ #false]))
+
+  (sequence->list (leaves-in-syntax stx directly-encloses?)))
+
+
+(define-syntax-parse-rule
+  (syntax-traverse (~var stx-expr (expr/c #'syntax?))
+    option:syntax-parse-option ...
+    [clause-pattern directive:syntax-parse-pattern-directive ... clause-body:expr ...] ...)
+  (let ()
+    (define-syntax-class traversal-case
+      #:attributes (traversed)
+      (~@ . option) ...
+      (pattern clause-pattern (~@ . directive) ...
+        #:attr traversed (let () clause-body ...)) ...)
+    (let loop ([stx stx-expr.c])
+      (syntax-parse stx
+        [(~var matched traversal-case) (attribute matched.traversed)]
+        
+        [(part (... ...))
+         #:cut
+         #:with (traversed-part (... ...)) (map loop (attribute part))
+         #'(traversed-part (... ...))]
+        [(part (... ...+) . tail-part)
+         #:cut
+         #:with (traversed-part (... ...)) (map loop (attribute part))
+         #:with traversed-tail (loop #'tail-part)
+         #'(traversed-part (... ...) . traversed-tail)]
+        [_ stx]))))
+
+
+(module+ test
+  (test-case "syntax-traverse"
+    (define stx
+      #'(define (foo)
+          (cons x y)
+          (define (bar)
+            (cons a b))
+          (cons c d)))
+    (define actual
+      (syntax->datum
+       (syntax-traverse stx
+         #:literals (cons)
+         [(cons _ _) #'CONS-EXPRESSION])))
+    (define expected
+      '(define (foo)
+         CONS-EXPRESSION
+         (define (bar)
+           CONS-EXPRESSION)
+         CONS-EXPRESSION))
+    (check-equal? actual expected)))

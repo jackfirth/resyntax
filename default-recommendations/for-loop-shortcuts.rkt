@@ -19,9 +19,12 @@
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
+         resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/syntax-lines
+         resyntax/private/identifier-naming
          resyntax/private/syntax-neighbors
+         resyntax/private/syntax-traversal
          syntax/parse)
 
 
@@ -262,6 +265,39 @@ return just that result."
     nested.body ...))
 
 
+(define-refactoring-rule named-let-loop-to-for/list
+  #:description "This named `let` expression is equivalent to a `for/list` loop."
+  #:literals (let cond else null? empty? null quote car first cdr rest cons)
+  (let loop:id ([vs:id init-list])
+    (cond
+      [((~or null? empty?) vs2:id) (~or null '())]
+      [else
+       loop-body:expr ...
+       (cons loop-element:expr
+             (loop2:id ((~or cdr rest) vs3:id)))]))
+  #:when (free-identifier=? #'loop #'loop2)
+  #:when (free-identifier=? #'vs #'vs2)
+  #:when (free-identifier=? #'vs #'vs3)
+  #:when (for*/and ([body-stx (in-list (cons #'loop-element (attribute loop-body)))]
+                    [vs-usage (in-list (syntax-directly-enclosing-expressions body-stx #'vs))])
+           (or (syntax-free-identifier=? vs-usage #'(car vs))
+               (syntax-free-identifier=? vs-usage #'(first vs))))
+  #:cut
+
+  #:with element-id (depluralize-id #'vs)
+
+  #:with (modified-result-element modified-body ...)
+  (for/list ([body-stx (cons #'loop-element (attribute loop-body))])
+    (syntax-traverse body-stx
+      #:literals (car first)
+      [(car vs-usage:id) #:when (free-identifier=? #'vs-usage #'vs) #'element-id]
+      [(first vs-usage:id) #:when (free-identifier=? #'vs-usage #'vs) #'element-id]))
+
+  (for/list ([element-id (in-list init-list)])
+    modified-body ...
+    modified-result-element))
+
+
 (define-refactoring-rule named-let-loop-to-for/first-in-vector
   #:description "This loop can be replaced by a simpler, equivalent `for/first` loop."
   #:literals (let add1 + vector-length vector-ref if and <)
@@ -344,6 +380,7 @@ return just that result."
          list->set-to-for/set
          list->vector-to-for/vector
          map-to-for
+         named-let-loop-to-for/list
          named-let-loop-to-for/first-in-vector
          nested-for-to-for*
          or-in-for/and-to-filter-clause
