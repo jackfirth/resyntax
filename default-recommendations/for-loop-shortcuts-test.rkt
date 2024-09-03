@@ -383,7 +383,7 @@ test: "non-nested for form isn't replaced by a for* form"
 ------------------------------
 
 
-test: "let loop over vector can be replaced by for/first"
+test: "named let loop with conditional return over vector can be replaced by for/first"
 ------------------------------------------------------------
 (define vec (vector 0 1 2 3 4 5))
 (let loop ([i 0])
@@ -407,6 +407,35 @@ test: "let loop over vector can be replaced by for/first"
 (for/first ([x (in-vector vec)]
             #:when (> x 3))
   (+ x 42))
+------------------------------------------------------------
+
+
+test: "named let loop over list can be replaced by for/list"
+------------------------------------------------------------
+(require racket/list)
+(let loop ([xs (list 1 2 3)])
+  (cond
+    [(null? xs) '()]
+    [else
+     (displayln (car xs))
+     (cons (* (car xs) 10)
+           (loop (cdr xs)))]))
+------------------------------------------------------------
+------------------------------------------------------------
+(require racket/list)
+(let loop ([xs (list 1 2 3)])
+  (cond
+    [(empty? xs) '()]
+    [else
+     (displayln (first xs))
+     (cons (* (first xs) 10)
+           (loop (rest xs)))]))
+------------------------------------------------------------
+------------------------------------------------------------
+(require racket/list)
+(for/list ([x (in-list (list 1 2 3))])
+  (displayln x)
+  (* x 10))
 ------------------------------------------------------------
 
 

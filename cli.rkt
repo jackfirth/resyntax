@@ -46,21 +46,27 @@
   (define suite default-recommendations)
   (define output-format plain-text)
   (define output-destination 'console)
+
   (command-line
    #:program "resyntax analyze"
+
    #:multi
+
    ("--file"
     filepath
     "A file to analyze."
     (vector-builder-add targets (single-file-group filepath all-lines)))
+
    ("--directory"
     dirpath
     "A directory to anaylze, including subdirectories."
     (vector-builder-add targets (directory-file-group dirpath)))
+
    ("--package"
     pkgname
     "An installed package to analyze."
     (vector-builder-add targets (package-file-group pkgname)))
+
    ("--local-git-repository"
     repopath baseref
     "A Git repository to search for modified files to analyze. The repopath argument is a directory
@@ -68,7 +74,9 @@ path to the root of a Git repository, and the baseref argument is a Git referenc
 \"remotename/branchname\") to use as the base state of the repository. Any files that have been \
 changed relative to baseref are analyzed."
     (vector-builder-add targets (git-repository-file-group repopath baseref)))
+
    #:once-each
+
    ("--refactoring-suite"
     modpath
     suite-name
@@ -76,14 +84,17 @@ changed relative to baseref are analyzed."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
+
    ("--output-to-file"
     outputpath
     "Store results in a file instead of printing them to the console."
     (set! output-destination (simple-form-path outputpath)))
+
    ("--output-as-github-review"
     "Report results by leaving a GitHub review on the pull request currently being analyzed, as \
 determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
     (set! output-format github-pull-request-review)))
+  
   (resyntax-analyze-options
    #:targets (build-vector targets)
    #:suite suite
@@ -99,21 +110,28 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (define output-format plain-text)
   (define max-fixes +inf.0)
   (define max-pass-count 10)
+
   (command-line
    #:program "resyntax fix"
+
    #:multi
+
    ("--file" filepath "A file to fix." (add-target! (single-file-group filepath all-lines)))
+
    ("--directory"
     dirpath
     "A directory to fix, including subdirectories."
     (add-target! (directory-file-group dirpath)))
+   
    ("--package"
     pkgname
     "An installed package to fix."
     (add-target! (package-file-group pkgname)))
+   
    ("--output-as-commit-message"
     "Report results in the form of a Git commit message printed to stdout."
     (set! output-format git-commit-message))
+   
    ("--local-git-repository"
     repopath baseref
     "A Git repository to search for modified files to fix. The repopath argument is a directory
@@ -121,7 +139,9 @@ path to the root of a Git repository, and the baseref argument is a Git referenc
 \"remotename/branchname\") to use as the base state of the repository. Any files that have been \
 changed relative to baseref are analyzed and fixed."
     (add-target! (git-repository-file-group repopath baseref)))
+
    #:once-each
+
    ("--refactoring-suite"
     modpath
     suite-name
@@ -129,16 +149,19 @@ changed relative to baseref are analyzed and fixed."
     (define parsed-modpath (read (open-input-string modpath)))
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
+
    ("--max-pass-count"
     passcount
     "The maximum number of times Resyntax will fix each file. By default, Resyntax runs at most 10 \
 passes over each file (or fewer, if no fixes would be made by additional passes). Multiple passes \
 are needed when applying a fix unlocks further fixes."
     (set! max-pass-count (string->number passcount)))
+
    ("--max-fixes"
     fixlimit
     "The maximum number of fixes to apply. If not specified, all fixes found will be applied."
     (set! max-fixes (string->number fixlimit))))
+
   (resyntax-fix-options #:targets (build-vector targets)
                         #:suite suite
                         #:output-format output-format
@@ -165,7 +188,10 @@ For help on these, use 'analyze --help' or 'fix --help'."
    (define (call-command command-thunk)
      (parameterize ([current-command-line-arguments leftover-arg-vector])
        (with-logging-to-port (current-error-port)
-         command-thunk 'info 'resyntax #:logger resyntax-logger)))
+         command-thunk
+         #:logger (current-logger)
+         'info 'resyntax
+         'error)))
 
    (match command
      ["analyze" (call-command resyntax-analyze-run)]
