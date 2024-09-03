@@ -306,9 +306,12 @@ For help on these, use 'analyze --help' or 'fix --help'."
        (printf "resyntax: applying ~a ~a to ~a\n\n" result-count fix-string path)]
       [(== git-commit-message)
        ;; For a commit message, we always use a relative path since we're likely running inside
-       ;; some CI runner.
+       ;; some CI runner. Additionally, we make the path a link to the corresponding file at HEAD,
+       ;; since making file paths clickable is pleasant.
        (define relative-path (find-relative-path (current-directory) path))
-       (printf "Applied ~a ~a to `~a`\n\n" result-count fix-string relative-path)])
+       (define repo-head-path (format "../blob/HEAD/~a" relative-path))
+       (printf "Applied ~a ~a to [`~a`](~a)\n\n"
+               result-count fix-string relative-path repo-head-path)])
     (for ([result (in-list results)])
       (define line (refactoring-result-original-line result))
       (define rule (refactoring-result-rule-name result))
