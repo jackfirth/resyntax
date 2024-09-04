@@ -97,20 +97,28 @@ test: "lambda function definition with closed-over expressions not refactorable"
 ------------------------------
 
 
-test: "lambda variable definition with commented body to definition with preserved comments"
+test: "lambda variable definition with commented first body not refactorable (yet)"
 ------------------------------
 (define f
   (λ (a)
-    ;; comment before all body forms
+    ; comment
     (void)
-    ;; comment before last body form
+    1))
+------------------------------
+
+
+test: "lambda variable definition with commented second body refactorable to definition"
+------------------------------
+(define f
+  (λ (a)
+    (void)
+    ; comment
     1))
 ------------------------------
 ------------------------------
 (define (f a)
-  ;; comment before all body forms
   (void)
-  ;; comment before last body form
+  ; comment
   1)
 ------------------------------
 

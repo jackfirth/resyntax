@@ -51,8 +51,7 @@
      (~and initial-body (~not _:possibly-nested-lambdas))
      remaining-body ...)
     #:with (argument-lists ...) #'(first-argument-list)
-    #:with (body ...)
-    #'((ORIGINAL-GAP first-argument-list initial-body) initial-body remaining-body ...)))
+    #:with (body ...) #'(initial-body remaining-body ...)))
 
 
 (define/guard (build-function-header original-header converted-lambda-formal-lists)

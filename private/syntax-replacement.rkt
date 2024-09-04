@@ -5,7 +5,6 @@
 
 
 (provide
- ORIGINAL-GAP
  (contract-out
   [syntax-replacement? predicate/c]
   [syntax-replacement
@@ -49,14 +48,6 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-syntax (ORIGINAL-GAP stx)
-  (raise-syntax-error
-   #false
-   "should only be used by refactoring rules to indicate where to insert the content between two\
- original syntax objects"
-   stx))
-
-
 (define-record-type syntax-replacement
   (original-syntax new-syntax introduction-scope))
 
@@ -69,13 +60,8 @@
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
     (syntax-parse stx
-      #:literals (quote ORIGINAL-GAP)
+      #:literals (quote)
 
-      [(ORIGINAL-GAP ~! before after)
-       (define before-end (+ (sub1 (syntax-position #'before)) (syntax-span #'before)))
-       (define after-start (sub1 (syntax-position #'after)))
-       (list (copied-string before-end after-start))]
-      
       [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
        (list (inserted-string (string->immutable-string (~s (syntax-e #'v)))))]
       
@@ -185,9 +171,7 @@
                                     #:new-syntax new
                                     #:introduction-scope intro)
     replacement)
-  (define ignore (list #'ORIGINAL-GAP))
   (for/and ([new-id (in-syntax-identifiers new)]
-            #:unless (member new-id ignore free-identifier=?)
             #:unless (bound-identifier=? new-id (intro new-id 'remove)))
     (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id)))))
 
@@ -197,9 +181,7 @@
                                     #:new-syntax new
                                     #:introduction-scope intro)
     replacement)
-  (define ignore (list #'ORIGINAL-GAP))
   (for/list ([new-id (in-syntax-identifiers new)]
-             #:unless (member new-id ignore free-identifier=?)
              #:unless (bound-identifier=? new-id (intro new-id 'remove))
              #:unless (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id))))
     new-id))
