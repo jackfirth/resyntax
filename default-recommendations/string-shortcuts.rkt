@@ -45,18 +45,13 @@
   #:literals (string-append)
 
   (pattern (string-append before join-call:keywordless-string-join-call)
-    #:with refactored
-    #'(join-call.original ... (ORIGINAL-GAP before join-call) #:before-first before))
+    #:with refactored #'(join-call.original ... #:before-first before))
 
   (pattern (string-append join-call:keywordless-string-join-call after)
-    #:with refactored
-    #'(join-call.original ... (ORIGINAL-GAP join-call after) #:after-last after))
+    #:with refactored #'(join-call.original ... #:after-last after))
 
   (pattern (string-append before join-call:keywordless-string-join-call after)
-    #:with refactored
-    #'(join-call.original ...
-       (ORIGINAL-GAP before join-call) #:before-first before
-       (ORIGINAL-GAP join-call after) #:after-last after)))
+    #:with refactored #'(join-call.original ... #:before-first before #:after-last after)))
 
 
 (define-refactoring-rule string-append-and-string-join-to-string-join

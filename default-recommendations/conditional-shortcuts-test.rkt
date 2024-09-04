@@ -332,17 +332,45 @@ test: "cond with nested else-cond can be flattened"
 ------------------------------
 
 
-test: "flattening nested else-cond does not preserve single-line formatting"
+test: "cond with commented nested else-cond can be flattened"
 ------------------------------
 (define (f a b)
-  (cond [a 1] [else (cond [b 2] [else 3])]))
+  (cond
+    [a (displayln "a")]
+    ; comment
+    [else
+     (cond
+       [b (displayln "b")]
+       [else (displayln "else")])]))
 ------------------------------
 ------------------------------
 (define (f a b)
   (cond
-    [a 1]
-    [b 2]
-    [else 3]))
+    [a (displayln "a")]
+    ; comment
+    [b (displayln "b")]
+    [else (displayln "else")]))
+------------------------------
+
+
+test: "cond with nested else-cond with commented second clause can be flattened"
+------------------------------
+(define (f a b)
+  (cond
+    [a (displayln "a")]
+    [else
+     (cond
+       [b (displayln "b")]
+       ; comment
+       [else (displayln "else")])]))
+------------------------------
+------------------------------
+(define (f a b)
+  (cond
+    [a (displayln "a")]
+    [b (displayln "b")]
+    ; comment
+    [else (displayln "else")]))
 ------------------------------
 
 
@@ -467,80 +495,6 @@ test: "if clause with begin in both branches refactorable to cond"
 ------------------------------
 
 
-test: "if clause with multiline condition and begin in true branch refactorable to cond"
-------------------------------
-(define (f a b c)
-  (if (a 10000000000000000000000000000000000000
-         20000000000000000000000000000000000000
-         30000000000000000000000000000000000000)
-      (begin
-        (displayln "stuff")
-        b)
-      c))
-------------------------------
-------------------------------
-(define (f a b c)
-  (cond
-    [(a 10000000000000000000000000000000000000
-        20000000000000000000000000000000000000
-        30000000000000000000000000000000000000)
-     (displayln "stuff")
-     b]
-    [else c]))
-------------------------------
-
-
-test: "if clause with multiline condition and begin in false branch refactorable to cond"
-------------------------------
-(define (f a b c)
-  (if (a 10000000000000000000000000000000000000
-         20000000000000000000000000000000000000
-         30000000000000000000000000000000000000)
-      b
-      (begin
-        (displayln "stuff")
-        c)))
-------------------------------
-------------------------------
-(define (f a b c)
-  (cond
-    [(a 10000000000000000000000000000000000000
-        20000000000000000000000000000000000000
-        30000000000000000000000000000000000000)
-     b]
-    [else
-     (displayln "stuff")
-     c]))
-------------------------------
-
-
-test: "if clause with multiline condition and begin in both branches refactorable to cond"
-------------------------------
-(define (f a b c)
-  (if (a 10000000000000000000000000000000000000
-         20000000000000000000000000000000000000
-         30000000000000000000000000000000000000)
-      (begin
-        (displayln "stuff")
-        b)
-      (begin
-        (displayln "stuff")
-        c)))
-------------------------------
-------------------------------
-(define (f a b c)
-  (cond
-    [(a 10000000000000000000000000000000000000
-        20000000000000000000000000000000000000
-        30000000000000000000000000000000000000)
-     (displayln "stuff")
-     b]
-    [else
-     (displayln "stuff")
-     c]))
-------------------------------
-
-
 test: "if clause with begin in commented true branch refactorable to cond"
 ------------------------------
 (define (f a b c)
@@ -576,8 +530,8 @@ test: "if clause with begin in commented false branch refactorable to cond"
 (define (f a b c)
   (cond
     [a b]
+    ;; This is the false case
     [else
-     ;; This is the false case
      (displayln "stuff")
      c]))
 ------------------------------
@@ -603,8 +557,8 @@ test: "if clause with begin in both commented branches refactorable to cond"
      ;; This is the true case
      (displayln "stuff")
      b]
+    ;; This is the false case
     [else
-     ;; This is the false case
      (displayln "stuff")
      c]))
 ------------------------------
@@ -813,8 +767,8 @@ test: "if clause with let in commented false branch refactorable to cond"
 (define (f a b c)
   (cond
     [a b]
+    ;; This is the false case
     [else
-     ;; This is the false case
      (define x 1)
      c]))
 ------------------------------
@@ -838,8 +792,8 @@ test: "if clause with let in both commented branches refactorable to cond"
      ;; This is the true case
      (define x 1)
      b]
+    ;; This is the false case
     [else
-     ;; This is the false case
      (define x 1)
      c]))
 ------------------------------

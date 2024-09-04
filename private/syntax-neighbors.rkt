@@ -26,6 +26,7 @@
 
 (require guard
          racket/syntax-srcloc
+         resyntax/private/logger
          syntax/parse
          syntax/parse/experimental/template)
 
@@ -81,7 +82,13 @@
 (define-template-metafunction (~replacement stx)
   (syntax-parse stx
     [(_ new-stx #:original orig-syntax)
-     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]))
+     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]
+    [(_ new-stx #:original-splice (first-orig orig-syntax ... last-orig))
+     (syntax-property (syntax-property #'new-stx 'head-replacement-for #'first-orig)
+                      'tail-replacement-for #'last-orig)]
+    [(_ new-stx #:original-splice (only-orig-syntax))
+     (syntax-property (syntax-property #'new-stx 'head-replacement-for #'only-orig-syntax)
+                      'tail-replacement-for #'only-orig-syntax)]))
 
 
 (define-template-metafunction (~splicing-replacement stx)
@@ -114,12 +121,36 @@
               right-stx)))
 
 
-(define (syntax-originally-neighbors? left-stx right-stx)
-  (let-values ([(left-stx right-stx) (syntax-extract-originals-from-pair left-stx right-stx)])
+(define (syntax-originally-neighbors? left-stx* right-stx*)
+  (let-values ([(left-stx right-stx) (syntax-extract-originals-from-pair left-stx* right-stx*)])
     (guarded-block
       (define left-trailer (syntax-original-trailing-neighbor left-stx))
       (define right-leader (syntax-original-leading-neighbor right-stx))
-      (guard (and left-trailer right-leader) #:else #false)
+
+      ;; If either of the above is missing, then they're not neighbors. We log a debug message in that
+      ;; case aide in debugging test failures caused by dropped comments.
+      (guard left-trailer #:else
+        (log-resyntax-debug (string-append "not neighbors because left-trailer is missing\n"
+                                           "  original left syntax: ~a\n"
+                                           "  original right syntax: ~a\n"
+                                           "  replacement left syntax: ~a\n"
+                                           "  replacement right syntax: ~a")
+                            (syntax->datum left-stx)
+                            (syntax->datum right-stx)
+                            (syntax->datum left-stx*)
+                            (syntax->datum right-stx*))
+        #false)
+      (guard right-leader #:else
+        (log-resyntax-debug (string-append "not neighbors because right-leader is missing\n"
+                                           "  original left syntax: ~a\n"
+                                           "  original right syntax: ~a\n"
+                                           "  replacement left syntax: ~a\n"
+                                           "  replacement right syntax: ~a")
+                            (syntax->datum left-stx)
+                            (syntax->datum right-stx)
+                            (syntax->datum left-stx*)
+                            (syntax->datum right-stx*))
+        #false)
       (define left-srcloc (syntax-srcloc left-stx))
       (define left-trailer-srcloc (syntax-srcloc left-trailer))
       (define right-srcloc (syntax-srcloc right-stx))

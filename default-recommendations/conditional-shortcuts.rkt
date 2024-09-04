@@ -139,12 +139,12 @@
   #:description
   "The `else` clause of this `cond` expression is another `cond` expression and can be flattened."
   #:literals (cond else)
-  ((~and outer-cond-id cond)
-   clause ... last-non-else-clause
+  (cond-id:cond
+   clause ...
    (~and outer-else-clause [else (cond nested-clause ...)]))
-  (outer-cond-id clause ... last-non-else-clause
-                 (ORIGINAL-GAP last-non-else-clause outer-else-clause)
-                 nested-clause ...))
+  (cond-id
+   clause ...
+   (~@ . (~splicing-replacement (nested-clause ...) #:original outer-else-clause))))
 
 
 (define-syntax-class let-refactorable-cond-clause
@@ -176,13 +176,16 @@
 (define-syntax-class if-arm
   #:attributes (uses-begin? uses-let? [refactored 1])
   #:literals (begin)
+
   (pattern (begin body ...)
     #:attr uses-begin? #true
     #:attr uses-let? #false
-    #:with (refactored ...) #'(body ...))
+    #:with (refactored ...) #`(~splicing-replacement (body ...) #:original #,this-syntax))
+
   (pattern :refactorable-let-expression
     #:attr uses-begin? #false
     #:attr uses-let? #true)
+
   (pattern other
     #:with (refactored ...) #'(other)
     #:attr uses-begin? #false
@@ -196,15 +199,8 @@
       (~and then-expr:if-arm (~not (void)))
       (~and else-expr:if-arm (~not (void))))
   #:when (or (attribute then-expr.uses-begin?) (attribute else-expr.uses-begin?))
-  #:with (true-branch ...)
-  (if (attribute then-expr.uses-begin?)
-      #'([condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
-      #'([condition then-expr.refactored ...]))
-  #:with (false-branch ...)
-  (if (attribute else-expr.uses-begin?)
-      #'([else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
-      #'((ORIGINAL-GAP then-expr else-expr) [else else-expr.refactored ...]))
-  (cond true-branch ... false-branch ...))
+  (cond (~replacement [condition then-expr.refactored ...] #:original-splice (condition then-expr))
+        (~replacement [else else-expr.refactored ...] #:original else-expr)))
 
 
 (define-refactoring-rule if-let-to-cond
@@ -215,15 +211,8 @@
       (~and then-expr:if-arm (~not (void)))
       (~and else-expr:if-arm (~not (void))))
   #:when (or (attribute then-expr.uses-let?) (attribute else-expr.uses-let?))
-  #:with (true-branch ...)
-  (if (attribute then-expr.uses-let?)
-      #'([condition (ORIGINAL-GAP condition then-expr) then-expr.refactored ...])
-      #'([condition then-expr.refactored ...]))
-  #:with (false-branch ...)
-  (if (attribute else-expr.uses-let?)
-      #'([else (ORIGINAL-GAP then-expr else-expr) else-expr.refactored ...])
-      #'((ORIGINAL-GAP then-expr else-expr) [else else-expr.refactored ...]))
-  (cond true-branch ... false-branch ...))
+  (cond (~replacement [condition then-expr.refactored ...] #:original-splice (condition then-expr))
+        (~replacement [else else-expr.refactored ...] #:original else-expr)))
 
 
 (define conditional-shortcuts
