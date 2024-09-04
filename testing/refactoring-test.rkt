@@ -127,7 +127,7 @@
     (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
 
   (define (call-with-logs-captured proc)
-    (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug))
+    (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug 'resyntax))
 
   (define (build-logs-info)
     (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
