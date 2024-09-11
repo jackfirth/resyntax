@@ -23,7 +23,8 @@
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [source-code-analysis-scopes-by-location
    (-> source-code-analysis? (hash/c source-location? syntax? #:immutable #true))]
-  [syntax-source-location (-> syntax? source-location?)]))
+  [syntax-source-location (-> syntax? source-location?)]
+  [with-input-from-source (-> source? (-> any) any)]))
 
 
 (require guard
@@ -73,19 +74,27 @@
 (define-record-type source-location (source line column position span))
 
 
-(define (source->string code)
+(define (with-input-from-source code proc)
+
+  (define (call-proc-with-reencoded-input in)
+    (define reencoded-in (reencode-input-port in "UTF-8" #false #false (object-name in) #true))
+    (parameterize ([current-input-port reencoded-in])
+      (proc)))
+
   (match code
-    [(file-source path) (string->immutable-string (file->string path #:mode 'text))]
-    [(string-source contents) contents]))
+    [(file-source path) (call-with-input-file path call-proc-with-reencoded-input)]
+    [(string-source contents) (call-proc-with-reencoded-input (open-input-string contents))]))
+
+
+(define (source->string code)
+  (string->immutable-string (with-input-from-source code port->string)))
 
 
 (define (source-read-syntax code)
   (define (read-from-input)
     (port-count-lines! (current-input-port))
     (with-module-reading-parameterization read-syntax))
-  (match code
-    [(file-source path) (with-input-from-file path #:mode 'text read-from-input)]
-    [(string-source contents) (with-input-from-string contents read-from-input)]))
+  (with-input-from-source code read-from-input))
 
 
 (define/guard (source-directory code)

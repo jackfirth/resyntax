@@ -4,6 +4,7 @@
 (provide (for-syntax #%datum)
          #%datum
          #%module-begin
+         check-suite-refactors
          refactoring-test
          refactoring-test-import
          refactoring-test-header
@@ -31,6 +32,7 @@
          resyntax
          resyntax/private/logger
          resyntax/private/refactoring-result
+         resyntax/private/source
          resyntax/private/string-replacement
          resyntax/refactoring-suite
          syntax/parse
@@ -152,7 +154,8 @@
            (λ () (transduce results
                             (mapping refactoring-result-string-replacement)
                             #:into union-into-string-replacement)))))
-      (define refactored-program (string-apply-replacement original-program replacement))
+      (define refactored-program
+        (string-apply-replacement (source->string (string-source original-program)) replacement))
       (with-check-info (['logs (build-logs-info)]
                         ['actual (string-block refactored-program)]
                         ['expected (string-block expected-program)])

@@ -68,7 +68,8 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
-         rebellion/type/tuple)
+         rebellion/type/tuple
+         resyntax/private/source)
 
 
 (module+ test
@@ -211,7 +212,7 @@
 
 
 (define (file-apply-string-replacement! path replacement)
-  (define replacement-text (string-apply-replacement (file->string path #:mode 'text) replacement))
+  (define replacement-text (string-apply-replacement (source->string (file-source path)) replacement))
   (display-to-file replacement-text path #:mode 'text #:exists 'replace))
 
 
