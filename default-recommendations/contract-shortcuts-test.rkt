@@ -85,5 +85,10 @@ test: "->* contracts using #:rest (listof arg) can be replaced with -> and ellip
 - (void (-> string? number? symbol? ... list?))
 
 
+test: "infix ->* contracts using #:rest (listof arg) can be replaced with -> and ellipses"
+- (void ((string? number?) #:rest (listof symbol?) . ->* . list?))
+- (void (-> string? number? symbol? ... list?))
+
+
 test: "->* contracts using #:rest and optional arguments not refactorable to -> and ellipses"
 - (void (->* () (string?) #:rest (listof symbol?) list?))
