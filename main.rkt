@@ -95,7 +95,7 @@
 (define (refactor code-string #:suite [suite default-recommendations])
   (define rule-list (refactoring-suite-rules suite))
   (define source (string-source code-string))
-  (define comments (with-input-from-string code-string read-comment-locations))
+  (define comments (with-input-from-source source read-comment-locations))
   (parameterize ([current-namespace (make-base-namespace)])
     (define analysis (source-analyze source))
     (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments)))
@@ -118,7 +118,7 @@
                   [exn:fail:filesystem:missing-module? skip])
     (parameterize ([current-namespace (make-base-namespace)])
       (define analysis (source-analyze source #:lines lines))
-      (define comments (with-input-from-file path read-comment-locations #:mode 'text))
+      (define comments (with-input-from-source source read-comment-locations))
       (define full-source (source->string source))
       (for ([comment (in-range-set comments)])
         (log-resyntax-debug "parsed comment: ~a: ~v"
