@@ -22,6 +22,7 @@
                resyntax/default-recommendations/match-shortcuts
                resyntax/default-recommendations/miscellaneous-suggestions
                resyntax/default-recommendations/numeric-shortcuts
+               resyntax/default-recommendations/require-and-provide-suggestions
                resyntax/default-recommendations/string-shortcuts
                resyntax/default-recommendations/syntax-shortcuts
                resyntax/default-recommendations/syntax-parse-shortcuts
@@ -48,6 +49,7 @@
          resyntax/default-recommendations/match-shortcuts
          resyntax/default-recommendations/miscellaneous-suggestions
          resyntax/default-recommendations/numeric-shortcuts
+         resyntax/default-recommendations/require-and-provide-suggestions
          resyntax/default-recommendations/string-shortcuts
          resyntax/default-recommendations/syntax-shortcuts
          resyntax/default-recommendations/syntax-parse-shortcuts
@@ -86,6 +88,7 @@
            (refactoring-suite-rules match-shortcuts)
            (refactoring-suite-rules miscellaneous-suggestions)
            (refactoring-suite-rules numeric-shortcuts)
+           (refactoring-suite-rules require-and-provide-suggestions)
            (refactoring-suite-rules string-shortcuts)
            (refactoring-suite-rules syntax-shortcuts)
            (refactoring-suite-rules syntax-parse-shortcuts)
