@@ -10,6 +10,7 @@
                resyntax/default-recommendations/conditional-shortcuts
                resyntax/default-recommendations/contract-shortcuts
                resyntax/default-recommendations/definition-shortcuts
+               resyntax/default-recommendations/file-io-suggestions
                resyntax/default-recommendations/for-loop-shortcuts
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/function-shortcuts
@@ -37,6 +38,7 @@
          resyntax/default-recommendations/conditional-shortcuts
          resyntax/default-recommendations/contract-shortcuts
          resyntax/default-recommendations/definition-shortcuts
+         resyntax/default-recommendations/file-io-suggestions
          resyntax/default-recommendations/for-loop-shortcuts
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/function-shortcuts
@@ -69,6 +71,7 @@
            (refactoring-suite-rules conditional-shortcuts)
            (refactoring-suite-rules contract-shortcuts)
            (refactoring-suite-rules definition-shortcuts)
+           (refactoring-suite-rules file-io-suggestions)
            (refactoring-suite-rules for-loop-shortcuts)
            (refactoring-suite-rules function-definition-shortcuts)
            (refactoring-suite-rules function-shortcuts)
