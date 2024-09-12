@@ -21,8 +21,6 @@
   [source-code-analysis? predicate/c]
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
-  [source-code-analysis-scopes-by-location
-   (-> source-code-analysis? (hash/c source-location? syntax? #:immutable #true))]
   [syntax-source-location (-> syntax? source-location?)]
   [with-input-from-source (-> source? (-> any) any)]))
 
@@ -38,11 +36,13 @@
          rebellion/base/range
          rebellion/collection/list
          rebellion/collection/range-set
+         rebellion/collection/vector/builder
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/private/linemap
-         syntax/modread)
+         syntax/modread
+         syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -59,18 +59,7 @@
   #:guard (λ (contents _) (string->immutable-string contents)))
 
 
-;; source-code-analysis has fields:
-;;  * code: source, the input of the analysis
-;;  * visited-forms: (Listof Syntax), sorted by source location, containing
-;;      forms visited by the expander, with scopes put on them by expansion
-;;      steps in the surrounding context, but not yet expanded themselves
-;;  * scopes-by-location: (ImmHashOf source-location Syntax), containing
-;;      syntax objects that have the scopes from their surrounding context
-;;    For example, in `(let ([x a]) b)`, the expander expands it to
-;;    `(let-values ([(x) a]) b)` and adds letX-renames scopes to `x` and `b`.
-;;    The `scopes-by-location` table contains the versions of `x` and `b`
-;;    with those scopes.
-(define-record-type source-code-analysis (code visited-forms scopes-by-location))
+(define-record-type source-code-analysis (code visited-forms))
 (define-record-type source-location (source line column position span))
 
 
@@ -108,53 +97,67 @@
     (define program-stx (source-read-syntax code))
     (define program-source-name (syntax-source program-stx))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
-    (define visits-by-location (make-hash))
-    (define others-by-location (make-hash))
-    
-    (define (add-original-location! hsh stx)
-      (when (and (syntax? stx)
-                 (syntax-original? stx)
-                 ;; Some macros are able to bend hygiene and syntax properties in such a way that they
-                 ;; introduce syntax objects into the program that are syntax-original?, but from a
-                 ;; different file than the one being expanded. So in addition to checking for
-                 ;; originality, we also check that they come from the same source as the main program
-                 ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
-                 ;; in this way, and is what originally motivated the addition of this check.
-                 (equal? (syntax-source stx) program-source-name)
-                 (range-set-encloses? lines (syntax-line-range stx #:linemap code-linemap)))
-        (define loc (syntax-source-location stx))
-        (unless (hash-has-key? hsh loc)
-          (hash-set! hsh loc stx))))
+    (define original-visits (make-vector-builder))
+    (define expanded-originals-by-location (make-hash))
+
+    (define (add-all-original-subforms! stx)
+      (when (resyntax-should-analyze-syntax? stx)
+        (hash-set! expanded-originals-by-location (syntax-source-location stx) stx))
+      (syntax-parse stx
+        [(subform ...) (for-each add-all-original-subforms! (attribute subform))]
+        [(subform ...+ . tail-form)
+         (for-each add-all-original-subforms! (attribute subform))
+         (add-all-original-subforms! #'tail-form)]
+        [_ (void)]))
+
+    (define (resyntax-should-analyze-syntax? stx)
+      (and (syntax-original? stx)
+           ;; Some macros are able to bend hygiene and syntax properties in such a way that they
+           ;; introduce syntax objects into the program that are syntax-original?, but from a
+           ;; different file than the one being expanded. So in addition to checking for
+           ;; originality, we also check that they come from the same source as the main program
+           ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
+           ;; in this way, and is what originally motivated the addition of this check.
+           (equal? (syntax-source stx) program-source-name)
+           (range-set-encloses? lines (syntax-line-range stx #:linemap code-linemap))))
     
     (define/match (observe-event! sig val)
-      [('visit val)
-       (add-original-location! visits-by-location val)]
-      ;; For more information on `letX-renames`, see the `make-let-values-form`
-      ;; function in the Racket Expander where it logs `letX-renames` events:
-      ;; https://github.com/racket/racket/blob/b4a85f54c20cc246d521a4cc7ea4d8c2b52a7e59/racket/src/expander/expand/expr.rkt#L248
-      [('letX-renames (list-rest trans-idss _ val-idss _))
-       ;; When the expander adds scopes to `let-syntax`, it uses `trans-idss`.
-       (for* ([trans-ids (in-list trans-idss)]
-              [trans-id (in-list trans-ids)])
-         (add-original-location! others-by-location trans-id))
-       ;; When the expander adds scopes to `let-values`, it uses `val-idss`.
-       (for* ([val-ids (in-list val-idss)]
-              [val-id (in-list val-ids)])
-         (add-original-location! others-by-location val-id))]
+      [('visit (? syntax? visited))
+       (when (resyntax-should-analyze-syntax? visited)
+         (vector-builder-add original-visits visited)
+         (add-all-original-subforms! visited))]
       [(_ _) (void)])
+
+    (define expanded
+      (parameterize ([current-expand-observe observe-event!])
+        (expand program-stx)))
+    (add-all-original-subforms! expanded)
+
+    (define (enrich stx)
+      (define new-context
+        (or (hash-ref expanded-originals-by-location (syntax-source-location stx) #false) stx))
+      (syntax-parse stx
+        [(subform ...)
+         (datum->syntax new-context
+                        (map enrich (attribute subform))
+                        new-context
+                        new-context)]
+        [(subform ...+ . tail-form)
+         (datum->syntax new-context
+                        (append (map enrich (attribute subform)) (enrich #'tail-form))
+                        new-context
+                        new-context)]
+        [_ new-context]))
+         
     
-    (parameterize ([current-expand-observe observe-event!])
-      (expand program-stx))
-    (define scopes-by-location
-      (hash-union (hash) visits-by-location others-by-location
-                  #:combine (λ (a b) a)))
     (define visited
-      (transduce (in-hash-pairs visits-by-location)
-                 (sorting syntax-source-location<=> #:key car)
-                 #:into (reducer-map into-list #:domain cdr)))
-    (source-code-analysis #:code code
-                          #:visited-forms visited
-                          #:scopes-by-location scopes-by-location)))
+      (transduce (build-vector original-visits)
+                 (deduplicating #:key syntax-source-location)
+                 (mapping enrich)
+                 (sorting syntax-source-location<=> #:key syntax-source-location)
+                 #:into into-list))
+
+    (source-code-analysis #:code code #:visited-forms visited)))
 
 
 (define (syntax-source-location stx)

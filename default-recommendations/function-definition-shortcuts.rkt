@@ -80,14 +80,26 @@
 (define-refactoring-rule define-case-lambda-to-define
   #:description "This use of `case-lambda` is equivalent to using `define` with optional arguments."
   #:literals (define case-lambda)
+
   (define id:id
     (case-lambda
       [(case1-arg:id ...) (usage:id usage1:id ... default:expr)]
       [(case2-arg:id ... bonus-arg:id) body ...]))
+
   #:when (oneline-syntax? #'default)
   #:when (free-identifier=? #'id #'usage)
-  #:when (free-identifiers=? #'(case1-arg ...) #'(case2-arg ...))
-  #:when (free-identifiers=? #'(case1-arg ...) #'(usage1 ...))
+
+  #:when (and (equal? (length (attribute case1-arg))
+                      (length (attribute case2-arg)))
+              (equal? (length (attribute case1-arg))
+                      (length (attribute usage1))))
+
+  #:when (for/and ([case1-arg-id (in-list (attribute case1-arg))]
+                   [case2-arg-id (in-list (attribute case2-arg))]
+                   [usage1-id (in-list (attribute usage1))])
+           (and (equal? (syntax-e case1-arg-id) (syntax-e case2-arg-id))
+                (equal? (syntax-e case1-arg-id) (syntax-e usage1-id))))
+
   (define (id case2-arg ... [bonus-arg default])
     body ...))
 

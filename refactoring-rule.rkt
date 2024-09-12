@@ -9,16 +9,13 @@
  define-definition-context-refactoring-rule
  (contract-out
   [refactoring-rule? predicate/c]
-  [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
-  [current-source-code-analysis (-> (or/c source-code-analysis? #false))]))
+  [refactoring-rule-description (-> refactoring-rule? immutable-string?)]))
 
 
 (module+ private
   (provide
    (contract-out
-    [refactoring-rule-refactor
-     (-> refactoring-rule? syntax? #:analysis source-code-analysis?
-         (option/c syntax-replacement?))])))
+    [refactoring-rule-refactor (-> refactoring-rule? syntax? (option/c syntax-replacement?))])))
 
 
 (require (for-syntax racket/base
@@ -38,15 +35,12 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define current-source-code-analysis (make-parameter #false #false 'current-source-code-analysis))
-
-
 (define-object-type refactoring-rule (transformer description)
   #:omit-root-binding
   #:constructor-name constructor:refactoring-rule)
 
 
-(define (refactoring-rule-refactor rule syntax #:analysis analysis)
+(define (refactoring-rule-refactor rule syntax)
 
   ;; Before refactoring the input syntax, we do two things: create a new scope and add it, and
   ;; traverse the syntax object making a note of each subform's original neighbors. Combined,
@@ -58,7 +52,7 @@
   (define prepared-syntax (rule-introduction-scope (syntax-mark-original-neighbors syntax)))
 
   (option-map
-   ((refactoring-rule-transformer rule) prepared-syntax analysis)
+   ((refactoring-rule-transformer rule) prepared-syntax)
    (λ (new-syntax)
      (syntax-replacement
       #:original-syntax syntax
@@ -79,12 +73,11 @@
      #:name 'id
      #:description (string->immutable-string description.c)
      #:transformer
-     (λ (stx analysis)
-       (parameterize ([current-source-code-analysis analysis])
-         (syntax-parse stx
-           (~@ . parse-option) ...
-           [pattern (~@ . pattern-directive) ... (present #'replacement)]
-           [_ absent]))))))
+     (λ (stx)
+       (syntax-parse stx
+         (~@ . parse-option) ...
+         [pattern (~@ . pattern-directive) ... (present #'replacement)]
+         [_ absent])))))
 
 
 (define-syntax-parse-rule

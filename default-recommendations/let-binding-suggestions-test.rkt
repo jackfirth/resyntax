@@ -235,6 +235,33 @@ test: "self-shadowing let*-values binding clause isn't refactorable"
 ------------------------------
 
 
+test: "let* with later right-hand-sides referring to earlier bindings is refactorable"
+------------------------------
+(define (f a)
+  (let* ([b (+ a 1)]
+         [c (+ b 1)]
+         [d (+ c 1)])
+    d))
+------------------------------
+------------------------------
+(define (f a)
+  (define b (+ a 1))
+  (define c (+ b 1))
+  (define d (+ c 1))
+  d)
+------------------------------
+
+
+test: "let* with later bindings shadowing earlier right-hand-sides not refactorable"
+------------------------------
+(define y 1)
+(define (f)
+  (let* ([x (+ y 1)]
+         [y (+ x 1)])
+    1))
+------------------------------
+
+
 test: "let forms inside lambdas"
 ------------------------------
 (λ ()
@@ -500,6 +527,15 @@ test: "variable definition with nested let binding of name bound earlier not ref
   (define x 5)
   (define y (let ([x 1]) (* x 2)))
   (* y 3))
+------------------------------
+
+
+test: "variable definition with nested let binding shadowing name used later not refactorable"
+------------------------------
+(define x 5)
+(define (f)
+  (define y (let ([x 1]) (* x 2)))
+  (* x y))
 ------------------------------
 
 

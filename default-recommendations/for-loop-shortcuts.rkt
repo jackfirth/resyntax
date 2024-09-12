@@ -23,6 +23,7 @@
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/syntax-lines
          resyntax/private/identifier-naming
+         resyntax/private/logger
          resyntax/private/syntax-neighbors
          resyntax/private/syntax-traversal
          syntax/parse)
@@ -204,13 +205,21 @@
 
 (define-refactoring-rule for/fold-building-hash-to-for/hash
   #:description "This `for` loop is building a hash and can be simplified."
-  #:literals (for/fold for*/fold hash make-immutable-hash)
-  ((~or (~and for/fold (~bind [loop #'for/hash])) (~and for*/fold (~bind [loop #'for*/hash])))
+  #:literals (for/fold for*/fold hash make-immutable-hash hash-set)
+  ((~or (~and for/fold (~bind [loop #'for/hash]))
+        (~and for*/fold (~bind [loop #'for*/hash])))
    ([h:id (~or (hash) (make-immutable-hash))]) iteration-clauses
    body ...
    (hash-set h-usage:id key value))
-  #:when (free-identifier=? #'h #'h-usage)
-  #:when (not (set-member? (syntax-free-identifiers #'(body ...)) #'h))
+
+  ;; The expansion of for/fold is very complex, and one thing it does is mess with the accumulator ids
+  ;; and their uses such that free-identifier=? on an accumulator's use and its binder breaks. To work
+  ;; around this, we compare the hash usage and hash accumulator ids by symbol here.
+  #:when (equal? (syntax-e #'h) (syntax-e #'h-usage))
+
+  #:do [(define body-ids (syntax-free-identifiers #'(body ...)))]
+  #:when (and (not (set-member? body-ids #'h))
+              (not (set-member? body-ids #'h-usage)))
   (loop iteration-clauses body ... (values key value)))
 
 
