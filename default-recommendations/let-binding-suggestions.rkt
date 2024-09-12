@@ -31,6 +31,7 @@
          resyntax/refactoring-rule
          resyntax/refactoring-suite
          resyntax/private/syntax-neighbors
+         syntax/id-set
          syntax/parse)
 
 
@@ -71,8 +72,11 @@
   (~seq body-before ...
         (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr))
         body-after ...)
-  #:when (not
-          (set-member? (syntax-bound-identifiers #'(body-before ... id body-after ...)) #'nested-id))
+  #:when (identifier-binding-unchanged-in-context? (attribute id) (attribute nested-expr))
+  #:when (for/and ([body-free-id
+                    (in-free-id-set
+                     (syntax-free-identifiers #'(body-before ... nested-expr body-after ...)))])
+           (identifier-binding-unchanged-in-context? body-free-id (attribute nested-id)))
   (body-before ...
    (define nested-id nested-expr)
    (define id expr)
@@ -97,7 +101,7 @@
   #:description "This `let` binding does nothing and can be removed."
   #:literals (let)
   (let ([left-id:id right-id:id]) body)
-  #:when (bound-identifier=? #'left-id #'right-id)
+  #:when (equal? (syntax-e (attribute left-id)) (syntax-e (attribute right-id)))
   body)
 
 

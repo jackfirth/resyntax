@@ -97,8 +97,17 @@
 
 
 (define (syntax-line-range stx #:linemap map)
-  (define end-line (linemap-position-to-line map (+ (syntax-position stx) (syntax-span stx))))
-  (closed-range (syntax-line stx) end-line #:comparator natural<=>))
+  (define first-line (syntax-line stx))
+  (define last-line (linemap-position-to-line map (+ (syntax-position stx) (syntax-span stx))))
+  (unless (<= first-line last-line)
+    (raise-arguments-error 'syntax-line-range
+                           "syntax object's last line number is before its first line number"
+                           "syntax" stx
+                           "first line" first-line
+                           "last line" last-line
+                           "position" (syntax-position stx)
+                           "span" (syntax-span stx)))
+  (closed-range first-line last-line #:comparator natural<=>))
 
 
 (module+ test

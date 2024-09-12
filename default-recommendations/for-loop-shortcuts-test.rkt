@@ -263,7 +263,8 @@ test: "for/and with or to filter clause"
 
 test: "for/fold building hash to for/hash"
 ------------------------------
-(for/fold ([h (hash)]) ([x (in-range 0 10)])
+(for/fold ([h (hash)])
+          ([x (in-range 0 10)])
   (hash-set h x 'foo))
 ------------------------------
 ------------------------------
@@ -274,7 +275,8 @@ test: "for/fold building hash to for/hash"
 
 test: "for*/fold building hash to for*/hash"
 ------------------------------
-(for*/fold ([h (hash)]) ([x (in-range 0 10)])
+(for*/fold ([h (hash)])
+           ([x (in-range 0 10)])
   (hash-set h x 'foo))
 ------------------------------
 ------------------------------
@@ -285,18 +287,18 @@ test: "for*/fold building hash to for*/hash"
 
 test: "for/fold building hash can't be refactored when referring to hash"
 ------------------------------
-(for/fold ([h (hash)]) ([x (in-range 0 10)])
-  (displayln
-   (hash-has-key? h x))
+(for/fold ([h (hash)])
+          ([x (in-range 0 10)])
+  (displayln (hash-has-key? h x))
   (hash-set h x 'foo))
 ------------------------------
 
 
 test: "for*/fold building hash can't be refactored when referring to hash"
 ------------------------------
-(for*/fold ([h (hash)]) ([x (in-range 0 10)])
-  (displayln
-   (hash-has-key? h x))
+(for*/fold ([h (hash)])
+           ([x (in-range 0 10)])
+  (displayln (hash-has-key? h x))
   (hash-set h x 'foo))
 ------------------------------
 

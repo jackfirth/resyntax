@@ -56,7 +56,7 @@
             absent)])
       (guarded-block
         (guard-match (present replacement)
-          (refactoring-rule-refactor rule syntax #:analysis analysis)
+          (refactoring-rule-refactor rule syntax)
           #:else absent)
         (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
           (log-resyntax-warning
