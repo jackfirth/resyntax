@@ -6,6 +6,7 @@
          racket/cmdline
          racket/format
          racket/hash
+         (only-in racket/list shuffle)
          racket/logging
          racket/match
          racket/path
@@ -308,7 +309,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
      (printf "resyntax: --- analyzing code ---\n")]
     [_ (void)])
   (define all-results
-    (transduce (hash-values files)
+    (transduce (shuffle (hash-values files))
                (append-mapping values)
                (append-mapping (refactor-file _ #:suite (resyntax-fix-options-suite options)))
                (if (equal? max-fixes +inf.0) (transducer-pipe) (taking max-fixes))
