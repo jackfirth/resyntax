@@ -15,7 +15,7 @@
          rebellion/private/static-name
          resyntax/refactoring-rule
          resyntax/refactoring-suite
-         resyntax/private/syntax-replacement
+         resyntax/private/syntax-neighbors
          syntax/parse)
 
 
@@ -27,6 +27,28 @@
   #:literals (display displayln)
   (~or (display "\n") (displayln ""))
   (newline))
+
+
+(define-syntax-class newline-by-any-name
+  #:literals (display displayln newline)
+  (pattern (~or (display "\n") (displayln "") (newline))))
+
+
+(define-splicing-syntax-class body-forms-not-starting-with-newline
+  (pattern (~seq))
+  (pattern (~seq (~not :newline-by-any-name) body ...)))
+
+
+(define-definition-context-refactoring-rule display-and-newline-to-displayln
+  #:description "The `displayln` function can be used to display a value with a newline after it."
+  #:literals (display)
+  (~seq before ...
+        (~and display-form (display v))
+        newline-after:newline-by-any-name
+        after:body-forms-not-starting-with-newline)
+  (before ...
+   (~replacement (displayln v) #:original-splice (display-form newline-after))
+   (~@ . after)))
 
 
 (define-syntax-class keywordless-string-join-call
@@ -122,7 +144,8 @@
   (refactoring-suite
    #:name (name string-shortcuts)
    #:rules
-   (list display-newline-to-newline
+   (list display-and-newline-to-displayln
+         display-newline-to-newline
          format-identity
          manual-string-join
          string-append-and-string-join-to-string-join
