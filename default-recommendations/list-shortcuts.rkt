@@ -126,17 +126,14 @@
   (body-before ... (~replacement (for-each proc list ...) #:original map-expr) body-after ...))
 
 
-(define list-shortcuts
-  (refactoring-suite
-   #:name (name list-shortcuts)
-   #:rules
-   (list append-single-list-to-single-list
-         append*-and-map-to-append-map
-         equal-null-list-to-null-predicate
-         filter-to-remove*
-         filter-to-remq*
-         filter-to-remv*
-         first-reverse-to-last
-         ignored-map-to-for-each
-         quasiquote-to-list
-         sort-with-keyed-comparator-to-sort-by-key)))
+(define-refactoring-suite list-shortcuts
+  #:rules (append-single-list-to-single-list
+           append*-and-map-to-append-map
+           equal-null-list-to-null-predicate
+           filter-to-remove*
+           filter-to-remq*
+           filter-to-remv*
+           first-reverse-to-last
+           ignored-map-to-for-each
+           quasiquote-to-list
+           sort-with-keyed-comparator-to-sort-by-key))

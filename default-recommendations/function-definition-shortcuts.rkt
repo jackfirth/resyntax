@@ -104,8 +104,6 @@
     body ...))
 
 
-(define function-definition-shortcuts
-  (refactoring-suite
-   #:name (name function-definition-shortcuts)
-   #:rules (list define-lambda-to-define
-                 define-case-lambda-to-define)))
+(define-refactoring-suite function-definition-shortcuts
+  #:rules (define-lambda-to-define
+            define-case-lambda-to-define))

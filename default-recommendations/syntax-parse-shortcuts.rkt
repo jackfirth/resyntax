@@ -34,8 +34,5 @@
   ((~replacement define-syntax-parse-rule #:original original) header form ...))
 
 
-(define syntax-parse-shortcuts
-  (refactoring-suite
-   #:name (name syntax-parse-shortcuts)
-   #:rules
-   (list define-simple-macro-to-define-syntax-parse-rule)))
+(define-refactoring-suite syntax-parse-shortcuts
+  #:rules (define-simple-macro-to-define-syntax-parse-rule))

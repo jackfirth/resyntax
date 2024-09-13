@@ -72,12 +72,9 @@
   (provide (contract-out (~@ . submod) item ...)))
 
 
-(define contract-shortcuts
-  (refactoring-suite
-   #:name (name contract-shortcuts)
-   #:rules
-   (list arrow-contract-with-rest-to-arrow-contract-with-ellipses
-         explicit-path-string?-to-path-string?
-         nested-or/c-to-flat-or/c
-         nested-and/c-to-flat-and/c
-         provide/contract-to-contract-out)))
+(define-refactoring-suite contract-shortcuts
+  #:rules (arrow-contract-with-rest-to-arrow-contract-with-ellipses
+           explicit-path-string?-to-path-string?
+           nested-or/c-to-flat-or/c
+           nested-and/c-to-flat-and/c
+           provide/contract-to-contract-out))

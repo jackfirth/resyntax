@@ -37,7 +37,5 @@
   (provide deduped-spec ...))
 
 
-(define require-and-provide-suggestions
-  (refactoring-suite
-   #:name (name require-and-provide-suggestions)
-   #:rules (list provide-deduplication)))
+(define-refactoring-suite require-and-provide-suggestions
+  #:rules (provide-deduplication))

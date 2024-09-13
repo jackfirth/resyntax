@@ -110,9 +110,7 @@
   (<= comparison.lower-bound comparison.x comparison.upper-bound))
 
 
-(define comparison-shortcuts
-  (refactoring-suite
-   #:name (name comparison-shortcuts)
-   #:rules (list comparison-of-difference-and-zero-to-direct-comparison
-                 two-exclusive-comparisons-to-triple-comparison
-                 two-inclusive-comparisons-to-triple-comparison)))
+(define-refactoring-suite comparison-shortcuts
+  #:rules (comparison-of-difference-and-zero-to-direct-comparison
+           two-exclusive-comparisons-to-triple-comparison
+           two-inclusive-comparisons-to-triple-comparison))

@@ -376,23 +376,20 @@ return just that result."
   (for-id (clause ... #:unless condition) body ...))
 
 
-(define for-loop-shortcuts
-  (refactoring-suite
-   #:name (name for-loop-shortcuts)
-   #:rules
-   (list andmap-to-for/and
-         apply-append-for-loop-to-for-loop
-         apply-plus-to-for/sum
-         for/fold-building-hash-to-for/hash
-         for/fold-result-keyword
-         for-each-to-for
-         list->set-to-for/set
-         list->vector-to-for/vector
-         map-to-for
-         named-let-loop-to-for/list
-         named-let-loop-to-for/first-in-vector
-         nested-for-to-for*
-         or-in-for/and-to-filter-clause
-         ormap-to-for/or
-         unless-expression-in-for-loop-to-unless-keyword
-         when-expression-in-for-loop-to-when-keyword)))
+(define-refactoring-suite for-loop-shortcuts
+  #:rules (andmap-to-for/and
+           apply-append-for-loop-to-for-loop
+           apply-plus-to-for/sum
+           for/fold-building-hash-to-for/hash
+           for/fold-result-keyword
+           for-each-to-for
+           list->set-to-for/set
+           list->vector-to-for/vector
+           map-to-for
+           named-let-loop-to-for/list
+           named-let-loop-to-for/first-in-vector
+           nested-for-to-for*
+           or-in-for/and-to-filter-clause
+           ormap-to-for/or
+           unless-expression-in-for-loop-to-unless-keyword
+           when-expression-in-for-loop-to-when-keyword))

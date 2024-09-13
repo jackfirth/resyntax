@@ -87,14 +87,11 @@
   ((~replacement when #:original unless-id) negated.flipped body ...))
 
 
-(define boolean-shortcuts
-  (refactoring-suite
-   #:name (name boolean-shortcuts)
-   #:rules
-   (list if-then-false-else-true-to-not
-         if-then-true-else-false-to-condition
-         if-else-false-to-and
-         inverted-when
-         inverted-unless
-         nested-and-to-flat-and
-         nested-or-to-flat-or)))
+(define-refactoring-suite boolean-shortcuts
+  #:rules (if-then-false-else-true-to-not
+           if-then-true-else-false-to-condition
+           if-else-false-to-and
+           inverted-when
+           inverted-unless
+           nested-and-to-flat-and
+           nested-or-to-flat-or))

@@ -36,9 +36,6 @@
   (body-before ... expr))
 
 
-(define definition-shortcuts
-  (refactoring-suite
-   #:name (name definition-shortcuts)
-   #:rules
-   (list define-values-values-to-define
-         inline-unnecessary-define)))
+(define-refactoring-suite definition-shortcuts
+  #:rules (define-values-values-to-define
+            inline-unnecessary-define))

@@ -65,13 +65,10 @@
   e)
 
 
-(define numeric-shortcuts
-  (refactoring-suite
-   #:name (name numeric-shortcuts)
-   #:rules
-   (list add1-lambda-to-add1
-         single-argument-multiply-to-identity
-         single-argument-plus-to-identity
-         sub1-lambda-to-sub1
-         zero-comparison-lambda-to-negative?
-         zero-comparison-lambda-to-positive?)))
+(define-refactoring-suite numeric-shortcuts
+  #:rules (add1-lambda-to-add1
+           single-argument-multiply-to-identity
+           single-argument-plus-to-identity
+           sub1-lambda-to-sub1
+           zero-comparison-lambda-to-negative?
+           zero-comparison-lambda-to-positive?))

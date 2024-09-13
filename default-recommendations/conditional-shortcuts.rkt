@@ -215,17 +215,14 @@
         (~replacement [else else-expr.refactored ...] #:original else-expr)))
 
 
-(define conditional-shortcuts
-  (refactoring-suite
-   #:name (name conditional-shortcuts)
-   #:rules
-   (list always-throwing-cond-to-when
-         always-throwing-if-to-when
-         cond-else-cond-to-cond
-         cond-let-to-cond-define
-         if-begin-to-cond
-         if-else-false-to-and
-         if-let-to-cond
-         if-void-to-when-or-unless
-         if-x-else-x-to-and
-         nested-if-to-cond)))
+(define-refactoring-suite conditional-shortcuts
+  #:rules (always-throwing-cond-to-when
+           always-throwing-if-to-when
+           cond-else-cond-to-cond
+           cond-let-to-cond-define
+           if-begin-to-cond
+           if-else-false-to-and
+           if-let-to-cond
+           if-void-to-when-or-unless
+           if-x-else-x-to-and
+           nested-if-to-cond))

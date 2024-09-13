@@ -77,13 +77,11 @@
   (match match-subject [#false #false] match-clause ...))
 
 
-(define miscellaneous-suggestions
-  (refactoring-suite
-   #:name (name miscellaneous-suggestions)
-   #:rules (list and-match-to-match
-                 cond-begin-to-cond
-                 cond-else-if-to-cond
-                 if-then-begin-to-cond
-                 if-else-begin-to-cond
-                 if-else-cond-to-cond
-                 or-cond-to-cond)))
+(define-refactoring-suite miscellaneous-suggestions
+  #:rules (and-match-to-match
+           cond-begin-to-cond
+           cond-else-if-to-cond
+           if-then-begin-to-cond
+           if-else-begin-to-cond
+           if-else-cond-to-cond
+           or-cond-to-cond))

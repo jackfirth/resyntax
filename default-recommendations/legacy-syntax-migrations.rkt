@@ -96,16 +96,13 @@
   ((~replacement syntax-local-introduce #:original id) stx))
 
 
-(define legacy-syntax-migrations
-  (refactoring-suite
-   #:name (name legacy-syntax-migrations)
-   #:rules
-   (list datum->syntax-migration
-         syntax-disarm-migration
-         syntax-local-match-introduce-migration
-         syntax-local-provide-introduce-migration
-         syntax-local-require-introduce-migration
-         syntax-local-syntax-parse-pattern-introduce-migration
-         syntax-protect-migration
-         syntax-rearm-migration
-         syntax-recertify-migration)))
+(define-refactoring-suite legacy-syntax-migrations
+  #:rules (datum->syntax-migration
+           syntax-disarm-migration
+           syntax-local-match-introduce-migration
+           syntax-local-provide-introduce-migration
+           syntax-local-require-introduce-migration
+           syntax-local-syntax-parse-pattern-introduce-migration
+           syntax-protect-migration
+           syntax-rearm-migration
+           syntax-recertify-migration))

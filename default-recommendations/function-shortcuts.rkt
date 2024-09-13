@@ -72,9 +72,6 @@
   (λ args body ...))
 
 
-(define function-shortcuts
-  (refactoring-suite
-   #:name (name function-shortcuts)
-   #:rules
-   (list apply-flattening
-         case-lambda-with-single-case-to-lambda)))
+(define-refactoring-suite function-shortcuts
+  #:rules (apply-flattening
+           case-lambda-with-single-case-to-lambda))

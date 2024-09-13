@@ -44,8 +44,5 @@
   (format-id lctx fmt arg.simplified ...))
 
 
-(define syntax-shortcuts
-  (refactoring-suite
-   #:name (name syntax-shortcuts)
-   #:rules
-   (list syntax-e-in-format-id-unnecessary)))
+(define-refactoring-suite syntax-shortcuts
+  #:rules (syntax-e-in-format-id-unnecessary))
