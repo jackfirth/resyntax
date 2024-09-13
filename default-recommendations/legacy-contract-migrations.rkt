@@ -82,6 +82,14 @@
   (struct id fields #:extra-constructor-name make-id))
 
 
+(define-refactoring-rule predicate/c-migration
+  #:description
+  "The `predicate/c` contract is less clear than a `->` contract and no longer improves performance."
+  #:literals (predicate/c)
+  predicate/c
+  (-> any/c boolean?))
+
+
 (define legacy-contract-migrations
   (refactoring-suite
    #:name (name legacy-contract-migrations)
@@ -91,6 +99,7 @@
          define-contract-struct-migration
          false/c-migration
          flat-contract-migration
+         predicate/c-migration
          symbols-migration
          vector-immutableof-migration
          vector-immutable/c-migration)))
