@@ -17,6 +17,18 @@ test: "display newline refactorable to newline"
 - (newline)
 
 
+test: "display followed by newline refactorable to displayln"
+------------------------------
+(define (foo)
+  (display 42)
+  (newline))
+------------------------------
+------------------------------
+(define (foo)
+  (displayln 42))
+------------------------------
+
+
 test: "string-append before string-join refactorable to string-join with #:before-first"
 - (string-append "The " (string-join (list "fox" "hen" "dog")))
 - (string-join (list "fox" "hen" "dog") #:before-first "The ")
