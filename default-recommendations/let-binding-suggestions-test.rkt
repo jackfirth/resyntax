@@ -235,6 +235,19 @@ test: "self-shadowing let*-values binding clause isn't refactorable"
 ------------------------------
 
 
+test: "let binding that only appears self shadowing before expansion (issue #230)"
+------------------------------
+(define (f b)
+  (let ([x (let ([x 1]) (+ x 1))])
+    (+ x 1)))
+------------------------------
+------------------------------
+(define (f b)
+  (define x (let ([x 1]) (+ x 1)))
+  (+ x 1))
+------------------------------
+
+
 test: "let* with later right-hand-sides referring to earlier bindings is refactorable"
 ------------------------------
 (define (f a)
