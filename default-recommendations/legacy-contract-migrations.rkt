@@ -90,16 +90,13 @@
   (-> any/c boolean?))
 
 
-(define legacy-contract-migrations
-  (refactoring-suite
-   #:name (name legacy-contract-migrations)
-   #:rules
-   (list box-immutable/c-migration
-         contract-struct-migration
-         define-contract-struct-migration
-         false/c-migration
-         flat-contract-migration
-         predicate/c-migration
-         symbols-migration
-         vector-immutableof-migration
-         vector-immutable/c-migration)))
+(define-refactoring-suite legacy-contract-migrations
+  #:rules (box-immutable/c-migration
+           contract-struct-migration
+           define-contract-struct-migration
+           false/c-migration
+           flat-contract-migration
+           predicate/c-migration
+           symbols-migration
+           vector-immutableof-migration
+           vector-immutable/c-migration))

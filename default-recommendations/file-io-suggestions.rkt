@@ -65,7 +65,5 @@
   (make-temporary-directory (~? template-arg) (~? (~@ #:base-dir base-dir-arg))))
 
 
-(define file-io-suggestions
-  (refactoring-suite
-   #:name (name file-io-suggestions)
-   #:rules (list make-temporary-directory-migration)))
+(define-refactoring-suite file-io-suggestions
+  #:rules (make-temporary-directory-migration))

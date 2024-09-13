@@ -140,13 +140,10 @@
   s)
 
 
-(define string-shortcuts
-  (refactoring-suite
-   #:name (name string-shortcuts)
-   #:rules
-   (list display-and-newline-to-displayln
-         display-newline-to-newline
-         format-identity
-         manual-string-join
-         string-append-and-string-join-to-string-join
-         string-append-identity)))
+(define-refactoring-suite string-shortcuts
+  #:rules (display-and-newline-to-displayln
+           display-newline-to-newline
+           format-identity
+           manual-string-join
+           string-append-and-string-join-to-string-join
+           string-append-identity))

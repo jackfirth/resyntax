@@ -35,8 +35,5 @@
   (body-before ... (match-define pattern subject) body-after ...))
 
 
-(define match-shortcuts
-  (refactoring-suite
-   #:name (name match-shortcuts)
-   #:rules
-   (list single-clause-match-to-match-define)))
+(define-refactoring-suite match-shortcuts
+   #:rules (single-clause-match-to-match-define))

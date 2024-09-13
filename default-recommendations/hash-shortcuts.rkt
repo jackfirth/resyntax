@@ -129,14 +129,12 @@
   (hash-values h))
 
 
-(define hash-shortcuts
-  (refactoring-suite
-   #:name (name hash-shortcuts)
-   #:rules (list hash-map-to-hash-keys
-                 hash-map-to-hash-values
-                 hash-ref-set!-to-hash-ref!
-                 hash-ref-set!-with-constant-to-hash-ref!
-                 hash-ref-with-constant-lambda-to-hash-ref-without-lambda
-                 hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
-                 hash-set!-ref-to-hash-update!
-                 or-hash-ref-set!-to-hash-ref!)))
+(define-refactoring-suite hash-shortcuts
+  #:rules (hash-map-to-hash-keys
+           hash-map-to-hash-values
+           hash-ref-set!-to-hash-ref!
+           hash-ref-set!-with-constant-to-hash-ref!
+           hash-ref-with-constant-lambda-to-hash-ref-without-lambda
+           hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
+           hash-set!-ref-to-hash-update!
+           or-hash-ref-set!-to-hash-ref!))

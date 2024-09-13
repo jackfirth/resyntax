@@ -27,8 +27,5 @@
   (define-syntax-rule (macro . pattern) template))
 
 
-(define syntax-rules-shortcuts
-  (refactoring-suite
-   #:name (name syntax-rules-shortcuts)
-   #:rules
-   (list define-syntax-syntax-rules-to-define-syntax-rule)))
+(define-refactoring-suite syntax-rules-shortcuts
+  #:rules (define-syntax-syntax-rules-to-define-syntax-rule))

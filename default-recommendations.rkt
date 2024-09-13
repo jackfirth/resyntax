@@ -62,37 +62,34 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define default-recommendations
-  (refactoring-suite
-   #:name (name default-recommendations)
-   #:rules
-   (append (refactoring-suite-rules boolean-shortcuts)
-           (refactoring-suite-rules comparison-shortcuts)
-           (refactoring-suite-rules conditional-shortcuts)
-           (refactoring-suite-rules contract-shortcuts)
-           (refactoring-suite-rules definition-shortcuts)
-           (refactoring-suite-rules file-io-suggestions)
-           (refactoring-suite-rules for-loop-shortcuts)
-           (refactoring-suite-rules function-definition-shortcuts)
-           (refactoring-suite-rules function-shortcuts)
-           (refactoring-suite-rules hash-shortcuts)
-           (refactoring-suite-rules legacy-contract-migrations)
+(define-refactoring-suite default-recommendations
+  #:suites (boolean-shortcuts
+            comparison-shortcuts
+            conditional-shortcuts
+            contract-shortcuts
+            definition-shortcuts
+            file-io-suggestions
+            for-loop-shortcuts
+            function-definition-shortcuts
+            function-shortcuts
+            hash-shortcuts
+            legacy-contract-migrations
 
-           ;; Excluded for lots of reasons. See the following github issues:
-           ;; - jackfirth/resyntax#47
-           ;; - sorawee/fmt#29
-           ;; - sorawee/fmt#60
-           ;; - sorawee/fmt#65
-           ;; (refactoring-suite-rules legacy-struct-migrations)
+            ;; Excluded for lots of reasons. See the following github issues:
+            ;; - jackfirth/resyntax#47
+            ;; - sorawee/fmt#29
+            ;; - sorawee/fmt#60
+            ;; - sorawee/fmt#65
+            ;; legacy-struct-migrations
 
-           (refactoring-suite-rules legacy-syntax-migrations)
-           (refactoring-suite-rules let-binding-suggestions)
-           (refactoring-suite-rules list-shortcuts)
-           (refactoring-suite-rules match-shortcuts)
-           (refactoring-suite-rules miscellaneous-suggestions)
-           (refactoring-suite-rules numeric-shortcuts)
-           (refactoring-suite-rules require-and-provide-suggestions)
-           (refactoring-suite-rules string-shortcuts)
-           (refactoring-suite-rules syntax-shortcuts)
-           (refactoring-suite-rules syntax-parse-shortcuts)
-           (refactoring-suite-rules syntax-rules-shortcuts))))
+            legacy-syntax-migrations
+            let-binding-suggestions
+            list-shortcuts
+            match-shortcuts
+            miscellaneous-suggestions
+            numeric-shortcuts
+            require-and-provide-suggestions
+            string-shortcuts
+            syntax-shortcuts
+            syntax-parse-shortcuts
+            syntax-rules-shortcuts))

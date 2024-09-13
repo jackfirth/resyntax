@@ -51,5 +51,5 @@
     #:extra-constructor-name id.make-id))
 
 
-(define legacy-struct-migrations
-  (refactoring-suite #:name (name legacy-struct-migrations) #:rules (list define-struct-to-struct)))
+(define-refactoring-suite legacy-struct-migrations
+  #:rules (define-struct-to-struct))

@@ -105,13 +105,10 @@
   body)
 
 
-(define let-binding-suggestions
-  (refactoring-suite
-   #:name (name let-binding-suggestions)
-   #:rules
-   (list begin0-let-to-define-begin0
-         define-let-to-double-define
-         delete-redundant-let
-         let-to-define
-         let-values-then-call-to-call-with-values
-         named-let-to-plain-let)))
+(define-refactoring-suite let-binding-suggestions
+  #:rules (let-to-define
+           begin0-let-to-define-begin0
+           define-let-to-double-define
+           delete-redundant-let
+           let-values-then-call-to-call-with-values
+           named-let-to-plain-let))

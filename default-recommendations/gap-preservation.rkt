@@ -80,15 +80,12 @@
   ((~replacement "foo" #:original old1) a ... (~replacement "foo" #:original old2)))
 
 
-(define gap-preservation-rules
-  (refactoring-suite
-   #:name (name gap-preservation-rules)
-   #:rules
-   (list suggest-inserting-foo-first
-         suggest-inserting-foo-second
-         suggest-inserting-foo-last
-         suggest-inserting-foo-first-and-last
-         suggest-replacing-first-with-foo
-         suggest-replacing-second-with-foo
-         suggest-replacing-last-with-foo
-         suggest-replacing-first-and-last-with-foo)))
+(define-refactoring-suite gap-preservation-rules
+  #:rules (suggest-inserting-foo-first
+           suggest-inserting-foo-second
+           suggest-inserting-foo-last
+           suggest-inserting-foo-first-and-last
+           suggest-replacing-first-with-foo
+           suggest-replacing-second-with-foo
+           suggest-replacing-last-with-foo
+           suggest-replacing-first-and-last-with-foo))
