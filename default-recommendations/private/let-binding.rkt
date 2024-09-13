@@ -52,13 +52,14 @@
 
   (pattern [all-ids:id-list rhs:expr]
     #:do [(log-resyntax-debug
-           "refactorable-let-expression: checking binding-clause not self shadowing: ~a"
+           "refactorable-let-expression: checking binding-clause not self-shadowing: ~a"
            this-syntax)]
     #:when (for*/and ([rhs-free-id (in-free-id-set (syntax-free-identifiers (attribute rhs)))]
                       [id (in-list (attribute all-ids.id))])
-             (log-resyntax-debug "refactorable-let-expression: checking identifier not shadowed: ~a"
-                                 rhs-free-id)
-             (identifier-binding-unchanged-in-context? rhs-free-id id))
+             (log-resyntax-debug
+              "refactorable-let-expression: checking identifier ~a not shadowed by ~a"
+              rhs-free-id id)
+             (identifier-would-self-shadow? id rhs-free-id #:full-right-hand-side (attribute rhs)))
     #:cut
     #:with (id ...) (attribute all-ids.id)
     #:with definition
@@ -105,6 +106,12 @@
     #:with (definition ...)
     #`(~splicing-replacement ((~replacement clause.definition #:original clause) ...)
                              #:original #,this-syntax)))
+
+
+
+(define (identifier-would-self-shadow? id rhs-id #:full-right-hand-side rhs)
+  (or (identifier-binding-unchanged-in-context? rhs-id id)
+      (not (free-identifier=? rhs-id (identifier-in-context rhs-id rhs)))))
 
 
 (define (identifier-binding-unchanged-in-context? id context)
