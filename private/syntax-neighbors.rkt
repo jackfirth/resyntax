@@ -109,7 +109,9 @@
                         #'orig-syntax))
      (define new-stx-with-subform-props
        (datum->syntax #'new-stx #`(#,subform-with-props) #'new-stx #'new-stx))
-     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]))
+     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]
+    [(_ (~and new-stx ()) #:original orig-syntax)
+     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]))
 
 
 (define (syntax-extract-originals-from-pair left-stx right-stx)

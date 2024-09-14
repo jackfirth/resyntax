@@ -8,6 +8,22 @@ header:
 - #lang racket/base
 
 
+test: "empty let form"
+------------------------------
+(define (f)
+  (let ()
+    (displayln "foo")
+    (displayln "foo")
+    1))
+------------------------------
+------------------------------
+(define (f)
+  (displayln "foo")
+  (displayln "foo")
+  1)
+------------------------------
+
+
 test: "single let binding"
 ------------------------------
 (define (f)
