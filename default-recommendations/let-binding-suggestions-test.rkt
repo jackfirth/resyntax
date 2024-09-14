@@ -430,6 +430,21 @@ test: "let forms inside for loop bodies"
 ------------------------------
 
 
+test: "let forms at module level not refactorable to define"
+------------------------------
+(let ([x 1])
+  (* x 2))
+------------------------------
+
+
+test: "let forms at submodule level not refactorable to define"
+------------------------------
+(module+ test
+  (let ([x 1])
+    (* x 2)))
+------------------------------
+
+
 test: "named lets which don't refer to the name are refactorable to unnamed lets"
 ------------------------------
 (let loop ([x 1]) x)

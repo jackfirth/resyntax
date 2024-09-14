@@ -32,10 +32,6 @@
 (define-splicing-syntax-class header-form-allowing-internal-definitions
   #:attributes ([original 1])
   #:literals (block
-              #%module-begin
-              module
-              module*
-              module+
               let
               let*
               let-values
@@ -100,14 +96,13 @@
 
 
 (define-syntax-class header-id-with-no-header-forms
-  #:literals (block #%module-begin)
-  (pattern (~or block #%module-begin)))
+  #:literals (block)
+  (pattern block))
 
 
 (define-syntax-class header-id-with-one-header-form
-  #:literals (module+
-                 let*
-               let-values
+  #:literals (let*
+                 let-values
                let*-values
                when
                unless
@@ -138,7 +133,6 @@
                for*/first
                for*/last)
   (pattern (~or :lambda-by-any-name
-                module+
                 let*
                 let-values
                 let*-values
@@ -173,8 +167,8 @@
 
 
 (define-syntax-class header-id-with-two-header-forms
-  #:literals (module module* for/fold for*/fold)
-  (pattern (~or module module* for/fold for*/fold)))
+  #:literals (for/fold for*/fold)
+  (pattern (~or for/fold for*/fold)))
 
 
 (define-splicing-syntax-class branching-form-allowing-internal-definitions-within-clauses
