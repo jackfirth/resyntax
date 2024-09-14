@@ -54,3 +54,36 @@ test: "provide deduplication doesn't affect exports at different phases"
 (begin-for-syntax
   (define foo 2))
 ----------------------------------------
+
+
+test: "require tidying sorts collection paths by name"
+----------------------------------------
+(require racket/string
+         racket/hash
+         racket/list)
+----------------------------------------
+----------------------------------------
+(require racket/hash
+         racket/list
+         racket/string)
+----------------------------------------
+
+
+
+test: "require tidying does nothing when collection paths already sorted by name"
+----------------------------------------
+(require racket/hash
+         racket/list
+         racket/string)
+----------------------------------------
+
+
+test: "require tidying sorts for-syntax before plain"
+----------------------------------------
+(require racket/list
+         (for-syntax racket/string))
+----------------------------------------
+----------------------------------------
+(require (for-syntax racket/string)
+         racket/list)
+----------------------------------------

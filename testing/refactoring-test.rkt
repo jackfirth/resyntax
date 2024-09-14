@@ -181,7 +181,18 @@
 
 
 (define-check (check-suite-does-not-refactor suite original-program)
-  (define results (refactor original-program #:suite suite))
+  (define logged-messages-builder (make-vector-builder))
+
+  (define (save-log log-entry)
+    (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
+
+  (define (call-with-logs-captured proc)
+    (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug 'resyntax))
+
+  (define (build-logs-info)
+    (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
+
+  (define results (call-with-logs-captured (λ () (refactor original-program #:suite suite))))
   (define replacement
     (transduce results
                (mapping refactoring-result-string-replacement)
@@ -192,11 +203,13 @@
           '()
           (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
     (λ ()
-      (with-check-info (['actual (string-block refactored-program)]
+      (with-check-info (['logs (build-logs-info)]
+                        ['actual (string-block refactored-program)]
                         ['original (string-block original-program)])
         (unless (equal? refactored-program original-program)
           (fail-check "expected no changes, but changes were made")))
-      (with-check-info (['actual (string-block refactored-program)])
+      (with-check-info (['logs (build-logs-info)]
+                        ['actual (string-block refactored-program)])
         (unless (empty? results)
           (fail-check "the program was not changed, but no-op fixes were suggested"))))))
 
