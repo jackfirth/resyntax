@@ -27,24 +27,44 @@
 
 
 (define-splicing-syntax-class body-with-refactorable-let-expression
-  #:attributes ([refactored 1])
+  #:attributes ([refactored 1] [id 1])
   (pattern
     (~seq leading-body ... let-expression:refactorable-let-expression)
-    #:with (refactored ...) #'(leading-body ... (~@ let-expression.refactored ...))))
+    #:with (refactored ...) #'(leading-body ... (~@ let-expression.refactored ...))
+    #:with (id ...) (attribute let-expression.id)))
 
 
 (define-syntax-class refactorable-let-expression
-  #:attributes ([refactored 1])
-  #:literals (let let-values let* let*-values)
-  (pattern
-    (~or ((~or let let-values) ~! bindings:binding-group body ...+)
-         ((~or let* let*-values) ~! (~var bindings (binding-group #:nested? #true)) body ...+))
-    #:when (for/and ([id (attribute bindings.id)])
+  #:attributes ([refactored 1] [id 1])
+  (pattern (header:let-header body:let-body)
+    #:with (id ...) (append (attribute header.id) (attribute body.id))
+    #:when (for/and ([id (attribute id)])
              (not (identifier-has-exact-binding-in-context? id this-syntax)))
-    #:when (for/and ([id (attribute bindings.id)])
-             (identifier-binding-unchanged-in-context? id (first (attribute body))))
+    #:when (not (check-duplicate-identifier
+                 (for/list ([id (attribute id)])
+                   (identifier-in-context id this-syntax))))
+    #:when (for/and ([id (attribute header.id)])
+             (identifier-binding-unchanged-in-context? id (attribute body.first-body)))
     #:with (refactored ...)
-    #`(~splicing-replacement (bindings.definition ... body ...) #:original #,this-syntax)))
+    #`(~splicing-replacement (header.definition ... body.refactored ...) #:original #,this-syntax)))
+
+
+(define-splicing-syntax-class let-body
+  #:attributes (first-body [refactored 1] [id 1])
+  (pattern :body-with-refactorable-let-expression
+    #:with first-body (first (attribute refactored)))
+  (pattern (~seq first-body body ...)
+    #:with (refactored ...) this-syntax
+    #:with (id ...) '()))
+  
+
+(define-splicing-syntax-class let-header
+  #:attributes ([id 1] [definition 1])
+  #:literals (let let-values let* let*-values)
+  (pattern (~seq (~or let let-values) ~! :binding-group))
+  (pattern (~seq (~or let* let*-values) ~! (~var bindings (binding-group #:nested? #true)))
+    #:attr [id 1] (attribute bindings.id)
+    #:attr [definition 1] (attribute bindings.definition)))
 
 
 (define-syntax-class binding-clause
