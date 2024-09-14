@@ -94,7 +94,12 @@
        (for/list ([file (in-directory path)])
          (file-portion file (range-set (unbounded-range #:comparator natural<=>))))]
       [(package-file-group package-name)
-       (for/list ([file (in-directory (simple-form-path (pkg-directory package-name)))])
+       (define pkgdir (pkg-directory package-name))
+       (unless pkgdir
+         (raise-user-error 'resyntax
+                           "cannot analyze package ~a, it hasn't been installed"
+                           package-name))
+       (for/list ([file (in-directory (simple-form-path pkgdir))])
          (file-portion file (range-set (unbounded-range #:comparator natural<=>))))]
       [(git-repository-file-group repository-path ref)
        (parameterize ([current-directory repository-path])
