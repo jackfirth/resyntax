@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-**Describe the lint you'd like to see added to Resyntax. Include example code in the test case below.**
+_Describe the lint you'd like to see added to Resyntax. Include example code in the test case below._
 
 ```
 #lang resyntax/private/refactoring-test
@@ -22,4 +22,4 @@ assignees: ''
 --------------------
 ```
 
-**If applicable, include links to files where this lint would help.**
+_If applicable, include links to files where this lint would help._
