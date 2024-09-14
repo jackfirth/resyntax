@@ -78,6 +78,14 @@ test: "require tidying does nothing when collection paths already sorted by name
 ----------------------------------------
 
 
+test: "require tidying removes duplicate imports"
+----------------------------------------
+(require racket/list
+         racket/list)
+----------------------------------------
+- (require racket/list)
+
+
 test: "require tidying sorts for-syntax before plain"
 ----------------------------------------
 (require racket/list

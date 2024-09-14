@@ -148,6 +148,15 @@
     [(parsed-simple-import _ _ 'other _) #false]))
 
 
+(define (parsed-import-spec-without-syntax import)
+  (match import
+    [(parsed-simple-import phase phase-form 'collection id)
+     (parsed-simple-import phase phase-form 'collection (symbol->immutable-string (syntax-e id)))]
+    [(parsed-simple-import phase phase-form 'file str-stx)
+     (parsed-simple-import phase phase-form 'file (string->immutable-string (syntax-e str-stx)))]
+    [(parsed-simple-import _ _ 'other _) import]))
+
+
 (define parsed-import-spec<=>
   (comparator-chain (comparator-map phase-form<=> parsed-simple-import-phase-form)
                     (comparator-map import-kind<=> parsed-simple-import-kind)
@@ -175,6 +184,7 @@
   (define sorted-specs
     (transduce imports
                (sorting parsed-import-spec<=>)
+               (deduplicating-consecutive #:key parsed-import-spec-without-syntax)
                (mapping parsed-simple-import-plain-spec)
                #:into into-list))
   (log-resyntax-debug "sorted specs at phase ~a: ~a" phase sorted-specs)
