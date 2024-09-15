@@ -193,7 +193,16 @@
   (define initial-columns (string-column-offset refactored-source-code start))
   (log-resyntax-debug "about to format unformatted code at indentation ~a:\n~a"
                       initial-columns changed-code-substring)
-  (define formatted-code-substring (program-format changed-code-substring #:indent initial-columns))
+
+  ;; We could use the #:indent argument to program-format instead of lying to it about how much
+  ;; horizontal space is available and indenting the resulting string. However, fmt has some odd
+  ;; behavior in how it handles formatting regions with multiple expressions (sorawee/fmt#70) and
+  ;; regions with commented top-level expressions (sorawee/fmt#68).
+  (define allowed-width (- (current-width) initial-columns))
+  (define formatted-code-substring
+    (string-hanging-indent (program-format changed-code-substring #:width allowed-width)
+                           #:amount initial-columns))
+
   (string-replacement #:start start
                       #:end (string-replacement-original-end replacement)
                       #:contents (list (inserted-string formatted-code-substring))))
