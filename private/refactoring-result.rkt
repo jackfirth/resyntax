@@ -80,15 +80,15 @@
 
 
 (define (refactoring-result-original-code result)
-  (define stx-replacement (refactoring-result-syntax-replacement result))
-  (define original (syntax-replacement-original-syntax stx-replacement))
-  (define start (sub1 (syntax-position original)))
-  (define end (+ start (syntax-span original)))
-  (define start-column (syntax-column original))
-  (define raw-text
-    (string->immutable-string
-     (substring (source->string (syntax-replacement-source stx-replacement)) start end)))
-  (code-snippet raw-text start-column (syntax-line original)))
+  (define replacement (refactoring-result-string-replacement result))
+  (define full-orig-code
+    (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+  (define lmap (string-linemap full-orig-code))
+  (define start (string-replacement-start replacement))
+  (define end (string-replacement-original-end replacement))
+  (define start-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
+  (define raw-text (string->immutable-string (substring full-orig-code start end)))
+  (code-snippet raw-text start-column (linemap-position-to-line lmap (add1 start))))
 
 
 (struct string-slice (full-string subrange-start subrange-end) #:transparent)
@@ -101,13 +101,14 @@
 
 
 (define (refactoring-result-new-code result)
-  (define stx-replacement (refactoring-result-syntax-replacement result))
-  (define original (syntax-replacement-original-syntax stx-replacement))
-  (define original-line (syntax-line original))
-  (define original-column (syntax-column original))
   (define replacement (refactoring-result-string-replacement result))
-  (define source-code (source->string (syntax-replacement-source stx-replacement)))
-  (define refactored-source-code (string-apply-replacement source-code replacement))
+  (define full-orig-code
+    (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+  (define lmap (string-linemap full-orig-code))
+  (define start (string-replacement-start replacement))
+  (define original-line (linemap-position-to-line lmap (add1 start)))
+  (define original-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
+  (define refactored-source-code (string-apply-replacement full-orig-code replacement))
   (define new-code-string
     (substring refactored-source-code
                (string-replacement-start replacement)
