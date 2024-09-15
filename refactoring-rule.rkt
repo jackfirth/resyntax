@@ -15,7 +15,8 @@
 (module+ private
   (provide
    (contract-out
-    [refactoring-rule-refactor (-> refactoring-rule? syntax? (option/c syntax-replacement?))])))
+    [refactoring-rule-refactor
+     (-> refactoring-rule? syntax? source? (option/c syntax-replacement?))])))
 
 
 (require (for-syntax racket/base
@@ -40,7 +41,7 @@
   #:constructor-name constructor:refactoring-rule)
 
 
-(define (refactoring-rule-refactor rule syntax)
+(define (refactoring-rule-refactor rule syntax source)
 
   ;; Before refactoring the input syntax, we do two things: create a new scope and add it, and
   ;; traverse the syntax object making a note of each subform's original neighbors. Combined,
@@ -55,6 +56,7 @@
    ((refactoring-rule-transformer rule) prepared-syntax)
    (λ (new-syntax)
      (syntax-replacement
+      #:source source
       #:original-syntax syntax
       #:new-syntax (rule-introduction-scope new-syntax)
       #:introduction-scope rule-introduction-scope))))

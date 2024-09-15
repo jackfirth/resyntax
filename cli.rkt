@@ -27,6 +27,7 @@
          resyntax/private/github
          resyntax/private/logger
          resyntax/private/string-indent
+         resyntax/private/syntax-replacement
          resyntax/private/refactoring-result
          resyntax/private/source)
 
@@ -212,7 +213,9 @@ For help on these, use 'analyze --help' or 'fix --help'."
     (match (resyntax-analyze-options-output-format options)
       [(== plain-text)
        (for ([result (in-list results)])
-         (define path (file-source-path (refactoring-result-source result)))
+         (define path
+           (file-source-path
+            (syntax-replacement-source (refactoring-result-syntax-replacement result))))
          (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
          (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
          (define old-code (refactoring-result-original-code result))
@@ -317,7 +320,10 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (define results-by-path
     (transduce
      all-results
-     (indexing (λ (result) (file-source-path (refactoring-result-source result))))
+     (indexing
+      (λ (result)
+        (file-source-path
+         (syntax-replacement-source (refactoring-result-syntax-replacement result)))))
      (grouping (into-transduced (sorting #:key refactoring-result-original-line) #:into into-list))
      #:into into-hash))
   (match output-format
