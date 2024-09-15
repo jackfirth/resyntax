@@ -149,20 +149,11 @@
 
 (define-syntax-class let-refactorable-cond-clause
   #:attributes (refactored)
-  (pattern
-    (~and clause [condition:expr let-expr:body-with-refactorable-let-expression])
+  (pattern [condition:expr leading-body ... let-expr:refactorable-let-expression]
     #:with refactored
-    #'(~replacement [condition let-expr.refactored ...] #:original clause)))
-
-
-(define (first-syntax stx)
-  (define as-list (syntax->list stx))
-  (and as-list (not (empty? as-list)) (first as-list)))
-
-
-(define (last-syntax stx)
-  (define as-list (syntax->list stx))
-  (and as-list (not (empty? as-list)) (last as-list)))
+    #`(~replacement
+       [condition leading-body ... (~@ . (~focus-replacement-on (let-expr.refactored ...)))]
+       #:original #,this-syntax)))
 
 
 (define-refactoring-rule cond-let-to-cond-define

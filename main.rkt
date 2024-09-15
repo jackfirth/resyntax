@@ -56,7 +56,7 @@
             absent)])
       (guarded-block
         (guard-match (present replacement)
-          (refactoring-rule-refactor rule syntax)
+          (refactoring-rule-refactor rule syntax (source-code-analysis-code analysis))
           #:else absent)
         (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
           (log-resyntax-warning
@@ -81,10 +81,9 @@
           absent)
         (present
          (refactoring-result
-          #:source (source-code-analysis-code analysis)
           #:rule-name (object-name rule)
           #:message (refactoring-rule-description rule)
-          #:replacement replacement)))))
+          #:syntax-replacement replacement)))))
   
   (falsey->option
    (for*/first ([rule (in-list rules)]
@@ -145,7 +144,9 @@
   (define results-by-path
     (transduce results
                (bisecting
-                (λ (result) (file-source-path (refactoring-result-source result)))
+                (λ (result)
+                  (file-source-path
+                   (syntax-replacement-source (refactoring-result-syntax-replacement result))))
                 refactoring-result-string-replacement)
                (grouping union-into-string-replacement)
                #:into into-hash))

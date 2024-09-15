@@ -30,7 +30,7 @@
   #:attributes ([refactored 1] [id 1])
   (pattern
     (~seq leading-body ... let-expression:refactorable-let-expression)
-    #:with (refactored ...) #'(leading-body ... (~@ let-expression.refactored ...))
+    #:with (refactored ...) #'(leading-body ... let-expression.refactored ...)
     #:with (id ...) (attribute let-expression.id)))
 
 

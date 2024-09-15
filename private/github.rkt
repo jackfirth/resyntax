@@ -26,6 +26,7 @@
          resyntax/private/line-replacement
          resyntax/private/run-command
          resyntax/private/string-indent
+         resyntax/private/syntax-replacement
          resyntax/private/source)
 
 
@@ -92,7 +93,8 @@
 
 
 (define (refactoring-result->github-review-comment result)
-  (define path (file-source-path (refactoring-result-source result)))
+  (define path
+    (file-source-path (syntax-replacement-source (refactoring-result-syntax-replacement result))))
   (define replacement (refactoring-result-line-replacement result))
   (define body
     (format #<<EOS
@@ -126,7 +128,8 @@ EOS
             (refactoring-result-message result)
             (line-replacement-new-text replacement)
             (string-indent (pretty-format replacement) #:amount 2)
-            (string-indent (pretty-format (refactoring-result-replacement result)) #:amount 2)))
+            (string-indent (pretty-format (refactoring-result-syntax-replacement result))
+                           #:amount 2)))
   (github-review-comment
    #:path (first (git-path path))
    #:body body

@@ -30,6 +30,7 @@
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/refactoring-rule
          resyntax/refactoring-suite
+         resyntax/private/syntax-replacement
          resyntax/private/syntax-neighbors
          syntax/id-set
          syntax/parse)
@@ -41,8 +42,9 @@
 (define-definition-context-refactoring-rule let-to-define
   #:description
   "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
-  let-expr:body-with-refactorable-let-expression
-  (let-expr.refactored ...))
+  (~seq leading-body ... let-expression:refactorable-let-expression)
+  #:with (replacement ...) #'(~focus-replacement-on (let-expression.refactored ...))
+  (leading-body ... replacement ...))
 
 
 (define-refactoring-rule named-let-to-plain-let
@@ -70,7 +72,7 @@
   #:description "This `let` expression can be pulled up into a `define` expression."
   #:literals (define let)
   (~seq body-before ...
-        (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr))
+        (~and original-definition (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr)))
         body-after ...)
   #:when (identifier-binding-unchanged-in-context? (attribute id) (attribute nested-expr))
   #:when (for/and ([body-free-id
@@ -78,8 +80,9 @@
                      (syntax-free-identifiers #'(body-before ... nested-expr body-after ...)))])
            (identifier-binding-unchanged-in-context? body-free-id (attribute nested-id)))
   (body-before ...
-   (define nested-id nested-expr)
-   (define id expr)
+   (~@ . (~focus-replacement-on
+          (~splicing-replacement ((define nested-id nested-expr) (define id expr))
+                                 #:original original-definition)))
    body-after ...))
 
 
