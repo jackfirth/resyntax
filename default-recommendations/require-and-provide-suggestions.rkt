@@ -167,9 +167,13 @@
   (comparator-chain (comparator-map phase-form<=> phase-level->phase-form) real<=>))
 
 
-(define (import-specs-tidy? specs)
-  (sorted? specs parsed-import-spec<=>))
+(define (simple-spec? spec)
+  (not (equal? (parsed-simple-import-kind spec) 'other)))
 
+
+(define (import-specs-tidy? specs)
+  (and (sorted? specs parsed-import-spec<=>)
+       (sorted? (filter simple-spec? specs) parsed-import-spec<=> #:strictly? #true)))
 
 (define (import-specs-tidy specs)
   (transduce specs
@@ -241,7 +245,7 @@
   (require tidy ...))
 
 
-(define (sorted? seq comparator)
+(define (sorted? seq comparator #:strictly? [strictly? #false])
   (define-values (vs next) (sequence-generate* seq))
   (let loop ([vs vs] [next next] [previous absent])
     (match* (vs previous)
@@ -251,7 +255,9 @@
        (loop vs* next* (present v))]
       [((list v) (present prev))
        (cond
-         [(compare-infix comparator prev < v)
+         [(if strictly?
+              (compare-infix comparator prev < v)
+              (compare-infix comparator prev <= v))
           (define-values (vs* next*) (next))
           (loop vs* next* (present v))]
          [else #false])])))
@@ -260,7 +266,11 @@
 (module+ test
   (test-case "sorted?"
     (check-true (sorted? '(1 2 3 4 5) real<=>))
-    (check-false (sorted? '(1 2 3 4 3) real<=>))))
+    (check-true (sorted? '(1 2 3 4 5) real<=> #:strictly? #true))
+    (check-true (sorted? '(1 1 1 1 1) real<=>))
+    (check-false (sorted? '(1 1 1 1 1) real<=> #:strictly? #true))
+    (check-false (sorted? '(1 2 3 4 3) real<=>))
+    (check-false (sorted? '(1 2 3 4 3) real<=> #:strictly? #true))))
 
 
 (define-refactoring-suite require-and-provide-suggestions
