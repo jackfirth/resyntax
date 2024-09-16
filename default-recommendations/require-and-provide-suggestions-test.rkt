@@ -95,3 +95,18 @@ test: "require tidying sorts for-syntax before plain"
 (require (for-syntax racket/string)
          racket/list)
 ----------------------------------------
+
+
+test: "require tidying should move non-phase spec forms to the end"
+----------------------------------------
+(require (only-in racket/list first)
+         (only-in racket/list second)
+         (prefix-in s: racket/string)
+         racket/hash)
+----------------------------------------
+----------------------------------------
+(require racket/hash
+         (only-in racket/list first)
+         (only-in racket/list second)
+         (prefix-in s: racket/string))
+----------------------------------------
