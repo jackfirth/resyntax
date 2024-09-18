@@ -12,7 +12,6 @@
 (require (for-syntax racket/base)
          racket/list
          racket/set
-         rebellion/private/static-name
          resyntax/base
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/lambda-by-any-name
@@ -22,8 +21,6 @@
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/syntax-lines
          resyntax/private/identifier-naming
-         resyntax/private/logger
-         resyntax/private/syntax-neighbors
          resyntax/private/syntax-traversal
          syntax/parse)
 
@@ -179,6 +176,42 @@
   ((~if loop.flat? for/and for*/and)
    (loop.leading-clause ... [function.x loop.trailing-expression])
    function.body ...))
+
+
+(define-syntax-class nested-for/or
+  #:attributes ([clause 1] [body 1])
+  #:literals (for/or)
+
+  (pattern (for/or (outer-clause ...) nested:nested-for/or ~!)
+    #:attr [clause 1] (append (attribute outer-clause) (attribute nested.clause))
+    #:attr [body 1] (attribute nested.body))
+
+  (pattern (for/or (clause ...) body ...)))
+
+
+(define-syntax-class nested-for/and
+  #:attributes ([clause 1] [body 1])
+  #:literals (for/and)
+
+  (pattern (for/and (outer-clause ...) nested:nested-for/and ~!)
+    #:attr [clause 1] (append (attribute outer-clause) (attribute nested.clause))
+    #:attr [body 1] (attribute nested.body))
+
+  (pattern (for/and (clause ...) body ...)))
+
+
+(define-refactoring-rule nested-for/or-to-for*/or
+  #:description "Nested `for/or` loops can be replaced with a single `for*/loop`."
+  #:literals (for/or)
+  (for-id:for/or (clause ...) nested:nested-for/or)
+  ((~replacement for*/or #:original for-id) (clause ... nested.clause ...) nested.body ...))
+
+
+(define-refactoring-rule nested-for/and-to-for*/and
+  #:description "Nested `for/or` loops can be replaced with a single `for*/loop`."
+  #:literals (for/and)
+  (for-id:for/and (clause ...) nested:nested-for/and)
+  ((~replacement for*/and #:original for-id) (clause ... nested.clause ...) nested.body ...))
 
 
 (define-syntax-class for-list-id
@@ -388,6 +421,8 @@ return just that result."
            named-let-loop-to-for/list
            named-let-loop-to-for/first-in-vector
            nested-for-to-for*
+           nested-for/and-to-for*/and
+           nested-for/or-to-for*/or
            or-in-for/and-to-filter-clause
            ormap-to-for/or
            unless-expression-in-for-loop-to-unless-keyword
