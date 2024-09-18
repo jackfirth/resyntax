@@ -6,7 +6,6 @@
          racket/cmdline
          racket/format
          racket/hash
-         (only-in racket/list shuffle)
          racket/logging
          racket/match
          racket/path
@@ -26,10 +25,11 @@
          resyntax/private/file-group
          resyntax/private/github
          resyntax/private/logger
+         resyntax/private/refactoring-result
+         resyntax/private/source
          resyntax/private/string-indent
          resyntax/private/syntax-replacement
-         resyntax/private/refactoring-result
-         resyntax/private/source)
+         (only-in racket/list shuffle))
 
 
 ;@----------------------------------------------------------------------------------------------------

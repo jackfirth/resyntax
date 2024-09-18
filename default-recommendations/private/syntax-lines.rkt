@@ -6,8 +6,8 @@
 
 (provide
  (contract-out
-  [oneline-syntax? predicate/c]
-  [multiline-syntax? predicate/c]))
+  [oneline-syntax? (-> any/c boolean?)]
+  [multiline-syntax? (-> any/c boolean?)]))
 
 
 (require rebellion/streaming/reducer
@@ -16,9 +16,9 @@
 
 
 (module+ test
-  (require (submod "..")
-           rackunit
-           rebellion/private/static-name))
+  (require rackunit
+           rebellion/private/static-name
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

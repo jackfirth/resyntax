@@ -11,10 +11,10 @@
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
+         resyntax/base
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/syntax-lines
          resyntax/default-recommendations/private/syntax-tree
-         resyntax/base
          syntax/parse)
 
 

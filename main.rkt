@@ -25,6 +25,7 @@
          rebellion/collection/list
          rebellion/collection/range-set
          rebellion/streaming/transducer
+         resyntax/base
          resyntax/default-recommendations
          resyntax/private/comment-reader
          resyntax/private/file-group
@@ -35,14 +36,13 @@
          resyntax/private/string-replacement
          resyntax/private/syntax-range
          resyntax/private/syntax-replacement
-         resyntax/base
          (submod resyntax/base private))
 
 
 (module+ test
-  (require (submod "..")
-           racket/list
-           rackunit))
+  (require racket/list
+           rackunit
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

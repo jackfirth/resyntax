@@ -12,9 +12,9 @@
  define-refactoring-rule
  define-definition-context-refactoring-rule
  (contract-out
-  [refactoring-rule? predicate/c]
+  [refactoring-rule? (-> any/c boolean?)]
   [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
-  [refactoring-suite? predicate/c]
+  [refactoring-suite? (-> any/c boolean?)]
   [refactoring-suite
    (->* ()
         (#:rules (sequence/c refactoring-rule?) #:name (or/c interned-symbol? #false))
@@ -29,9 +29,7 @@
      (-> refactoring-rule? syntax? source? (option/c syntax-replacement?))])))
 
 
-(require (for-syntax racket/base
-                     racket/syntax
-                     resyntax/private/more-syntax-parse-classes)
+(require (for-syntax racket/base racket/syntax resyntax/private/more-syntax-parse-classes)
          racket/sequence
          rebellion/base/immutable-string
          rebellion/base/option
@@ -39,11 +37,11 @@
          rebellion/type/object
          resyntax/default-recommendations/private/definition-context
          resyntax/private/source
-         resyntax/private/syntax-replacement
          resyntax/private/syntax-neighbors
+         resyntax/private/syntax-replacement
          syntax/parse
-         syntax/parse/experimental/template
-         syntax/parse/define)
+         syntax/parse/define
+         syntax/parse/experimental/template)
 
 
 ;@----------------------------------------------------------------------------------------------------

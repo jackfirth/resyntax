@@ -34,6 +34,7 @@
 
 
 (require rebellion/private/static-name
+         resyntax/base
          resyntax/default-recommendations/boolean-shortcuts
          resyntax/default-recommendations/comparison-shortcuts
          resyntax/default-recommendations/conditional-shortcuts
@@ -55,10 +56,9 @@
          resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/require-and-provide-suggestions
          resyntax/default-recommendations/string-shortcuts
-         resyntax/default-recommendations/syntax-shortcuts
          resyntax/default-recommendations/syntax-parse-shortcuts
          resyntax/default-recommendations/syntax-rules-shortcuts
-         resyntax/base)
+         resyntax/default-recommendations/syntax-shortcuts)
 
 
 ;@----------------------------------------------------------------------------------------------------

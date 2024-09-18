@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [code-snippet? predicate/c]
+  [code-snippet? (-> any/c boolean?)]
   [code-snippet
    (-> string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
   [code-snippet-raw-text (-> code-snippet? immutable-string?)]
@@ -23,9 +23,9 @@
 
 
 (module+ test
-  (require (submod "..")
-           rackunit
-           rebellion/private/static-name))
+  (require rackunit
+           rebellion/private/static-name
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

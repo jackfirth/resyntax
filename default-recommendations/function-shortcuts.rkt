@@ -11,8 +11,8 @@
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
-         resyntax/default-recommendations/private/literal-constant
          resyntax/base
+         resyntax/default-recommendations/private/literal-constant
          resyntax/private/syntax-replacement
          syntax/parse)
 

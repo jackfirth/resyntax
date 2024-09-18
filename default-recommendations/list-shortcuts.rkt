@@ -13,11 +13,11 @@
          racket/list
          racket/set
          rebellion/private/static-name
+         resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/private/syntax-neighbors
-         resyntax/base
          syntax/parse)
 
 

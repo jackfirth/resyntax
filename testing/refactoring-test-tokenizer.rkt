@@ -16,9 +16,9 @@
 
 
 (module+ test
-  (require (submod "..")
-           brag/support
-           rackunit))
+  (require brag/support
+           rackunit
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [refactoring-result? predicate/c]
+  [refactoring-result? (-> any/c boolean?)]
   [refactoring-result
    (-> #:rule-name interned-symbol?
        #:message string?

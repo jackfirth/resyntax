@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [github-review-request? predicate/c]
+  [github-review-request? (-> any/c boolean?)]
   [github-review-request-jsexpr (-> github-review-request? jsexpr?)]
   [refactoring-results->github-review
    (-> (sequence/c refactoring-result?) #:file-count exact-nonnegative-integer?
@@ -22,12 +22,12 @@
          rebellion/collection/list
          rebellion/streaming/transducer
          rebellion/type/record
-         resyntax/private/refactoring-result
          resyntax/private/line-replacement
+         resyntax/private/refactoring-result
          resyntax/private/run-command
+         resyntax/private/source
          resyntax/private/string-indent
-         resyntax/private/syntax-replacement
-         resyntax/private/source)
+         resyntax/private/syntax-replacement)
 
 
 ;@----------------------------------------------------------------------------------------------------

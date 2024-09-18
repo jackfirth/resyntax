@@ -320,9 +320,9 @@ return just that result."
   #:when (free-identifier=? #'vs #'vs2)
   #:when (free-identifier=? #'vs #'vs3)
   #:when (for*/and ([body-stx (in-list (cons #'loop-element (attribute loop-body)))]
-                    [vs-usage (in-list (syntax-directly-enclosing-expressions body-stx #'vs))])
-           (or (syntax-free-identifier=? vs-usage #'(car vs))
-               (syntax-free-identifier=? vs-usage #'(first vs))))
+                    [vs-usage (in-list (syntax-directly-enclosing-expressions body-stx #'vs))]
+                    #:unless (syntax-free-identifier=? vs-usage #'(car vs)))
+           (syntax-free-identifier=? vs-usage #'(first vs)))
   #:cut
 
   #:with element-id (depluralize-id #'vs)

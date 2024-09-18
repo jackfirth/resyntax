@@ -13,11 +13,11 @@
          racket/match
          racket/set
          rebellion/private/static-name
+         resyntax/base
          resyntax/default-recommendations/private/definition-context
+         resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/syntax-lines
          resyntax/default-recommendations/private/syntax-tree
-         resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/base
          resyntax/private/syntax-neighbors
          syntax/parse)
 

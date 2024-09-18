@@ -7,7 +7,7 @@
 (provide
  (contract-out
   [string-linemap (-> string? linemap?)]
-  [linemap? predicate/c]
+  [linemap? (-> any/c boolean?)]
   [linemap-lines (-> linemap? (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
   [linemap-position-to-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
   [linemap-line-start-position (-> linemap? exact-positive-integer? exact-positive-integer?)]
