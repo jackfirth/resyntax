@@ -16,7 +16,8 @@
          racket/sequence
          racket/set
          racket/stream
-         syntax/id-set)
+         syntax/id-set
+         syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -24,11 +25,15 @@
 
 (define (in-syntax-identifiers stx)
   (stream*
-   (guarded-block
-     (guard (not (identifier? stx)) #:else (stream stx))
-     (guard-match (or (cons head tail) (? syntax? (app syntax-e (cons head tail)))) stx #:else
-       (stream))
-     (stream-append (in-syntax-identifiers head) (in-syntax-identifiers tail)))))
+   (syntax-parse stx
+     #:datum-literals (quote)
+     [(quote _) (stream)]
+     [(subform ...) (apply stream-append (map in-syntax-identifiers (attribute subform)))]
+     [(subform ...+ . tail-form)
+      (stream-append (apply stream-append (map in-syntax-identifiers (attribute subform)))
+                     (in-syntax-identifiers (attribute tail-form)))]
+     [id:id (stream (attribute id))]
+     [_ (stream)])))
 
 
 (define (syntax-identifiers stx)
