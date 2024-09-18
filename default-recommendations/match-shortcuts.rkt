@@ -17,8 +17,7 @@
          resyntax/default-recommendations/private/syntax-lines
          resyntax/default-recommendations/private/syntax-tree
          resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          resyntax/private/syntax-neighbors
          syntax/parse)
 

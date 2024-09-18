@@ -5,7 +5,6 @@
 
 
 (provide
- ~focus-replacement-on
  (contract-out
   [syntax-replacement? predicate/c]
   [syntax-replacement
@@ -64,18 +63,6 @@
 
 
 (struct focus (contents) #:transparent)
-
-
-(define-template-metafunction (~focus-replacement-on stx)
-  (syntax-parse stx
-    [(_ (~and new-stx (substx ...)))
-     #:cut
-     (define substxs-with-prop
-       (for/list ([sub (in-list (attribute substx))])
-         (syntax-property sub 'focus-replacement-on #true)))
-     (syntax-property (datum->syntax #'new-stx substxs-with-prop #'new-stx #'new-stx)
-                      'focus-replacement-on #true)]
-    [(_ new-stx) (syntax-property #'new-stx 'focus-replacement-on #true)]))
 
 
 (define (syntax-replacement-render replacement #:format? [format? #true])

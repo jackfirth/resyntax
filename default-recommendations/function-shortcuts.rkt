@@ -12,8 +12,7 @@
 (require (for-syntax racket/base)
          rebellion/private/static-name
          resyntax/default-recommendations/private/literal-constant
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          resyntax/private/syntax-replacement
          syntax/parse)
 

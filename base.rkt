@@ -5,11 +5,21 @@
 
 
 (provide
+ ~replacement
+ ~splicing-replacement
+ ~focus-replacement-on
+ define-refactoring-suite
  define-refactoring-rule
  define-definition-context-refactoring-rule
  (contract-out
   [refactoring-rule? predicate/c]
-  [refactoring-rule-description (-> refactoring-rule? immutable-string?)]))
+  [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
+  [refactoring-suite? predicate/c]
+  [refactoring-suite
+   (->* ()
+        (#:rules (sequence/c refactoring-rule?) #:name (or/c interned-symbol? #false))
+        refactoring-suite?)]
+  [refactoring-suite-rules (-> refactoring-suite? (listof refactoring-rule?))]))
 
 
 (module+ private
@@ -22,18 +32,68 @@
 (require (for-syntax racket/base
                      racket/syntax
                      resyntax/private/more-syntax-parse-classes)
+         racket/sequence
          rebellion/base/immutable-string
          rebellion/base/option
+         rebellion/base/symbol
          rebellion/type/object
          resyntax/default-recommendations/private/definition-context
          resyntax/private/source
          resyntax/private/syntax-replacement
          resyntax/private/syntax-neighbors
          syntax/parse
+         syntax/parse/experimental/template
          syntax/parse/define)
 
 
 ;@----------------------------------------------------------------------------------------------------
+
+
+(define-template-metafunction (~replacement stx)
+  (syntax-parse stx
+    [(_ new-stx #:original orig-syntax)
+     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]
+    [(_ new-stx #:original-splice (first-orig orig-syntax ... last-orig))
+     (syntax-property (syntax-property #'new-stx 'head-replacement-for #'first-orig)
+                      'tail-replacement-for #'last-orig)]
+    [(_ new-stx #:original-splice (only-orig-syntax))
+     (syntax-property (syntax-property #'new-stx 'head-replacement-for #'only-orig-syntax)
+                      'tail-replacement-for #'only-orig-syntax)]))
+
+
+(define-template-metafunction (~splicing-replacement stx)
+  (syntax-parse stx
+    [(_ (~and new-stx (first-subform subform ... last-subform)) #:original orig-syntax)
+     (define first-with-prop (syntax-property #'first-subform 'head-replacement-for #'orig-syntax))
+     (define last-with-prop (syntax-property #'last-subform 'tail-replacement-for #'orig-syntax))
+     (define new-stx-with-subform-props
+       (datum->syntax #'new-stx
+                      #`(#,first-with-prop subform ... #,last-with-prop)
+                      #'new-stx
+                      #'new-stx))
+     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]
+    [(_ (~and new-stx (only-subform)) #:original orig-syntax)
+     (define subform-with-props
+       (syntax-property (syntax-property #'only-subform 'head-replacement-for #'orig-syntax)
+                        'tail-replacement-for
+                        #'orig-syntax))
+     (define new-stx-with-subform-props
+       (datum->syntax #'new-stx #`(#,subform-with-props) #'new-stx #'new-stx))
+     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]
+    [(_ (~and new-stx ()) #:original orig-syntax)
+     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]))
+
+
+(define-template-metafunction (~focus-replacement-on stx)
+  (syntax-parse stx
+    [(_ (~and new-stx (substx ...)))
+     #:cut
+     (define substxs-with-prop
+       (for/list ([sub (in-list (attribute substx))])
+         (syntax-property sub 'focus-replacement-on #true)))
+     (syntax-property (datum->syntax #'new-stx substxs-with-prop #'new-stx #'new-stx)
+                      'focus-replacement-on #true)]
+    [(_ new-stx) (syntax-property #'new-stx 'focus-replacement-on #true)]))
 
 
 (define-object-type refactoring-rule (transformer description)
@@ -128,3 +188,36 @@
       #:description description
       (~var expression expression-matching-id)
       expression.refactored)))
+
+
+(define-object-type refactoring-suite (rules)
+  #:constructor-name constructor:refactoring-suite
+  #:omit-root-binding)
+
+
+(define (refactoring-suite #:rules [rules '()] #:name [name #false])
+  (constructor:refactoring-suite #:rules (sequence->list rules) #:name name))
+
+
+(begin-for-syntax
+
+  (define-splicing-syntax-class rules-list
+    #:attributes (as-list-expr)
+    (pattern (~seq) #:with as-list-expr #'(list))
+    (pattern (~seq #:rules ~! (rule ...))
+      #:declare rule (expr/c #'refactoring-rule?)
+      #:with as-list-expr #'(list rule.c ...)))
+
+  (define-splicing-syntax-class suites-list
+    #:attributes (as-list-expr)
+    (pattern (~seq) #:with as-list-expr #'(list))
+    (pattern (~seq #:suites ~! (suite ...))
+      #:declare suite (expr/c #'refactoring-suite?)
+      #:with as-list-expr #'(append (refactoring-suite-rules suite.c) ...))))
+
+
+(define-syntax-parse-rule (define-refactoring-suite id:id rules:rules-list suites:suites-list)
+  (define id
+    (refactoring-suite
+     #:name 'id
+     #:rules (append rules.as-list-expr suites.as-list-expr))))

@@ -28,8 +28,7 @@
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          resyntax/private/syntax-replacement
          resyntax/private/syntax-neighbors
          syntax/id-set

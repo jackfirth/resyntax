@@ -10,8 +10,7 @@
 
 
 (require rebellion/private/static-name
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          resyntax/private/syntax-neighbors
          resyntax/private/syntax-replacement
          syntax/parse

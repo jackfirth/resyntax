@@ -13,8 +13,7 @@
          racket/list
          racket/set
          rebellion/private/static-name
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding

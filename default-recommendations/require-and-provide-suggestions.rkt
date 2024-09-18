@@ -20,8 +20,7 @@
          rebellion/private/static-name
          rebellion/streaming/transducer
          resyntax/private/logger
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          syntax/parse)
 
 
