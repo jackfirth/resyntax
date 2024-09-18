@@ -11,8 +11,7 @@
          refactoring-test-case)
 
 
-(require (for-syntax racket/base
-                     racket/sequence)
+(require (for-syntax racket/base racket/sequence)
          racket/list
          racket/logging
          racket/match
@@ -35,9 +34,9 @@
          resyntax/private/refactoring-result
          resyntax/private/source
          resyntax/private/string-replacement
+         syntax/modread
          syntax/parse
-         syntax/parse/define
-         syntax/modread)
+         syntax/parse/define)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -59,18 +58,16 @@
     (syntax-parser [:id #`#,constant])))
 
 
-(define-simple-macro
-  (refactoring-test
-   import:refactoring-test-import-statement ...
-   (~optional header:refactoring-test-header-statement)
-   case ...)
+(define-syntax-parse-rule (refactoring-test import:refactoring-test-import-statement ...
+                                            (~optional header:refactoring-test-header-statement)
+                                            case ...)
+  #:with parameterization
+  #'([refactoring-suite-under-test (make-rename-transformer #'suite)]
+     (~? (~@ [implicit-program-header (make-constant-transformer header.header-block)])))
   (begin
     import.require-statement ...
-    (define suite
-      (refactoring-suite #:rules (append (refactoring-suite-rules import.suite) ...)))
-    (syntax-parameterize
-        ([refactoring-suite-under-test (make-rename-transformer #'suite)]
-         (~? (~@ [implicit-program-header (make-constant-transformer header.header-block)])))
+    (define suite (refactoring-suite #:rules (append (refactoring-suite-rules import.suite) ...)))
+    (syntax-parameterize parameterization
       case ...
       ;; this void expression ensures that it's not an error if no test cases are given
       (void))))
@@ -163,7 +160,7 @@
           (fail-check "no changes were made"))
         (when (equal? refactored-program original-program)
           (fail-check "fixes were made, but they left the program unchanged"))
-        (when (not (equal? refactored-program expected-program))
+        (unless (equal? refactored-program expected-program)
           (with-check-info (['original (string-block original-program)])
             (fail-check "incorrect changes were made"))))
       (match-define (program-output original-stdout original-stderr) (eval-program original-program))
