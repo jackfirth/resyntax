@@ -72,34 +72,53 @@
 
 
 (define (string-replacement->line-replacement replacement original-string)
-  (define lmap (string-linemap original-string))
+  (define new-string (string-apply-replacement original-string replacement))
+  (define orig-lmap (string-linemap original-string))
+  (define new-lmap (string-linemap new-string))
+  
+  (define start-line
+    (linemap-position-to-line orig-lmap (add1 (string-replacement-start replacement))))
   (define start-pos
-    (sub1 (linemap-position-to-start-of-line lmap (add1 (string-replacement-start replacement)))))
+    (sub1
+     (linemap-position-to-start-of-line orig-lmap (add1 (string-replacement-start replacement)))))
   (define original-end-pos
     (sub1
-     (linemap-position-to-end-of-line lmap (add1 (string-replacement-original-end replacement)))))
+     (linemap-position-to-end-of-line orig-lmap
+                                      (add1 (string-replacement-original-end replacement)))))
   (define new-end-pos
-    (sub1 (linemap-position-to-end-of-line lmap (add1 (string-replacement-new-end replacement)))))
-  (define original-code (substring original-string start-pos original-end-pos))
-  (define new-code
-    (substring (string-apply-replacement original-string replacement) start-pos new-end-pos))
-  (define start-line (linemap-position-to-line lmap (add1 (string-replacement-start replacement))))
+    (sub1 (linemap-position-to-end-of-line new-lmap (add1 (string-replacement-new-end replacement)))))
+
+  (define original-substr (substring original-string start-pos original-end-pos))
+  (define new-substr (substring new-string start-pos new-end-pos))
   (line-replacement #:start-line start-line
-                    #:original-lines (in-lines (open-input-string original-code))
-                    #:new-lines (in-lines (open-input-string new-code))))
+                    #:original-lines (in-lines (open-input-string original-substr))
+                    #:new-lines (in-lines (open-input-string new-substr))))
 
 
 (module+ test
   (test-case "string-replacement->line-replacement"
-    (define s "hello\nworld\nhow are you\ntoday?")
-    (define middle-of-world-index 8)
-    (define start-of-are-you-index 16)
-    (check-equal? (substring s middle-of-world-index start-of-are-you-index) "rld\nhow ")
-    (define str-replacement
-      (string-replacement #:start middle-of-world-index
-                          #:end start-of-are-you-index
-                          #:contents (list (inserted-string "RLD HOW "))))
-    (check-equal? (string-replacement->line-replacement str-replacement s)
-                  (line-replacement #:start-line 2
-                                    #:original-lines (list "world" "how are you")
-                                    #:new-lines (list "woRLD HOW are you")))))
+
+    (test-case "multiple middle lines"
+      (define s "hello\nworld\nhow are you\ntoday?")
+      (define middle-of-world-index 8)
+      (define start-of-are-you-index 16)
+      (check-equal? (substring s middle-of-world-index start-of-are-you-index) "rld\nhow ")
+      (define str-replacement
+        (string-replacement #:start middle-of-world-index
+                            #:end start-of-are-you-index
+                            #:contents (list (inserted-string "RLD HOW "))))
+      (check-equal? (string-replacement->line-replacement str-replacement s)
+                    (line-replacement #:start-line 2
+                                      #:original-lines (list "world" "how are you")
+                                      #:new-lines (list "woRLD HOW are you"))))
+
+    (test-case "entire string replacement"
+      (define s "hello\nworld\nhow are you\ntoday?")
+      (define str-replacement
+        (string-replacement #:start 0
+                            #:end (string-length s)
+                            #:contents (list (inserted-string "hello world"))))
+      (check-equal? (string-replacement->line-replacement str-replacement s)
+                    (line-replacement #:start-line 1
+                                      #:original-lines (list "hello" "world" "how are you" "today?")
+                                      #:new-lines (list "hello world"))))))

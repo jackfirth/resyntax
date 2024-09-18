@@ -15,6 +15,7 @@
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
   [refactoring-result-modified-range (-> refactoring-result? range?)]
+  [refactoring-result-modified-line-range (-> refactoring-result? range?)]
   [refactoring-result-syntax-replacement (-> refactoring-result? syntax-replacement?)]
   [refactoring-result-string-replacement (-> refactoring-result? string-replacement?)]
   [refactoring-result-line-replacement (-> refactoring-result? line-replacement?)]
@@ -55,6 +56,13 @@
   (define replacement (refactoring-result-string-replacement result))
   (closed-open-range (add1 (string-replacement-start replacement))
                      (add1 (string-replacement-original-end replacement))
+                     #:comparator natural<=>))
+
+
+(define (refactoring-result-modified-line-range result)
+  (define replacement (refactoring-result-line-replacement result))
+  (closed-open-range (line-replacement-start-line replacement)
+                     (line-replacement-original-end-line replacement)
                      #:comparator natural<=>))
 
 
