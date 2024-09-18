@@ -56,7 +56,7 @@
          resyntax/default-recommendations/syntax-shortcuts
          resyntax/default-recommendations/syntax-parse-shortcuts
          resyntax/default-recommendations/syntax-rules-shortcuts
-         resyntax/refactoring-suite)
+         resyntax/base)
 
 
 ;@----------------------------------------------------------------------------------------------------

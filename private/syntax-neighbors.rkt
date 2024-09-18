@@ -14,8 +14,6 @@
 
 
 (provide
- ~replacement
- ~splicing-replacement
  (contract-out
   [syntax-original-leading-neighbor (-> syntax? (or/c syntax? #false))]
   [syntax-original-trailing-neighbor (-> syntax? (or/c syntax? #false))]
@@ -77,41 +75,6 @@
 
 (define (syntax-original-trailing-neighbor stx)
   (syntax-property stx 'original-trailing-neighbor))
-
-
-(define-template-metafunction (~replacement stx)
-  (syntax-parse stx
-    [(_ new-stx #:original orig-syntax)
-     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]
-    [(_ new-stx #:original-splice (first-orig orig-syntax ... last-orig))
-     (syntax-property (syntax-property #'new-stx 'head-replacement-for #'first-orig)
-                      'tail-replacement-for #'last-orig)]
-    [(_ new-stx #:original-splice (only-orig-syntax))
-     (syntax-property (syntax-property #'new-stx 'head-replacement-for #'only-orig-syntax)
-                      'tail-replacement-for #'only-orig-syntax)]))
-
-
-(define-template-metafunction (~splicing-replacement stx)
-  (syntax-parse stx
-    [(_ (~and new-stx (first-subform subform ... last-subform)) #:original orig-syntax)
-     (define first-with-prop (syntax-property #'first-subform 'head-replacement-for #'orig-syntax))
-     (define last-with-prop (syntax-property #'last-subform 'tail-replacement-for #'orig-syntax))
-     (define new-stx-with-subform-props
-       (datum->syntax #'new-stx
-                      #`(#,first-with-prop subform ... #,last-with-prop)
-                      #'new-stx
-                      #'new-stx))
-     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]
-    [(_ (~and new-stx (only-subform)) #:original orig-syntax)
-     (define subform-with-props
-       (syntax-property (syntax-property #'only-subform 'head-replacement-for #'orig-syntax)
-                        'tail-replacement-for
-                        #'orig-syntax))
-     (define new-stx-with-subform-props
-       (datum->syntax #'new-stx #`(#,subform-with-props) #'new-stx #'new-stx))
-     (syntax-property new-stx-with-subform-props 'replacement-for #'orig-syntax)]
-    [(_ (~and new-stx ()) #:original orig-syntax)
-     (syntax-property #'new-stx 'replacement-for #'orig-syntax)]))
 
 
 (define (syntax-extract-originals-from-pair left-stx right-stx)

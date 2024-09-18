@@ -14,10 +14,7 @@
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/syntax-lines
          resyntax/default-recommendations/private/syntax-tree
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
-         resyntax/private/syntax-neighbors
-         resyntax/private/syntax-replacement
+         resyntax/base
          syntax/parse)
 
 

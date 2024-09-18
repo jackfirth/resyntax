@@ -11,8 +11,7 @@
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          syntax/parse)
 
 

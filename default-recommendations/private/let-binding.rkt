@@ -14,9 +14,9 @@
 
 (require racket/list
          racket/match
+         resyntax/base
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/private/syntax-neighbors
          resyntax/private/logger
          syntax/id-set
          syntax/parse

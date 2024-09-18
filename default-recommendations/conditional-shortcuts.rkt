@@ -10,18 +10,11 @@
 
 
 (require (for-syntax racket/base)
-         racket/list
-         rebellion/private/static-name
          resyntax/default-recommendations/private/boolean
-         resyntax/default-recommendations/private/definition-context
          resyntax/default-recommendations/private/exception
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
-         resyntax/default-recommendations/private/syntax-lines
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
-         resyntax/private/syntax-neighbors
-         resyntax/private/syntax-replacement
+         resyntax/base
          syntax/parse)
 
 

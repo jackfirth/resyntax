@@ -30,11 +30,11 @@
          rebellion/streaming/transducer
          rebellion/type/tuple
          resyntax
+         resyntax/base
          resyntax/private/logger
          resyntax/private/refactoring-result
          resyntax/private/source
          resyntax/private/string-replacement
-         resyntax/refactoring-suite
          syntax/parse
          syntax/parse/define
          syntax/modread)

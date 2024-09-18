@@ -35,9 +35,8 @@
          resyntax/private/string-replacement
          resyntax/private/syntax-range
          resyntax/private/syntax-replacement
-         resyntax/refactoring-rule
-         (submod resyntax/refactoring-rule private)
-         resyntax/refactoring-suite)
+         resyntax/base
+         (submod resyntax/base private))
 
 
 (module+ test

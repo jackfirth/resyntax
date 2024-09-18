@@ -11,8 +11,7 @@
 
 (require rebellion/private/static-name
          resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          syntax/parse)
 
 

@@ -13,8 +13,7 @@
          racket/set
          racket/string
          rebellion/private/static-name
-         resyntax/refactoring-rule
-         resyntax/refactoring-suite
+         resyntax/base
          resyntax/private/syntax-neighbors
          syntax/parse)
 
