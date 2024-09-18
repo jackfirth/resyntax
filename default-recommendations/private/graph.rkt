@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [graph? predicate/c]
+  [graph? (-> any/c boolean?)]
   [graph (->* () (#:vertex-count (or/c natural? #false)) #:rest (listof entry?) graph?)]
   [graph-reverse (-> graph? graph?)]
   [graph-vertex-count (-> graph? natural?)]
@@ -28,13 +28,13 @@
          rebellion/collection/entry
          rebellion/collection/list
          rebellion/private/static-name
-         rebellion/streaming/transducer
-         rebellion/streaming/reducer)
+         rebellion/streaming/reducer
+         rebellion/streaming/transducer)
 
 
 (module+ test
-  (require (submod "..")
-           rackunit))
+  (require rackunit
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

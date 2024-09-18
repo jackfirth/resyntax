@@ -11,23 +11,23 @@
 
 (require guard
          racket/list
-         racket/symbol
          racket/match
+         racket/symbol
          rebellion/base/comparator
          rebellion/base/option
          rebellion/collection/entry
          rebellion/collection/list
          rebellion/private/static-name
          rebellion/streaming/transducer
-         resyntax/private/logger
          resyntax/base
+         resyntax/private/logger
          syntax/parse)
 
 
 (module+ test
-  (require (submod "..")
-           rackunit
-           rebellion/collection/list))
+  (require rackunit
+           rebellion/collection/list
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

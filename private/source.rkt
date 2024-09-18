@@ -6,19 +6,19 @@
 
 (provide
  (contract-out
-  [source? predicate/c]
+  [source? (-> any/c boolean?)]
   [source->string (-> source? immutable-string?)]
   [source-directory (-> source? (or/c path? #false))]
   [source-read-syntax (-> source? syntax?)]
   [source-produced-syntax? (-> source? syntax? boolean?)]
   [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
-  [file-source? predicate/c]
+  [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
   [file-source-path (-> file-source? path?)]
-  [string-source? predicate/c]
+  [string-source? (-> any/c boolean?)]
   [string-source (-> string? string-source?)]
   [string-source-contents (-> string-source? immutable-string?)]
-  [source-code-analysis? predicate/c]
+  [source-code-analysis? (-> any/c boolean?)]
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [syntax-source-location (-> syntax? source-location?)]

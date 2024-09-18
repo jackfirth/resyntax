@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [run-command (-> string? (or/c string? path?) ... string?)]))
+  [run-command (-> string? path-string? ... string?)]))
 
 
 (require racket/port

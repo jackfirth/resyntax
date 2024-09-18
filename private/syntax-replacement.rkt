@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [syntax-replacement? predicate/c]
+  [syntax-replacement? (-> any/c boolean?)]
   [syntax-replacement
    (-> #:original-syntax (and/c syntax? syntax-original?)
        #:new-syntax syntax?
@@ -34,7 +34,6 @@
          racket/sequence
          racket/string
          rebellion/base/comparator
-         (only-in rebellion/base/range closed-open-range)
          rebellion/collection/range-set
          rebellion/private/static-name
          rebellion/type/record
@@ -43,16 +42,17 @@
          resyntax/private/string-indent
          resyntax/private/string-replacement
          resyntax/private/syntax-neighbors
-         (only-in resyntax/default-recommendations/private/syntax-identifier-sets
-                  in-syntax-identifiers)
          syntax/parse
-         syntax/parse/experimental/template)
+         syntax/parse/experimental/template
+         (only-in rebellion/base/range closed-open-range)
+         (only-in resyntax/default-recommendations/private/syntax-identifier-sets
+                  in-syntax-identifiers))
 
 
 (module+ test
-  (require (submod "..")
-           racket/port
-           rackunit))
+  (require racket/port
+           rackunit
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

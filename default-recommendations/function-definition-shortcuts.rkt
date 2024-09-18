@@ -13,9 +13,9 @@
          guard
          racket/list
          rebellion/private/static-name
+         resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/syntax-lines
-         resyntax/base
          resyntax/private/syntax-replacement
          syntax/parse)
 

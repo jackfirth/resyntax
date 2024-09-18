@@ -12,12 +12,12 @@
 (require (for-syntax racket/base)
          racket/set
          rebellion/private/static-name
+         resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
          resyntax/default-recommendations/private/pure-expression
          resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/base
          resyntax/private/syntax-neighbors
          syntax/parse)
 

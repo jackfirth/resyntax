@@ -10,11 +10,11 @@
 
 
 (require (for-syntax racket/base)
+         resyntax/base
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/exception
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
-         resyntax/base
          syntax/parse)
 
 

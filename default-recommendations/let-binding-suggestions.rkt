@@ -10,6 +10,18 @@
 
 
 (require (for-syntax racket/base)
+         racket/set
+         rebellion/private/static-name
+         resyntax/base
+         resyntax/default-recommendations/private/definition-context
+         resyntax/default-recommendations/private/lambda-by-any-name
+         resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/private/syntax-equivalence
+         resyntax/default-recommendations/private/syntax-identifier-sets
+         resyntax/private/syntax-neighbors
+         resyntax/private/syntax-replacement
+         syntax/id-set
+         syntax/parse
          (only-in racket/class
                   define/augment
                   define/augment-final
@@ -20,19 +32,7 @@
                   define/public
                   define/public-final
                   define/pubment
-                  define/private)
-         racket/set
-         rebellion/private/static-name
-         resyntax/default-recommendations/private/definition-context
-         resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/default-recommendations/private/let-binding
-         resyntax/default-recommendations/private/syntax-equivalence
-         resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/base
-         resyntax/private/syntax-replacement
-         resyntax/private/syntax-neighbors
-         syntax/id-set
-         syntax/parse)
+                  define/private))
 
 
 ;@----------------------------------------------------------------------------------------------------

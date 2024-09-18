@@ -6,19 +6,19 @@
 
 (provide
  (contract-out
-  [file-portion? predicate/c]
+  [file-portion? (-> any/c boolean?)]
   [file-portion (-> path-string? range-set? file-portion?)]
   [file-portion-path (-> file-portion? complete-path?)]
   [file-portion-lines (-> file-portion? range-set?)]
   [file-groups-resolve (-> (sequence/c file-group?) (listof file-portion?))]
-  [file-group? predicate/c]
-  [single-file-group? predicate/c]
+  [file-group? (-> any/c boolean?)]
+  [single-file-group? (-> any/c boolean?)]
   [single-file-group (-> path-string? immutable-range-set? single-file-group?)]
-  [directory-file-group? predicate/c]
+  [directory-file-group? (-> any/c boolean?)]
   [directory-file-group (-> path-string? directory-file-group?)]
-  [package-file-group? predicate/c]
+  [package-file-group? (-> any/c boolean?)]
   [package-file-group (-> string? package-file-group?)]
-  [git-repository-file-group? predicate/c]
+  [git-repository-file-group? (-> any/c boolean?)]
   [git-repository-file-group (-> path-string? string? git-repository-file-group?)]))
 
 

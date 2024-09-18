@@ -10,7 +10,6 @@
 
 
 (require br-parser-tools/lex
-         (prefix-in : br-parser-tools/lex-sre)
          racket/sequence
          rebellion/base/comparator
          rebellion/base/range
@@ -18,12 +17,13 @@
          rebellion/collection/range-set
          rebellion/streaming/reducer
          rebellion/streaming/transducer
-         resyntax/private/syntax-traversal)
+         resyntax/private/syntax-traversal
+         (prefix-in : br-parser-tools/lex-sre))
 
 
 (module+ test
-  (require (submod "..")
-           rackunit))
+  (require rackunit
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -70,7 +70,8 @@
 
 (define (read-comment-locations [in (current-input-port)])
   (port-count-lines! in)
-  (define next! (λ () (comment-lexer in)))
+  (define (next!)
+    (comment-lexer in))
   (transduce (in-producer next! eof)
              (mapping srcloc-token-srcloc)
              (mapping srcloc-range)

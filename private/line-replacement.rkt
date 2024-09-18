@@ -11,7 +11,7 @@
        #:original-lines (sequence/c string?)
        #:new-lines (sequence/c string?)
        line-replacement?)]
-  [line-replacement? predicate/c]
+  [line-replacement? (-> any/c boolean?)]
   [line-replacement-start-line (-> line-replacement? exact-positive-integer?)]
   [line-replacement-original-end-line (-> line-replacement? exact-positive-integer?)]
   [line-replacement-original-lines
@@ -32,8 +32,8 @@
 
 
 (module+ test
-  (require (submod "..")
-           rackunit))
+  (require rackunit
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

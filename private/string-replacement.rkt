@@ -9,7 +9,7 @@
 
 (provide
  (contract-out
-  [string-replacement? predicate/c]
+  [string-replacement? (-> any/c boolean?)]
   [string-replacement
    (->i
     #:chaperone
@@ -44,10 +44,10 @@
   [string-replacement-render (-> string-replacement? string? immutable-string?)]
   [string-apply-replacement (-> string? string-replacement? immutable-string?)]
   [file-apply-string-replacement! (-> path-string? string-replacement? void?)]
-  [inserted-string? predicate/c]
+  [inserted-string? (-> any/c boolean?)]
   [inserted-string (-> string? inserted-string?)]
   [inserted-string-contents (-> inserted-string? immutable-string?)]
-  [copied-string? predicate/c]
+  [copied-string? (-> any/c boolean?)]
   [copied-string
    (->i
     #:chaperone
@@ -79,8 +79,8 @@
 
 
 (module+ test
-  (require (submod "..")
-           rackunit))
+  (require rackunit
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

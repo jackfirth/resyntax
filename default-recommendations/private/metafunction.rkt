@@ -9,10 +9,10 @@
 
 
 (module+ test
-  (require (submod "..")
-           racket/syntax
+  (require racket/syntax
            rackunit
-           rebellion/private/static-name))
+           rebellion/private/static-name
+           (submod "..")))
 
 
 ;@----------------------------------------------------------------------------------------------------

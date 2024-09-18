@@ -7,6 +7,12 @@
 
 (require (for-syntax racket/base)
          racket/block
+         racket/match
+         rebellion/private/static-name
+         resyntax/default-recommendations/private/lambda-by-any-name
+         resyntax/private/syntax-replacement
+         syntax/parse
+         syntax/parse/lib/function-header
          (only-in racket/class
                   define/augment
                   define/augment-final
@@ -17,13 +23,7 @@
                   define/public
                   define/public-final
                   define/pubment
-                  define/private)
-         racket/match
-         rebellion/private/static-name
-         resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/private/syntax-replacement
-         syntax/parse
-         syntax/parse/lib/function-header)
+                  define/private))
 
 
 ;@----------------------------------------------------------------------------------------------------
