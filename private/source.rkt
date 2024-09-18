@@ -119,7 +119,7 @@
            ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
            ;; in this way, and is what originally motivated the addition of this check.
            (equal? (syntax-source stx) program-source-name)
-           (range-set-encloses? lines (syntax-line-range stx #:linemap code-linemap))))
+           (range-set-overlaps? lines (syntax-line-range stx #:linemap code-linemap))))
     
     (define/match (observe-event! sig val)
       [('visit (? syntax? visited))

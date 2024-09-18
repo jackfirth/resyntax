@@ -40,6 +40,12 @@
          resyntax/refactoring-suite)
 
 
+(module+ test
+  (require (submod "..")
+           racket/list
+           rackunit))
+
+
 ;@----------------------------------------------------------------------------------------------------
 
 
@@ -91,13 +97,15 @@
      result)))
 
 
-(define (refactor code-string #:suite [suite default-recommendations])
+(define (refactor code-string
+                  #:suite [suite default-recommendations]
+                  #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (define rule-list (refactoring-suite-rules suite))
   (define source (string-source code-string))
   (define comments (with-input-from-source source read-comment-locations))
   (parameterize ([current-namespace (make-base-namespace)])
-    (define analysis (source-analyze source))
-    (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments)))
+    (define analysis (source-analyze source #:lines lines))
+    (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)))
 
 
 (define (refactor-file portion #:suite [suite default-recommendations])
@@ -123,10 +131,10 @@
         (log-resyntax-debug "parsed comment: ~a: ~v"
                             comment
                             (substring-by-range full-source comment)))
-      (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments))))
+      (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines))))
 
 
-(define (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments)
+(define (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)
   (define rule-list (refactoring-suite-rules suite))
   (for*/fold ([results '()]
               [modified-positions (range-set #:comparator natural<=>)]
@@ -135,7 +143,8 @@
               #:unless (range-set-intersects? modified-positions (syntax-source-range stx))
               [result
                (in-option
-                (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))])
+                (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))]
+              #:when (range-set-encloses? lines (refactoring-result-modified-line-range result)))
     (values (cons result results)
             (range-set-add modified-positions (refactoring-result-modified-range result)))))
 
@@ -171,3 +180,13 @@
        (min (string-length str) (+ (range-bound-endpoint upper-bound) 1))]
       [else (range-bound-endpoint upper-bound)]))
   (substring str start end))
+
+
+(module+ test
+  (test-case "refactor"
+    (define results (refactor "#lang racket (or 1 (or 2 3))"))
+    (check-equal? (length results) 1)
+    (check-equal? (refactoring-result-string-replacement (first results))
+                  (string-replacement #:start 13
+                                      #:end 28
+                                      #:contents (list (inserted-string "(or 1 2 3)"))))))

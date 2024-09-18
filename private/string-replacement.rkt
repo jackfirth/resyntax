@@ -106,7 +106,7 @@
    #:original-span (- end start)
    #:new-end (+ start new-span)
    #:new-span new-span
-   #:required-length (add1 (option-get max-end end))
+   #:required-length (option-get max-end end)
    #:contents content-list))
 
 
@@ -213,23 +213,33 @@
 
 (module+ test
   (test-case (name-string string-apply-replacement)
-    (define s "good morning and hello world")
-    (define replacement-pieces
-      (list
-       (inserted-string "evening")
-       (copied-string 12 17)
-       (inserted-string "goodbye")))
-    (define replacement
-      (string-replacement
-       #:start 5
-       #:end 22
-       #:contents replacement-pieces))
-    (check-equal? (string-replacement-original-span replacement) 17)
-    (check-equal? (string-replacement-new-span replacement) 19)
-    (check-equal? (string-replacement-length-change replacement) 2)
-    (check-equal? (string-replacement-new-end replacement) 24)
-    (check-equal? (string-replacement-render replacement s) "evening and goodbye")
-    (check-equal? (string-apply-replacement s replacement) "good evening and goodbye world")))
+
+    (test-case "replace middle part"
+      (define s "good morning and hello world")
+      (define replacement-pieces
+        (list
+         (inserted-string "evening")
+         (copied-string 12 17)
+         (inserted-string "goodbye")))
+      (define replacement
+        (string-replacement
+         #:start 5
+         #:end 22
+         #:contents replacement-pieces))
+      (check-equal? (string-replacement-original-span replacement) 17)
+      (check-equal? (string-replacement-new-span replacement) 19)
+      (check-equal? (string-replacement-length-change replacement) 2)
+      (check-equal? (string-replacement-new-end replacement) 24)
+      (check-equal? (string-replacement-render replacement s) "evening and goodbye")
+      (check-equal? (string-apply-replacement s replacement) "good evening and goodbye world"))
+
+    (test-case "replace entire string"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 0
+                            #:end (string-length s)
+                            #:contents (list (inserted-string "hi there"))))
+      (check-equal? (string-apply-replacement s replacement) "hi there"))))
 
 
 (define (file-apply-string-replacement! path replacement)
