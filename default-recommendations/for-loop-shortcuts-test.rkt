@@ -385,6 +385,36 @@ test: "non-nested for form isn't replaced by a for* form"
 ------------------------------
 
 
+test: "nested for/or forms can be flattened to a for*/or form"
+------------------------------
+(for/or ([x (in-range 0 5)])
+  (for/or ([y (in-range 0 5)])
+    (for/or ([z (in-range 0 5)])
+      (>= (+ x y z) 5))))
+------------------------------
+------------------------------
+(for*/or ([x (in-range 0 5)]
+          [y (in-range 0 5)]
+          [z (in-range 0 5)])
+  (>= (+ x y z) 5))
+------------------------------
+
+
+test: "nested for/and forms can be flattened to a for*/and form"
+------------------------------
+(for/and ([x (in-range 0 5)])
+  (for/and ([y (in-range 0 5)])
+    (for/and ([z (in-range 0 5)])
+      (<= (+ x y z) 5))))
+------------------------------
+------------------------------
+(for*/and ([x (in-range 0 5)]
+           [y (in-range 0 5)]
+           [z (in-range 0 5)])
+  (<= (+ x y z) 5))
+------------------------------
+
+
 test: "named let loop with conditional return over vector can be replaced by for/first"
 ------------------------------------------------------------
 (define vec (vector 0 1 2 3 4 5))
