@@ -8,6 +8,7 @@
  (all-from-out resyntax/default-recommendations/boolean-shortcuts
                resyntax/default-recommendations/comparison-shortcuts
                resyntax/default-recommendations/conditional-shortcuts
+               resyntax/default-recommendations/console-io-suggestions
                resyntax/default-recommendations/contract-shortcuts
                resyntax/default-recommendations/definition-shortcuts
                resyntax/default-recommendations/file-io-suggestions
@@ -36,6 +37,7 @@
          resyntax/default-recommendations/boolean-shortcuts
          resyntax/default-recommendations/comparison-shortcuts
          resyntax/default-recommendations/conditional-shortcuts
+         resyntax/default-recommendations/console-io-suggestions
          resyntax/default-recommendations/contract-shortcuts
          resyntax/default-recommendations/definition-shortcuts
          resyntax/default-recommendations/file-io-suggestions
@@ -66,6 +68,7 @@
   #:suites (boolean-shortcuts
             comparison-shortcuts
             conditional-shortcuts
+            console-io-suggestions
             contract-shortcuts
             definition-shortcuts
             file-io-suggestions
