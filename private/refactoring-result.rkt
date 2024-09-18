@@ -23,12 +23,7 @@
   [refactoring-result-new-code (-> refactoring-result? code-snippet?)]))
 
 
-(require fancy-app
-         fmt
-         guard
-         (only-in racket/list last)
-         racket/match
-         racket/string
+(require rebellion/base/comparator
          rebellion/base/immutable-string
          rebellion/base/range
          rebellion/base/symbol
@@ -36,17 +31,9 @@
          resyntax/private/code-snippet
          resyntax/private/line-replacement
          resyntax/private/linemap
-         resyntax/private/logger
          resyntax/private/source
-         resyntax/private/string-indent
          resyntax/private/string-replacement
-         resyntax/private/syntax-range
          resyntax/private/syntax-replacement)
-
-
-(module+ test
-  (require (submod "..")
-           rackunit))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -65,18 +52,14 @@
 
 
 (define (refactoring-result-modified-range result)
-  (syntax-source-range
-   (syntax-replacement-original-syntax (refactoring-result-syntax-replacement result))))
-
-
-(define (refactoring-result-original-position result)
-  (define original
-    (syntax-replacement-original-syntax (refactoring-result-syntax-replacement result)))
-  (sub1 (syntax-position original)))
+  (define replacement (refactoring-result-string-replacement result))
+  (closed-open-range (add1 (string-replacement-start replacement))
+                     (add1 (string-replacement-original-end replacement))
+                     #:comparator natural<=>))
 
 
 (define (refactoring-result-original-line result)
-  (syntax-line (syntax-replacement-original-syntax (refactoring-result-syntax-replacement result))))
+  (line-replacement-start-line (refactoring-result-line-replacement result)))
 
 
 (define (refactoring-result-original-code result)
@@ -89,15 +72,6 @@
   (define start-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
   (define raw-text (string->immutable-string (substring full-orig-code start end)))
   (code-snippet raw-text start-column (linemap-position-to-line lmap (add1 start))))
-
-
-(struct string-slice (full-string subrange-start subrange-end) #:transparent)
-
-
-(define (string-slice-substring subrange)
-  (substring (string-slice-full-string subrange)
-             (string-slice-subrange-start subrange)
-             (string-slice-subrange-end subrange)))
 
 
 (define (refactoring-result-new-code result)
@@ -125,37 +99,7 @@
 ;; refactoring-result-string-replacement function is used instead because the results do not have to
 ;; be displayed in a UI.
 (define (refactoring-result-line-replacement result)
-  (line-replacement
-   #:start-line
-   (syntax-line (syntax-replacement-original-syntax (refactoring-result-syntax-replacement result)))
-   #:original-lines (refactoring-result-original-code-lines result)
-   #:new-lines (refactoring-result-new-code-lines result)))
-
-
-(define (refactoring-result-original-code-lines result)
-  (define stx-replacement (refactoring-result-syntax-replacement result))
-  (define source-code (source->string (syntax-replacement-source stx-replacement)))
-  (define map (string-linemap source-code))
-  (define original (syntax-replacement-original-syntax stx-replacement))
-  (define start (syntax-start-line-position original #:linemap map))
-  (define end (syntax-end-line-position original #:linemap map))
-  (define original-text (string->immutable-string (substring source-code (sub1 start) (sub1 end))))
-  (in-lines (open-input-string original-text)))
-
-
-(define (refactoring-result-new-code-lines result)
-  (define stx-replacement (refactoring-result-syntax-replacement result))
-  (define original (syntax-replacement-original-syntax stx-replacement))
-  (define source-code (source->string (syntax-replacement-source stx-replacement)))
-  (define replacement (refactoring-result-string-replacement result))
-  (define start (string-replacement-start replacement))
-  (define end (string-replacement-new-end replacement))
-  (define refactored-source-code (string-apply-replacement source-code replacement))
-
-  (define map (string-linemap refactored-source-code))
-  (define replacement-text
-    (string->immutable-string
-     (substring refactored-source-code
-                (sub1 (linemap-position-to-start-of-line map start))
-                (sub1 (linemap-position-to-end-of-line map end)))))
-  (in-lines (open-input-string replacement-text)))
+  (define full-orig-code
+    (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+  (string-replacement->line-replacement (refactoring-result-string-replacement result)
+                                        full-orig-code))
