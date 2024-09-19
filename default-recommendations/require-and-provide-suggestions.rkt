@@ -117,7 +117,7 @@
 
 
 (define phase-form<=> (comparator-of-constants 'for-syntax 'for-template 'for-label 'for-meta 'plain))
-(define import-kind<=> (comparator-of-constants 'collection 'file 'other))
+(define import-kind<=> (comparator-of-constants 'collection 'other 'file))
 
 
 (define (false-last<=> cmp)
