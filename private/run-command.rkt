@@ -19,6 +19,7 @@
 
 ; This doesn't support anything but getting stdout -- but that's OK for now!
 (define (run-command cmd-name . args)
+  (define stringified-args (map (λ (arg) (if (path? arg) (path->string arg) arg)) args))
   (define cmd-path
     (or (find-executable-path cmd-name)
         ; Racket doesn't know about $PATHEXT:
@@ -39,12 +40,12 @@
   (unless (zero? exit-code)
     (raise-arguments-error (name run-command)
                            "command exited with a nonzero exit code"
-                           "command" (string-join (cons cmd-name args) " ")
+                           "command" (string-join (cons cmd-name stringified-args) " ")
                            "exit code" exit-code
                            "stderr" stderr-string))
   (when (non-empty-string? stderr-string)
     (raise-arguments-error (name run-command)
                            "command exited successfully, but wrote to stderr"
-                           "command" (string-join (cons cmd-name args) " ")
+                           "command" (string-join (cons cmd-name stringified-args) " ")
                            "stderr" stderr-string))
   stdout-string)

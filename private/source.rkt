@@ -41,6 +41,7 @@
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/private/linemap
+         resyntax/private/logger
          syntax/modread
          syntax/parse)
 
@@ -101,7 +102,7 @@
     (define expanded-originals-by-location (make-hash))
 
     (define (add-all-original-subforms! stx)
-      (when (resyntax-should-analyze-syntax? stx)
+      (when (resyntax-should-analyze-syntax? stx #:as-visit? #false)
         (hash-set! expanded-originals-by-location (syntax-source-location stx) stx))
       (syntax-parse stx
         [(subform ...) (for-each add-all-original-subforms! (attribute subform))]
@@ -110,16 +111,30 @@
          (add-all-original-subforms! #'tail-form)]
         [_ (void)]))
 
-    (define (resyntax-should-analyze-syntax? stx)
-      (and (syntax-original? stx)
-           ;; Some macros are able to bend hygiene and syntax properties in such a way that they
-           ;; introduce syntax objects into the program that are syntax-original?, but from a
-           ;; different file than the one being expanded. So in addition to checking for
-           ;; originality, we also check that they come from the same source as the main program
-           ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
-           ;; in this way, and is what originally motivated the addition of this check.
-           (equal? (syntax-source stx) program-source-name)
-           (range-set-overlaps? lines (syntax-line-range stx #:linemap code-linemap))))
+    (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
+      (guard
+          (and (syntax-original? stx)
+               ;; Some macros are able to bend hygiene and syntax properties in such a way that they
+               ;; introduce syntax objects into the program that are syntax-original?, but from a
+               ;; different file than the one being expanded. So in addition to checking for
+               ;; originality, we also check that they come from the same source as the main program
+               ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
+               ;; in this way, and is what originally motivated the addition of this check.
+               (equal? (syntax-source stx) program-source-name))
+        #:else #false)
+      (guard as-visit? #:else #true)
+      (define stx-lines (syntax-line-range stx #:linemap code-linemap))
+      (define overlaps? (range-set-overlaps? lines stx-lines))
+      (unless overlaps?
+        (log-resyntax-debug
+         (string-append "ignoring visited syntax object because it's outside analyzed lines\n"
+                        "  analyzed lines: ~a\n"
+                        "  syntax lines: ~a\n"
+                        "  syntax: ~a")
+         lines
+         stx-lines
+         stx))
+      overlaps?)
     
     (define/match (observe-event! sig val)
       [('visit (? syntax? visited))
