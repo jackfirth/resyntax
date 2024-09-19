@@ -97,7 +97,7 @@ test: "require tidying sorts for-syntax before plain"
 ----------------------------------------
 
 
-test: "require tidying should move non-phase spec forms to the end"
+test: "require tidying should move non-phase spec forms after collections"
 ----------------------------------------
 (require (only-in racket/list first)
          (only-in racket/list second)
@@ -109,4 +109,19 @@ test: "require tidying should move non-phase spec forms to the end"
          (only-in racket/list first)
          (only-in racket/list second)
          (prefix-in s: racket/string))
+----------------------------------------
+
+
+test: "require tidying should move non-phase spec forms before relative paths"
+----------------------------------------
+(require "require-and-provide-suggestions.rkt"
+         (only-in racket/list first)
+         (only-in racket/list second)
+         (prefix-in s: racket/string))
+----------------------------------------
+----------------------------------------
+(require (only-in racket/list first)
+         (only-in racket/list second)
+         (prefix-in s: racket/string)
+         "require-and-provide-suggestions.rkt")
 ----------------------------------------
