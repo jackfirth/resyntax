@@ -36,6 +36,7 @@
          rebellion/collection/range-set
          rebellion/streaming/transducer
          resyntax/private/git
+         resyntax/private/logger
          resyntax/private/run-command)
 
 
@@ -105,6 +106,7 @@
        (parameterize ([current-directory repository-path])
          (define diff-lines (git-diff-modified-lines ref))
          (for/list ([(file lines) (in-hash diff-lines)])
+           (log-resyntax-debug "~a: modified lines: ~a" file lines)
            (file-portion file lines)))]))
   (transduce files (filtering rkt-file?) #:into into-list))
 

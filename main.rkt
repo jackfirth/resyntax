@@ -143,10 +143,26 @@
               [result
                (in-option
                 (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))]
-              #:when (range-set-encloses? lines (refactoring-result-modified-line-range result)))
+              #:when (check-lines-enclose-refactoring-result lines result))
     (values (cons result results)
             (range-set-add modified-positions (refactoring-result-modified-range result)))))
 
+
+(define (check-lines-enclose-refactoring-result lines result)
+  (define modified-lines (refactoring-result-modified-line-range result))
+  (define enclosed? (range-set-encloses? lines modified-lines))
+  (unless enclosed?
+    (log-resyntax-info
+     (string-append "~a: suggestion discarded because it's outside the analyzed line range\n"
+                    "  analyzed lines: ~a\n"
+                    "  lines modified by result: ~a\n"
+                    "  result: ~a")
+     (refactoring-result-rule-name result)
+     lines
+     modified-lines
+     result))
+  enclosed?)
+     
 
 (define (refactor! results)
   (define results-by-path
