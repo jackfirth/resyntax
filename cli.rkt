@@ -9,6 +9,7 @@
          racket/logging
          racket/match
          racket/path
+         racket/sequence
          rebellion/base/comparator
          rebellion/base/range
          rebellion/collection/entry
@@ -29,7 +30,7 @@
          resyntax/private/source
          resyntax/private/string-indent
          resyntax/private/syntax-replacement
-         (only-in racket/list shuffle))
+         (only-in racket/list append-map empty? shuffle))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -37,7 +38,8 @@
 
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message))
 (define-record-type resyntax-analyze-options (targets suite output-format output-destination))
-(define-record-type resyntax-fix-options (targets suite output-format max-fixes max-pass-count))
+(define-record-type resyntax-fix-options
+  (targets suite output-format max-fixes max-modified-files max-pass-count))
 
 
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
@@ -112,6 +114,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (define output-format plain-text)
   (define max-fixes +inf.0)
   (define max-pass-count 10)
+  (define max-modified-files +inf.0)
 
   (command-line
    #:program "resyntax fix"
@@ -162,12 +165,18 @@ are needed when applying a fix unlocks further fixes."
    ("--max-fixes"
     fixlimit
     "The maximum number of fixes to apply. If not specified, all fixes found will be applied."
-    (set! max-fixes (string->number fixlimit))))
+    (set! max-fixes (string->number fixlimit)))
+
+   ("--max-modified-files"
+    modifiedlimit
+    "The maximum number of files to modify. If not specified, fixes will be applied to all files."
+    (set! max-modified-files (string->number modifiedlimit))))
 
   (resyntax-fix-options #:targets (build-vector targets)
                         #:suite suite
                         #:output-format output-format
                         #:max-fixes max-fixes
+                        #:max-modified-files max-modified-files
                         #:max-pass-count max-pass-count))
 
 
@@ -248,6 +257,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
                (indexing file-portion-path)
                (grouping into-list)
                #:into into-hash))
+  (define max-modified-files (resyntax-fix-options-max-modified-files options))
   (define results-by-path
     (for/fold ([all-results (hash)]
                [files files]
@@ -257,10 +267,12 @@ For help on these, use 'analyze --help' or 'fix --help'."
                #:do [(define pass-results
                        (resyntax-fix-run-one-pass options files
                                                   #:max-fixes max-fixes
+                                                  #:max-modified-files max-modified-files
                                                   #:pass-number pass-number))
                      (define pass-fix-count
                        (for/sum ([(_ results) (in-hash pass-results)])
                          (length results)))
+                     (define pass-modified-file-count (hash-count pass-results))
                      (define new-max-fixes (- max-fixes pass-fix-count))]
                #:break (hash-empty? pass-results)
                #:final (zero? new-max-fixes))
@@ -303,7 +315,10 @@ For help on these, use 'analyze --help' or 'fix --help'."
     (newline)))
 
 
-(define (resyntax-fix-run-one-pass options files #:max-fixes max-fixes #:pass-number pass-number)
+(define (resyntax-fix-run-one-pass options files
+                                   #:max-fixes max-fixes
+                                   #:max-modified-files max-modified-files
+                                   #:pass-number pass-number)
   (define output-format (resyntax-fix-options-output-format options))
   (match output-format
     [(== plain-text)
@@ -313,8 +328,13 @@ For help on these, use 'analyze --help' or 'fix --help'."
     [_ (void)])
   (define all-results
     (transduce (shuffle (hash-values files))
+               (mapping
+                (λ (portions)
+                  (append-map (refactor-file _ #:suite (resyntax-fix-options-suite options))
+                              portions)))
+               (filtering (λ (results) (not (empty? results))))
+               (if (equal? max-modified-files +inf.0) (transducer-pipe) (taking max-modified-files))
                (append-mapping values)
-               (append-mapping (refactor-file _ #:suite (resyntax-fix-options-suite options)))
                (if (equal? max-fixes +inf.0) (transducer-pipe) (taking max-fixes))
                #:into into-list))
   (define results-by-path
