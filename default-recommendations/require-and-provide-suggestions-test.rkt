@@ -125,3 +125,11 @@ test: "require tidying should move non-phase spec forms before relative paths"
          (prefix-in s: racket/string)
          "require-and-provide-suggestions.rkt")
 ----------------------------------------
+
+
+test: "require tidying shouldn't trigger when require transformers are imported and used"
+----------------------------------------
+(require racket/require
+         (multi-in racket (list set dict))
+         racket/hash)
+----------------------------------------

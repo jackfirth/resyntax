@@ -87,12 +87,45 @@
 
 (define-syntax-class phaseless-import-spec
   #:attributes (parsed)
-  #:literals (for-syntax for-template for-label for-meta)
+  #:literals (only-in
+              except-in
+              prefix-in
+              rename-in
+              combine-in
+              relative-in
+              only-meta-in
+              only-space-in
+              for-syntax
+              for-template
+              for-label
+              for-meta)
   (pattern mod:collection-module-path #:attr parsed (parsed-simple-import 0 'plain 'collection #'mod))
   (pattern mod:file-module-path #:attr parsed (parsed-simple-import 0 'plain 'file #'mod))
-  (pattern ((~and form (~not for-syntax) (~not for-template) (~not for-label) (~not for-meta))
+  (pattern ((~or only-in
+                 except-in
+                 prefix-in
+                 rename-in
+                 combine-in
+                 relative-in
+                 only-meta-in
+                 only-space-in)
             subspec ...)
-    #:attr parsed (parsed-simple-import 0 'plain 'other this-syntax)))
+    #:attr parsed (parsed-simple-import 0 'plain 'other-known this-syntax))
+  (pattern ((~and form
+                  (~not only-in)
+                  (~not except-in)
+                  (~not prefix-in)
+                  (~not rename-in)
+                  (~not combine-in)
+                  (~not relative-in)
+                  (~not only-meta-in)
+                  (~not only-space-in)
+                  (~not for-syntax)
+                  (~not for-template)
+                  (~not for-label)
+                  (~not for-meta))
+            subspec ...)
+    #:attr parsed (parsed-simple-import 0 'plain 'other-unknown this-syntax)))
 
 
 (define-syntax-class collection-module-path
@@ -117,7 +150,7 @@
 
 
 (define phase-form<=> (comparator-of-constants 'for-syntax 'for-template 'for-label 'for-meta 'plain))
-(define import-kind<=> (comparator-of-constants 'collection 'other 'file))
+(define import-kind<=> (comparator-of-constants 'collection 'other-known 'file))
 
 
 (define (false-last<=> cmp)
@@ -144,7 +177,7 @@
   (match import
     [(parsed-simple-import _ _ 'collection id) (symbol->immutable-string (syntax-e id))]
     [(parsed-simple-import _ _ 'file str-stx) (string->immutable-string (syntax-e str-stx))]
-    [(parsed-simple-import _ _ 'other _) #false]))
+    [(parsed-simple-import _ _ 'other-known _) #false]))
 
 
 (define (parsed-import-spec-without-syntax import)
@@ -153,7 +186,7 @@
      (parsed-simple-import phase phase-form 'collection (symbol->immutable-string (syntax-e id)))]
     [(parsed-simple-import phase phase-form 'file str-stx)
      (parsed-simple-import phase phase-form 'file (string->immutable-string (syntax-e str-stx)))]
-    [(parsed-simple-import _ _ 'other _) import]))
+    [(parsed-simple-import _ _ 'other-known _) import]))
 
 
 (define parsed-import-spec<=>
@@ -168,6 +201,11 @@
 
 (define (simple-spec? spec)
   (not (equal? (parsed-simple-import-kind spec) 'other)))
+
+
+(define (import-specs-all-known? specs)
+  (for/and ([spec specs])
+    (not (equal? (parsed-simple-import-kind spec) 'other-unknown))))
 
 
 (define (import-specs-tidy? specs)
@@ -239,6 +277,7 @@
   #:literals (require)
   (require spec:import-spec ...)
   #:do [(define specs (append* (attribute spec.parsed-imports)))]
+  #:when (import-specs-all-known? specs)
   #:when (not (import-specs-tidy? specs))
   #:with (tidy ...) (import-specs-tidy specs)
   (require tidy ...))
