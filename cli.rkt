@@ -9,7 +9,6 @@
          racket/logging
          racket/match
          racket/path
-         racket/sequence
          rebellion/base/comparator
          rebellion/base/range
          rebellion/collection/entry
@@ -25,7 +24,6 @@
          resyntax/default-recommendations
          resyntax/private/file-group
          resyntax/private/github
-         resyntax/private/logger
          resyntax/private/refactoring-result
          resyntax/private/source
          resyntax/private/string-indent
@@ -327,7 +325,31 @@ For help on these, use 'analyze --help' or 'fix --help'."
      (printf "resyntax: --- analyzing code ---\n")]
     [_ (void)])
   (define all-results
-    (transduce (shuffle (hash-values files))
+    (transduce (in-hash-entries files) ; entries with file path keys and lists of file-portion? values
+
+               ;; The following steps perform a kind of layered shuffle: the files to refactor are
+               ;; shuffled such that files in the same directory remain together. When combined with
+               ;; the #:max-modified-files argument, this makes Resyntax prefer to refactor closely
+               ;; related files instead of selecting arbitrary unrelated files from across an entire
+               ;; codebase. This limits potential for merge conflicts and makes changes easier to
+               ;; review, since it's more likely the refactored files will have shared context.
+
+               ; key by directory
+               (indexing (λ (e) (simple-form-path (build-path (entry-key e) 'up))))
+
+               ; group by key and shuffle within each group
+               (grouping (into-transduced (shuffling) #:into into-list))
+
+               ; shuffle groups
+               (shuffling)
+
+               ; ungroup and throw away directory
+               (append-mapping entry-value)
+
+               ;; Now the stream contains exactly what it did before the above steps, but shuffled in
+               ;; a convenient manner.
+               
+               (mapping entry-value) ; throw away the file path, we don't need it anymore
                (mapping
                 (λ (portions)
                   (append-map (refactor-file _ #:suite (resyntax-fix-options-suite options))
