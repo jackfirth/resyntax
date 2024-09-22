@@ -37,7 +37,7 @@ jobs:
           dest: '"${HOME}/racketdist-current-CS"'
           sudo: never
       - name: Install Resyntax
-        run: raco pkg install --auto --link --name resyntax .
+        run: raco pkg install --auto --link --name resyntax
       - name: Create a new branch
         run: git checkout -b autofix-${{ github.run_number }}-${{ github.run_attempt }}
       - name: Run Resyntax
