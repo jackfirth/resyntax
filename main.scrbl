@@ -2,8 +2,19 @@
 
 
 @(require (for-label racket/base
-                     syntax/parse)
-          scribble/bnf)
+                     resyntax/base
+                     syntax/parse
+                     syntax/parse/define)
+          scribble/bnf
+          scribble/example
+          (submod resyntax/private/scribble-evaluator-factory doc))
+
+
+@(define make-evaluator
+   (make-module-sharing-evaluator-factory
+    #:public (list 'resyntax/base
+                   'syntax/parse)
+    #:private (list 'racket/base)))
 
 
 @title{Resyntax}
@@ -99,7 +110,11 @@ number of times:
  @item{@exec{--local-git-repository} @nonterm{repository-path} @nonterm{base-ref} --- A local Git
   repository to analyze the changed files of. Only files which have changed relative to
   @nonterm{base-ref} are analyzed. Base references must be given in the form
-  @exec{remotename/branchname}, for example @exec{origin/main} or @exec{upstream/my-feature-branch}.}]
+  @exec{remotename/branchname}, for example @exec{origin/main} or @exec{upstream/my-feature-branch}.}
+
+ @item{@exec{--refactoring-suite} @nonterm{module-path} @nonterm{suite-name} --- A
+  @tech{refactoring suite} to use instead of Resyntax's default recommendations. Custom refactoring
+  suites can be created with @racket[define-refactoring-suite].}]
 
 
 @subsection{Running @exec{resyntax fix}}
@@ -121,8 +136,94 @@ modules to fix. After analysis, fixes are applied and a summary is printed.
  @item{@exec{--local-git-repository} @nonterm{repository-path} @nonterm{base-ref} --- A local Git
   repository to fix the changed files of. Only files which have changed relative to @nonterm{base-ref}
   are fixed. Base references must be given in the form @exec{remotename/branchname}, for example
-  @exec{origin/main} or @exec{upstream/my-feature-branch}.}]
+  @exec{origin/main} or @exec{upstream/my-feature-branch}.}
+
+ @item{@exec{--refactoring-suite} @nonterm{module-path} @nonterm{suite-name} --- A
+  @tech{refactoring suite} to use instead of Resyntax's default recommendations. Custom refactoring
+  suites can be created with @racket[define-refactoring-suite].}]
 
 
 If two suggestions try to fix the same code, one of them will be rejected. At present, the best way to
 handle overlapping fixes is to run Resyntax multiple times until no fixes are rejected.
+
+
+@section{Refactoring Rules and Suites}
+@defmodule[resyntax/base]
+
+
+Resyntax derives its suggestions from @tech{refactoring rules}, which can be grouped into a
+@deftech{refactoring suite}. Resyntax ships with a default refactoring suite consisting of many rules
+that cover various scenarios related to Racket's standard libraries. However, you may also define your
+own refactoring suite and rules using the forms below. Knowledge of Racket macros, and of
+@racket[syntax-parse] in particular, is especially useful for understanding how to create effective
+refactoring rules.
+
+
+@defproc[(refactoring-rule? [v any/c]) boolean?]{
+ A predicate that recognizes @tech{refactoring rules}.}
+
+
+@defproc[(refactoring-suite? [v any/c]) boolean?]{
+ A predicate that recognizes @tech{refactoring suites}.}
+
+
+@defform[(define-refactoring-rule id
+           #:description description
+           parse-option ...
+           syntax-pattern
+           pattern-directive ...
+           template)
+         #:contracts ([description string?])]{
+
+ Defines a @tech{refactoring rule} named @racket[id]. Refactoring rules are defined in terms of
+ @racket[syntax-parse]. The rule matches syntax objects that match @racket[syntax-pattern], and
+ @racket[template] is a @racket[syntax] template that defines what the matched code is refactored
+ into. The message in @racket[description] is presented to the user when Resyntax makes a suggestion
+ based on the rule. Refactoring rules function roughly like macros defined with
+ @racket[define-syntax-parse-rule]. For example, here is a simple rule that flattens nested
+ @racket[or] expressions:
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define-refactoring-rule nested-or-to-flat-or
+     #:description "This nested `or` expression can be flattened."
+     #:literals (or)
+     (or a (or b c))
+     (or a b c)))
+
+ Like @racket[syntax-parse] and @racket[define-syntax-parse-rule],
+ @tech[#:doc '(lib "syntax/scribblings/syntax.scrbl")]{pattern directives} can be used to aid in
+ defining rules. Here is a rule that uses the @racket[#:when] directive to only refactor @racket[or]
+ expressions that have a duplicate condition:
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define-refactoring-rule or-with-duplicate-subterm
+     #:description "This `or` expression has a duplicate subterm."
+     #:literals (or)
+     (or before ... a:id between ... b:id after ...)
+     #:when (free-identifier=? #'a #'b)
+     (or before ... a between ... after ...)))}
+
+
+@defform[(define-refactoring-suite id rules-list suites-list)
+
+         #:grammar
+         [(rules-list (code:line)
+                      (code:line #:rules (rule ...)))
+          (suites-list (code:line)
+                       (code:line #:suites (suite ...)))]
+
+         #:contracts ([rule refactoring-rule?]
+                      [suite refactoring-suite?])]{
+
+ Defines a @tech{refactoring suite} named @racket[id] containing each listed @racket[rule].
+ Additionally, each @racket[suite] provided has its rules added to the newly defined suite.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:alts
+    (define-refactoring-suite my-suite
+      #:rules (rule1 rule2 rule3)
+      #:suites (subsuite1 subsuite2))
+    (void)))}
