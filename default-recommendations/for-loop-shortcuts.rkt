@@ -160,6 +160,13 @@
    function.body ...))
 
 
+(define-refactoring-rule append-map-for/list-to-for*/list
+  #:description "This `append-map` operation can be replaced with a `for*/list` loop."
+  #:literals (append-map for/list)
+  (append-map (:lambda-by-any-name (sublist-id:id) (for/list (clause ...) body ...)) lists)
+  (for*/list ([sublist-id (in-list lists)] clause ...) body ...))
+
+
 (define-refactoring-rule ormap-to-for/or
   #:description "This `ormap` operation can be replaced with a `for/or` loop."
   #:literals (ormap)
@@ -410,6 +417,7 @@ return just that result."
 
 (define-refactoring-suite for-loop-shortcuts
   #:rules (andmap-to-for/and
+           append-map-for/list-to-for*/list
            apply-append-for-loop-to-for-loop
            apply-plus-to-for/sum
            for/fold-building-hash-to-for/hash

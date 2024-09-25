@@ -471,6 +471,22 @@ test: "named let loop over list can be replaced by for/list"
 ------------------------------------------------------------
 
 
+test: "append-map with for/list can be replaced by for*/list"
+------------------------------------------------------------
+(require racket/list)
+(append-map (λ (n)
+              (for/list ([m (in-range 0 n)])
+                (list n m)))
+            (list 3 4 5))
+------------------------------------------------------------
+------------------------------------------------------------
+(require racket/list)
+(for*/list ([n (in-list (list 3 4 5))]
+            [m (in-range 0 n)])
+  (list n m))
+------------------------------------------------------------
+
+
 test: "for-each and append-map can be replaced by for* with #:when"
 ------------------------------------------------------------
 (require racket/list)
