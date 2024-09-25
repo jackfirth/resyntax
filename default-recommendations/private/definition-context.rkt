@@ -6,6 +6,7 @@
 
 
 (require (for-syntax racket/base)
+         compatibility/defmacro
          racket/block
          racket/match
          rebellion/private/static-name
@@ -31,39 +32,9 @@
 
 (define-splicing-syntax-class header-form-allowing-internal-definitions
   #:attributes ([original 1])
-  #:literals (block
-              let
-              let*
-              let-values
-              let*-values
-              when
-              unless
-              with-handlers
-              parameterize
-              for
-              for/list
+  #:literals (let
               for/vector
-              for/hash
-              for/hasheq
-              for/hasheqv
-              for/and
-              for/or
-              for/sum
-              for/product
-              for/first
-              for/last
-              for*
-              for*/list
-              for*/vector
-              for*/hash
-              for*/hasheq
-              for*/hasheqv
-              for*/and
-              for*/or
-              for*/sum
-              for*/product
-              for*/first
-              for*/last)
+              for*/vector)
 
   (pattern (~seq id:header-id-with-no-header-forms)
     #:with (original ...) #'(id))
@@ -167,8 +138,8 @@
 
 
 (define-syntax-class header-id-with-two-header-forms
-  #:literals (for/fold for*/fold)
-  (pattern (~or for/fold for*/fold)))
+  #:literals (defmacro for/fold for*/fold)
+  (pattern (~or defmacro for/fold for*/fold)))
 
 
 (define-splicing-syntax-class branching-form-allowing-internal-definitions-within-clauses
