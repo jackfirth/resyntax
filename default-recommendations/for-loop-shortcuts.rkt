@@ -160,11 +160,19 @@
    function.body ...))
 
 
+(define-syntax-class for-loop-supporting-leading-nested-clause
+  #:literals (for/list for*/list)
+  #:attributes ([clause 1] [body 1])
+  (pattern (for/list (only-clause) body ...) #:with (clause ...) (list #'only-clause))
+  (pattern (for*/list (clause ...) body ...)))
+
+
 (define-refactoring-rule append-map-for/list-to-for*/list
   #:description "This `append-map` operation can be replaced with a `for*/list` loop."
-  #:literals (append-map for/list)
-  (append-map (:lambda-by-any-name (sublist-id:id) (for/list (clause ...) body ...)) lists)
-  (for*/list ([sublist-id (in-list lists)] clause ...) body ...))
+  #:literals (append-map)
+  (append-map (:lambda-by-any-name (sublist-id:id) loop:for-loop-supporting-leading-nested-clause)
+              lists)
+  (for*/list ([sublist-id (in-list lists)] loop.clause ...) loop.body ...))
 
 
 (define-refactoring-rule ormap-to-for/or
