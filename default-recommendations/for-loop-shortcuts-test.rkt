@@ -487,6 +487,35 @@ test: "append-map with for/list can be replaced by for*/list"
 ------------------------------------------------------------
 
 
+test: "append-map with multi-clause for/list can't be replaced by for*/list"
+------------------------------------------------------------
+(require racket/list)
+(append-map (λ (n)
+              (for/list ([m (in-range 0 n)]
+                         [m2 (in-range 0 n)])
+                (list n m m2)))
+            (list 3 4 5))
+------------------------------------------------------------
+
+
+test: "append-map with multi-clause for*/list can be replaced by for*/list"
+------------------------------------------------------------
+(require racket/list)
+(append-map (λ (n)
+              (for*/list ([m (in-range 0 n)]
+                          [k (in-range 0 m)])
+                (list n m k)))
+            (list 3 4 5))
+------------------------------------------------------------
+------------------------------------------------------------
+(require racket/list)
+(for*/list ([n (in-list (list 3 4 5))]
+            [m (in-range 0 n)]
+            [k (in-range 0 m)])
+  (list n m k))
+------------------------------------------------------------
+
+
 test: "for-each and append-map can be replaced by for* with #:when"
 ------------------------------------------------------------
 (require racket/list)
