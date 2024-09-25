@@ -12,7 +12,8 @@
 
 
 (define deps
-  (list "base"
+  (list "compatibility-lib"
+        "base"
         "br-parser-tools-lib"
         "brag-lib"
         "fancy-app"
