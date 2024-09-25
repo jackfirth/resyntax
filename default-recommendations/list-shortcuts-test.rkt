@@ -139,6 +139,24 @@ test: "unnecessary quasiquotation with constants refactorable to list"
 ------------------------------
 
 
+test: "unnecessary splicing quasiquotation refactorable to append"
+------------------------------
+(define (f xs ys zs)
+  `(,@xs ,@ys ,@zs))
+------------------------------
+------------------------------
+(define (f xs ys zs)
+  (append xs ys zs))
+------------------------------
+
+
+test: "splicing quasiquotation with other subterms not refactorable to append"
+------------------------------
+(define (f xs ys zs)
+  `(a ,@xs b ,@ys c ,@zs d))
+------------------------------
+
+
 test: "ignored map expression refactorable to for-each"
 ------------------------------
 (define (f func xs ys zs)

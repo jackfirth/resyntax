@@ -113,9 +113,16 @@
 
 (define-refactoring-rule quasiquote-to-list
   #:description "This quasiquotation is equialent to a simple `list` call."
-  #:literals (quasiquote unquote)
+  #:literals (quasiquote)
   (quasiquote (arg:unquoted ...))
   (list arg.expr ...))
+
+
+(define-refactoring-rule quasiquote-to-append
+  #:description "This quasiquotation is equialent to calling `append`."
+  #:literals (quasiquote unquote-splicing)
+  (quasiquote ((unquote-splicing arg) ...))
+  (append arg ...))
 
 
 (define-definition-context-refactoring-rule ignored-map-to-for-each
@@ -134,5 +141,6 @@
            filter-to-remv*
            first-reverse-to-last
            ignored-map-to-for-each
+           quasiquote-to-append
            quasiquote-to-list
            sort-with-keyed-comparator-to-sort-by-key))
