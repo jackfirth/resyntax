@@ -40,16 +40,20 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-record-type refactoring-result (rule-name message syntax-replacement string-replacement)
+(define-record-type refactoring-result
+  (rule-name message syntax-replacement string-replacement line-replacement)
   #:omit-root-binding)
 
 
 (define (refactoring-result #:rule-name rule-name #:message message #:syntax-replacement replacement)
+  (define str-replacement (syntax-replacement-render replacement))
+  (define full-orig-code (source->string (syntax-replacement-source replacement)))
   (constructor:refactoring-result
    #:rule-name rule-name
    #:message (string->immutable-string message)
    #:syntax-replacement replacement
-   #:string-replacement (syntax-replacement-render replacement)))
+   #:string-replacement str-replacement
+   #:line-replacement (string-replacement->line-replacement str-replacement full-orig-code)))
 
 
 (define (refactoring-result-modified-range result)
@@ -96,18 +100,3 @@
                (string-replacement-start replacement)
                (string-replacement-new-end replacement)))
   (code-snippet new-code-string original-column original-line))
-
-
-;; Like refactoring-result-string-replacement, but for generating a source code replacement across a
-;; range of lines in the source code text rather than exact positions. This is used by Resyntax when
-;; it is necessary to avoid conflicts between technically independent refactoring results whose lines
-;; overlap, which can cause problems in various UIs. GitHub pull request comments, for instance, are
-;; not pleasant to read when there are multiple independent comment threads on the same line of code.
-;; When Resyntax actually fixes files directly via the `resyntax fix` command, the more precise
-;; refactoring-result-string-replacement function is used instead because the results do not have to
-;; be displayed in a UI.
-(define (refactoring-result-line-replacement result)
-  (define full-orig-code
-    (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result))))
-  (string-replacement->line-replacement (refactoring-result-string-replacement result)
-                                        full-orig-code))

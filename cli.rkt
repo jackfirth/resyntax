@@ -24,6 +24,8 @@
          resyntax/default-recommendations
          resyntax/private/file-group
          resyntax/private/github
+         resyntax/private/limiting
+         resyntax/private/line-replacement
          resyntax/private/refactoring-result
          resyntax/private/source
          resyntax/private/string-indent
@@ -37,7 +39,7 @@
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message))
 (define-record-type resyntax-analyze-options (targets suite output-format output-destination))
 (define-record-type resyntax-fix-options
-  (targets suite output-format max-fixes max-modified-files max-pass-count))
+  (targets suite output-format max-fixes max-modified-files max-modified-lines max-pass-count))
 
 
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
@@ -113,6 +115,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (define max-fixes +inf.0)
   (define max-pass-count 10)
   (define max-modified-files +inf.0)
+  (define max-modified-lines +inf.0)
 
   (command-line
    #:program "resyntax fix"
@@ -168,13 +171,19 @@ are needed when applying a fix unlocks further fixes."
    ("--max-modified-files"
     modifiedlimit
     "The maximum number of files to modify. If not specified, fixes will be applied to all files."
-    (set! max-modified-files (string->number modifiedlimit))))
+    (set! max-modified-files (string->number modifiedlimit)))
+
+   ("--max-modified-lines"
+    modifiedlines
+    "The maximum number of lines to modify. If not specified, no line limit is applied."
+    (set! max-modified-lines (string->number modifiedlines))))
 
   (resyntax-fix-options #:targets (build-vector targets)
                         #:suite suite
                         #:output-format output-format
                         #:max-fixes max-fixes
                         #:max-modified-files max-modified-files
+                        #:max-modified-lines max-modified-lines
                         #:max-pass-count max-pass-count))
 
 
@@ -256,16 +265,20 @@ For help on these, use 'analyze --help' or 'fix --help'."
                (grouping into-list)
                #:into into-hash))
   (define max-modified-files (resyntax-fix-options-max-modified-files options))
+  (define max-modified-lines (resyntax-fix-options-max-modified-lines options))
   (define results-by-path
     (for/fold ([all-results (hash)]
                [files files]
                [max-fixes (resyntax-fix-options-max-fixes options)]
+               [lines-to-analyze-by-file (hash)]
                #:result all-results)
               ([pass-number (in-inclusive-range 1 (resyntax-fix-options-max-pass-count options))]
                #:do [(define pass-results
                        (resyntax-fix-run-one-pass options files
+                                                  #:lines lines-to-analyze-by-file
                                                   #:max-fixes max-fixes
                                                   #:max-modified-files max-modified-files
+                                                  #:max-modified-lines max-modified-lines
                                                   #:pass-number pass-number))
                      (define pass-fix-count
                        (for/sum ([(_ results) (in-hash pass-results)])
@@ -275,9 +288,17 @@ For help on these, use 'analyze --help' or 'fix --help'."
                #:break (hash-empty? pass-results)
                #:final (zero? new-max-fixes))
       (define new-files (hash-filter-keys files (hash-has-key? pass-results _)))
+      (define new-lines-to-analyze
+        (for/hash ([(path results) (in-hash pass-results)])
+          (values path
+                  (transduce results
+                             (mapping refactoring-result-modified-line-range)
+                             (filtering nonempty-range?)
+                             #:into (into-range-set natural<=>)))))
       (values (hash-union all-results pass-results #:combine append)
               new-files
-              new-max-fixes)))
+              new-max-fixes
+              new-lines-to-analyze)))
   (match output-format
     [(== plain-text) (printf "resyntax: --- summary ---\n")]
     [(== git-commit-message) (printf "## Summary\n\n")])
@@ -314,8 +335,10 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
 
 (define (resyntax-fix-run-one-pass options files
+                                   #:lines lines-to-analyze-by-file
                                    #:max-fixes max-fixes
                                    #:max-modified-files max-modified-files
+                                   #:max-modified-lines max-modified-lines
                                    #:pass-number pass-number)
   (define output-format (resyntax-fix-options-output-format options))
   (match output-format
@@ -349,15 +372,25 @@ For help on these, use 'analyze --help' or 'fix --help'."
                ;; Now the stream contains exactly what it did before the above steps, but shuffled in
                ;; a convenient manner.
                
-               (mapping entry-value) ; throw away the file path, we don't need it anymore
-               (mapping
-                (λ (portions)
-                  (append-map (refactor-file _ #:suite (resyntax-fix-options-suite options))
-                              portions)))
-               (filtering (λ (results) (not (empty? results))))
-               (if (equal? max-modified-files +inf.0) (transducer-pipe) (taking max-modified-files))
-               (append-mapping values)
+               (append-mapping entry-value) ; throw away the file path, we don't need it anymore
+               (append-mapping (λ (p)
+                                 (refactor-file (filter-file-portion p lines-to-analyze-by-file)
+                                                #:suite (resyntax-fix-options-suite options))))
+               (limiting max-modified-lines
+                         #:by (λ (result)
+                                (define replacement (refactoring-result-line-replacement result))
+                                (add1 (- (line-replacement-original-end-line replacement)
+                                         (line-replacement-start-line replacement)))))
                (if (equal? max-fixes +inf.0) (transducer-pipe) (taking max-fixes))
+               (if (equal? max-modified-files +inf.0)
+                   (transducer-pipe)
+                   (transducer-pipe
+                    (indexing
+                     (λ (result)
+                       (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+                    (grouping into-list)
+                    (taking max-modified-files)
+                    (append-mapping entry-value)))
                #:into into-list))
   (define results-by-path
     (transduce
@@ -397,6 +430,13 @@ For help on these, use 'analyze --help' or 'fix --help'."
     (refactor! results)
     (newline))
   results-by-path)
+
+
+(define (filter-file-portion portion lines-by-path)
+  (define path (file-portion-path portion))
+  (define lines (file-portion-lines portion))
+  (define ranges-to-remove (range-set-complement (hash-ref lines-by-path path all-lines)))
+  (file-portion path (range-set-remove-all lines ranges-to-remove)))
 
 
 (module+ main
