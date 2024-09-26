@@ -3,6 +3,7 @@
 
 @(require (for-label racket/base
                      resyntax/base
+                     resyntax/default-recommendations
                      syntax/parse
                      syntax/parse/define)
           scribble/bnf
@@ -227,3 +228,65 @@ refactoring rules.
       #:rules (rule1 rule2 rule3)
       #:suites (subsuite1 subsuite2))
     (void)))}
+
+
+@subsection{Resyntax's Default Rules}
+@defmodule[resyntax/default-recommendations]
+
+
+@(define default-recommendations-directory-link
+   "https://github.com/jackfirth/resyntax/tree/master/default-recommendations")
+
+@defthing[default-recommendations refactoring-suite?]{
+ The refactoring suite containing all of Resyntax's default refactoring rules. These rules are further
+ broken up into subsuites, with each subsuite corresponding to a module within the
+ @racketmodname[resyntax/default-recommendations] collection. For example, all of Resyntax's rules
+ related to @racket[for] loops are located in the
+ @racketmodfont{resyntax/default-recommendations/for-loop-shortcuts} module. See
+ @hyperlink[default-recommendations-directory-link]{this directory} for all of Resyntax's default
+ refactoring rules.}
+
+
+@subsection{What Makes a Good Refactoring Rule?}
+
+
+If you'd like to add a new @tech{refactoring rule} to Resyntax, there are a few guidelines to keep in
+mind:
+
+@itemlist[
+
+ @item{Refactoring rules should be @emph{safe}. Resyntax shouldn't break users' code, and it shouldn't
+  require careful review to determine whether a suggestion from Resyntax is safe to apply. It's better
+  for a rule to never make suggestions than to occasionally make broken suggestions.}
+
+ @item{Refactoring rules can be shown to many different developers in a wide variety of different
+  contexts. Therefore, it's important that Resyntax's default recommendations have some degree of
+  @emph{consensus} among the Racket community. Highly divisive suggestions that many developers
+  disagree with are not a good fit for Resyntax. Discussing your rule with the Racket community prior
+  to developing it is encouraged, especially if it's likely to affect a lot of code. If necessary,
+  consider narrowing the focus of your rule to just the cases that everybody agrees are clear
+  improvements.}
+
+ @item{Refactoring rules should @emph{explain themselves}. The description of a refactoring rule (as
+  specified with the @racket[#:description] option) should state why the new code is an improvement
+  over the old code. Refactoring rule descriptions are shown to Resyntax users at the command line, in
+  GitHub pull request review comments, and in Git commit messages. The description is the only means
+  you have of explaining to a potentially confused stranger why Resyntax wants to change their code,
+  so make sure you use it!}
+
+ @item{Refactoring rules should focus on cleaning up @emph{real-world code}. A refactoring rule that
+  suggests improvements to hypothetical code that no human would write in the first place is not
+  useful. Try to find examples of code "in the wild" that the rule would improve. The best candidates
+  for new rules tend to be rules that help Racketeers clean up and migrate old Scheme code that
+  doesn't take advantage of Racket's unique features and extensive standard library.}
+
+ @item{Refactoring rules should try to preserve the @emph{intended behavior} of the refactored code,
+  but not necessarily the @emph{actual behavior}. For instance, a rule that changes how code handles
+  some edge case is acceptable if the original behavior of the code was likely confusing or surprising
+  to the developer who wrote it. This is a judgment call that requires understanding what the original
+  code communicates clearly and what it doesn't. A rule's @racket[#:description] is an excellent place
+  to draw attention to potentially surprising behavior changes.}
+
+ @item{Refactoring rules should be @emph{self-contained}, meaning they can operate locally on a single
+  expression. Refactoring rules that require whole-program analysis are not a good fit for Resyntax,
+  nor are rules that require global knowledge of the whole codebase.}]
