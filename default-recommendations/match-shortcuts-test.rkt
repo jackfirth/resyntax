@@ -29,6 +29,28 @@ test: "single-clause match expressions can be replaced with match-define express
 ------------------------------
 
 
+test: "migrating single-clause match expressions to match-define doesn't reformat context"
+------------------------------
+(define (foo x)
+
+  (  displayln "foo?"   )
+
+  (match x
+    [(list a b c)
+     (displayln "foo!")
+     (+ a b c)]))
+------------------------------
+------------------------------
+(define (foo x)
+
+  (  displayln "foo?"   )
+
+  (match-define (list a b c) x)
+  (displayln "foo!")
+  (+ a b c))
+------------------------------
+
+
 test: "single-clause match expressions inside cond can be replaced with match-define expressions"
 ------------------------------
 (define (foo x condition)
