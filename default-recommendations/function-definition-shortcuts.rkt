@@ -12,11 +12,9 @@
 (require (for-syntax racket/base)
          guard
          racket/list
-         rebellion/private/static-name
          resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/syntax-lines
-         resyntax/private/syntax-replacement
          syntax/parse)
 
 
@@ -53,17 +51,38 @@
     #:with (body ...) #'(initial-body remaining-body ...)))
 
 
-(define/guard (build-function-header original-header converted-lambda-formal-lists)
-  (guard-match (cons first-formals remaining-formals) converted-lambda-formal-lists #:else
+(define (zero-argument-formals? formals)
+  (syntax-parse formals
+    [() #true]
+    [_ #false]))
+
+
+(define/guard (build-function-header original-header formal-lists)
+  (guard-match (cons first-formals remaining-formals) formal-lists #:else
+    original-header)
+  (guard (or (identifier? original-header) (not (zero-argument-formals? first-formals))) #:else
     original-header)
   (with-syntax ([formals first-formals])
     (build-function-header #`(#,original-header . formals) remaining-formals)))
 
 
+(define/guard (build-function-body original-header formal-lists innermost-body-forms)
+  (guard-match (cons first-formals remaining-formals) formal-lists #:else
+    innermost-body-forms)
+  (guard (or (identifier? original-header) (not (zero-argument-formals? first-formals))) #:else
+    (build-lambda-expressions formal-lists innermost-body-forms))
+  (with-syntax ([formals first-formals])
+    (build-function-body #`(#,original-header . formals) remaining-formals innermost-body-forms)))
+
+
+(define/guard (build-lambda-expressions formal-lists innermost-body-forms)
+  (guard-match (cons first-formals remaining-formals) formal-lists #:else
+    innermost-body-forms)
+  (list #`(λ #,first-formals #,@(build-lambda-expressions remaining-formals innermost-body-forms))))
+
+
 (define-refactoring-rule define-lambda-to-define
-  #:description
-  "The `define` form supports a shorthand for defining functions (including function-returning\
- functions)."
+  #:description "The `define` form supports a shorthand for defining functions."
   #:literals (define)
   (define header lambda-form:possibly-nested-lambdas)
   #:when (not (syntax-property this-syntax 'class-body))
@@ -72,8 +91,12 @@
   #:when (< multiline-lambda-header-count 2)
   #:when (oneline-syntax? #'header)
   #:when (or (identifier? #'header) (zero? multiline-lambda-header-count))
+  #:when (or (identifier? #'header)
+             (not (zero-argument-formals? (first (attribute lambda-form.argument-lists)))))
   #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
-  (define new-header lambda-form.body ...))
+  #:with (new-body ...)
+  (build-function-body #'header (attribute lambda-form.argument-lists) (attribute lambda-form.body))
+  (define new-header new-body ...))
 
 
 (define-refactoring-rule define-case-lambda-to-define
