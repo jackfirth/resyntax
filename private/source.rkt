@@ -40,8 +40,10 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/private/fully-expanded-syntax
          resyntax/private/linemap
          resyntax/private/logger
+         syntax/id-table
          syntax/modread
          syntax/parse)
 
@@ -111,17 +113,18 @@
          (add-all-original-subforms! #'tail-form)]
         [_ (void)]))
 
-    (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
-      (guard
-          (and (syntax-original? stx)
+    (define (syntax-original-and-from-source? stx)
+      (and (syntax-original? stx)
                ;; Some macros are able to bend hygiene and syntax properties in such a way that they
                ;; introduce syntax objects into the program that are syntax-original?, but from a
                ;; different file than the one being expanded. So in addition to checking for
                ;; originality, we also check that they come from the same source as the main program
                ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
                ;; in this way, and is what originally motivated the addition of this check.
-               (equal? (syntax-source stx) program-source-name))
-        #:else #false)
+               (equal? (syntax-source stx) program-source-name)))
+
+    (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
+      (guard (syntax-original-and-from-source? stx) #:else #false)
       (guard as-visit? #:else #true)
       (define stx-lines (syntax-line-range stx #:linemap code-linemap))
       (define overlaps? (range-set-overlaps? lines stx-lines))
@@ -146,11 +149,26 @@
     (define expanded
       (parameterize ([current-expand-observe observe-event!])
         (expand program-stx)))
+    (define binding-table (fully-expanded-syntax-binding-table expanded))
+    (define original-binding-table-by-position
+      (for*/fold ([table (hash)])
+                 ([(id uses) (in-free-id-table binding-table)]
+                  #:when (syntax-original-and-from-source? id)
+                  [use (in-list uses)]
+                  #:when (syntax-original-and-from-source? use))
+        (hash-update table (syntax-source-location id) (λ (previous) (cons use previous)) '())))
+                  
     (add-all-original-subforms! expanded)
+
+    (define/guard (add-usages stx)
+      (guard (identifier? stx) #:else stx)
+      (define usages (hash-ref original-binding-table-by-position (syntax-source-location stx) '()))
+      (syntax-property stx 'identifier-usages usages))
 
     (define (enrich stx)
       (define new-context
-        (or (hash-ref expanded-originals-by-location (syntax-source-location stx) #false) stx))
+        (add-usages
+         (or (hash-ref expanded-originals-by-location (syntax-source-location stx) #false) stx)))
       (syntax-parse stx
         [(subform ...)
          (datum->syntax new-context
