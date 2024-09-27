@@ -174,7 +174,7 @@
   (pattern (set! id:id (~var rhs (fully-expanded-expression phase)))
     #:attr bound-ids (attribute rhs.bound-ids)
     #:attr used-ids
-    (apply treelist-append (treelist (attribute id)) (attribute rhs.used-ids)))
+    (treelist-cons (attribute rhs.used-ids) (attribute id)))
 
   (pattern (quote _)
     #:attr bound-ids (treelist)
