@@ -97,6 +97,14 @@ test: "lambda function definition with closed-over expressions not refactorable"
 ------------------------------
 
 
+test: "thunk function definition not refactorable (it's too terse)"
+------------------------------
+(define (f a b c)
+  (λ ()
+    1))
+------------------------------
+
+
 test: "lambda variable definition with commented first body not refactorable (yet)"
 ------------------------------
 (define f
@@ -133,6 +141,18 @@ test: "nested lambda variable definition to function definition"
 ------------------------------
 (define ((f a) b)
   1)
+------------------------------
+
+
+test: "nested lambda variable definition with thunk to function definition returning thunk"
+------------------------------
+(define f
+  (λ (a)
+    (λ () 1)))
+------------------------------
+------------------------------
+(define (f a)
+  (λ () 1))
 ------------------------------
 
 
