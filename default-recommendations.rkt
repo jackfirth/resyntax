@@ -28,7 +28,8 @@
                resyntax/default-recommendations/string-shortcuts
                resyntax/default-recommendations/syntax-shortcuts
                resyntax/default-recommendations/syntax-parse-shortcuts
-               resyntax/default-recommendations/syntax-rules-shortcuts)
+               resyntax/default-recommendations/syntax-rules-shortcuts
+               resyntax/default-recommendations/unused-binding-suggestions)
  (contract-out
   [default-recommendations refactoring-suite?]))
 
@@ -58,7 +59,8 @@
          resyntax/default-recommendations/string-shortcuts
          resyntax/default-recommendations/syntax-parse-shortcuts
          resyntax/default-recommendations/syntax-rules-shortcuts
-         resyntax/default-recommendations/syntax-shortcuts)
+         resyntax/default-recommendations/syntax-shortcuts
+         resyntax/default-recommendations/unused-binding-suggestions)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -95,4 +97,5 @@
             string-shortcuts
             syntax-shortcuts
             syntax-parse-shortcuts
-            syntax-rules-shortcuts))
+            syntax-rules-shortcuts
+            unused-binding-suggestions))
