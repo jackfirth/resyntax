@@ -56,7 +56,7 @@ test: "migrating define-simple-macro doesn't reformat the entire macro definitio
 ------------------------------
 
 
-test: "migrating define-simple-macro does reformat the macro definition when the header is long"
+test: "migrating define-simple-macro does reformat when the header is long"
 ------------------------------
 (define-simple-macro (my-or a:expr b:expr fooooooooooooooooooooooooooooooooooooooooooooooooooooooo)
   ( let   ([tmp a]   )
@@ -66,5 +66,18 @@ test: "migrating define-simple-macro does reformat the macro definition when the
 (define-syntax-parse-rule (my-or a:expr
                                  b:expr
                                  fooooooooooooooooooooooooooooooooooooooooooooooooooooooo)
+  (let ([tmp a]) (if a a b)))
+------------------------------
+
+
+test: "migrating define-simple-macro does reformat when the header is multiple lines"
+------------------------------
+(define-simple-macro (my-or
+                      a:expr b:expr)
+  ( let   ([tmp a]   )
+     (if    a a b)))
+------------------------------
+------------------------------
+(define-syntax-parse-rule (my-or a:expr b:expr)
   (let ([tmp a]) (if a a b)))
 ------------------------------
