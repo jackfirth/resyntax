@@ -154,8 +154,7 @@
       (for*/fold ([table (hash)])
                  ([(id uses) (in-free-id-table binding-table)]
                   #:when (syntax-original-and-from-source? id)
-                  [use (in-list uses)]
-                  #:when (syntax-original-and-from-source? use))
+                  [use (in-list uses)])
         (hash-update table (syntax-source-location id) (λ (previous) (cons use previous)) '())))
                   
     (add-all-original-subforms! expanded)

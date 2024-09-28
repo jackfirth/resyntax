@@ -38,12 +38,15 @@
   #:attributes ([refactored 1] [id 1])
   (pattern (header:let-header body:let-body)
     #:with (id ...) (append (attribute header.id) (attribute body.id))
-    #:when (for/and ([id (attribute id)])
+    #:when (for/and ([id (attribute id)]
+                     #:unless (unused-id? id))
              (not (identifier-has-exact-binding-in-context? id this-syntax)))
     #:when (not (check-duplicate-identifier
-                 (for/list ([id (attribute id)])
+                 (for/list ([id (attribute id)]
+                            #:unless (unused-id? id))
                    (identifier-in-context id this-syntax))))
-    #:when (for/and ([id (attribute header.id)])
+    #:when (for/and ([id (attribute header.id)]
+                     #:unless (unused-id? id))
              (identifier-binding-unchanged-in-context? id (attribute body.first-body)))
     #:with (refactored ...)
     #`(~splicing-replacement (header.definition ... body.refactored ...) #:original #,this-syntax)))
@@ -84,7 +87,7 @@
     #:with (id ...) (attribute all-ids.id)
     #:with definition
     (match (attribute id)
-      ['() #'rhs]
+      [(list (? unused-id?) ...) #'rhs]
       [(list only-id)
        (syntax-parse (attribute rhs)
          [(_:lambda-by-any-name (arg:formal ...) body ...)
@@ -127,6 +130,9 @@
     #`(~splicing-replacement ((~replacement clause.definition #:original clause) ...)
                              #:original #,this-syntax)))
 
+
+(define (unused-id? id)
+  (empty? (or (syntax-property id 'identifier-usages) '())))
 
 
 (define (identifier-would-self-shadow? id rhs-id #:full-right-hand-side rhs)

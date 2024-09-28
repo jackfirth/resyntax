@@ -235,7 +235,7 @@ test: "shadowed `define`: let forms inside for loop bodies"
   (lambda (name value) (hash-set! definitions name value)))
 (for ([i (in-range 0 10)])
   (let ([x 1])
-    (void)))
+    (println x)))
 ------------------------------
 
 
