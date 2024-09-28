@@ -149,13 +149,13 @@ test: "for-each with multiple body forms to for"
 test: "for-each with let expression to for with definitions"
 ------------------------------
 (define some-list (list 1 2 3))
-(for-each (λ (x) (let ([y 1]) (displayln x))) some-list)
+(for-each (λ (x) (let ([y 1]) (displayln (+ x y)))) some-list)
 ------------------------------
 ------------------------------
 (define some-list (list 1 2 3))
 (for ([x (in-list some-list)])
   (define y 1)
-  (displayln x))
+  (displayln (+ x y)))
 ------------------------------
 
 

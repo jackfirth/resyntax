@@ -14,14 +14,14 @@ test: "let binding with commented right-hand-side expression"
   (let ([x
          ;; The number one
          1])
-    1))
+    x))
 ------------------------------
 ------------------------------
 (define (f)
   (define x
     ;; The number one
     1)
-  1)
+  x)
 ------------------------------
 
 test: "let binding with commented second clause"
@@ -30,14 +30,14 @@ test: "let binding with commented second clause"
   (let ([x 1]
         ;; The number two
         [y 2])
-    1))
+    (+ x y)))
 ------------------------------
 ------------------------------
 (define (f)
   (define x 1)
   ;; The number two
   (define y 2)
-  1)
+  (+ x y))
 ------------------------------
 
 
@@ -46,7 +46,7 @@ test: "let binding with commented first clause not refactorable (yet)"
 (define (f)
   (let (;; The number one
         [x 1])
-    1))
+    x))
 ------------------------------
 
 
@@ -56,14 +56,14 @@ test: "let binding with commented first body form refactorable"
   (let ([x 1])
     ;; Comment
     (void)
-    1))
+    x))
 ------------------------------
 ------------------------------
 (define (f)
   (define x 1)
   ;; Comment
   (void)
-  1)
+  x)
 ------------------------------
 
 
@@ -73,14 +73,14 @@ test: "let binding with commented second body form refactorable"
   (let ([x 1])
     (void)
     ;; Comment
-    1))
+    x))
 ------------------------------
 ------------------------------
 (define (f)
   (define x 1)
   (void)
   ;; Comment
-  1)
+  x)
 ------------------------------
 
 
@@ -91,7 +91,7 @@ test: "let binding with comments before let form refactorable"
   (void)
   ;; Comment
   (let ([x 1])
-    1))
+    x))
 ------------------------------
 ------------------------------
 (define (f)
@@ -99,5 +99,5 @@ test: "let binding with comments before let form refactorable"
   (void)
   ;; Comment
   (define x 1)
-  1)
+  x)
 ------------------------------

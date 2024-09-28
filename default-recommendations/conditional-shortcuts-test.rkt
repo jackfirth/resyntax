@@ -398,39 +398,39 @@ test: "`if-else-false-to-and` is not refactorable when `and` is shadowed"
 
 test: "cond with nested let refactorable to cond with define"
 ------------------------------
-(define (f a b c)
+(define (f a c)
   (cond
     [a
      (let ([x "stuff"])
-       b)]
+       x)]
     [else c]))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a c)
   (cond
     [a
      (define x "stuff")
-     b]
+     x]
     [else c]))
 ------------------------------
 
 
 test: "cond with nested let in else clause refactorable to cond with define"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [a b]
     [else
      (let ([x "stuff"])
-       c)]))
+       x)]))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [a b]
     [else
      (define x "stuff")
-     c]))
+     x]))
 ------------------------------
 
 
@@ -609,95 +609,95 @@ test: "if clause with begin in false branch and commented true branch refactorab
 
 test: "if clause with let in true branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if a
       (let ([x 1])
-        b)
-      c))
+        x)
+      b))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [a
      (define x 1)
-     b]
-    [else c]))
+     x]
+    [else b]))
 ------------------------------
 
 
 test: "if clause with let in false branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if a
       b
       (let ([x 1])
-        c)))
+        x)))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [a b]
     [else
      (define x 1)
-     c]))
+     x]))
 ------------------------------
 
 
 test: "if clause with let in both branches refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a)
   (if a
       (let ([x 1])
-        b)
+        x)
       (let ([x 1])
-        c)))
+        x)))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a)
   (cond
     [a
      (define x 1)
-     b]
+     x]
     [else
      (define x 1)
-     c]))
+     x]))
 ------------------------------
 
 
 test: "if clause with multiline condition and let in true branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if (a 10000000000000000000000000000000000000
          20000000000000000000000000000000000000
          30000000000000000000000000000000000000)
       (let ([x 1])
-        b)
-      c))
+        x)
+      b))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [(a 10000000000000000000000000000000000000
         20000000000000000000000000000000000000
         30000000000000000000000000000000000000)
      (define x 1)
-     b]
-    [else c]))
+     x]
+    [else b]))
 ------------------------------
 
 
 test: "if clause with multiline condition and let in false branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if (a 10000000000000000000000000000000000000
          20000000000000000000000000000000000000
          30000000000000000000000000000000000000)
       b
       (let ([x 1])
-        c)))
+        x)))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [(a 10000000000000000000000000000000000000
         20000000000000000000000000000000000000
@@ -705,136 +705,136 @@ test: "if clause with multiline condition and let in false branch refactorable t
      b]
     [else
      (define x 1)
-     c]))
+     x]))
 ------------------------------
 
 
 test: "if clause with multiline condition and let in both branches refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a)
   (if (a 10000000000000000000000000000000000000
          20000000000000000000000000000000000000
          30000000000000000000000000000000000000)
       (let ([x 1])
-        b)
+        x)
       (let ([x 1])
-        c)))
+        x)))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a)
   (cond
     [(a 10000000000000000000000000000000000000
         20000000000000000000000000000000000000
         30000000000000000000000000000000000000)
      (define x 1)
-     b]
+     x]
     [else
      (define x 1)
-     c]))
+     x]))
 ------------------------------
 
 
 test: "if clause with let in commented true branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if a
       ;; This is the true case
       (let ([x 1])
-        b)
-      c))
+        x)
+      b))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [a
      ;; This is the true case
      (define x 1)
-     b]
-    [else c]))
+     x]
+    [else b]))
 ------------------------------
 
 
 test: "if clause with let in commented false branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if a
       b
       ;; This is the false case
       (let ([x 1])
-        c)))
+        x)))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [a b]
     ;; This is the false case
     [else
      (define x 1)
-     c]))
+     x]))
 ------------------------------
 
 
 test: "if clause with let in both commented branches refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a)
   (if a
       ;; This is the true case
       (let ([x 1])
-        b)
+        x)
       ;; This is the false case
       (let ([x 1])
-        c)))
+        x)))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a)
   (cond
     [a
      ;; This is the true case
      (define x 1)
-     b]
+     x]
     ;; This is the false case
     [else
      (define x 1)
-     c]))
+     x]))
 ------------------------------
 
 
 
 test: "if clause with let in true branch and commented false branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if a
       (let ([x 1])
-        b)
+        x)
       ;; This is the false case
-      c))
+      b))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     [a
      (define x 1)
-     b]
+     x]
     ;; This is the false case
-    [else c]))
+    [else b]))
 ------------------------------
 
 
 test: "if clause with let in false branch and commented true branch refactorable to cond"
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (if a
       ;; This is the true case
       b
       (let ([x 1])
-        c)))
+        x)))
 ------------------------------
 ------------------------------
-(define (f a b c)
+(define (f a b)
   (cond
     ;; This is the true case
     [a b]
     [else
      (define x 1)
-     c]))
+     x]))
 ------------------------------
