@@ -88,3 +88,21 @@ test: "immediately used variable definition cannot be inlined"
   (define x 1)
   (* x 2))
 ------------------------------
+
+
+test: "inlining immediately returned variable definition doesn't reformat entire context"
+------------------------------
+(define (foo)
+
+  ( displayln    "foo" )
+
+  (define x 1)
+  x)
+------------------------------
+------------------------------
+(define (foo)
+
+  ( displayln    "foo" )
+
+  1)
+------------------------------
