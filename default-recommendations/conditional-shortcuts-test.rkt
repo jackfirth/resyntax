@@ -197,6 +197,27 @@ test: "negated if expressions with an always-throwing second branch can be refac
 ------------------------------
 
 
+test: "refactoring always-throwing if expressions to when doesn't reformat entire context"
+------------------------------
+(define (f c)
+
+  ( displayln   "foo" )
+
+  (if c
+      (error 'oops)
+      (displayln "foo")))
+------------------------------
+------------------------------
+(define (f c)
+
+  ( displayln   "foo" )
+
+  (when c
+    (error 'oops))
+  (displayln "foo"))
+------------------------------
+
+
 test: "if expressions inside cond with an always-throwing first branch can be refactored to when"
 ------------------------------
 (define (f c1 c2)
@@ -310,6 +331,31 @@ test: "cond expressions inside cond with an always-throwing first branch can be 
      (displayln "foo")
      (displayln "bar")]
     [else (displayln "else")]))
+------------------------------
+
+
+test: "refactoring always-throwing cond expressions to when doesn't reformat entire context"
+------------------------------
+(define (f c)
+  
+  ( displayln   "foo" )
+  
+  (cond
+    [c
+     (error 'oops)]
+    [else
+     (displayln "foo")
+     (displayln "bar")]))
+------------------------------
+------------------------------
+(define (f c)
+  
+  ( displayln   "foo" )
+  
+  (when c
+    (error 'oops))
+  (displayln "foo")
+  (displayln "bar"))
 ------------------------------
 
 
