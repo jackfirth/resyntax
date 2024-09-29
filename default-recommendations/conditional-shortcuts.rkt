@@ -105,8 +105,10 @@
   "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   (~seq body-before ... throwing-if:always-throwing-if-expression)
   (body-before ...
-   throwing-if.equivalent-guard-expression
-   throwing-if.success-expression))
+   (~@ . (~focus-replacement-on
+          (~splicing-replacement (throwing-if.equivalent-guard-expression
+                                  throwing-if.success-expression)
+                                 #:original throwing-if)))))
 
 
 (define-syntax-class always-throwing-cond-expression
@@ -124,8 +126,10 @@
   "Using `when` and `unless` is simpler than a conditional with an always-throwing branch."
   (~seq body-before ... throwing-cond:always-throwing-cond-expression)
   (body-before ...
-   throwing-cond.guard-expression ...
-   throwing-cond.body ...))
+   (~@ . (~focus-replacement-on
+          (~splicing-replacement (throwing-cond.guard-expression ...
+                                  throwing-cond.body ...)
+                                 #:original throwing-cond)))))
 
 
 (define-refactoring-rule cond-else-cond-to-cond
