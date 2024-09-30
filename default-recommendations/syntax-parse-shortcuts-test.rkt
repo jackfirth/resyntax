@@ -81,3 +81,17 @@ test: "migrating define-simple-macro does reformat when the header is multiple l
 (define-syntax-parse-rule (my-or a:expr b:expr)
   (let ([tmp a]) (if a a b)))
 ------------------------------
+
+
+test: "migrating define-simple-macro does reformat when the header is on the next line"
+------------------------------
+(define-simple-macro
+  (my-or
+   a:expr b:expr)
+  ( let   ([tmp a]   )
+     (if    a a b)))
+------------------------------
+------------------------------
+(define-syntax-parse-rule (my-or a:expr b:expr)
+  (let ([tmp a]) (if a a b)))
+------------------------------

@@ -32,12 +32,12 @@
 
   #:do
   [(define should-reformat?
-     (and (equal? (syntax-line #'original) (syntax-line #'header))
-          (or (multiline-syntax? #'header)
-              (> (+ (syntax-column #'header)
-                    (syntax-span #'header)
-                    define-simple-macro-migration-name-length-increase)
-                 102))))]
+     (or (multiline-syntax? #'header)
+         (not (equal? (syntax-line #'original) (syntax-line #'header)))
+         (> (+ (syntax-column #'header)
+               (syntax-span #'header)
+               define-simple-macro-migration-name-length-increase)
+            102)))]
 
   #:with new-id (if should-reformat?
                     #'define-syntax-parse-rule
