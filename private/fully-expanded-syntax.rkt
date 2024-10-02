@@ -1,8 +1,7 @@
 #lang racket/base
 
 
-(require racket/contract
-         racket/sequence)
+(require racket/contract/base)
 
 
 (provide
@@ -26,9 +25,7 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define/contract (append-all-id-maps id-maps)
-  (-> (sequence/c (hash/c (or/c exact-integer? #false) (treelist/c identifier?) #:immutable #true))
-      (hash/c (or/c exact-integer? #false) (treelist/c identifier?) #:immutable #true))
+(define (append-all-id-maps id-maps)
   (for/fold ([combined (hash)])
             ([map id-maps])
     (hash-union combined map #:combine treelist-append)))
