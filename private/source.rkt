@@ -152,11 +152,12 @@
     (define binding-table (fully-expanded-syntax-binding-table expanded))
     (define original-binding-table-by-position
       (for*/fold ([table (hash)])
-                 ([(id uses) (in-free-id-table binding-table)]
+                 ([phase-table (in-hash-values binding-table)]
+                  [(id uses) (in-free-id-table phase-table)]
                   #:when (syntax-original-and-from-source? id)
                   [use (in-list uses)])
         (hash-update table (syntax-source-location id) (λ (previous) (cons use previous)) '())))
-                  
+    
     (add-all-original-subforms! expanded)
 
     (define/guard (add-usages stx)

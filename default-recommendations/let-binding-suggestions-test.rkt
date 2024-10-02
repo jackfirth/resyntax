@@ -334,6 +334,60 @@ test: "unused let* binding shadowed by later bindings is refactorable to side-ef
 ------------------------------
 
 
+test: "partially used let-values binding refactorable to define-values"
+------------------------------
+(define (f)
+  (let-values ([(x y) (values 1 2)])
+    x))
+------------------------------
+------------------------------
+(define (f)
+  (define-values (x y) (values 1 2))
+  x)
+------------------------------
+
+
+test: "partially used let-values binding at phase 1 refactorable to define-values"
+------------------------------
+(require (for-syntax racket/base))
+(define-syntaxes (a b c)
+  (let ()
+    (define (f)
+      (let-values ([(x y) (values 1 2)])
+        x))
+    (values 1 2 3)))
+------------------------------
+------------------------------
+(require (for-syntax racket/base))
+(define-syntaxes (a b c)
+  (let ()
+    (define (f)
+      (define-values (x y) (values 1 2))
+      x)
+    (values 1 2 3)))
+------------------------------
+
+
+test: "let forms with conflicting outer definitions not refactorable"
+------------------------------
+(define (f)
+  (define x 1)
+  (let ([x 2])
+    x))
+------------------------------
+
+
+test: "let forms with conflicting outer definitions at phase 1 not refactorable"
+------------------------------
+(require (for-syntax racket/base))
+(begin-for-syntax
+  (define (f)
+    (define x 1)
+    (let ([x 2])
+      x)))
+------------------------------
+
+
 test: "let forms inside lambdas"
 ------------------------------
 (λ ()

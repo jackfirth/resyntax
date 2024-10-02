@@ -146,7 +146,10 @@
 
 
 (define (identifier-has-exact-binding-in-context? id context)
-  (and (identifier-binding (identifier-in-context id context) 0 #false #true) #true))
+  (define id-in-ctx (identifier-in-context id context))
+  (and (for/or ([phase (in-list (syntax-bound-phases context))])
+         (identifier-binding id-in-ctx phase))
+       #true))
 
 
 (define (identifier-in-context id context)
