@@ -27,4 +27,4 @@ See the documentation for more details on how to use `resyntax`.
 
 ## Examples
 
-You can find suggestions Resyntax has left on GitHub pull requests "in the wild" using [this search](https://github.com/search?q=%22Resyntax%20analyzed%22%20%22added%20suggestions%22%20in%3Acomments%20is%3Apr%20sort%3Aupdated%20&type=pullrequests).
+Resyntax integrates with GitHub in two ways: an _analyzer_ GitHub action that reviews pull requests, and an _autofixer_ GitHub action that periodically creates pull requests cleaning up a repository. You can find reviews the Resyntax analyzer has left on GitHub pull requests "in the wild" using [this search](https://github.com/search?q=%22Resyntax%20analyzed%22%20%22added%20suggestions%22%20in%3Acomments%20is%3Apr%20sort%3Aupdated%20&type=pullrequests). To find pull requests created by the autofixer, use [this search](https://github.com/search?q=%22This+is+an+automated+change+generated+by+Resyntax%22+is%3Apr+sort%3Aupdated+&type=pullrequests).
