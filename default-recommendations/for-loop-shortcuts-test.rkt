@@ -327,6 +327,106 @@ test: "multi-accumulator for/fold with one used result refactorable to for/fold 
 ------------------------------
 
 
+test: "for/fold with conditional body refactorable to for/fold with #:when"
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (if (even? n)
+        (+ accum n)
+        accum)))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (if (not (even? n))
+        accum
+        (+ accum n))))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (cond
+      [(even? n) (+ accum n)]
+      [else accum])))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (cond
+      [(not (even? n)) accum]
+      [else (+ accum n)])))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (cond
+      [(even? n) (+ accum n)]
+      [accum])))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)]
+             #:when (even? n))
+    (+ accum n)))
+------------------------------
+
+
+test: "for/fold with negated conditional body refactorable to for/fold with #:unless"
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (if (even? n)
+        accum
+        (+ accum n))))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (if (not (even? n))
+        (+ accum n)
+        accum)))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (cond
+      [(even? n) accum]
+      [else (+ accum n)])))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (cond
+      [(not (even? n)) (+ accum n)]
+      [else accum])))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)])
+    (cond
+      [(even? n) accum]
+      [(+ accum n)])))
+------------------------------
+------------------------------
+(define (foo)
+  (for/fold ([accum 0])
+            ([n (in-naturals)]
+             #:unless (even? n))
+    (+ accum n)))
+------------------------------
+
+
 test: "list->vector with for/list to for/vector"
 ------------------------------
 (list->vector

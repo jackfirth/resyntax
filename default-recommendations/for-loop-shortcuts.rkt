@@ -300,6 +300,52 @@ return just that result."
    body-after ...))
 
 
+(define-syntax-class conditional-body
+  #:attributes (condition [body 1] accumulator-id-use)
+  #:literals (if cond else not)
+  (pattern (if (not condition) accumulator-id-use:id expr) #:with (body ...) (list #'expr))
+  (pattern (if condition expr accumulator-id-use:id) #:with (body ...) (list #'expr))
+  (pattern (cond [(not condition) accumulator-id-use:id] [else body ...]))
+  (pattern (cond [condition body ...] [else accumulator-id-use:id]))
+  (pattern (cond [condition body ...] [accumulator-id-use:id])))
+
+
+(define-refactoring-rule for/fold-with-conditional-body-to-when-keyword
+  #:description "This `for/fold` loop can be simplified by using the `#:when` keyword."
+  #:literals (for/fold for*/fold)
+  ((~or for-id:for/fold for-id:for*/fold)
+   (~and orig-accumulators ([accumulator-id:id _]))
+   (loop-clause ...)
+   conditional-body:if-like-expression)
+  #:with (accumulator-id-use:id) #'(conditional-body.false-body ...)
+  ;; The expansion of for/fold is very complex, and one thing it does is mess with the accumulator ids
+  ;; and their uses such that free-identifier=? on an accumulator's use and its binder breaks. To work
+  ;; around this, we compare the usage and accumulator ids by symbol here.
+  #:when (equal? (syntax-e (attribute accumulator-id))
+                 (syntax-e (attribute accumulator-id-use)))
+  (for-id orig-accumulators
+          (loop-clause ... #:when conditional-body.base-condition)
+          conditional-body.true-body ...))
+
+
+(define-refactoring-rule for/fold-with-conditional-body-to-unless-keyword
+  #:description "This `for/fold` loop can be simplified by using the `#:unless` keyword."
+  #:literals (for/fold for*/fold)
+  ((~or for-id:for/fold for-id:for*/fold)
+   (~and orig-accumulators ([accumulator-id:id _]))
+   (loop-clause ...)
+   conditional-body:if-like-expression)
+  #:with (accumulator-id-use:id) #'(conditional-body.true-body ...)
+  ;; The expansion of for/fold is very complex, and one thing it does is mess with the accumulator ids
+  ;; and their uses such that free-identifier=? on an accumulator's use and its binder breaks. To work
+  ;; around this, we compare the usage and accumulator ids by symbol here.
+  #:when (equal? (syntax-e (attribute accumulator-id))
+                 (syntax-e (attribute accumulator-id-use)))
+  (for-id orig-accumulators
+          (loop-clause ... #:unless conditional-body.base-condition)
+          conditional-body.false-body ...))
+
+
 (define-syntax-class nested-for
 
   #:attributes ([clause 1] [body 1])
@@ -430,6 +476,8 @@ return just that result."
            apply-plus-to-for/sum
            for/fold-building-hash-to-for/hash
            for/fold-result-keyword
+           for/fold-with-conditional-body-to-unless-keyword
+           for/fold-with-conditional-body-to-when-keyword
            for-each-to-for
            list->set-to-for/set
            list->vector-to-for/vector
