@@ -230,6 +230,107 @@ refactoring rules.
     (void)))}
 
 
+@subsection{Exercising Fine Control Over Comments}
+
+
+Writing a rule with @racket[define-refactoring-rule] is usually enough for Resyntax to handle
+commented code without issue, but in certain cases more precise control is desired. For instance,
+consider the @racketidfont{nested-or-to-flat-or} rule from earlier:
+
+@(racketblock
+  (define-refactoring-rule nested-or-to-flat-or
+    #:description "This nested `or` expression can be flattened."
+    #:literals (or)
+    (or a (or b c))
+    (or a b c)))
+
+As-is, this rule will @emph{fail} to refactor the following code:
+
+@(racketblock
+  (or (foo ...)
+      (code:comment @#,elem{If that doesn't work, fall back to other approaches})
+      (or (bar ...)
+          (baz ...))))
+
+Resyntax rejects the rule because applying it would produce this code, which loses the comment:
+
+@(racketblock
+  (or (foo ...)
+      (bar ...)
+      (baz ...)))
+
+Resyntax is unable to preserve the comment automatically. Resyntax can preserve some comments without
+programmer effort, but only in specific circumstances:
+
+@itemlist[
+ @item{Comments @emph{within} expressions that the rule left unchanged are preserved. If the comment
+  were inside @racket[(foo ...)], @racket[(bar ...)], or @racket[(baz ...)], it would have been kept.}
+
+ @item{Comments @emph{between} unchanged expressions are similarly preserved. If the comment were
+  between @racket[(bar ...)] and @racket[(baz ...)], it would have been kept.}]
+
+To fix this issue, rule authors can inject some extra markup into their suggested replacements using
+@tech[#:doc '(lib "syntax/scribblings/syntax.scrbl")]{template metafunctions} provided by Resyntax. In
+the case of @racketidfont{nested-or-to-flat-or}, we can use the @racket[~splicing-replacement]
+metafunction to indicate that the nested @racket[or] expression should be considered @emph{replaced}
+by its nested subterms:
+
+@(racketblock
+  (define-refactoring-rule nested-or-to-flat-or
+    #:description "This nested `or` expression can be flattened."
+    #:literals (or)
+    (or a (~and nested-or (or b c)))
+    #:with (nested-subterm ...) #'(~splicing-replacement (b c) #:original nested-or)
+    (or a nested-subterm ...)))
+
+This adds @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{syntax properties} to the nested
+subterms that allow Resyntax to preserve the comment, producing this output:
+
+@(racketblock
+  (or (foo ...)
+      (code:comment @#,elem{If that doesn't work, fall back to other approaches})
+      (bar ...)
+      (baz ...)))
+
+When Resyntax sees that the @racket[(bar ...)] nested subterm comes immediately after the
+@racket[(foo ...)] subterm, it notices that @racket[(bar ...)] has been annotated with replacement
+properties. Then Resyntax observes that @racket[(bar ...)] is the first expression of a sequence of
+expressions that replaces the @racket[or] expression which originally followed @racket[(foo ...)].
+Based on this observation, Resyntax decides to preserve whatever text was originally between
+@racket[(foo ...)] and the nested @racket[or] expression. This mechanism, exposed via
+@racket[~replacement] and @racket[~splicing-replacement], offers a means for refactoring rules to
+guide Resyntax's internal comment preservation system when the default behavior is not sufficient.
+
+@defform[#:kind "template metafunction"
+         (~replacement replacement-form original)
+         #:grammar
+         ([original
+           (code:line #:original original-form)
+           (code:line #:original-splice (original-form ...))])]{
+ A @tech[#:doc '(lib "syntax/scribblings/syntax.scrbl")]{template metafunction} for use in
+ @tech{refactoring rules}. The result of the metafunction is just the @racket[#'replacement-form]
+ syntax object, except with some
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{syntax properties} added. Those
+ properties inform Resyntax that this syntax object should be considered a replacement for
+ @racket[original-form] (or in the splicing case, for the unparenthesized sequence
+ @racket[original-form ...]). Resyntax uses this information to preserve comments and formatting near
+ the original form(s).}
+
+@defform[#:kind "template metafunction"
+         (~splicing-replacement (replacement-form ...) original)
+         #:grammar
+         ([original
+           (code:line #:original original-form)
+           (code:line #:original-splice (original-form ...))])]{
+ A @tech[#:doc '(lib "syntax/scribblings/syntax.scrbl")]{template metafunction} for use in
+ @tech{refactoring rules}. The result of the metafunction is the syntax object
+ @racket[#'(replacement-form ...)], except with some
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{syntax properties} added. Those
+ properties inform Resyntax that the replacement syntax objects --- as an unparenthesized sequence ---
+ should be considered a replacement for @racket[original-form] (or @racket[original-form ...]).
+ Resyntax uses this information to preserve comments and formatting near the original form(s).}
+
+
 @subsection{Resyntax's Default Rules}
 @defmodule[resyntax/default-recommendations]
 
