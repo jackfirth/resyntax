@@ -10,7 +10,8 @@
 
 
 (require (for-syntax racket/base)
-         (for-template racket/match
+         (for-template racket/base
+                       racket/match
                        racket/provide-syntax
                        racket/require-syntax
                        syntax/parse)
@@ -59,6 +60,13 @@
   stx)
 
 
+(define-refactoring-rule for-clause-syntax-protect-migration
+  #:description "The `for-clause-syntax-protect` function is a legacy function that does nothing."
+  #:literals (for-clause-syntax-protect)
+  (for-clause-syntax-protect stx)
+  stx)
+
+
 (define-refactoring-rule syntax-local-match-introduce-migration
   #:description
   "The `syntax-local-match-introduce` function is a legacy function that's equivalent to\
@@ -97,6 +105,7 @@
 
 (define-refactoring-suite legacy-syntax-migrations
   #:rules (datum->syntax-migration
+           for-clause-syntax-protect-migration
            syntax-disarm-migration
            syntax-local-match-introduce-migration
            syntax-local-provide-introduce-migration

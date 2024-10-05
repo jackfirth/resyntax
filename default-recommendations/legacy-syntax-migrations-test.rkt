@@ -65,6 +65,19 @@ stx
 ------------------------------
 
 
+test: "for-clause-syntax-protect can be removed"
+------------------------------
+(require (for-template racket/base))
+(define stx #'foo)
+(for-clause-syntax-protect stx)
+------------------------------
+------------------------------
+(require (for-template racket/base))
+(define stx #'foo)
+stx
+------------------------------
+
+
 test: "syntax-local-match-introduce replaced with syntax-local-introduce"
 ------------------------------
 (require (for-template racket/match))
