@@ -9,16 +9,11 @@
   [match-shortcuts refactoring-suite?]))
 
 
-(require (for-syntax racket/base)
+(require racket/list
          racket/match
          racket/set
-         rebellion/private/static-name
          resyntax/base
-         resyntax/default-recommendations/private/definition-context
          resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/default-recommendations/private/syntax-lines
-         resyntax/default-recommendations/private/syntax-tree
-         resyntax/private/syntax-neighbors
          syntax/parse)
 
 
@@ -41,7 +36,11 @@
   (~seq body-before ... match-expression:single-clause-match)
   #:when (set-empty? (set-intersect (syntax-bound-identifiers #'(body-before ...))
                                     (syntax-bound-identifiers #'match-expression.match-pattern)))
-  (body-before ... (~@ . (~focus-replacement-on (match-expression.as-definition-context-body ...)))))
+  #:with (new-body ...) (if (empty? (attribute body-before))
+                            (attribute match-expression.as-definition-context-body)
+                            #'(~focus-replacement-on
+                               (match-expression.as-definition-context-body ...)))
+  (body-before ... new-body ...))
 
 
 (define-refactoring-suite match-shortcuts

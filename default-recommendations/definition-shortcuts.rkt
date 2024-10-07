@@ -10,6 +10,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          rebellion/private/static-name
          resyntax/base
          syntax/parse)
@@ -32,7 +33,11 @@
   #:literals (define)
   (~seq body-before ... (~and definition (define id1:id expr)) id2:id)
   #:when (free-identifier=? #'id1 #'id2)
-  (body-before ... (~focus-replacement-on (~replacement expr #:original-splice (definition id2)))))
+  #:with replacement #'(~replacement expr #:original-splice (definition id2))
+  #:with focused (if (empty? (attribute body-before))
+                     #'replacement
+                     #'(~focus-replacement-on replacement))
+  (body-before ... focused))
 
 
 (define-refactoring-suite definition-shortcuts
