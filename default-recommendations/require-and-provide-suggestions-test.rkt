@@ -127,6 +127,13 @@ test: "require tidying should move non-phase spec forms before relative paths"
 ----------------------------------------
 
 
+test: "require tidying of only non-phase spec forms should do nothing"
+----------------------------------------
+(require (only-in racket/list first)
+         (only-in racket/hash hash-union))
+----------------------------------------
+
+
 test: "require tidying shouldn't trigger when require transformers are imported and used"
 ----------------------------------------
 (require racket/require
