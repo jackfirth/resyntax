@@ -200,7 +200,8 @@
 
 
 (define (simple-spec? spec)
-  (not (equal? (parsed-simple-import-kind spec) 'other)))
+  (define kind (parsed-simple-import-kind spec))
+  (and (not (equal? kind 'other-known)) (not (equal? kind 'other-unknown))))
 
 
 (define (import-specs-all-known? specs)
@@ -211,6 +212,7 @@
 (define (import-specs-tidy? specs)
   (and (sorted? specs parsed-import-spec<=>)
        (sorted? (filter simple-spec? specs) parsed-import-spec<=> #:strictly? #true)))
+
 
 (define (import-specs-tidy specs)
   (transduce specs
