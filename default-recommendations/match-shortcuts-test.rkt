@@ -51,6 +51,19 @@ test: "migrating single-clause match expressions to match-define doesn't reforma
 ------------------------------
 
 
+test: "migrating single-clause match expressions in single-form contexts does reformat"
+------------------------------
+(map (λ (x) (match x [(list a b c) (+ a b c)]))
+     (list (list 1 2 3) (list 4 5 6)))
+------------------------------
+------------------------------
+(map (λ (x)
+       (match-define (list a b c) x)
+       (+ a b c))
+     (list (list 1 2 3) (list 4 5 6)))
+------------------------------
+
+
 test: "single-clause match expressions inside cond can be replaced with match-define expressions"
 ------------------------------
 (define (foo x condition)

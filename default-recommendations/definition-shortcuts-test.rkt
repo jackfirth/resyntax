@@ -106,3 +106,16 @@ test: "inlining immediately returned variable definition doesn't reformat entire
 
   1)
 ------------------------------
+
+
+test: "inlining immediately returned variable definition in empty context does reformat"
+------------------------------
+(map (λ (x)
+       (define y (* x 2))
+       y)
+     (list 1 2 3))
+------------------------------
+------------------------------
+(map (λ (x) (* x 2))
+     (list 1 2 3))
+------------------------------
