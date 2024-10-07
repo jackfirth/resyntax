@@ -242,22 +242,29 @@ test: "andmap to for/and"
 ------------------------------
 
 
-test: "for/and with or to filter clause"
+test: "for/and with or guarding complex expression to filter clause"
 ------------------------------
-(define some-list (list 3 5 14 10 6 5 2))
+(define some-list (list 3 "foo" 5 14 "bar" 10 6 "baz" 5 2))
 (for/and ([x (in-list some-list)])
   (or (number? x)
-      (positive? x)
-      (not (even? x))
-      (< x 10)))
+      (let ([l (string-length x)])
+        (and (odd? l) (< l 10)))))
 ------------------------------
 ------------------------------
-(define some-list (list 3 5 14 10 6 5 2))
+(define some-list (list 3 "foo" 5 14 "bar" 10 6 "baz" 5 2))
 (for/and ([x (in-list some-list)]
-          #:unless (number? x)
-          #:unless (positive? x)
-          #:when (even? x))
-  (< x 10))
+          #:unless (number? x))
+  (define l (string-length x))
+  (and (odd? l) (< l 10)))
+------------------------------
+
+
+test: "for/and with or guarding simple expression not refactorable"
+------------------------------
+(define some-list (list 3 "foo" 5 14 "bar" 10 6 "baz" 5 2))
+(for/and ([x (in-list some-list)])
+  (or (number? x)
+      (string? x)))
 ------------------------------
 
 

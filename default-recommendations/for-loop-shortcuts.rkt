@@ -408,17 +408,20 @@ return just that result."
     true-branch))
 
 
-(define-refactoring-rule or-in-for/and-to-filter-clause
-  #:description "The `or` expression in this `for` loop can be replaced by a filtering clause."
+(define-refactoring-rule or-let-in-for/and-to-filter-clause
+  #:description
+  "The `or` expression in this `for` loop can be replaced by a filtering clause, letting you use\
+ `define` instead of `let` in the loop body."
   #:literals (for/and for*/and or)
   ((~and loop-id (~or for/and for*/and))
    (~and original-clauses (clause ...))
-   (~and original-body (or condition:condition-expression ...+ last-condition)))
+   (~and original-body
+         (or condition:condition-expression ...+ last-condition:refactorable-let-expression)))
   (loop-id
    (~replacement
     (clause ... (~@ (~if condition.negated? #:when #:unless) condition.base-condition) ...)
     #:original original-clauses)
-   (~replacement last-condition #:original original-body)))
+   (~@ . (~splicing-replacement (last-condition.refactored ...) #:original original-body))))
 
 
 (define-syntax-class apply-append-refactorable-for-loop
@@ -477,7 +480,7 @@ return just that result."
            nested-for-to-for*
            nested-for/and-to-for*/and
            nested-for/or-to-for*/or
-           or-in-for/and-to-filter-clause
+           or-let-in-for/and-to-filter-clause
            ormap-to-for/or
            unless-expression-in-for-loop-to-unless-keyword
            when-expression-in-for-loop-to-when-keyword))
