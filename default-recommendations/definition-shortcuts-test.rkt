@@ -61,6 +61,29 @@ test: "define-values with values inside cond refactorable to separate definition
 ------------------------------
 
 
+test: "refactoring define-values to separate definitions doesn't reformat context"
+------------------------------
+(define (foo)
+
+  (  displayln   "foo"   )
+
+  (define-values (a b c) (values 1 2 3))
+
+  (  +  a  b   c ))
+------------------------------
+------------------------------
+(define (foo)
+
+  (  displayln   "foo"   )
+
+  (define a 1)
+  (define b 2)
+  (define c 3)
+
+  (  +  a  b   c ))
+------------------------------
+
+
 test: "immediately returned variable definition can be inlined"
 ------------------------------
 (define (foo)
