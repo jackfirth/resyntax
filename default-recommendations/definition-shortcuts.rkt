@@ -23,9 +23,11 @@
   #:description "This use of `define-values` is unnecessary."
   #:literals (define-values values)
   (~seq body-before ...
-        (define-values (id:id ...) (values expr:expr ...))
+        (~and definition (define-values (id:id ...) (values expr:expr ...)))
         body-after ...)
-  (body-before ... (define id expr) ... body-after ...))
+  #:with (replacement ...)
+  #'(~focus-replacement-on (~splicing-replacement ((define id expr) ...) #:original definition))
+  (body-before ... replacement ... body-after ...))
 
 
 (define-definition-context-refactoring-rule inline-unnecessary-define
