@@ -206,6 +206,85 @@ refactoring rules.
      #:when (free-identifier=? #'a #'b)
      (or before ... a between ... after ...)))}
 
+@defform[(define-definition-context-refactoring-rule id
+           #:description description
+           parse-option ...
+           syntax-pattern
+           pattern-directive ...
+           template)
+         #:contracts ([description string?])]{
+
+ Defines a @tech{refactoring rule} named @racket[id], like @racket[define-refactoring-rule], except
+ the rule is applied only in
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{internal-definition contexts}. The given
+ @racket[syntax-pattern] must be a
+ @tech[#:doc '(lib "syntax/scribblings/syntax.scrbl")]{proper head pattern}, and it is expected to
+ match the entire sequence of body forms within the definition context. The output @racket[template]
+ of the rule should be a single syntax object containing a sequence of refactored body forms. Like
+ @racket[define-refactoring-rule], @racket[description] is used to generate a message presented to the
+ user, and both @racket[parse-option] and @racket[pattern-directive] function the same as they do in
+ @racket[syntax-parse]. For example, here is a simple rule that turns a series of @racket[define]
+ forms unpacking a 2D @racket[point] structure into a single @racket[match-define] form:
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (struct point (x y) #:transparent))
+
+   (define-definition-context-refactoring-rule point-define-to-match-define
+     #:description "These definitions can be simplified with `match-define`."
+     #:literals (define point-x point-y)
+     (~seq body-before ...
+           (define x:id (point-x pt:id))
+           (define y:id (point-y pt2:id))
+           body-after ...)
+     #:when (free-identifier=? #'pt #'pt2)
+     (body-before ...
+      (match-define (point x y) pt)
+      body-after ...)))
+
+ Note that by default Resyntax will try to reformat the entire context. To reformat just the forms
+ being modified, a few additional steps are required. First, use @racket[~replacement] (or
+ @racket[~splicing-replacement]) to annotate which subpart of the context is being replaced:
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define-definition-context-refactoring-rule point-define-to-match-define
+     #:description "These definitions can be simplified with `match-define`."
+     #:literals (define point-x point-y)
+     (~seq body-before ...
+           (~and x-def (define x:id (point-x pt:id)))
+           (~and y-def (define y:id (point-y pt2:id)))
+           body-after ...)
+     #:when (free-identifier=? #'pt #'pt2)
+     (body-before ...
+      (~replacement (match-define (point x y) pt)
+                    #:original-splice (x-def y-def))
+      body-after ...)))
+
+ This ensures that Resyntax will preserve any comments at the end of @racket[body-before ...] and the
+ beginning of @racket[body-after ...]. However, that alone doesn't prevent Resyntax from reformatting
+ the whole context. To do that, use the @racket[~focus-replacement-on] metafunction, which tells
+ Resyntax that if @emph{only} the focused forms are changed, Resyntax should "shrink" the replacement
+ it generates down to just those forms and not reformat anything in the replacement syntax object
+ that's outside of the focused syntax:
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define-definition-context-refactoring-rule point-define-to-match-define
+     #:description "These definitions can be simplified with `match-define`."
+     #:literals (define point-x point-y)
+     (~seq body-before ...
+           (~and x-def (define x:id (point-x pt:id)))
+           (~and y-def (define y:id (point-y pt2:id)))
+           body-after ...)
+     #:when (free-identifier=? #'pt #'pt2)
+     (body-before ...
+      (~focus-replacement-on
+       (~replacement (match-define (point x y) pt)
+                     #:original-splice (x-def y-def)))
+      body-after ...)))}
+
 
 @defform[(define-refactoring-suite id rules-list suites-list)
 
@@ -317,7 +396,8 @@ guide Resyntax's internal comment preservation system when the default behavior 
  the original form(s).}
 
 @defform[#:kind "template metafunction"
-         (~splicing-replacement (replacement-form ...) original)
+         (~splicing-replacement (replacement-form ...)
+                                original)
          #:grammar
          ([original
            (code:line #:original original-form)
@@ -329,6 +409,23 @@ guide Resyntax's internal comment preservation system when the default behavior 
  properties inform Resyntax that the replacement syntax objects --- as an unparenthesized sequence ---
  should be considered a replacement for @racket[original-form] (or @racket[original-form ...]).
  Resyntax uses this information to preserve comments and formatting near the original form(s).}
+
+
+@subsection{Narrowing the Focus of Replacements}
+
+@defform[#:kind "template metafunction"
+         (~focus-replacement-on replacement-form)]{
+ A @tech[#:doc '(lib "syntax/scribblings/syntax.scrbl")]{template metafunction} for use in
+ @tech{refactoring rules}. The result of the metafunction is just the @racket[#'replacement-form]
+ syntax object, except with some
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{syntax properties} added. Those
+ properties inform Resyntax that the returned syntax object should be treated as the @emph{focus} of
+ the entire refactoring rule's generated replacement. When a refactoring rule produces a replacement
+ that has a focus, Resyntax checks that nothing outside the focus was modified. If this is the case,
+ then Resyntax will @emph{shrink} the replacement it generates to only touch the focus. Crucially,
+ this means Resyntax will @emph{only reformat the focused code}, not the entire generated replacement.
+ This metafunction is frequently used with @racket[define-definition-context-refactoring-rule],
+ because such rules often touch only a small series of forms in a much larger definition context.}
 
 
 @subsection{Resyntax's Default Rules}
