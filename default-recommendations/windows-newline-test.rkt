@@ -4,7 +4,7 @@
 (module+ test
   (require rackunit
            resyntax/default-recommendations
-           resyntax/testing/refactoring-test))
+           resyntax/test))
 
 
 ;@----------------------------------------------------------------------------------------------------
