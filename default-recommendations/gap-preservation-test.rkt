@@ -1,4 +1,4 @@
-#lang resyntax/testing/refactoring-test
+#lang resyntax/test
 
 
 require: resyntax/default-recommendations/gap-preservation gap-preservation-rules

@@ -299,7 +299,7 @@
     (define parse-tree (parse source-name (make-refactoring-test-tokenizer in)))
     (define module-datum
       `(module refactoring-test racket/base
-         (module test resyntax/testing/refactoring-test
+         (module test resyntax/test
            ,parse-tree)))
     (datum->syntax #f module-datum))
 
