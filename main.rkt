@@ -7,7 +7,8 @@
 (provide
  (contract-out
   [refactor! (-> (sequence/c refactoring-result?) void?)]
-  [refactor (->* (string?) (#:suite refactoring-suite?) (listof refactoring-result?))]
+  [refactor
+   (->* (string?) (#:suite refactoring-suite? #:lines range-set?) (listof refactoring-result?))]
   [refactor-file (->* (file-portion?) (#:suite refactoring-suite?) (listof refactoring-result?))]))
 
 

@@ -1,9 +1,9 @@
 #lang brag
 
 begin: statement*
-statement: COLON-IDENTIFIER (expression | option)+
-@expression: IDENTIFIER | LITERAL-STRING | LITERAL-INTEGER | closed-range | range-set | code-block
+statement: COLON-IDENTIFIER (option | code-block | expression)+
+@expression: range-set | IDENTIFIER | LITERAL-STRING | LITERAL-INTEGER
 option: AT-SIGN-IDENTIFIER expression
 code-block: CODE-BLOCK
-closed-range: LITERAL-INTEGER /DOUBLE-DOT LITERAL-INTEGER
-range-set: closed-range (/COMMA closed-range)+
+range-set: line-range (/COMMA line-range)*
+line-range: LITERAL-INTEGER /DOUBLE-DOT LITERAL-INTEGER

@@ -84,6 +84,31 @@ test: "refactoring define-values to separate definitions doesn't reformat contex
 ------------------------------
 
 
+test: "refactoring define-values to separate definitions respects requested line range"
+@lines 2..3
+------------------------------
+(define (foo)
+  (define-values (a b c)
+    (values 1 2 3))
+  (+ a b c))
+(define (bar)
+  (define-values (x y z)
+    (values 4 5 6))
+  (+ x y z))
+------------------------------
+------------------------------
+(define (foo)
+  (define a 1)
+  (define b 2)
+  (define c 3)
+  (+ a b c))
+(define (bar)
+  (define-values (x y z)
+    (values 4 5 6))
+  (+ x y z))
+------------------------------
+
+
 test: "immediately returned variable definition can be inlined"
 ------------------------------
 (define (foo)
@@ -141,4 +166,29 @@ test: "inlining immediately returned variable definition in empty context does r
 ------------------------------
 (map (λ (x) (* x 2))
      (list 1 2 3))
+------------------------------
+
+
+test: "inlining immediately returned variable definition respects requested line range"
+@lines 4..6
+------------------------------
+(define (foo)
+  (define x 1)
+  x)
+(define (bar)
+  (define x 1)
+  x)
+(define (baz)
+  (define x 1)
+  x)
+------------------------------
+------------------------------
+(define (foo)
+  (define x 1)
+  x)
+(define (bar)
+  1)
+(define (baz)
+  (define x 1)
+  x)
 ------------------------------
