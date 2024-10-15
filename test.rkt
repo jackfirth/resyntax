@@ -1,214 +1,107 @@
 #lang racket/base
 
 
-(provide (for-syntax #%datum)
+(provide #%app
          #%datum
          #%module-begin
-         check-suite-refactors
-         refactoring-test
-         refactoring-test-import
-         refactoring-test-header
-         refactoring-test-case)
+         begin
+         code-block
+         header:
+         require:
+         statement
+         test:)
 
 
-(require (for-syntax racket/base racket/sequence)
-         racket/list
-         racket/logging
-         racket/match
-         racket/port
+(require (for-syntax racket/base
+                     racket/sequence
+                     resyntax/test/private/statement)
          racket/pretty
-         racket/string
          racket/stxparam
          rackunit
-         rackunit/private/check-info
-         rebellion/collection/entry
-         rebellion/collection/hash
-         rebellion/collection/list
-         rebellion/collection/multiset
-         rebellion/collection/vector/builder
-         rebellion/streaming/transducer
-         rebellion/type/tuple
-         resyntax
          resyntax/base
-         resyntax/private/logger
-         resyntax/private/refactoring-result
-         resyntax/private/source
-         resyntax/private/string-replacement
-         syntax/modread
-         syntax/parse
+         resyntax/test/private/rackunit
          syntax/parse/define)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
+(define-syntax (statement stx)
+  (syntax-parse stx
+    #:track-literals
+    [(statement statement-id:id . tail)
+     (define transformer (syntax-local-value #'statement-id (λ () #false)))
+     (unless transformer
+       (raise-syntax-error #false
+                           "unbound identifier"
+                           this-syntax
+                           #'statement-id))
+     (unless (statement-transformer? transformer)
+       (raise-syntax-error #false
+                           "not defined as a statement"
+                           this-syntax
+                           #'statement-id))
+     (syntax-local-apply-transformer (statement-transformer-procedure transformer)
+                                     #'statement-id
+                                     'module
+                                     #false
+                                     stx)]))
+
+
+(define-syntax require:
+  (statement-transformer
+   (λ (stx)
+     (syntax-parse stx
+       #:track-literals
+       [(_ _ module:id suite:id)
+        #`(begin
+            (require (only-in module suite))
+            ; Using syntax/loc to ensure that if add-suite-under-test! throws a runtime
+            ; error because suite isn't a refactoring suite, the error will point to the
+            ; require: statement.
+            #,(syntax/loc this-syntax (add-suite-under-test! suite)))]))))
+
+
 (begin-for-syntax
-  (define-syntax-class refactoring-test-import-statement
-    #:attributes (require-statement suite)
-    #:literals (refactoring-test-import)
-    (pattern (refactoring-test-import module suite)
-      #:with require-statement #'(require (only-in module suite))))
-
-  (define-syntax-class refactoring-test-header-statement
-    #:attributes (header-block)
-    #:literals (refactoring-test-header)
-    (pattern (refactoring-test-header header-block)))
-
-  (define (make-constant-transformer constant)
-    (syntax-parser [:id #`#,constant])))
+  (define-syntax-class literal-code-block
+    #:description "a code block"
+    #:opaque
+    #:literals (code-block)
+    (pattern (code-block str:str))))
 
 
-(define-syntax-parse-rule (refactoring-test import:refactoring-test-import-statement ...
-                                            (~optional header:refactoring-test-header-statement)
-                                            case ...)
-  #:with parameterization
-  #'([refactoring-suite-under-test (make-rename-transformer #'suite)]
-     (~? (~@ [implicit-program-header (make-constant-transformer header.header-block)])))
-  (begin
-    import.require-statement ...
-    (define suite (refactoring-suite #:rules (append (refactoring-suite-rules import.suite) ...)))
-    (syntax-parameterize parameterization
-      case ...
-      ;; this void expression ensures that it's not an error if no test cases are given
-      (void))))
+(define-syntax header:
+  (statement-transformer
+   (λ (stx)
+     (syntax-parse stx
+       #:track-literals
+       [(_ _ header-code:literal-code-block)
+        ; Using syntax/loc so that errors thrown by set-header! point to the header:
+        ; statement.
+        (syntax/loc stx (set-header! header-code))]))))
 
 
-(define-syntax (refactoring-test-import stx)
-  (raise-syntax-error #false "can only be used within a refactoring test" stx))
-
-
-(define-syntax (refactoring-test-header stx)
-  (raise-syntax-error #false "can only be used within a refactoring test" stx))
-
-
-(define (refactoring-results-matched-rules-info results)
-  (define matches (transduce results (mapping refactoring-result-rule-name) #:into into-multiset))
-  (nested-info
-   (transduce (in-hash-entries (multiset-frequencies matches))
-              (mapping-values
-               (λ (match-count)
-                 (string-info (format "~a match~a" match-count (if (= match-count 1) "" "es")))))
-              (mapping (λ (e) (check-info (entry-key e) (entry-value e))))
-              #:into into-list)))
-
-
-(define-tuple-type program-output (stdout stderr))
-
-
-(define (eval-program program)
-  (define stdout (open-output-string))
-  (define stderr (open-output-string))
-  (parameterize ([current-namespace (make-base-namespace)])
-    (define (read-from-input)
-      (port-count-lines! (current-input-port))
-      (with-module-reading-parameterization read-syntax))
-    (define stx (with-input-from-string program read-from-input))
-    (define module-name
-      (syntax-parse stx #:datum-literals (module) [(module name:id _ ...) (syntax-e #'name)]))
-    (parameterize ([current-output-port stdout]
-                   [current-error-port stderr])
-      (eval stx)
-      (dynamic-require `',module-name #false)))
-  (program-output
-   (string->immutable-string (get-output-string stdout))
-   (string->immutable-string (get-output-string stderr))))
-
-
-(module+ test
-  (test-case "eval-program"
-    (check-equal? (eval-program "#lang racket/base (or 1 2 3)") (program-output "1\n" ""))))
-
-
-(define-check (check-suite-refactors suite original-program expected-program)
-  (define logged-messages-builder (make-vector-builder))
-
-  (define (save-log log-entry)
-    (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
-
-  (define (call-with-logs-captured proc)
-    (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug 'resyntax))
-
-  (define (build-logs-info)
-    (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
-
-  (define results (call-with-logs-captured (λ () (refactor original-program #:suite suite))))
-  
-  (with-check-info*
-      (if (empty? results)
-          '()
-          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
-    (λ ()
-      (define replacement
-        (with-handlers
-            ([exn:fail?
-              (λ (e)
-                (with-check-info (['logs (build-logs-info)]
-                                  ['original (string-block original-program)]
-                                  ['expected (string-block expected-program)]
-                                  ['exception e])
-                  (fail-check "an error occurred while processing refactoring results")))])
-          (call-with-logs-captured
-           (λ () (transduce results
-                            (mapping refactoring-result-string-replacement)
-                            #:into union-into-string-replacement)))))
-      (define refactored-program
-        (string-apply-replacement (source->string (string-source original-program)) replacement))
-      (with-check-info (['logs (build-logs-info)]
-                        ['actual (string-block refactored-program)]
-                        ['expected (string-block expected-program)])
-        (when (empty? results)
-          (fail-check "no changes were made"))
-        (when (equal? refactored-program original-program)
-          (fail-check "fixes were made, but they left the program unchanged"))
-        (unless (equal? refactored-program expected-program)
-          (with-check-info (['original (string-block original-program)])
-            (fail-check "incorrect changes were made"))))
-      (match-define (program-output original-stdout original-stderr) (eval-program original-program))
-      (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
-      (unless (equal? original-stdout actual-stdout)
-        (with-check-info (['logs (build-logs-info)]
-                          ['actual (string-block actual-stdout)]
-                          ['original (string-block original-stdout)])
-          (fail-check "output to stdout changed")))
-      (unless (equal? original-stderr actual-stderr)
-        (with-check-info (['logs (build-logs-info)]
-                          ['actual (string-block actual-stderr)]
-                          ['original (string-block original-stderr)])
-          (fail-check "output to stderr changed"))))))
-
-
-(define-check (check-suite-does-not-refactor suite original-program)
-  (define logged-messages-builder (make-vector-builder))
-
-  (define (save-log log-entry)
-    (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
-
-  (define (call-with-logs-captured proc)
-    (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug 'resyntax))
-
-  (define (build-logs-info)
-    (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
-
-  (define results (call-with-logs-captured (λ () (refactor original-program #:suite suite))))
-  (define replacement
-    (transduce results
-               (mapping refactoring-result-string-replacement)
-               #:into union-into-string-replacement))
-  (define refactored-program (string-apply-replacement original-program replacement))
-  (with-check-info*
-      (if (empty? results)
-          '()
-          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
-    (λ ()
-      (with-check-info (['logs (build-logs-info)]
-                        ['actual (string-block refactored-program)]
-                        ['original (string-block original-program)])
-        (unless (equal? refactored-program original-program)
-          (fail-check "expected no changes, but changes were made")))
-      (with-check-info (['logs (build-logs-info)]
-                        ['actual (string-block refactored-program)])
-        (unless (empty? results)
-          (fail-check "the program was not changed, but no-op fixes were suggested"))))))
+(define-syntax test:
+  (statement-transformer
+   (λ (stx)
+     (syntax-parse stx
+       #:track-literals
+       [(_ _ name:str code:literal-code-block)
+        #`(test-case name
+            #,(syntax/loc stx
+                (check-suite-does-not-refactor code)))]
+       [(_ _ name:str input-code:literal-code-block expected-code:literal-code-block)
+        #`(test-case name
+            #,(syntax/loc stx
+                (check-suite-refactors input-code expected-code)))]
+       [(_ _ name:str
+           input-code:literal-code-block ...+
+           expected-code:literal-code-block)
+        #:when (>= (length (attribute input-code)) 2)
+        #`(test-case name
+            #,@(for/list ([input-stx (in-list (attribute input-code))])
+                 (quasisyntax/loc input-stx
+                   (check-suite-refactors #,input-stx expected-code))))]))))
 
 
 (define-syntax (refactoring-test-case stx)
@@ -244,31 +137,6 @@
   (syntax-parser #:literals (implicit-program-header) [implicit-program-header #'""]))
 
 
-(struct string-block (raw-string) #:transparent
-  #:guard (λ (raw-string _) (string->immutable-string raw-string))
-
-  #:methods gen:custom-write
-
-  [(define (write-proc this out mode)
-     (define raw (string-block-raw-string this))
-     (define-values (_line col _pos) (port-next-location out))
-     (cond
-       [(and (pretty-printing) (integer? (pretty-print-columns)) col)
-        (define lead (make-string col #\space))
-        (for ([line (in-lines (open-input-string raw))]
-              [i (in-naturals)])
-          (unless (zero? i)
-            (write-string lead out)
-            (pretty-print-newline out (pretty-print-columns)))
-          (write-string line out))]
-       [else
-        (for ([line (in-lines (open-input-string raw))]
-              [i (in-naturals)])
-          (unless (zero? i)
-            (newline out))
-          (write-string line out))]))])
-
-
 ;@----------------------------------------------------------------------------------------------------
 
 
@@ -284,8 +152,8 @@
     [read-syntax procedure?]))
 
 
-  (require resyntax/testing/refactoring-test-parser
-           resyntax/testing/refactoring-test-tokenizer)
+  (require resyntax/test/private/grammar
+           resyntax/test/private/tokenizer)
   
 
   ;@--------------------------------------------------------------------------------------------------
