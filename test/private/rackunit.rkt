@@ -4,23 +4,27 @@
 (provide (struct-out code-block)
          current-suite-under-test
          current-header
+         current-line-mask
          set-header!
          add-suite-under-test!
          check-suite-refactors
          check-suite-does-not-refactor)
 
 
-(require racket/list
+(require (except-in racket/list range)
          racket/logging
          racket/match
          racket/port
          racket/pretty
          racket/string
          rackunit
+         rebellion/base/comparator
+         rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
          rebellion/collection/multiset
+         rebellion/collection/range-set
          rebellion/collection/vector/builder
          rebellion/streaming/transducer
          rebellion/type/tuple
@@ -28,7 +32,6 @@
          resyntax/base
          resyntax/private/logger
          resyntax/private/refactoring-result
-         resyntax/private/run-command
          resyntax/private/source
          resyntax/private/string-replacement
          syntax/modread
@@ -85,10 +88,27 @@
   (current-header header-code))
 
 
+(define current-line-mask (make-parameter (range-set (unbounded-range #:comparator natural<=>))))
+
+
+(define (range-bound-add bound amount)
+  (if (unbounded? bound)
+      unbounded
+      (range-bound (+ (range-bound-endpoint bound) amount) (range-bound-type bound))))
+
+
 (define-check (check-suite-refactors original-program expected-program)
   (define suite (current-suite-under-test))
   (set! original-program (code-block-append (current-header) original-program))
   (set! expected-program (code-block-append (current-header) expected-program))
+  (define header-line-count
+    (count (λ (ch) (equal? ch #\newline)) (string->list (code-block-raw-string (current-header)))))
+  (define modified-line-mask
+    (for/range-set #:comparator natural<=>
+      ([r (in-range-set (current-line-mask))])
+      (range (range-bound-add (range-lower-bound r) header-line-count)
+             (range-bound-add (range-upper-bound r) header-line-count)
+             #:comparator natural<=>)))
   (define logged-messages-builder (make-vector-builder))
 
   (define (save-log log-entry)
@@ -102,7 +122,9 @@
 
   (define results
     (call-with-logs-captured
-     (λ () (refactor (code-block-raw-string original-program) #:suite suite))))
+     (λ ()
+       (refactor (code-block-raw-string original-program)
+                 #:suite suite #:lines modified-line-mask))))
   
   (with-check-info*
       (if (empty? results)

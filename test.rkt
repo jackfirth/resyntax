@@ -7,6 +7,8 @@
          begin
          code-block
          header:
+         line-range
+         range-set
          require:
          statement
          test:)
@@ -15,10 +17,11 @@
 (require (for-syntax racket/base
                      racket/sequence
                      resyntax/test/private/statement)
-         racket/pretty
          racket/stxparam
          rackunit
-         resyntax/base
+         rebellion/base/comparator
+         rebellion/base/range
+         rebellion/collection/range-set
          resyntax/test/private/rackunit
          syntax/parse/define)
 
@@ -30,6 +33,7 @@
   (syntax-parse stx
     #:track-literals
     [(statement statement-id:id . tail)
+     #:do [(syntax-parse-state-cons! 'literas #'statement-id)]
      (define transformer (syntax-local-value #'statement-id (λ () #false)))
      (unless transformer
        (raise-syntax-error #false
@@ -81,60 +85,53 @@
         (syntax/loc stx (set-header! header-code))]))))
 
 
+(begin-for-syntax
+  (define-splicing-syntax-class test-parameters
+    #:attributes ([id 1] [value 1])
+    #:literals (range-set)
+    #:datum-literals (option @lines)
+
+    (pattern (~seq)
+      #:with (id ...) '()
+      #:with (value ...) '())
+
+    (pattern (~seq (option @lines (~and line-set (range-set . _))))
+      #:with (id ...) (list #'current-line-mask)
+      #:with (value ...) (list #'line-set)))
+  
+  (define-splicing-syntax-class code-block-test-args
+    #:attributes ([check 1])
+
+    (pattern code:literal-code-block
+      #:with (check ...)
+      (list (syntax/loc #'code (check-suite-does-not-refactor code))))
+
+    (pattern (~seq input-code:literal-code-block expected-code:literal-code-block)
+      #:with (check ...)
+      (list (syntax/loc #'input-code (check-suite-refactors input-code expected-code))))
+
+    (pattern (~seq input-code:literal-code-block ...+
+                   expected-code:literal-code-block)
+      #:when (>= (length (attribute input-code)) 2)
+      #:with (check ...)
+      (for/list ([input-stx (in-list (attribute input-code))])
+        (quasisyntax/loc input-stx
+          (check-suite-refactors #,input-stx expected-code))))))
+
+
 (define-syntax test:
   (statement-transformer
    (λ (stx)
      (syntax-parse stx
        #:track-literals
-       [(_ _ name:str code:literal-code-block)
+       [(_ _ name:str params:test-parameters args:code-block-test-args)
         #`(test-case name
-            #,(syntax/loc stx
-                (check-suite-does-not-refactor code)))]
-       [(_ _ name:str input-code:literal-code-block expected-code:literal-code-block)
-        #`(test-case name
-            #,(syntax/loc stx
-                (check-suite-refactors input-code expected-code)))]
-       [(_ _ name:str
-           input-code:literal-code-block ...+
-           expected-code:literal-code-block)
-        #:when (>= (length (attribute input-code)) 2)
-        #`(test-case name
-            #,@(for/list ([input-stx (in-list (attribute input-code))])
-                 (quasisyntax/loc input-stx
-                   (check-suite-refactors #,input-stx expected-code))))]))))
+            (parameterize ([params.id params.value] ...)
+              args.check ...))]))))
 
 
-(define-syntax (refactoring-test-case stx)
-  (define (add-header input-stx)
-    #`(string-append implicit-program-header #,input-stx))
-  (syntax-parse stx
-    [(_ name:str input:str)
-     #:cut
-     #`(test-case name
-         #,(quasisyntax/loc this-syntax
-             (check-suite-does-not-refactor refactoring-suite-under-test #,(add-header #'input))))]
-    [(_ name:str input:str expected:str)
-     #:cut
-     #`(test-case name
-         #,(quasisyntax/loc this-syntax
-             (check-suite-refactors
-              refactoring-suite-under-test #,(add-header #'input) #,(add-header #'expected))))]
-    [(_ name:str input:str ...+ expected:str)
-     #:cut
-     #:with expected-with-header (add-header #'expected)
-     #`(test-case name
-         #,@(for/list ([input-stx (in-syntax #'(input ...))])
-              (quasisyntax/loc input-stx
-                (check-suite-refactors
-                 refactoring-suite-under-test #,(add-header input-stx) expected-with-header))))]))
-
-
-(define-syntax-parameter refactoring-suite-under-test
-  (λ (stx) (raise-syntax-error #false "can only be used within a refactoring test case" stx)))
-
-
-(define-syntax-parameter implicit-program-header
-  (syntax-parser #:literals (implicit-program-header) [implicit-program-header #'""]))
+(define (line-range first-line last-line)
+  (closed-range first-line last-line #:comparator natural<=>))
 
 
 ;@----------------------------------------------------------------------------------------------------
