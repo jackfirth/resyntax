@@ -149,6 +149,12 @@
     (define expanded
       (parameterize ([current-expand-observe observe-event!])
         (expand program-stx)))
+
+    (for ([visited (in-vector (fully-expanded-syntax-disappeared-visits expanded))]
+          #:when (resyntax-should-analyze-syntax? visited))
+      (vector-builder-add original-visits visited)
+      (add-all-original-subforms! visited))
+
     (define binding-table (fully-expanded-syntax-binding-table expanded))
     (define original-binding-table-by-position
       (for*/fold ([table (hash)])
