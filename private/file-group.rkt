@@ -36,8 +36,12 @@
          rebellion/collection/range-set
          rebellion/streaming/transducer
          resyntax/private/git
-         resyntax/private/logger
-         resyntax/private/run-command)
+         resyntax/private/logger)
+
+
+(module+ test
+  (require (submod "..")
+           rackunit))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -107,7 +111,7 @@
          (define diff-lines (git-diff-modified-lines ref))
          (for/list ([(file lines) (in-hash diff-lines)])
            (log-resyntax-debug "~a: modified lines: ~a" file lines)
-           (file-portion file lines)))]))
+           (file-portion file (expand-modified-line-set lines))))]))
   (transduce files (filtering rkt-file?) #:into into-list))
 
 
@@ -116,3 +120,27 @@
   (guard (path-has-extension? path #".rkt") #:else #false)
   (define content (file->string path))
   (string-prefix? content "#lang racket"))
+
+
+;; GitHub allows pull request reviews to include comments only on modified lines, plus the 3 lines
+;; before and after any modified lines.
+(define (expand-modified-line-set lines)
+  (define context-lines
+    (for/list ([line-range (in-range-set lines)])
+      (range (range-bound-map (range-lower-bound line-range) (λ (x) (- x 3)))
+             (range-bound-map (range-upper-bound line-range) (λ (x) (+ x 3)))
+             #:comparator (range-comparator line-range))))
+  (range-set-add-all lines context-lines))
+
+
+(define (range-bound-map bound f)
+  (if (unbounded? bound)
+      unbounded
+      (range-bound (f (range-bound-endpoint bound)) (range-bound-type bound))))
+
+
+(module+ test
+  (test-case "expand-modified-line-set"
+    (define ranges (range-set (closed-open-range 4 6) (greater-than-range 15)))
+    (define expected (range-set (closed-open-range 1 9) (greater-than-range 12))) 
+    (check-equal? (expand-modified-line-set ranges) expected)))
