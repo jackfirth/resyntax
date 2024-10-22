@@ -11,8 +11,7 @@
          check-suite-does-not-refactor)
 
 
-(require (except-in racket/list range)
-         racket/logging
+(require racket/logging
          racket/match
          racket/port
          racket/pretty
@@ -35,7 +34,8 @@
          resyntax/private/source
          resyntax/private/string-replacement
          syntax/modread
-         syntax/parse)
+         syntax/parse
+         (except-in racket/list range))
 
 
 ;@----------------------------------------------------------------------------------------------------
