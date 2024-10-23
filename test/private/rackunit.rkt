@@ -123,8 +123,9 @@
   (define results
     (call-with-logs-captured
      (λ ()
-       (refactor (code-block-raw-string original-program)
-                 #:suite suite #:lines modified-line-mask))))
+       (resyntax-analyze (string-source (code-block-raw-string original-program))
+                         #:suite suite
+                         #:lines modified-line-mask))))
   
   (with-check-info*
       (if (empty? results)
@@ -189,7 +190,8 @@
 
   (define results
     (call-with-logs-captured
-     (λ () (refactor (code-block-raw-string original-program) #:suite suite))))
+     (λ ()
+       (resyntax-analyze (string-source (code-block-raw-string original-program)) #:suite suite))))
   (define replacement
     (transduce results
                (mapping refactoring-result-string-replacement)

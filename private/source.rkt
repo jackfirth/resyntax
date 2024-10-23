@@ -7,10 +7,11 @@
 (provide
  (contract-out
   [source? (-> any/c boolean?)]
+  [unmodified-source? (-> any/c boolean?)]
   [source->string (-> source? immutable-string?)]
+  [source-path (-> source? (or/c path? #false))]
   [source-directory (-> source? (or/c path? #false))]
   [source-read-syntax (-> source? syntax?)]
-  [source-produced-syntax? (-> source? syntax? boolean?)]
   [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
@@ -18,6 +19,10 @@
   [string-source? (-> any/c boolean?)]
   [string-source (-> string? string-source?)]
   [string-source-contents (-> string-source? immutable-string?)]
+  [modified-source? (-> any/c boolean?)]
+  [modified-source (-> unmodified-source? string? modified-source?)]
+  [modified-source-contents (-> modified-source? immutable-string?)]
+  [modified-source-original (-> modified-source? unmodified-source?)]
   [source-code-analysis? (-> any/c boolean?)]
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
@@ -54,12 +59,22 @@
 (struct source () #:transparent)
 
 
-(struct file-source source (path) #:transparent
+(struct unmodified-source source () #:transparent)
+
+
+(struct file-source unmodified-source (path)
+  #:transparent
   #:guard (λ (path _) (simple-form-path path)))
 
 
-(struct string-source source (contents) #:transparent
+(struct string-source unmodified-source (contents)
+  #:transparent
   #:guard (λ (contents _) (string->immutable-string contents)))
+
+
+(struct modified-source source (original contents)
+  #:transparent
+  #:guard (λ (original contents _) (values original (string->immutable-string contents))))
 
 
 (define-record-type source-code-analysis (code visited-forms))
@@ -75,7 +90,11 @@
 
   (match code
     [(file-source path) (call-with-input-file path call-proc-with-reencoded-input)]
-    [(string-source contents) (call-proc-with-reencoded-input (open-input-string contents))]))
+    [(string-source contents) (call-proc-with-reencoded-input (open-input-string contents))]
+    [(modified-source (file-source path) contents)
+     (call-proc-with-reencoded-input (open-input-string contents path))]
+    [(modified-source (? string-source?) contents)
+     (call-proc-with-reencoded-input (open-input-string contents))]))
 
 
 (define (source->string code)
@@ -89,9 +108,14 @@
   (with-input-from-source code read-from-input))
 
 
+(define/guard (source-path code)
+  (guard-match (or (file-source path) (modified-source (file-source path) _)) code #:else #false)
+  path)
+
+
 (define/guard (source-directory code)
-  (guard-match (file-source path) code #:else #false)
-  (path-only path))
+  (define path (source-path code))
+  (and path (path-only path)))
 
 
 (define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
@@ -115,13 +139,13 @@
 
     (define (syntax-original-and-from-source? stx)
       (and (syntax-original? stx)
-               ;; Some macros are able to bend hygiene and syntax properties in such a way that they
-               ;; introduce syntax objects into the program that are syntax-original?, but from a
-               ;; different file than the one being expanded. So in addition to checking for
-               ;; originality, we also check that they come from the same source as the main program
-               ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
-               ;; in this way, and is what originally motivated the addition of this check.
-               (equal? (syntax-source stx) program-source-name)))
+           ;; Some macros are able to bend hygiene and syntax properties in such a way that they
+           ;; introduce syntax objects into the program that are syntax-original?, but from a
+           ;; different file than the one being expanded. So in addition to checking for
+           ;; originality, we also check that they come from the same source as the main program
+           ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
+           ;; in this way, and is what originally motivated the addition of this check.
+           (equal? (syntax-source stx) program-source-name)))
 
     (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
       (guard (syntax-original-and-from-source? stx) #:else #false)
@@ -205,9 +229,3 @@
 (define syntax-source-location<=>
   (comparator-chain (comparator-map real<=> source-location-position)
                     (comparator-map (comparator-reverse real<=>) source-location-span)))
-
-
-(define/guard (source-produced-syntax? code stx)
-  (guard (syntax-original? stx) #:else #false)
-  (guard-match (file-source path) code #:else #false)
-  (equal? path (syntax-source stx)))
