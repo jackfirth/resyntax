@@ -222,7 +222,11 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (printf "resyntax: --- analyzing code ---\n")
   (define results
     (transduce files
-               (append-mapping (refactor-file _ #:suite (resyntax-analyze-options-suite options)))
+               (append-mapping
+                (λ (portion)
+                  (resyntax-analyze (file-source (file-portion-path portion))
+                                    #:suite (resyntax-analyze-options-suite options)
+                                    #:lines (file-portion-lines portion))))
                #:into into-list))
 
   (define (display-results)
@@ -373,9 +377,12 @@ For help on these, use 'analyze --help' or 'fix --help'."
                ;; a convenient manner.
                
                (append-mapping entry-value) ; throw away the file path, we don't need it anymore
-               (append-mapping (λ (p)
-                                 (refactor-file (filter-file-portion p lines-to-analyze-by-file)
-                                                #:suite (resyntax-fix-options-suite options))))
+               (mapping (filter-file-portion _ lines-to-analyze-by-file))
+               (append-mapping
+                (λ (portion)
+                  (resyntax-analyze (file-portion-path portion)
+                                    #:suite (resyntax-fix-options-suite options)
+                                    #:lines (file-portion-lines portion))))
                (limiting max-modified-lines
                          #:by (λ (result)
                                 (define replacement (refactoring-result-line-replacement result))
