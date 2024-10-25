@@ -380,7 +380,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
                (mapping (filter-file-portion _ lines-to-analyze-by-file))
                (append-mapping
                 (λ (portion)
-                  (resyntax-analyze (file-portion-path portion)
+                  (resyntax-analyze (file-source (file-portion-path portion))
                                     #:suite (resyntax-fix-options-suite options)
                                     #:lines (file-portion-lines portion))))
                (limiting max-modified-lines
