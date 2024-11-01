@@ -120,7 +120,7 @@
   (define (build-logs-info)
     (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
 
-  (define results
+  (define result-set
     (call-with-logs-captured
      (λ ()
        (resyntax-analyze (string-source (code-block-raw-string original-program))
@@ -128,11 +128,11 @@
                          #:lines modified-line-mask))))
   
   (with-check-info*
-      (if (empty? results)
+      (if (empty? (refactoring-result-set-results result-set))
           '()
-          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
+          (list (check-info 'matched-rules (refactoring-result-set-matched-rules-info result-set))))
     (λ ()
-      (define replacement
+      (define refactored-program
         (with-handlers
             ([exn:fail?
               (λ (e)
@@ -142,17 +142,11 @@
                                   ['exception e])
                   (fail-check "an error occurred while processing refactoring results")))])
           (call-with-logs-captured
-           (λ () (transduce results
-                            (mapping refactoring-result-string-replacement)
-                            #:into union-into-string-replacement)))))
-      (define refactored-program
-        (string-apply-replacement (source->string
-                                   (string-source (code-block-raw-string original-program)))
-                                  replacement))
+           (λ () (modified-source-contents (refactoring-result-set-updated-source result-set))))))
       (with-check-info (['logs (build-logs-info)]
                         ['actual (code-block refactored-program)]
                         ['expected expected-program])
-        (when (empty? results)
+        (when (empty? (refactoring-result-set-results result-set))
           (fail-check "no changes were made"))
         (when (equal? refactored-program (code-block-raw-string original-program))
           (fail-check "fixes were made, but they left the program unchanged"))
@@ -188,20 +182,16 @@
   (define (build-logs-info)
     (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
 
-  (define results
+  (define result-set
     (call-with-logs-captured
      (λ ()
        (resyntax-analyze (string-source (code-block-raw-string original-program)) #:suite suite))))
-  (define replacement
-    (transduce results
-               (mapping refactoring-result-string-replacement)
-               #:into union-into-string-replacement))
   (define refactored-program
-    (string-apply-replacement (code-block-raw-string original-program) replacement))
+    (modified-source-contents (refactoring-result-set-updated-source result-set)))
   (with-check-info*
-      (if (empty? results)
+      (if (empty? (refactoring-result-set-results result-set))
           '()
-          (list (check-info 'matched-rules (refactoring-results-matched-rules-info results))))
+          (list (check-info 'matched-rules (refactoring-result-set-matched-rules-info result-set))))
     (λ ()
       (with-check-info (['logs (build-logs-info)]
                         ['actual (code-block refactored-program)]
@@ -210,12 +200,15 @@
           (fail-check "expected no changes, but changes were made")))
       (with-check-info (['logs (build-logs-info)]
                         ['actual (code-block refactored-program)])
-        (unless (empty? results)
+        (unless (empty? (refactoring-result-set-results result-set))
           (fail-check "the program was not changed, but no-op fixes were suggested"))))))
 
 
-(define (refactoring-results-matched-rules-info results)
-  (define matches (transduce results (mapping refactoring-result-rule-name) #:into into-multiset))
+(define (refactoring-result-set-matched-rules-info result-set)
+  (define matches
+    (transduce (refactoring-result-set-results result-set)
+               (mapping refactoring-result-rule-name)
+               #:into into-multiset))
   (nested-info
    (transduce (in-hash-entries (multiset-frequencies matches))
               (mapping-values

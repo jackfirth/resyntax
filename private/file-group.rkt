@@ -9,8 +9,8 @@
   [file-portion? (-> any/c boolean?)]
   [file-portion (-> path-string? range-set? file-portion?)]
   [file-portion-path (-> file-portion? complete-path?)]
-  [file-portion-lines (-> file-portion? range-set?)]
-  [file-groups-resolve (-> (sequence/c file-group?) (listof file-portion?))]
+  [file-portion-lines (-> file-portion? immutable-range-set?)]
+  [file-groups-resolve (-> (sequence/c file-group?) (hash/c file-source? immutable-range-set?))]
   [file-group? (-> any/c boolean?)]
   [single-file-group? (-> any/c boolean?)]
   [single-file-group (-> path-string? immutable-range-set? single-file-group?)]
@@ -32,11 +32,15 @@
          racket/string
          rebellion/base/comparator
          rebellion/base/range
+         rebellion/collection/entry
+         rebellion/collection/hash
          rebellion/collection/list
          rebellion/collection/range-set
+         rebellion/streaming/reducer
          rebellion/streaming/transducer
          resyntax/private/git
-         resyntax/private/logger)
+         resyntax/private/logger
+         resyntax/private/source)
 
 
 (module+ test
@@ -80,14 +84,9 @@
 (define (file-groups-resolve groups)
   (transduce groups
              (append-mapping file-group-resolve)
-
-             ;; TODO: this is incorrect - there could be overlapping portions of the same file. The
-             ;; fix is to group the portions by filename and merge their range sets together. I don't
-             ;; think I've implemented that operation for range sets yet so I'll get back to that. The
-             ;; bug only occurs if the same file is included in multiple groups with different ranges.
-             (deduplicating)
-
-             #:into into-list))
+             (bisecting (λ (portion) (file-source (file-portion-path portion))) file-portion-lines)
+             (grouping (make-fold-reducer range-set-add-all (range-set #:comparator natural<=>)))
+             #:into into-hash))
 
 
 (define (file-group-resolve group)

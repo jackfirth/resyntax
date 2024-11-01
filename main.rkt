@@ -6,29 +6,49 @@
 
 (provide
  (contract-out
+  [resyntax-analysis? (-> any/c boolean?)]
+  [resyntax-analysis-all-results
+   (-> resyntax-analysis?
+       (listof (hash/c source? refactoring-result-set? #:flat? #true #:immutable #true)))]
+  [resyntax-analysis-final-sources (-> resyntax-analysis? (listof modified-source?))]
+  [resyntax-analysis-total-fixes (-> resyntax-analysis? exact-nonnegative-integer?)]
+  [resyntax-analysis-total-sources-modified (-> resyntax-analysis? exact-nonnegative-integer?)]
+  [resyntax-analysis-rules-applied (-> resyntax-analysis? multiset?)]
+  [resyntax-analysis-write-file-changes! (-> resyntax-analysis? void?)]
   [resyntax-analyze
-   (->* (source?) (#:suite refactoring-suite? #:lines range-set?) (listof refactoring-result?))]
+   (->* (source?) (#:suite refactoring-suite? #:lines range-set?) refactoring-result-set?)]
+  [resyntax-analyze-all
+   (->* ((hash/c source? range-set? #:flat? #true))
+        (#:suite refactoring-suite?
+         #:max-fixes (or/c exact-nonnegative-integer? +inf.0)
+         #:max-passes exact-nonnegative-integer?
+         #:max-modified-sources (or/c exact-nonnegative-integer? +inf.0)
+         #:max-modified-lines (or/c exact-nonnegative-integer? +inf.0))
+        resyntax-analysis?)]
   [refactor! (-> (sequence/c refactoring-result?) void?)]))
 
 
 (require fancy-app
          guard
+         racket/file
          racket/match
-         racket/port
          racket/sequence
-         racket/syntax-srcloc
          rebellion/base/comparator
          rebellion/base/option
          rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
+         rebellion/collection/multiset
          rebellion/collection/range-set
+         rebellion/streaming/reducer
          rebellion/streaming/transducer
+         rebellion/type/record
          resyntax/base
          resyntax/default-recommendations
          resyntax/private/comment-reader
-         resyntax/private/file-group
+         resyntax/private/limiting
+         resyntax/private/line-replacement
          resyntax/private/logger
          resyntax/private/refactoring-result
          resyntax/private/source
@@ -36,6 +56,7 @@
          resyntax/private/string-replacement
          resyntax/private/syntax-range
          resyntax/private/syntax-replacement
+         (except-in racket/list range)
          (submod resyntax/base private))
 
 
@@ -46,6 +67,51 @@
 
 
 ;@----------------------------------------------------------------------------------------------------
+
+
+(define-record-type resyntax-analysis (all-results) #:omit-root-binding)
+
+
+(define (resyntax-analysis #:all-results all-results)
+  (constructor:resyntax-analysis #:all-results (sequence->list all-results)))
+
+
+(define (resyntax-analysis-final-sources analysis)
+  (transduce (resyntax-analysis-all-results analysis)
+             (append-mapping in-hash-values)
+             (mapping refactoring-result-set-updated-source)
+             (indexing modified-source-original)
+             (grouping nonempty-into-last)
+             (mapping entry-value)
+             #:into into-list))
+
+
+(define (resyntax-analysis-total-fixes analysis)
+  (for*/sum ([pass-results (in-list (resyntax-analysis-all-results analysis))]
+             [result-set (in-hash-values pass-results)])
+    (length (refactoring-result-set-results result-set))))
+
+
+(define/guard (resyntax-analysis-total-sources-modified analysis)
+  (define all-results (resyntax-analysis-all-results analysis))
+  (guard (not (empty? all-results)) #:else 0)
+  (hash-count (first all-results)))
+
+
+(define (resyntax-analysis-rules-applied analysis)
+  (for*/multiset ([pass-results (in-list (resyntax-analysis-all-results analysis))]
+                  [result-set (in-hash-values pass-results)]
+                  [result (in-list (refactoring-result-set-results result-set))])
+    (refactoring-result-rule-name result)))
+
+
+(define (resyntax-analysis-write-file-changes! analysis)
+  (log-resyntax-info "--- fixing code ---")
+  (for ([source (in-list (resyntax-analysis-final-sources analysis))]
+        #:when (source-path source))
+    (log-resyntax-info "fixing ~a" (source-path source))
+    (display-to-file (modified-source-contents source) (source-path source)
+                     #:mode 'text #:exists 'replace)))
 
 
 (define (resyntax-analyze source
@@ -63,14 +129,114 @@
      (or (source-path source) "string source")
      (string-indent (exn-message e) #:amount 3))
     empty-list)
+
+  (define results
+    (with-handlers ([exn:fail:syntax? skip]
+                    [exn:fail:filesystem:missing-module? skip]
+                    [exn:fail:contract:variable? skip])
+      (define analysis
+        (parameterize ([current-namespace (make-base-namespace)])
+          (source-analyze source #:lines lines)))
+      (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)))
   
-  (with-handlers ([exn:fail:syntax? skip]
-                  [exn:fail:filesystem:missing-module? skip])
-    (define analysis
-      (parameterize ([current-namespace (make-base-namespace)])
-        (source-analyze source #:lines lines)))
-    (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)))
-  
+  (refactoring-result-set #:base-source source #:results results))
+
+
+(define (resyntax-analyze-all sources
+                              #:suite [suite default-recommendations]
+                              #:max-fixes [max-fixes +inf.0]
+                              #:max-passes [max-passes 10]
+                              #:max-modified-sources [max-modified-sources +inf.0]
+                              #:max-modified-lines [max-modified-lines +inf.0])
+  (log-resyntax-info "--- analyzing code ---")
+  (for/fold ([pass-result-lists '()]
+             [sources sources]
+             [max-fixes max-fixes]
+             #:result (resyntax-analysis #:all-results (reverse pass-result-lists)))
+            ([pass-index (in-range max-passes)]
+             #:do [(unless (zero? pass-index)
+                     (log-resyntax-info "--- pass ~a ---" (add1 pass-index)))
+                   (define pass-results
+                     (resyntax-analyze-all-once sources
+                                                #:suite suite
+                                                #:max-fixes max-fixes
+                                                #:max-modified-sources max-modified-sources
+                                                #:max-modified-lines max-modified-lines))
+                   (define pass-fix-count (count-total-results pass-results))
+                   (define new-max-fixes (- max-fixes pass-fix-count))]
+             #:break (hash-empty? pass-results)
+             #:final (zero? new-max-fixes))
+    (define modified-sources (build-modified-source-map pass-results))
+    (values (cons pass-results pass-result-lists) modified-sources new-max-fixes)))
+
+
+(define (count-total-results pass-results)
+  (for/sum ([(_ result-set) (in-hash pass-results)])
+    (length (refactoring-result-set-results result-set))))
+
+
+(define (build-modified-source-map pass-results)
+  (transduce (in-hash-values pass-results)
+             (bisecting refactoring-result-set-updated-source refactoring-result-set-modified-lines)
+             #:into into-hash))
+
+
+(define (resyntax-analyze-all-once sources
+                                   #:suite suite
+                                   #:max-fixes max-fixes
+                                   #:max-modified-sources max-modified-sources
+                                   #:max-modified-lines max-modified-lines)
+  (transduce (in-hash-entries sources) ; entries with source keys and line range set values
+
+             ;; The following steps perform a kind of layered shuffle: the files to refactor are
+             ;; shuffled such that files in the same directory remain together. When combined with
+             ;; the #:max-modified-sources argument, this makes Resyntax prefer to refactor closely
+             ;; related files instead of selecting arbitrary unrelated files from across an entire
+             ;; codebase. This limits potential for merge conflicts and makes changes easier to
+             ;; review, since it's more likely the refactored files will have shared context.
+
+             ; key by directory
+             (indexing (λ (e) (source-directory (entry-key e))))
+
+             ; group by key and shuffle within each group
+             (grouping (into-transduced (shuffling) #:into into-list))
+
+             ; shuffle groups
+             (shuffling)
+
+             ; ungroup and throw away directory
+             (append-mapping entry-value)
+
+             ;; Now the stream contains exactly what it did before the above steps, but shuffled in
+             ;; a convenient manner.
+               
+             (append-mapping
+              (λ (e)
+                (match-define (entry source lines) e)
+                (define result-set (resyntax-analyze source #:suite suite #:lines lines))
+                (refactoring-result-set-results result-set)))
+             (limiting max-modified-lines
+                       #:by (λ (result)
+                              (define replacement (refactoring-result-line-replacement result))
+                              (add1 (- (line-replacement-original-end-line replacement)
+                                       (line-replacement-start-line replacement)))))
+             (if (equal? max-fixes +inf.0) (transducer-pipe) (taking max-fixes))
+             (if (equal? max-modified-sources +inf.0)
+                 (transducer-pipe)
+                 (transducer-pipe
+                  (indexing
+                   (λ (result)
+                     (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+                  (grouping into-list)
+                  (taking max-modified-sources)
+                  (append-mapping entry-value)))
+             (indexing refactoring-result-source)
+             (grouping into-list)
+             (mapping
+              (λ (e) (refactoring-result-set #:base-source (entry-key e) #:results (entry-value e))))
+             (indexing refactoring-result-set-base-source)
+             #:into into-hash))
+
 
 (define (refactoring-rules-refactor rules syntax #:comments comments #:analysis analysis)
 
@@ -102,7 +268,7 @@
                           "  original syntax:\n"
                           "   ~v\n"
                           "  replacement syntax:\n"
-                          "   ~v\n")
+                          "   ~v")
            (object-name rule)
            (syntax-replacement-dropped-comment-locations replacement comments)
            (syntax-replacement-original-syntax replacement)
@@ -142,12 +308,10 @@
     (log-resyntax-info
      (string-append "~a: suggestion discarded because it's outside the analyzed line range\n"
                     "  analyzed lines: ~a\n"
-                    "  lines modified by result: ~a\n"
-                    "  result: ~a")
+                    "  lines modified by result: ~a\n")
      (refactoring-result-rule-name result)
      lines
-     modified-lines
-     result))
+     modified-lines))
   enclosed?)
      
 
@@ -186,7 +350,9 @@
 
 (module+ test
   (test-case "resyntax-analyze"
-    (define results (resyntax-analyze (string-source "#lang racket (or 1 (or 2 3))")))
+    (define results
+      (refactoring-result-set-results
+       (resyntax-analyze (string-source "#lang racket (or 1 (or 2 3))"))))
     (check-equal? (length results) 1)
     (check-equal? (refactoring-result-string-replacement (first results))
                   (string-replacement #:start 13
