@@ -11,6 +11,7 @@
   [source->string (-> source? immutable-string?)]
   [source-path (-> source? (or/c path? #false))]
   [source-directory (-> source? (or/c path? #false))]
+  [source-original (-> source? unmodified-source?)]
   [source-read-syntax (-> source? syntax?)]
   [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
   [file-source? (-> any/c boolean?)]
@@ -116,6 +117,12 @@
 (define/guard (source-directory code)
   (define path (source-path code))
   (and path (path-only path)))
+
+
+(define (source-original code)
+  (if (unmodified-source? code)
+      code
+      (modified-source-original code)))
 
 
 (define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])

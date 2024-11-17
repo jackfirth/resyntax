@@ -14,6 +14,7 @@
        refactoring-result?)]
   [refactoring-result-rule-name (-> refactoring-result? interned-symbol?)]
   [refactoring-result-message (-> refactoring-result? immutable-string?)]
+  [refactoring-result-source (-> refactoring-result? source?)]
   [refactoring-result-modified-range (-> refactoring-result? range?)]
   [refactoring-result-modified-line-range (-> refactoring-result? range?)]
   [refactoring-result-syntax-replacement (-> refactoring-result? syntax-replacement?)]
@@ -21,13 +22,24 @@
   [refactoring-result-line-replacement (-> refactoring-result? line-replacement?)]
   [refactoring-result-original-line (-> refactoring-result? exact-positive-integer?)]
   [refactoring-result-original-code (-> refactoring-result? code-snippet?)]
-  [refactoring-result-new-code (-> refactoring-result? code-snippet?)]))
+  [refactoring-result-new-code (-> refactoring-result? code-snippet?)]
+  [refactoring-result-set? (-> any/c boolean?)]
+  [refactoring-result-set
+   (-> #:base-source source? #:results (sequence/c refactoring-result?) refactoring-result-set?)]
+  [refactoring-result-set-base-source (-> refactoring-result-set? source?)]
+  [refactoring-result-set-updated-source (-> refactoring-result-set? modified-source?)]
+  [refactoring-result-set-results (-> refactoring-result-set? (listof refactoring-result?))]
+  [refactoring-result-set-modified-lines (-> refactoring-result-set? immutable-range-set?)]))
 
 
-(require rebellion/base/comparator
+(require racket/sequence
+         rebellion/base/comparator
          rebellion/base/immutable-string
          rebellion/base/range
          rebellion/base/symbol
+         rebellion/collection/list
+         rebellion/collection/range-set
+         rebellion/streaming/transducer
          rebellion/type/record
          resyntax/private/code-snippet
          resyntax/private/line-replacement
@@ -56,6 +68,10 @@
    #:line-replacement (string-replacement->line-replacement str-replacement full-orig-code)))
 
 
+(define (refactoring-result-source result)
+  (syntax-replacement-source (refactoring-result-syntax-replacement result)))
+
+
 (define (refactoring-result-modified-range result)
   (define replacement (refactoring-result-string-replacement result))
   (closed-open-range (add1 (string-replacement-start replacement))
@@ -72,6 +88,33 @@
 
 (define (refactoring-result-original-line result)
   (line-replacement-start-line (refactoring-result-line-replacement result)))
+
+
+(define-record-type refactoring-result-set (base-source results)
+  #:omit-root-binding)
+
+
+(define (refactoring-result-set #:base-source base-source #:results results)
+  (define sorted-results
+    (transduce results (sorting #:key refactoring-result-original-line) #:into into-list))
+  (constructor:refactoring-result-set #:base-source base-source #:results sorted-results))
+
+
+(define (refactoring-result-set-updated-source result-set)
+  (define replacement
+    (transduce (refactoring-result-set-results result-set)
+               (mapping refactoring-result-string-replacement)
+               #:into union-into-string-replacement))
+  (define base (refactoring-result-set-base-source result-set))
+  (define new-contents (string-apply-replacement (source->string base) replacement))
+  (modified-source (source-original base) new-contents))
+
+
+(define (refactoring-result-set-modified-lines result-set)
+  (transduce (refactoring-result-set-results result-set)
+             (mapping refactoring-result-modified-line-range)
+             (filtering nonempty-range?)
+             #:into (into-range-set natural<=>)))
 
 
 (define (refactoring-result-original-code result)
