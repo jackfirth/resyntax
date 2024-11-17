@@ -41,6 +41,7 @@
          rebellion/collection/hash
          rebellion/collection/list
          rebellion/collection/multiset
+         resyntax/private/commit
          rebellion/collection/range-set
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -107,6 +108,14 @@
     (refactoring-result-rule-name result)))
 
 
+(define (analysis-pass-fix-commits pass-results)
+  (append-map refactoring-result-map-commits pass-results))
+
+
+(define (resyntax-analysis-fix-commits analysis)
+  (append-map refactoring-result-map-commits (resyntax-analysis-all-results analysis)))
+
+
 (define (resyntax-analysis-write-file-changes! analysis)
   (define sources (resyntax-analysis-final-sources analysis))
   (unless (empty? sources)
@@ -118,21 +127,6 @@
                      #:mode 'text #:exists 'replace)))
 
 
-(struct resyntax-fix-commit (message file-changes) #:transparent)
-
-
-(define (resyntax-analysis-fix-commits analysis)
-  (for/list ([pass (resyntax-analysis-all-results analysis)]
-             [pass-number (in-naturals 1)])
-    (define message (format "Resyntax pass ~a" pass-number))
-    (define changes
-      (for/hash ([(source results) (in-hash pass)])
-        (define new-contents
-          (modified-source-contents (refactoring-result-set-updated-source results)))
-        (values source new-contents)))
-    (resyntax-fix-commit message changes)))
-
-
 (define (resyntax-analysis-commit-fixes! analysis)
   (define commits (resyntax-analysis-fix-commits analysis))
   (unless (empty? commits)
@@ -140,10 +134,8 @@
   (for ([commit (in-list commits)]
         [i (in-naturals 1)])
     (log-resyntax-info "--- commit ~a ---" i)
-    (match-define (resyntax-fix-commit message changes) commit)
-    (for ([(source new-contents) (in-hash changes)]
-          #:do [(define path (source-path source))]
-          #:when path)
+    (match-define (resyntax-commit message changes) commit)
+    (for ([(path new-contents) (in-hash changes)])
       (log-resyntax-info "fixing ~a" path)
       (display-to-file new-contents path #:mode 'text #:exists 'replace))
     (log-resyntax-info "commiting pass fixes")

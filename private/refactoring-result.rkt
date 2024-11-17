@@ -29,22 +29,29 @@
   [refactoring-result-set-base-source (-> refactoring-result-set? source?)]
   [refactoring-result-set-updated-source (-> refactoring-result-set? modified-source?)]
   [refactoring-result-set-results (-> refactoring-result-set? (listof refactoring-result?))]
-  [refactoring-result-set-modified-lines (-> refactoring-result-set? immutable-range-set?)]))
+  [refactoring-result-set-modified-lines (-> refactoring-result-set? immutable-range-set?)]
+  [refactoring-result-map-commits
+   (-> (hash/c source? refactoring-result-set?) (listof resyntax-commit?))]))
 
 
 (require racket/sequence
+         racket/hash
+         resyntax/private/logger
          rebellion/base/comparator
          rebellion/base/immutable-string
          rebellion/base/range
+         (only-in racket/list first)
          rebellion/base/symbol
          rebellion/collection/list
          rebellion/collection/range-set
+         resyntax/private/commit
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/private/code-snippet
          resyntax/private/line-replacement
          resyntax/private/linemap
          resyntax/private/source
+         rebellion/collection/sorted-set
          resyntax/private/string-replacement
          resyntax/private/syntax-replacement)
 
@@ -115,6 +122,57 @@
              (mapping refactoring-result-modified-line-range)
              (filtering nonempty-range?)
              #:into (into-range-set natural<=>)))
+
+
+(define string-replacement<=> (comparator-map natural<=> string-replacement-start))
+
+
+(define (refactoring-result-map-commits result-map)
+  (define rule-names
+    (transduce (in-hash-values result-map)
+               (append-mapping refactoring-result-set-results)
+               (mapping refactoring-result-rule-name)
+               (deduplicating)
+               #:into into-list))
+  (define source-contents
+    (for/hash ([source (in-hash-keys result-map)])
+      (values source (source->string source))))
+  (for/fold ([committed-replacements (hash)]
+             [commits '()]
+             #:result (reverse commits))
+            ([rule (in-list rule-names)])
+    (define rule-results
+      (for*/list ([results (in-hash-values result-map)]
+                  [result (in-list (refactoring-result-set-results results))]
+                  #:when (equal? (refactoring-result-rule-name result) rule))
+        result))
+    (define replacements
+      (for/hash ([(source results) (in-hash result-map)])
+        (define source-replacements
+          (transduce (refactoring-result-set-results results)
+                     (filtering (λ (r) (equal? (refactoring-result-rule-name r) rule)))
+                     (mapping refactoring-result-string-replacement)
+                     #:into (into-sorted-set string-replacement<=>)))
+        (values source source-replacements)))
+    (define new-committed-replacements
+      (hash-union committed-replacements replacements #:combine sorted-set-add-all))
+    (define new-contents
+      (for/hash ([(source old-contents) (in-hash source-contents)])
+        (define replacement
+          (transduce (hash-ref new-committed-replacements source '())
+                     #:into union-into-string-replacement))
+        (values (source-path source) (string-apply-replacement old-contents replacement))))
+    (define description
+      (refactoring-result-message (first rule-results)))
+    (define num-fixes (length rule-results))
+    (define message
+      (format "Fix ~a occurrence~a of `~a`\n\n~a"
+              num-fixes
+              (if (equal? num-fixes 1) "" "s")
+              rule
+              description))
+    (define commit (resyntax-commit message new-contents))
+    (values new-committed-replacements (cons commit commits))))
 
 
 (define (refactoring-result-original-code result)
