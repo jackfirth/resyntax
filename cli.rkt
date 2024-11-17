@@ -4,10 +4,7 @@
 (require fancy-app
          json
          racket/cmdline
-         racket/file
          racket/format
-         racket/hash
-         (except-in racket/list range)
          racket/logging
          racket/match
          racket/path
@@ -27,22 +24,29 @@
          resyntax/default-recommendations
          resyntax/private/file-group
          resyntax/private/github
-         resyntax/private/limiting
-         resyntax/private/line-replacement
          resyntax/private/refactoring-result
          resyntax/private/source
          resyntax/private/string-indent
-         resyntax/private/syntax-replacement
-         (only-in racket/list append-map empty? shuffle))
+         resyntax/private/syntax-replacement)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message))
+(define-enum-type resyntax-fix-method (modify-files create-multiple-git-commits))
 (define-record-type resyntax-analyze-options (targets suite output-format output-destination))
+
+
 (define-record-type resyntax-fix-options
-  (targets suite output-format max-fixes max-modified-files max-modified-lines max-pass-count))
+  (targets
+   suite
+   fix-method
+   output-format
+   max-fixes
+   max-modified-files
+   max-modified-lines
+   max-pass-count))
 
 
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
@@ -114,6 +118,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (define suite default-recommendations)
   (define (add-target! target)
     (vector-builder-add targets target))
+  (define fix-method modify-files)
   (define output-format plain-text)
   (define max-fixes +inf.0)
   (define max-pass-count 10)
@@ -137,10 +142,6 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
     "An installed package to fix."
     (add-target! (package-file-group pkgname)))
    
-   ("--output-as-commit-message"
-    "Report results in the form of a Git commit message printed to stdout."
-    (set! output-format git-commit-message))
-   
    ("--local-git-repository"
     repopath baseref
     "A Git repository to search for modified files to fix. The repopath argument is a directory
@@ -150,6 +151,14 @@ changed relative to baseref are analyzed and fixed."
     (add-target! (git-repository-file-group repopath baseref)))
 
    #:once-each
+
+   ("--create-multiple-commits"
+    "Modify files by creating a series of individual Git commits."
+    (set! fix-method create-multiple-git-commits))
+
+   ("--output-as-commit-message"
+    "Report results in the form of a Git commit message printed to stdout."
+    (set! output-format git-commit-message))
 
    ("--refactoring-suite"
     modpath
@@ -183,6 +192,7 @@ are needed when applying a fix unlocks further fixes."
 
   (resyntax-fix-options #:targets (build-vector targets)
                         #:suite suite
+                        #:fix-method fix-method
                         #:output-format output-format
                         #:max-fixes max-fixes
                         #:max-modified-files max-modified-files
@@ -261,6 +271,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
 (define (resyntax-fix-run)
   (define options (resyntax-fix-parse-command-line))
+  (define fix-method (resyntax-fix-options-fix-method options))
   (define output-format (resyntax-fix-options-output-format options))
   (define sources (file-groups-resolve (resyntax-fix-options-targets options)))
   (define max-modified-files (resyntax-fix-options-max-modified-files options))
@@ -272,7 +283,11 @@ For help on these, use 'analyze --help' or 'fix --help'."
                           #:max-passes (resyntax-fix-options-max-pass-count options)
                           #:max-modified-sources max-modified-files
                           #:max-modified-lines max-modified-lines))
-  (resyntax-analysis-write-file-changes! analysis)
+  (match fix-method
+    [(== modify-files)
+     (resyntax-analysis-write-file-changes! analysis)]
+    [(== create-multiple-git-commits)
+     (resyntax-analysis-commit-fixes! analysis)])
   (match output-format
     [(== git-commit-message)
      (resyntax-fix-print-git-commit-message analysis)]
