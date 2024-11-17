@@ -6,7 +6,8 @@
 
 (provide
  (contract-out
-  [git-diff-modified-lines (-> string? (hash/c path? immutable-range-set?))]))
+  [git-diff-modified-lines (-> string? (hash/c path? immutable-range-set?))]
+  [git-commit! (-> string? void?)]))
 
 
 (require fancy-app
@@ -64,3 +65,8 @@
       'lex-line
       "a git file name line (starting with '+++ b/') or a hunk range line (starting with '@@')"
       line)]))
+
+
+(define (git-commit! message)
+  (unless (system (format "git commit --all --message='~a'" message))
+    (raise-arguments-error 'git-commit-modified-files "committing files to Git failed")))

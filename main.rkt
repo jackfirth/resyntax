@@ -15,6 +15,7 @@
   [resyntax-analysis-total-sources-modified (-> resyntax-analysis? exact-nonnegative-integer?)]
   [resyntax-analysis-rules-applied (-> resyntax-analysis? multiset?)]
   [resyntax-analysis-write-file-changes! (-> resyntax-analysis? void?)]
+  [resyntax-analysis-commit-fixes! (-> resyntax-analysis? void?)]
   [resyntax-analyze
    (->* (source?) (#:suite refactoring-suite? #:lines range-set?) refactoring-result-set?)]
   [resyntax-analyze-all
@@ -40,6 +41,7 @@
          rebellion/collection/hash
          rebellion/collection/list
          rebellion/collection/multiset
+         resyntax/private/commit
          rebellion/collection/range-set
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -47,6 +49,7 @@
          resyntax/base
          resyntax/default-recommendations
          resyntax/private/comment-reader
+         resyntax/private/git
          resyntax/private/limiting
          resyntax/private/line-replacement
          resyntax/private/logger
@@ -105,13 +108,38 @@
     (refactoring-result-rule-name result)))
 
 
+(define (analysis-pass-fix-commits pass-results)
+  (append-map refactoring-result-map-commits pass-results))
+
+
+(define (resyntax-analysis-fix-commits analysis)
+  (append-map refactoring-result-map-commits (resyntax-analysis-all-results analysis)))
+
+
 (define (resyntax-analysis-write-file-changes! analysis)
-  (log-resyntax-info "--- fixing code ---")
-  (for ([source (in-list (resyntax-analysis-final-sources analysis))]
+  (define sources (resyntax-analysis-final-sources analysis))
+  (unless (empty? sources)
+    (log-resyntax-info "--- fixing code ---"))
+  (for ([source (in-list sources)]
         #:when (source-path source))
     (log-resyntax-info "fixing ~a" (source-path source))
     (display-to-file (modified-source-contents source) (source-path source)
                      #:mode 'text #:exists 'replace)))
+
+
+(define (resyntax-analysis-commit-fixes! analysis)
+  (define commits (resyntax-analysis-fix-commits analysis))
+  (unless (empty? commits)
+    (log-resyntax-info "--- fixing code ---"))
+  (for ([commit (in-list commits)]
+        [i (in-naturals 1)])
+    (log-resyntax-info "--- commit ~a ---" i)
+    (match-define (resyntax-commit message changes) commit)
+    (for ([(path new-contents) (in-hash changes)])
+      (log-resyntax-info "fixing ~a" path)
+      (display-to-file new-contents path #:mode 'text #:exists 'replace))
+    (log-resyntax-info "commiting pass fixes")
+    (git-commit! message)))
 
 
 (define (resyntax-analyze source
@@ -308,7 +336,7 @@
     (log-resyntax-info
      (string-append "~a: suggestion discarded because it's outside the analyzed line range\n"
                     "  analyzed lines: ~a\n"
-                    "  lines modified by result: ~a\n")
+                    "  lines modified by result: ~a")
      (refactoring-result-rule-name result)
      lines
      modified-lines))
