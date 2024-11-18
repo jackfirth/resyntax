@@ -68,5 +68,5 @@
 
 
 (define (git-commit! message)
-  (unless (system (format "git commit --all --message='~a'" message))
+  (unless (system (format "git commit --all --quiet --message='~a'" message))
     (raise-arguments-error 'git-commit-modified-files "committing files to Git failed")))
