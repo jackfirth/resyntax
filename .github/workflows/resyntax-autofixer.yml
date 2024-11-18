@@ -20,9 +20,11 @@ jobs:
         uses: Bogdanp/setup-racket@v1.9.1
         with:
           version: current
+          local_catalogs: $GITHUB_WORKSPACE
           dest: '"${HOME}/racketdist-current-CS"'
           sudo: never
+      - run: raco pkg install --batch --auto --link --name resyntax
       - name: Create a Resyntax pull request
-        uses: jackfirth/create-resyntax-pull-request@v0.5.0
+        uses: jackfirth/create-resyntax-pull-request@v0.5.1
         with:
           private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
