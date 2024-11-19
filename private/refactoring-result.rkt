@@ -34,26 +34,26 @@
    (-> (hash/c source? refactoring-result-set?) (listof resyntax-commit?))]))
 
 
-(require racket/sequence
-         racket/hash
-         resyntax/private/logger
+(require racket/hash
+         racket/sequence
          rebellion/base/comparator
          rebellion/base/immutable-string
          rebellion/base/range
-         (only-in racket/list first)
          rebellion/base/symbol
          rebellion/collection/list
          rebellion/collection/range-set
-         resyntax/private/commit
+         rebellion/collection/sorted-set
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/private/code-snippet
+         resyntax/private/commit
          resyntax/private/line-replacement
          resyntax/private/linemap
+         resyntax/private/logger
          resyntax/private/source
-         rebellion/collection/sorted-set
          resyntax/private/string-replacement
-         resyntax/private/syntax-replacement)
+         resyntax/private/syntax-replacement
+         (only-in racket/list first))
 
 
 ;@----------------------------------------------------------------------------------------------------
