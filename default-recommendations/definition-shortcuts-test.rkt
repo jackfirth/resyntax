@@ -236,3 +236,21 @@ test: "begin inside begin0 in definition context should be extractable"
   (begin0 (* x 2)
     (displayln "after")))
 --------------------
+
+
+test: "begin inside definition context should be flattenable"
+--------------------
+(define (f x)
+  (displayln "starting")
+  (begin
+    (define y (* x 2))
+    (define z (* y 3)))
+  (+ x y z))
+--------------------
+--------------------
+(define (f x)
+  (displayln "starting")
+  (define y (* x 2))
+  (define z (* y 3))
+  (+ x y z))
+--------------------

@@ -697,6 +697,23 @@ test: "let binding nested in begin0 extractable to definition"
 ------------------------------
 
 
+test: "let binding with body nested in begin0 extractable to definition and body"
+------------------------------
+(define (f)
+  (begin0 (let ([x 1])
+            (displayln "foo")
+            x)
+    (displayln "bar")))
+------------------------------
+------------------------------
+(define (f)
+  (define x 1)
+  (displayln "foo")
+  (begin0 x
+    (displayln "bar")))
+------------------------------
+
+
 test: "redundant let bindings can be removed"
 ------------------------------
 (define x 1)
