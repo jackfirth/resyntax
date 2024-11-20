@@ -257,7 +257,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
                  (string-indent (~a old-code) #:amount 2)
                  (string-indent (~a new-code) #:amount 2)))]
       [(== github-pull-request-review)
-       (define req (refactoring-results->github-review results #:file-count (length sources)))
+       (define req (refactoring-results->github-review results #:file-count (hash-count sources)))
        (write-json (github-review-request-jsexpr req))]))
 
   (match (resyntax-analyze-options-output-destination options)
