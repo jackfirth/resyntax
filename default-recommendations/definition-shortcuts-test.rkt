@@ -192,3 +192,31 @@ test: "inlining immediately returned variable definition respects requested line
   (define x 1)
   x)
 ------------------------------
+
+
+test: "begin in right hand side of definition can be removed"
+--------------------
+(define (foo)
+  (define x (begin (displayln "foo") 42))
+  (* x 2))
+--------------------
+--------------------
+(define (foo)
+  (displayln "foo")
+  (define x 42)
+  (* x 2))
+--------------------
+
+
+test: "begin0 in right hand side of definition can be removed"
+--------------------
+(define (foo)
+  (define x (begin0 42 (displayln "foo")))
+  (* x 2))
+--------------------
+--------------------
+(define (foo)
+  (define x 42)
+  (displayln "foo")
+  (* x 2))
+--------------------
