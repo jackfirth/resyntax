@@ -134,9 +134,17 @@ test: "require tidying of only non-phase spec forms should do nothing"
 ----------------------------------------
 
 
-test: "require tidying shouldn't trigger when require transformers are imported and used"
+test: "require tidying shouldn't trigger when transformers are imported and used"
 ----------------------------------------
 (require racket/require
          (multi-in racket (list set dict))
+         racket/hash)
+----------------------------------------
+
+
+test: "require tidying shouldn't trigger when transformers are imported and used in nested specs"
+----------------------------------------
+(require racket/require
+         (prefix-in racket: (multi-in racket (list set dict)))
          racket/hash)
 ----------------------------------------
