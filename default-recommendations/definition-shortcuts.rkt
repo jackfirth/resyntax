@@ -68,8 +68,22 @@
   (body-before ... replacement ... body-after ...))
 
 
+(define-definition-context-refactoring-rule begin0-begin-extraction
+  #:description
+  "The `begin` form inside this `begin0` form can be extracted into the surrounding definition\
+ context."
+  #:literals (begin0 begin)
+  (~seq body-before ...
+        (~and outer-form (begin0 (begin pre-body ... expr) post-body ...)))
+  #:with (replacement ...)
+  #'(~focus-replacement-on
+     (~splicing-replacement (pre-body ... (begin0 expr post-body ...)) #:original outer-form))
+  (body-before ... replacement ...))
+
+
 (define-refactoring-suite definition-shortcuts
-  #:rules (define-begin-extraction
+  #:rules (begin0-begin-extraction
+            define-begin-extraction
             define-begin0-extraction
             define-values-values-to-define
             inline-unnecessary-define))
