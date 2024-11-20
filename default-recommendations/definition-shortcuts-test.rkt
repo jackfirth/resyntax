@@ -220,3 +220,19 @@ test: "begin0 in right hand side of definition can be removed"
   (displayln "foo")
   (* x 2))
 --------------------
+
+
+test: "begin inside begin0 in definition context should be extractable"
+--------------------
+(define (f x)
+  (displayln "starting")
+  (begin0 (begin (displayln "before") (* x 2))
+    (displayln "after")))
+--------------------
+--------------------
+(define (f x)
+  (displayln "starting")
+  (displayln "before")
+  (begin0 (* x 2)
+    (displayln "after")))
+--------------------
