@@ -81,9 +81,19 @@
   (body-before ... replacement ...))
 
 
+(define-definition-context-refactoring-rule inline-unnecessary-begin
+  #:description "This `begin` form can be flattened into the surrounding definition context."
+  #:literals (begin)
+  (~seq body-before ... (~and original (begin inner-body ...)) body-after ...)
+  #:with (replacement ...)
+  #'(~focus-replacement-on (~splicing-replacement (inner-body ...) #:original original))
+  (body-before ... inner-body ... body-after ...))
+
+
 (define-refactoring-suite definition-shortcuts
   #:rules (begin0-begin-extraction
             define-begin-extraction
             define-begin0-extraction
             define-values-values-to-define
+            inline-unnecessary-begin
             inline-unnecessary-define))

@@ -86,16 +86,19 @@
 
 
 (define-definition-context-refactoring-rule begin0-let-to-define-begin0
-  #:description "This `let` expression can be pulled up into a `define` expression."
+  #:description
+  "The `let` expression in this `begin0` form can be extracted into the surrounding definition\
+ context."
   #:literals (begin0 let)
   (~seq body-before ...
         (begin0
-            (~and original-let (let ([nested-id:id nested-expr:expr]) result-expr:expr))
+            (~and original-let (let ([nested-id:id nested-expr:expr]) let-body ... result-expr:expr))
           body-after ...))
   #:when (not
           (set-member? (syntax-bound-identifiers #'(body-before ... body-after ...)) #'nested-id))
   (body-before ...
    (define nested-id nested-expr)
+   let-body ...
    (begin0 (~replacement result-expr #:original original-let) body-after ...)))
 
 
