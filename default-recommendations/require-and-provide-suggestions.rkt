@@ -91,41 +91,33 @@
               except-in
               prefix-in
               rename-in
-              combine-in
-              relative-in
-              only-meta-in
-              only-space-in
               for-syntax
               for-template
               for-label
               for-meta)
-  (pattern mod:collection-module-path #:attr parsed (parsed-simple-import 0 'plain 'collection #'mod))
-  (pattern mod:file-module-path #:attr parsed (parsed-simple-import 0 'plain 'file #'mod))
-  (pattern ((~or only-in
-                 except-in
-                 prefix-in
-                 rename-in
-                 combine-in
-                 relative-in
-                 only-meta-in
-                 only-space-in)
-            subspec ...)
+
+  (pattern :simple-module-import-spec)
+  
+  (pattern (~or (only-in _:simple-module-import-spec _ ...)
+                (except-in _:simple-module-import-spec _ ...)
+                (prefix-in _ _:simple-module-import-spec)
+                (rename-in _:simple-module-import-spec _ ...))
+    #:cut
     #:attr parsed (parsed-simple-import 0 'plain 'other-known this-syntax))
+  
   (pattern ((~and form
-                  (~not only-in)
-                  (~not except-in)
-                  (~not prefix-in)
-                  (~not rename-in)
-                  (~not combine-in)
-                  (~not relative-in)
-                  (~not only-meta-in)
-                  (~not only-space-in)
                   (~not for-syntax)
                   (~not for-template)
                   (~not for-label)
                   (~not for-meta))
             subspec ...)
     #:attr parsed (parsed-simple-import 0 'plain 'other-unknown this-syntax)))
+
+
+(define-syntax-class simple-module-import-spec
+  #:attributes (parsed)
+  (pattern mod:collection-module-path #:attr parsed (parsed-simple-import 0 'plain 'collection #'mod))
+  (pattern mod:file-module-path #:attr parsed (parsed-simple-import 0 'plain 'file #'mod)))
 
 
 (define-syntax-class collection-module-path
