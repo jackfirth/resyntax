@@ -6,6 +6,7 @@
 
 (provide
  (all-from-out resyntax/default-recommendations/boolean-shortcuts
+               resyntax/default-recommendations/class-shortcuts
                resyntax/default-recommendations/comparison-shortcuts
                resyntax/default-recommendations/conditional-shortcuts
                resyntax/default-recommendations/console-io-suggestions
@@ -37,6 +38,7 @@
 (require rebellion/private/static-name
          resyntax/base
          resyntax/default-recommendations/boolean-shortcuts
+         resyntax/default-recommendations/class-shortcuts
          resyntax/default-recommendations/comparison-shortcuts
          resyntax/default-recommendations/conditional-shortcuts
          resyntax/default-recommendations/console-io-suggestions
@@ -68,6 +70,7 @@
 
 (define-refactoring-suite default-recommendations
   #:suites (boolean-shortcuts
+            class-shortcuts
             comparison-shortcuts
             conditional-shortcuts
             console-io-suggestions
