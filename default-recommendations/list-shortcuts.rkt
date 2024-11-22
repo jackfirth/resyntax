@@ -10,6 +10,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/function
          racket/list
          racket/set
          rebellion/private/static-name
@@ -132,9 +133,17 @@
   (body-before ... (~replacement (for-each proc list ...) #:original map-expr) body-after ...))
 
 
+(define-refactoring-rule build-list-const-to-make-list
+  #:description "Using `build-list` with `const` is equivalent to using `make-list`."
+  #:literals (build-list const)
+  (build-list count (const elem))
+  (make-list count elem))
+
+
 (define-refactoring-suite list-shortcuts
   #:rules (append-single-list-to-single-list
            append*-and-map-to-append-map
+           build-list-const-to-make-list
            equal-null-list-to-null-predicate
            filter-to-remove*
            filter-to-remq*
