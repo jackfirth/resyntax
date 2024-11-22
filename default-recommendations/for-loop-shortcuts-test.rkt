@@ -788,3 +788,14 @@ test: "(unless ...) in a for* loop refactored to #:when clause"
        #:unless (number? x))
   (displayln x))
 ------------------------------------------------------------
+
+
+test: "in-range with add1 in a for loop can be refactored to in-inclusive-range"
+------------------------------------------------------------
+(for ([i (in-range 1 (add1 5))])
+  (displayln i))
+------------------------------------------------------------
+------------------------------------------------------------
+(for ([i (in-inclusive-range 1 5)])
+  (displayln i))
+------------------------------------------------------------

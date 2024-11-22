@@ -10,14 +10,19 @@
    (-> syntax?
        (hash/c (or/c exact-integer? #false)
                (free-id-table/c identifier? (listof identifier?) #:immutable #true)
-               #:immutable #true))]))
+               #:immutable #true))]
+  [fully-expanded-syntax-disappeared-visits
+   (-> syntax? (vectorof syntax? #:immutable #true #:flat? #true))]))
 
 
 (require racket/hash
          racket/list
+         racket/match
          racket/set
          racket/treelist
          rebellion/collection/hash
+         rebellion/collection/vector/builder
+         resyntax/private/syntax-traversal
          syntax/id-table
          syntax/parse)
 
@@ -305,3 +310,24 @@
   (syntax-parse stx
     [:fully-expanded-top-level-form
      (identifier-binding-table (attribute bound-ids-by-phase) (attribute used-ids-by-phase))]))
+
+
+(define (fully-expanded-syntax-disappeared-visits stx)
+  (define builder (make-vector-builder))
+  (let loop ([stx stx])
+    (syntax-traverse stx
+      [form
+       #:when (syntax-property #'form 'disappeared-visit)
+       (vector-builder-add-cons-tree builder (syntax-property #'form 'disappeared-visit))
+       (loop (syntax-property #'form 'disappeared-visit #false))]))
+  (build-vector builder))
+
+
+(define (vector-builder-add-cons-tree builder cons-tree)
+  (match cons-tree
+    [(cons left right)
+     (vector-builder-add-cons-tree builder left)
+     (vector-builder-add-cons-tree builder right)]
+    ['() builder]
+    [_
+     (vector-builder-add builder cons-tree)]))

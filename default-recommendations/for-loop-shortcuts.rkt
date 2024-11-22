@@ -462,6 +462,13 @@ return just that result."
   (for-id (clause ... #:unless condition) body ...))
 
 
+(define-refactoring-rule in-range-with-add1-to-in-inclusive-range
+  #:description "Use `in-inclusive-range` to include the upper bound value in the iterated sequence."
+  #:literals (in-range add1 +)
+  (in-range start (~or (add1 end) (+ end 1) (+ 1 end)))
+  (in-inclusive-range start end))
+
+
 (define-refactoring-suite for-loop-shortcuts
   #:rules (andmap-to-for/and
            append-map-for/list-to-for*/list
@@ -472,6 +479,7 @@ return just that result."
            for/fold-with-conditional-body-to-unless-keyword
            for/fold-with-conditional-body-to-when-keyword
            for-each-to-for
+           in-range-with-add1-to-in-inclusive-range
            list->set-to-for/set
            list->vector-to-for/vector
            map-to-for
