@@ -68,5 +68,6 @@
 
 
 (define (git-commit! message)
-  (unless (system (format "git commit --all --quiet --message='~a'" message))
-    (raise-arguments-error 'git-commit-modified-files "committing files to Git failed")))
+  (define escaped-message (string-replace message "'" "\\'"))
+  (unless (system (format "git commit --all --quiet --message='~a'" escaped-message))
+    (raise-arguments-error 'git-commit! "committing files to Git failed")))
