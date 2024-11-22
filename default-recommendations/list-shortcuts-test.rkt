@@ -179,3 +179,16 @@ test: "used map expression not refactorable to for-each"
 (define (f func xs ys zs)
   (map func xs ys zs))
 ------------------------------
+
+
+test: "build-list with const refactorable to make-list"
+------------------------------
+(require racket/function
+         racket/list)
+(build-list 5 (const 42))
+------------------------------
+------------------------------
+(require racket/function
+         racket/list)
+(make-list 5 42)
+------------------------------
