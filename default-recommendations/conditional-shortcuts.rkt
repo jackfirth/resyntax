@@ -69,7 +69,7 @@
   (pattern single-body #:with (body ...) #'(single-body)))
 
 
-(define-syntax-class when-or-unless-equivalent-conditional
+(define-syntax-class when-or-unless-equivalent-if-expression
   #:attributes (negated? condition [body 1])
   #:literals (if void not begin let)
 
@@ -81,7 +81,23 @@
 
 (define-refactoring-rule if-void-to-when-or-unless
   #:description equivalent-conditional-description
-  conditional:when-or-unless-equivalent-conditional
+  conditional:when-or-unless-equivalent-if-expression
+  ((~if conditional.negated? unless when) conditional.condition conditional.body ...))
+
+
+(define-syntax-class when-or-unless-equivalent-cond-expression
+  #:attributes (negated? condition [body 1])
+  #:literals (cond void not begin let)
+
+  (pattern (cond [(not condition) (void)] [else :block-expression]) #:with negated? #false)
+  (pattern (cond [(not condition) :block-expression] [else (void)]) #:with negated? #true)
+  (pattern (cond [condition (void)] [else :block-expression]) #:with negated? #true)
+  (pattern (cond [condition :block-expression] [else (void)]) #:with negated? #false))
+
+
+(define-refactoring-rule cond-void-to-when-or-unless
+  #:description equivalent-conditional-description
+  conditional:when-or-unless-equivalent-cond-expression
   ((~if conditional.negated? unless when) conditional.condition conditional.body ...))
 
 
@@ -208,6 +224,7 @@
            always-throwing-if-to-when
            cond-else-cond-to-cond
            cond-let-to-cond-define
+           cond-void-to-when-or-unless
            if-begin-to-cond
            if-else-false-to-and
            if-let-to-cond
