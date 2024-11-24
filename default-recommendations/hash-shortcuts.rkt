@@ -10,6 +10,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          racket/set
          rebellion/private/static-name
          resyntax/base
@@ -107,9 +108,11 @@
   #:when (syntax-free-identifier=? #'k1 #'k2)
   #:when (for/and ([id (in-syntax-identifiers #'(f arg-before ... arg-after ...))])
            (not (equal? (syntax-e id) 'v)))
-  (hash-update! h1 k1
-                (λ (v) (f arg-before ... v arg-after ...))
-                (~? failure-result)))
+  #:with updater
+  (if (and (empty? (attribute arg-before)) (empty? (attribute arg-after)))
+      #'f
+      #'(λ (v) (f arg-before ... v arg-after ...)))
+  (hash-update! h1 k1 updater (~? failure-result)))
 
 
 (define-refactoring-rule hash-map-to-hash-keys

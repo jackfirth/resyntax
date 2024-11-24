@@ -162,6 +162,19 @@ test: "hash-set! with hash-ref and literal keys can be simplified to hash-update
 ------------------------------
 
 
+test: "hash-set! with hash-ref can be simplified to hash-update! without lambda"
+------------------------------
+(define h (make-hash))
+(define k 'a)
+(hash-set! h k (add1 (hash-ref h k 0)))
+------------------------------
+------------------------------
+(define h (make-hash))
+(define k 'a)
+(hash-update! h k add1 0)
+------------------------------
+
+
 test: "hash-set! with hash-ref cannot be simplified when v would shadow"
 ------------------------------
 (define h (make-hash))
