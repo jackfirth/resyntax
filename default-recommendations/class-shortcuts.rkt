@@ -42,5 +42,23 @@
   (send+ chain.initial-object (chain.method chain.arg ...) ...))
 
 
+(define-refactoring-rule instantiate-to-make-object
+  #:description "The `instantiate` form is for mixing positional and by-name constructor arguments.\
+ When no by-name arguments are needed, use `make-object` instead."
+  #:literals (instantiate)
+  (instantiate cls (by-position-arg ...+))
+  (make-object cls by-position-arg ...))
+
+
+(define-refactoring-rule instantiate-to-new
+  #:description "The `instantiate` form is for mixing positional and by-name constructor arguments.\
+ When no positional arguments are needed, use `new` instead."
+  #:literals (instantiate)
+  (instantiate cls () by-name-arg ...+)
+  (new cls by-name-arg ...))
+
+
 (define-refactoring-suite class-shortcuts
-  #:rules (send-chain-to-send+))
+  #:rules (instantiate-to-make-object
+           instantiate-to-new
+           send-chain-to-send+))
