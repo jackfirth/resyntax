@@ -137,6 +137,60 @@ test: "if expressions can be refactored to unless expressions when equivalent"
 ------------------------------
 
 
+test: "cond expressions can be refactored to when expressions when equivalent"
+------------------------------
+(cond
+  [#true
+   (begin
+     (println "first line")
+     ;; preserved comment
+     (println "second line"))]
+  [else (void)])
+------------------------------
+------------------------------
+(cond
+  [(not #true) (void)]
+  [else
+   (begin
+     (println "first line")
+     ;; preserved comment
+     (println "second line"))])
+------------------------------
+------------------------------
+(when #true
+  (println "first line")
+  ;; preserved comment
+  (println "second line"))
+------------------------------
+
+
+test: "cond expressions can be refactored to unless expressions when equivalent"
+------------------------------
+(cond
+  [#false (void)]
+  [else
+   (begin
+      (println "first line")
+      ;; preserved comment
+      (println "second line"))])
+------------------------------
+------------------------------
+(cond
+  [(not #false)
+   (begin
+     (println "first line")
+     ;; preserved comment
+     (println "second line"))]
+  [else (void)])
+------------------------------
+------------------------------
+(unless #false
+  (println "first line")
+  ;; preserved comment
+  (println "second line"))
+------------------------------
+
+
 test: "if expressions with an always-throwing first branch can be refactored to when"
 ------------------------------
 (define (f c)
