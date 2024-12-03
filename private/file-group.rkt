@@ -126,7 +126,7 @@
 (define (expand-modified-line-set lines)
   (define context-lines
     (for/list ([line-range (in-range-set lines)])
-      (range (range-bound-map (range-lower-bound line-range) (λ (x) (- x 3)))
+      (range (range-bound-map (range-lower-bound line-range) (λ (x) (max 0 (- x 3))))
              (range-bound-map (range-upper-bound line-range) (λ (x) (+ x 3)))
              #:comparator (range-comparator line-range))))
   (range-set-add-all lines context-lines))
