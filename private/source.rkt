@@ -27,6 +27,7 @@
   [source-code-analysis? (-> any/c boolean?)]
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
+  [source-code-analysis-expansion-time-output (-> source-code-analysis? immutable-string?)]
   [syntax-source-location (-> syntax? source-location?)]
   [with-input-from-source (-> source? (-> any) any)]))
 
@@ -78,7 +79,7 @@
   #:guard (λ (original contents _) (values original (string->immutable-string contents))))
 
 
-(define-record-type source-code-analysis (code visited-forms))
+(define-record-type source-code-analysis (code visited-forms expansion-time-output))
 (define-record-type source-location (source line column position span))
 
 
@@ -177,9 +178,13 @@
          (add-all-original-subforms! visited))]
       [(_ _) (void)])
 
+    (define output-port (open-output-string))
     (define expanded
-      (parameterize ([current-expand-observe observe-event!])
+      (parameterize ([current-expand-observe observe-event!]
+                     [current-output-port output-port])
         (expand program-stx)))
+
+    (define output (get-output-string output-port))
     (define binding-table (fully-expanded-syntax-binding-table expanded))
     (define original-binding-table-by-position
       (for*/fold ([table (hash)])
@@ -221,7 +226,7 @@
                  (sorting syntax-source-location<=> #:key syntax-source-location)
                  #:into into-list))
 
-    (source-code-analysis #:code code #:visited-forms visited)))
+    (source-code-analysis #:code code #:visited-forms visited #:expansion-time-output output)))
 
 
 (define (syntax-source-location stx)
