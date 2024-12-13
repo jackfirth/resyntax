@@ -101,4 +101,8 @@
             syntax-shortcuts
             syntax-parse-shortcuts
             syntax-rules-shortcuts
-            unused-binding-suggestions))
+
+            ;; Excluded because of https://github.com/jackfirth/resyntax/issues/410
+            ;; unused-binding-suggestions
+
+            ))
