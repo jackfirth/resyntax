@@ -1,7 +1,7 @@
 #lang resyntax/test
 
 
-require: resyntax/default-recommendations require-and-provide-suggestions
+require: resyntax/default-recommendations require-and-provide-suggestions-all-enabled-for-test
 
 
 header:

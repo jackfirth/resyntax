@@ -6,7 +6,8 @@
 
 (provide
  (contract-out
-  [require-and-provide-suggestions refactoring-suite?]))
+  [require-and-provide-suggestions refactoring-suite?]
+  [require-and-provide-suggestions-all-enabled-for-test refactoring-suite?]))
 
 
 (require guard
@@ -305,6 +306,17 @@
     (check-false (sorted? '(1 2 3 4 3) real<=> #:strictly? #true))))
 
 
-(define-refactoring-suite require-and-provide-suggestions
+(define-refactoring-suite require-and-provide-suggestions-all-enabled-for-test
   #:rules (provide-deduplication
            tidy-require))
+
+
+(define-refactoring-suite require-and-provide-suggestions
+  #:rules (provide-deduplication
+
+           ;; Excluded because of discrepancy between this and racket-mode (see
+           ;; https://github.com/jackfirth/resyntax/issues/432 for details)
+           ;;
+           ;; tidy-require
+
+           ))
