@@ -11,6 +11,7 @@
 
 (require (for-syntax racket/base)
          racket/list
+         racket/match
          rebellion/private/static-name
          resyntax/base
          syntax/parse)
@@ -35,6 +36,9 @@
   #:literals (define)
   (~seq body-before ... (~and definition (define id1:id expr)) id2:id)
   #:when (free-identifier=? #'id1 #'id2)
+  #:when (match (syntax-property #'id1 'identifier-usages)
+           [(list _) #true]
+           [_ #false])
   #:with replacement #'(~replacement expr #:original-splice (definition id2))
   #:with focused (if (empty? (attribute body-before))
                      #'replacement

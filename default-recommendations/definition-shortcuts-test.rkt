@@ -138,6 +138,14 @@ test: "immediately used variable definition cannot be inlined"
 ------------------------------
 
 
+test: "immediately returned recursive definition cannot be inlined"
+------------------------------
+(define (foo)
+  (define x (list (lambda () x)))
+  x)
+------------------------------
+
+
 test: "inlining immediately returned variable definition doesn't reformat entire context"
 ------------------------------
 (define (foo)
