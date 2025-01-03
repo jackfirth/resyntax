@@ -307,4 +307,10 @@
 
 (define-refactoring-suite require-and-provide-suggestions
   #:rules (provide-deduplication
-           tidy-require))
+
+           ;; Excluded because of discrepancy between this and racket-mode (see
+           ;; https://github.com/jackfirth/resyntax/issues/432 for details)
+           ;;
+           ;; tidy-require
+
+           ))
