@@ -44,6 +44,11 @@ test: "string-append around string-join refactorable to string-join with keyword
 - (string-join (list "fox" "hen" "dog") #:before-first "The " #:after-last " jumped")
 
 
+test: "string-append before string-join with sep refactorable to string-join with #:before-first"
+- (string-append "The " (string-join (list "fox" "hen" "dog") ", "))
+- (string-join (list "fox" "hen" "dog") ", " #:before-first "The ")
+
+
 test:
 "multiline string-append around string-join refactorable to multiline string-join with keyword\
  arguments"
