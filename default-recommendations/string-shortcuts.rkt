@@ -50,29 +50,23 @@
    (~@ . after)))
 
 
-(define-syntax-class keywordless-string-join-call
-  #:attributes ([original 1])
+(define-splicing-syntax-class keywordless-string-join-call
   #:literals (string-join)
-
-  (pattern ((~and id string-join) strs)
-    #:with (original ...) #'(id strs))
-
-  (pattern ((~and id string-join) strs sep)
-    #:with (original ...) #'(id sep)))
+  (pattern (~seq string-join strs (~optional sep))))
 
 
 (define-syntax-class string-append-and-string-join-expression
   #:attributes (refactored)
   #:literals (string-append)
 
-  (pattern (string-append before join-call:keywordless-string-join-call)
-    #:with refactored #'(join-call.original ... #:before-first before))
+  (pattern (string-append before (join-call:keywordless-string-join-call))
+    #:with refactored #'((~@ . join-call) #:before-first before))
 
-  (pattern (string-append join-call:keywordless-string-join-call after)
-    #:with refactored #'(join-call.original ... #:after-last after))
+  (pattern (string-append (join-call:keywordless-string-join-call) after)
+    #:with refactored #'((~@ . join-call) #:after-last after))
 
-  (pattern (string-append before join-call:keywordless-string-join-call after)
-    #:with refactored #'(join-call.original ... #:before-first before #:after-last after)))
+  (pattern (string-append before (join-call:keywordless-string-join-call) after)
+    #:with refactored #'((~@ . join-call) #:before-first before #:after-last after)))
 
 
 (define-refactoring-rule string-append-and-string-join-to-string-join
