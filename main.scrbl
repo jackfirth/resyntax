@@ -460,10 +460,10 @@ mind:
  @item{Refactoring rules can be shown to many different developers in a wide variety of different
   contexts. Therefore, it's important that Resyntax's default recommendations have some degree of
   @emph{consensus} among the Racket community. Highly divisive suggestions that many developers
-  disagree with are not a good fit for Resyntax. Discussing your rule with the Racket community prior
-  to developing it is encouraged, especially if it's likely to affect a lot of code. If necessary,
-  consider narrowing the focus of your rule to just the cases that everybody agrees are clear
-  improvements.}
+  disagree with are not a good fit for Resyntax. Technology is social before it is technical:
+  discussing your rule with the Racket community prior to developing it is encouraged, especially if
+  it's likely to affect a lot of code. If necessary, consider narrowing the focus of your rule to just
+  the cases that everybody agrees are clear improvements.}
 
  @item{Refactoring rules should @emph{explain themselves}. The description of a refactoring rule (as
   specified with the @racket[#:description] option) should state why the new code is an improvement
