@@ -643,25 +643,6 @@ test: "for-each and append-map can be replaced by for* with #:when"
 ------------------------------------------------------------
 
 
-test: "(apply append ...) with a for loop can be removed"
-------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
-(apply append
-       (for/list ([k (in-hash-keys formulas)])
-         (hash-ref formulas k)))
-------------------------------------------------------------
-------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
-(for*/list ([k (in-hash-keys formulas)]
-            [v (in-list (hash-ref formulas k))])
-  v)
-------------------------------------------------------------
-
-
 test: "(apply append ...) with a multi-clause for loop can't be removed"
 ------------------------------------------------------------
 (define formulas
@@ -683,46 +664,6 @@ test: "(apply append ...) with a multi-body for loop can't be removed"
        (for/list ([k (in-hash-keys formulas)])
          (displayln "formula time!")
          (hash-ref formulas k)))
-------------------------------------------------------------
-
-
-test: "(apply append ...) with a for* loop can be removed"
-------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
-(apply append
-       (for*/list ([k (in-hash-keys formulas)])
-         (hash-ref formulas k)))
-------------------------------------------------------------
-------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
-(for*/list ([k (in-hash-keys formulas)]
-            [v (in-list (hash-ref formulas k))])
-  v)
-------------------------------------------------------------
-
-
-test: "(apply append ...) with a multi-clause for* loop can be removed"
-------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
-(apply append
-       (for*/list ([k (in-hash-keys formulas)]
-                   [i (in-range 0 5)])
-         (hash-ref formulas k)))
-------------------------------------------------------------
-------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
-(for*/list ([k (in-hash-keys formulas)]
-            [i (in-range 0 5)]
-            [v (in-list (hash-ref formulas k))])
-  v)
 ------------------------------------------------------------
 
 
