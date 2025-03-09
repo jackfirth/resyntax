@@ -192,3 +192,57 @@ test: "build-list with const refactorable to make-list"
          racket/list)
 (make-list 5 42)
 ------------------------------
+
+
+test: "list of contiguous selections to take and drop"
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(list (list-ref vs 2) (list-ref vs 3) (list-ref vs 4))
+------------------------------
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(list (third vs) (fourth vs) (fifth vs))
+------------------------------
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(list (caddr vs) (cadddr vs) (list-ref vs 4))
+------------------------------
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(take (drop vs 2) 3)
+------------------------------
+
+
+test: "list of contiguous selections starting at first element to take"
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(list (list-ref vs 0) (list-ref vs 1) (list-ref vs 2))
+------------------------------
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(list (first vs) (second vs) (third vs))
+------------------------------
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(list (car vs) (cadr vs) (caddr vs))
+------------------------------
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(take vs 3)
+------------------------------
+
+
+test: "list of only two contiguous selections not refactorable to take and drop"
+------------------------------
+(require racket/list)
+(define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))
+(list (list-ref vs 2) (list-ref vs 3))
+------------------------------
