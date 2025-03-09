@@ -10,15 +10,15 @@
 
 
 (require (for-syntax racket/base)
+         guard
          racket/function
          racket/list
+         racket/sequence
          racket/set
-         rebellion/private/static-name
          resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
          resyntax/default-recommendations/private/syntax-identifier-sets
-         resyntax/private/syntax-neighbors
          syntax/parse)
 
 
@@ -140,6 +140,80 @@
   (make-list count elem))
 
 
+(define/guard (all-free-identifier=? ids)
+  (guard-match (cons first-id remaining-ids) (sequence->list ids) #:else #false)
+  (for/and ([id (in-list remaining-ids)])
+    (free-identifier=? first-id id)))
+
+
+(define/guard (contiguous-increasing-integer-series? ints)
+  (define int-list (sequence->list ints))
+  (guard (not (empty? int-list)) #:else #false)
+  (for/and ([previous (in-list int-list)]
+            [next (in-list (rest int-list))])
+    (equal? (add1 previous) next)))
+
+
+(define-syntax-class list-selection-expression
+  #:attributes (target-list-id index)
+  #:literals (list-ref
+              first
+              second
+              third
+              fourth
+              fifth
+              sixth
+              seventh
+              eighth
+              ninth
+              tenth
+              car
+              cadr
+              caddr
+              cadddr)
+
+  (pattern (list-ref target-list-id:id index-stx:nat) #:attr index (syntax-e #'index-stx))
+  (pattern (first target-list-id:id) #:attr index 0)
+  (pattern (second target-list-id:id) #:attr index 1)
+  (pattern (third target-list-id:id) #:attr index 2)
+  (pattern (fourth target-list-id:id) #:attr index 3)
+  (pattern (fifth target-list-id:id) #:attr index 4)
+  (pattern (sixth target-list-id:id) #:attr index 5)
+  (pattern (seventh target-list-id:id) #:attr index 6)
+  (pattern (eighth target-list-id:id) #:attr index 7)
+  (pattern (ninth target-list-id:id) #:attr index 8)
+  (pattern (tenth target-list-id:id) #:attr index 9)
+  (pattern (car target-list-id:id) #:attr index 0)
+  (pattern (cadr target-list-id:id) #:attr index 1)
+  (pattern (caddr target-list-id:id) #:attr index 2)
+  (pattern (cadddr target-list-id:id) #:attr index 3))
+
+
+(define-refactoring-rule list-selectors-to-take-and-drop
+  #:description
+  "This list expression is constructing a sublist of a larger list, which can be expressed more\
+ clearly with `take` and `drop`."
+  #:literals (list)
+
+  (list selection:list-selection-expression ...)
+
+  #:when (>= (length (attribute selection)) 3)
+
+  #:when (all-free-identifier=? (attribute selection.target-list-id))
+  #:with target-list-id (first (attribute selection.target-list-id))
+
+  #:when (contiguous-increasing-integer-series? (attribute selection.index))
+  #:do [(define first-index (first (attribute selection.index)))
+        (define last-index (last (attribute selection.index)))]
+  
+  #:with target-list-with-prefix-dropped
+  (if (zero? first-index) #'target-list-id #`(drop target-list-id #,first-index))
+
+  #:with amount-to-take (- (add1 last-index) first-index)
+
+  (take target-list-with-prefix-dropped amount-to-take))
+
+
 (define-refactoring-suite list-shortcuts
   #:rules (append-single-list-to-single-list
            append*-and-map-to-append-map
@@ -150,6 +224,7 @@
            filter-to-remv*
            first-reverse-to-last
            ignored-map-to-for-each
+           list-selectors-to-take-and-drop
            quasiquote-to-append
            quasiquote-to-list
            sort-with-keyed-comparator-to-sort-by-key))
