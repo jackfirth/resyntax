@@ -202,7 +202,7 @@ test: "inlining immediately returned variable definition respects requested line
 ------------------------------
 
 
-test: "begin in right hand side of definition can be removed"
+test: "begin in right hand side of variable definition can be removed"
 --------------------
 (define (foo)
   (define x (begin (displayln "foo") 42))
@@ -216,7 +216,22 @@ test: "begin in right hand side of definition can be removed"
 --------------------
 
 
-test: "begin0 in right hand side of definition can be removed"
+test: "begin in right hand side of function definition can be flattened"
+--------------------
+(define (foo)
+  (define (x) (begin (displayln "foo") 42))
+  (* (x) 2))
+--------------------
+--------------------
+(define (foo)
+  (define (x)
+    (displayln "foo")
+    42)
+  (* (x) 2))
+--------------------
+
+
+test: "begin0 in right hand side of variable definition can be removed"
 --------------------
 (define (foo)
   (define x (begin0 42 (displayln "foo")))
@@ -227,6 +242,14 @@ test: "begin0 in right hand side of definition can be removed"
   (define x 42)
   (displayln "foo")
   (* x 2))
+--------------------
+
+
+test: "begin0 in right hand side of function definition can't be removed"
+--------------------
+(define (foo)
+  (define (x) (begin0 42 (displayln "foo")))
+  (* (x) 2))
 --------------------
 
 

@@ -51,7 +51,7 @@
   "The `begin` in this definition can be extracted into the surrounding definition context."
   #:literals (define begin)
   (~seq body-before ...
-        (~and definition (define id (begin pre-body ... expr)))
+        (~and definition (define id:id (begin pre-body ... expr)))
         body-after ...)
   #:with (replacement ...)
   #'(~focus-replacement-on
@@ -64,7 +64,7 @@
   "The `begin0` in this definition can be extracted into the surrounding definition context."
   #:literals (define begin0)
   (~seq body-before ...
-        (~and definition (define id (begin0 expr post-body ...)))
+        (~and definition (define id:id (begin0 expr post-body ...)))
         body-after ...)
   #:with (replacement ...)
   #'(~focus-replacement-on
