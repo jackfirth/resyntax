@@ -25,10 +25,10 @@
   (pattern (< (- x y) 0) #:with direct-comparison #'(< x y))
   (pattern (>= (- x y) 0) #:with direct-comparison #'(>= x y))
   (pattern (<= (- x y) 0) #:with direct-comparison #'(<= x y))
-  (pattern (> 0 (- x y)) #:with direct-comparison #'(<= x y))
-  (pattern (< 0 (- x y)) #:with direct-comparison #'(>= x y))
-  (pattern (>= 0 (- x y)) #:with direct-comparison #'(< x y))
-  (pattern (<= 0 (- x y)) #:with direct-comparison #'(> x y)))
+  (pattern (> 0 (- x y)) #:with direct-comparison #'(< x y))
+  (pattern (< 0 (- x y)) #:with direct-comparison #'(> x y))
+  (pattern (>= 0 (- x y)) #:with direct-comparison #'(<= x y))
+  (pattern (<= 0 (- x y)) #:with direct-comparison #'(>= x y)))
 
 
 (define-refactoring-rule comparison-of-difference-and-zero-to-direct-comparison
