@@ -59,14 +59,6 @@
   (cond clause-before ... [condition body ...] clause-after ...))
 
 
-(define-refactoring-rule or-cond-to-cond
-  #:description "This `or` expression can be turned into a clause of the inner `cond` expression,\
- reducing nesting."
-  #:literals (or cond)
-  (or condition (cond clause ...))
-  (cond [condition #t] clause ...))
-
-
 (define-refactoring-rule and-match-to-match
   #:description "This `and` expression can be turned into a clause of the inner `match` expression,\
  reducing nesting."
@@ -82,5 +74,4 @@
            cond-else-if-to-cond
            if-then-begin-to-cond
            if-else-begin-to-cond
-           if-else-cond-to-cond
-           or-cond-to-cond))
+           if-else-cond-to-cond))
