@@ -118,26 +118,32 @@
 
 ;; A loop body function is a lambda expression that is passed to a function like map, for-each, or
 ;; ormap which calls the lambda once for each element of a list. When code is migrated to use for
-;; loops, the loop body function becomes the body of the for loop, hence the name.
+;; loops, the loop body function becomes the body of the for loop, hence the name. For convenience,
+;; we also accept lambdas which take two arguments such as those used with hash-for-each. Techncially,
+;; such a two-argument lambda shouldn't be accepted when in the context of a function like for-each
+;; instead of hash-for-each, but we don't bother checking for that since if the code already compiles
+;; and runs without any tests failing it probably doesn't have that issue.
 (define-syntax-class worthwhile-loop-body-function
-  #:attributes (x [body 1])
+  #:attributes (x y [body 1])
 
   ;; We always migrate loop functions that use let expressions, since in the process of migrating
   ;; we can replace the let bindings with internal definitions within the for loop body.
-  (pattern (_:lambda-by-any-name (x) original-body:body-with-refactorable-let-expression)
+  (pattern
+    (_:lambda-by-any-name (x (~optional (~seq y)))
+                          original-body:body-with-refactorable-let-expression)
     #:with (body ...) #'(original-body.refactored ...))
 
   ;; Lambdas with multiple body forms are hard to read when all the forms are on one line, so we
   ;; assume all such lambdas are multi-line, and multi-line for-each functions are typically easier
   ;; to read when they're in the body of a for loop.
-  (pattern (_:lambda-by-any-name (x) first-body remaining-body ...+)
+  (pattern (_:lambda-by-any-name (x (~optional (~seq y))) first-body remaining-body ...+)
     #:with (body ...) #'(first-body remaining-body ...))
 
   ;; We don't bother migrating for-each forms with only a single body form unless the body form is
   ;; exceptionally long, so that forms which span multiple lines tend to get migrated. By not
   ;; migrating short forms, we avoid bothering reviewers with changes to loops that aren't complex
   ;; enough to need a lot of refactoring in the first place.
-  (pattern (_:lambda-by-any-name (x) only-body)
+  (pattern (_:lambda-by-any-name (x (~optional (~seq y))) only-body)
     #:when (>= (syntax-span #'only-body) 60)
     #:with (body ...) #'(only-body)))
 
@@ -158,6 +164,14 @@
   ((~if loop.flat? for for*)
    (loop.leading-clause ... [function.x loop.trailing-expression])
    function.body ...))
+
+
+(define-refactoring-rule hash-for-each-to-for
+  #:description "This `hash-for-each` operation can be replaced with a `for` loop."
+  #:literals (hash-for-each)
+  (hash-for-each h function:worthwhile-loop-body-function)
+  (for ([(function.x function.y) (in-hash h)])
+    function.body ...))
 
 
 (define-syntax-class for-loop-supporting-leading-nested-clause
@@ -447,6 +461,7 @@ return just that result."
            for/fold-with-conditional-body-to-unless-keyword
            for/fold-with-conditional-body-to-when-keyword
            for-each-to-for
+           hash-for-each-to-for
            list->set-to-for/set
            list->vector-to-for/vector
            map-to-for
