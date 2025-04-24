@@ -206,6 +206,62 @@ test: "for-each bytes->list to for in-bytes"
 ------------------------------
 
 
+test: "hash-for-each with short single-body form not refactorable"
+------------------------------
+(define some-hash (hash 'a 1 'b 2))
+(hash-for-each some-hash (λ (k v) (displayln v)))
+------------------------------
+
+
+test: "hash-for-each with long single-body form refactorable to for"
+------------------------------
+(define some-hash (hash 'a 1 'b 2))
+(hash-for-each
+ some-hash
+ (λ (k a-very-very-very-long-variable-name-thats-so-very-long)
+   (displayln a-very-very-very-long-variable-name-thats-so-very-long)))
+------------------------------
+------------------------------
+(define some-hash (hash 'a 1 'b 2))
+(for ([(k a-very-very-very-long-variable-name-thats-so-very-long) (in-hash some-hash)])
+  (displayln a-very-very-very-long-variable-name-thats-so-very-long))
+------------------------------
+
+
+test: "hash-for-each with multiple body forms refactorable to for"
+------------------------------
+(define some-hash (hash 'a 1 'b 2))
+(hash-for-each
+ some-hash
+ (λ (k v)
+   (displayln k)
+   (displayln v)))
+------------------------------
+------------------------------
+(define some-hash (hash 'a 1 'b 2))
+(for ([(k v) (in-hash some-hash)])
+  (displayln k)
+  (displayln v))
+------------------------------
+
+
+test: "hash-for-each with let expression refactorable to for with definitions"
+------------------------------
+(define some-hash (hash 1 10 2 20))
+(hash-for-each
+ some-hash
+ (λ (k v)
+   (let ([x (+ k v)])
+     (displayln x))))
+------------------------------
+------------------------------
+(define some-hash (hash 1 10 2 20))
+(for ([(k v) (in-hash some-hash)])
+  (define x (+ k v))
+  (displayln x))
+------------------------------
+
+
 test: "ormap to for/or"
 ------------------------------
 (define some-list (list 3 5 14 10 6 5 2))
