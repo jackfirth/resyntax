@@ -285,3 +285,23 @@ test: "begin inside definition context should be flattenable"
   (define z (* y 3))
   (+ x y z))
 --------------------
+
+
+test: "commented begin inside definition context should be flattenable"
+--------------------
+(define (f x)
+  (displayln "starting")
+  ; comment
+  (begin
+    (define y (* x 2))
+    (define z (* y 3)))
+  (+ x y z))
+--------------------
+--------------------
+(define (f x)
+  (displayln "starting")
+  ; comment
+  (define y (* x 2))
+  (define z (* y 3))
+  (+ x y z))
+--------------------
