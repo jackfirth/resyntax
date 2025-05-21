@@ -34,16 +34,6 @@
   sub1)
 
 
-(define-refactoring-rule zero-comparison-to-positive?
-  #:description "This expression is equivalent to calling the `positive?` predicate."
-  #:literals (< > <= >= not)
-  (~or (> e:expr 0)
-       (< 0 e:expr)
-       (not (<= e:expr 0))
-       (not (>= 0 e:expr)))
-  (positive? e))
-
-
 (define-refactoring-rule zero-comparison-lambda-to-positive?
   #:description "This lambda function is equivalent to the built-in `positive?` predicate."
   #:literals (< > <= >= not)
@@ -54,16 +44,6 @@
                                   (not (>= 0 x2:id))))
   #:when (free-identifier=? #'x1 #'x2)
   positive?)
-
-
-(define-refactoring-rule zero-comparison-to-negative?
-  #:description "This expression is equivalent to calling the `negative?` predicate."
-  #:literals (< > <= >= not)
-  (~or (< e:expr 0)
-       (> 0 e:expr)
-       (not (>= e:expr 0))
-       (not (<= 0 e:expr)))
-  (negative? e))
 
 
 (define-refactoring-rule zero-comparison-lambda-to-negative?
@@ -98,6 +78,4 @@
            single-argument-plus-to-identity
            sub1-lambda-to-sub1
            zero-comparison-lambda-to-negative?
-           zero-comparison-lambda-to-positive?
-           zero-comparison-to-negative?
-           zero-comparison-to-positive?))
+           zero-comparison-lambda-to-positive?))
