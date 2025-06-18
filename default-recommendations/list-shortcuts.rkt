@@ -214,10 +214,43 @@
   (take target-list-with-prefix-dropped amount-to-take))
 
 
+(define-syntax-class static-list-expression
+  #:literals (cons list list*)
+  #:attributes ([element 1] maker improper-tail simplifiable?)
+
+  (pattern ((~and list maker) ~! element ...)
+    #:attr improper-tail #false
+    #:attr simplifiable? #false)
+
+  (pattern ((~and list* maker) element ... (~and improper-tail (~not :static-list-expression)))
+    #:attr simplifiable? #false)
+
+  (pattern (cons ~! head tail:static-list-expression)
+    #:attr [element 1] (cons #'head (attribute tail.element))
+    #:attr maker (attribute tail.maker)
+    #:attr improper-tail (attribute tail.improper-tail)
+    #:attr simplifiable? #true)
+
+  (pattern (list* head ... tail:static-list-expression)
+    #:attr [element 1] (append (attribute head) (attribute tail.element))
+    #:attr maker (attribute tail.maker)
+    #:attr improper-tail (attribute tail.improper-tail)
+    #:attr simplifiable? #true))
+
+
+(define-refactoring-rule consing-onto-static-list
+  #:description "This list-constructing expression can be simplified"
+  #:literals (cons list)
+  expr:static-list-expression
+  #:when (attribute expr.simplifiable?)
+  (expr.maker expr.element ... (~? expr.improper-tail)))
+
+
 (define-refactoring-suite list-shortcuts
   #:rules (append-single-list-to-single-list
            append*-and-map-to-append-map
            build-list-const-to-make-list
+           consing-onto-static-list
            equal-null-list-to-null-predicate
            filter-to-remove*
            filter-to-remq*
