@@ -258,3 +258,14 @@ test: "consing onto static proper list expression can be simplified"
 - (list* 1 2 (list* 3 4 (list 5)))
 - (list* (list 1 2 3 4 5))
 - (list 1 2 3 4 5)
+
+
+test: "consing onto static improper list expression can be simplified"
+- (cons 1 (list* 2 3 4 5))
+- (cons 1 (cons 2 (cons 3 (list* 4 5))))
+- (list* 1 2 3 (list* 4 5))
+- (cons 1 (list* 2 3 4 (list* 5)))
+- (list* 1 2 3 (cons 4 (list* 5)))
+- (list* 1 2 (list* 3 4 (list* 5)))
+- (list* (list* 1 2 3 4 5))
+- (list* 1 2 3 4 5)
