@@ -4,11 +4,10 @@
 (require racket/contract/base)
 
 
-(provide
- syntax-traverse
- (contract-out
-  [leaves-in-syntax (->* (syntax?) ((-> syntax? boolean?)) (sequence/c syntax?))]
-  [syntax-directly-enclosing-expressions (-> syntax? identifier? (listof syntax?))]))
+(provide atom
+         expression-directly-enclosing
+         syntax-search
+         syntax-traverse)
 
 
 (require (for-syntax racket/base
@@ -28,49 +27,73 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define (leaves-in-syntax stx [leaf? flat-syntax?])
-  (stream*
-   (match stx
-     [(? leaf?) (stream stx)]
-     [(app syntax-e (and stx-list (or '() (? pair?)))) (leaves-in-syntax-pair stx-list leaf?)]
-     [(app syntax-e (box substx)) (leaves-in-syntax substx leaf?)]
-     [else (stream)])))
+(define-syntax-class atom
+  (pattern (~or :id :number :str :boolean :regexp :keyword)))
 
 
-(define (leaves-in-syntax-pair stx-list [leaf? flat-syntax?])
-  (stream*
-   (match stx-list
-     ['() (stream)]
-     [(cons head '()) (leaves-in-syntax head leaf?)]
-     [(cons head (? syntax? tail))
-      (stream-append (leaves-in-syntax head leaf?) (leaves-in-syntax tail leaf?))]
-     [(cons head (? pair? tail))
-      (stream-append (leaves-in-syntax head leaf?) (leaves-in-syntax-pair tail leaf?))])))
+(define-syntax-class (expression-directly-enclosing id)
+  (pattern (part ...)
+    #:when (for/or ([part-stx (in-list (attribute part))]
+                    #:when (identifier? part-stx))
+             (free-identifier=? id part-stx)))
+  (pattern (part ... . tail-part)
+    #:when (for/or ([part-stx (in-list (cons #'tail-part (attribute part)))]
+                    #:when (identifier? part-stx))
+             (free-identifier=? id part-stx))))
 
 
-(define (flat-syntax? stx)
-  (define datum (syntax-e stx))
-  (or (symbol? datum)
-      (number? datum)
-      (string? datum)
-      (boolean? datum)
-      (regexp? datum)
-      (keyword? datum)))
+(begin-for-syntax
+  (define-syntax-class syntax-search-clause
+    #:attributes (syntax-pattern [directive 1] output-stream)
+    (pattern [syntax-pattern directive:syntax-parse-pattern-directive ... body:expr ...+]
+      #:with output-stream #'(stream-lazy (let () body ...)))
+    (pattern [syntax-pattern directive:syntax-parse-pattern-directive ...]
+      #:with output-stream #'(stream this-syntax))))
 
 
-(define (syntax-directly-enclosing-expressions stx id)
+(define-syntax-parse-rule
+  (syntax-search stx-expr option:syntax-parse-option ... clause:syntax-search-clause ...)
+  #:declare stx-expr (expr/c #'syntax?)
+  (let ()
+    (define-syntax-class search-case
+      #:attributes (output-stream)
+      (~@ . option) ...
+      (pattern clause.syntax-pattern (~@ . clause.directive) ...
+        #:attr output-stream clause.output-stream)
+      ...)
+    (let loop ([stx stx-expr.c])
+      (stream-lazy
+       (syntax-parse stx
+         [(~var matched search-case) (attribute matched.output-stream)]
+         [(part (... ...))
+          #:cut
+          (apply stream-append
+                 (for/list ([part-stx (in-list (attribute part))])
+                   (loop part-stx)))]
+         [(part (... ...+) . tail-part)
+          #:cut
+          (stream-append (apply stream-append
+                                (for/list ([part-stx (in-list (attribute part))])
+                                  (loop part-stx)))
+                         (loop #'tail-part))]
+         [_ (stream)])))))
 
-  (define (directly-encloses? subform)
-    (syntax-parse subform
-      [(part ...)
-       (for/or ([part-stx (in-list (attribute part))])
-         (and (identifier? part-stx) (free-identifier=? id part-stx)))]
-      [(part ... . tail-part)
-       (for/or ([part-stx (in-list (cons #'tail-part (attribute part)))])
-         (and (identifier? part-stx) (free-identifier=? id part-stx)))]
-      [_ #false]))
 
-  (sequence->list (leaves-in-syntax stx directly-encloses?)))
+(module+ test
+  (test-case "syntax-search"
+    (define stx
+      #'(define (foo)
+          (cons x y)
+          (define (bar)
+            (cons a b))
+          (cons c d)))
+    (define actual
+      (sequence->list
+       (syntax-search stx
+         #:literals (cons)
+         [(cons _ _) (stream (syntax->datum this-syntax))])))
+    (define expected '((cons x y) (cons a b) (cons c d)))
+    (check-equal? actual expected)))
 
 
 (define-syntax-parse-rule
