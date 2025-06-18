@@ -33,7 +33,7 @@
 
 
 (define (syntax-line-count stx)
-  (transduce (leaves-in-syntax stx)
+  (transduce (syntax-search stx [:atom])
              (mapping syntax-line)
              (deduplicating)
              #:into into-count))

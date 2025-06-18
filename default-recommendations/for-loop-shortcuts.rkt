@@ -385,7 +385,8 @@ return just that result."
   #:when (free-identifier=? #'vs #'vs2)
   #:when (free-identifier=? #'vs #'vs3)
   #:when (for*/and ([body-stx (in-list (cons #'loop-element (attribute loop-body)))]
-                    [vs-usage (in-list (syntax-directly-enclosing-expressions body-stx #'vs))]
+                    [vs-usage
+                     (syntax-search body-stx [(~var usage (expression-directly-enclosing #'vs))])]
                     #:unless (syntax-free-identifier=? vs-usage #'(car vs)))
            (syntax-free-identifier=? vs-usage #'(first vs)))
   #:cut

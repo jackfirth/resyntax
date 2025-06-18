@@ -29,45 +29,6 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(struct comment-set (comment-list)
-  #:transparent
-  #:guard (λ (comments _) (sequence->list comments))
-  #:property prop:sequence (λ (this) (comment-set-comment-list this)))
-
-
-(define into-comment-set (reducer-map into-list #:range comment-set))
-
-
-(struct comment (text location)
-  #:transparent
-  #:guard (λ (text location _) (values (string->immutable-string text) location)))
-
-
-(define (comment-range comment)
-  (define loc (comment-location comment))
-  (define start (srcloc-position loc))
-  (define end (+ start (srcloc-span loc)))
-  (closed-open-range start end #:comparator natural<=>))
-
-
-(define (comment-subset comments position-range)
-  (transduce comments
-             (filtering (λ (c) (range-encloses? position-range (comment-range c))))
-             #:into into-comment-set))
-
-
-(define (syntax-source-range stx)
-  (define start (syntax-position stx))
-  (define end (+ start (syntax-span stx)))
-  (closed-open-range start end #:comparator natural<=>))
-
-
-(define (syntax-original-locations stx)
-  (transduce (leaves-in-syntax stx syntax-original?)
-             (mapping syntax-source-range)
-             #:into into-list))
-
-
 (define (read-comment-locations [in (current-input-port)])
   (port-count-lines! in)
   (define (next!)
