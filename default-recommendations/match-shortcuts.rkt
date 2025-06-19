@@ -106,43 +106,34 @@
     (check-equal? (report-depths #'(list (list xs ys zs) (... ...))) '(0 (1 1 1 1) #false))))
 
 
-
 (define-refactoring-rule predicate-pattern-with-lambda-to-when
   #:description "This `match` pattern using `?` with a lambda can be simplified using `#:when`."
   #:literals (match)
-  #:datum-literals (=>)
+  #:datum-literals (? =>)
 
   (match val-expr
     clause-before ...
     (~and [match-pattern:expr (~and option-or-body (~not (=> :id))) ...] clause-to-replace)
     clause-after ...)
 
-  #:do [(define match-pattern-with-depths
-          (match-pattern-add-ellipsis-depth-properties (attribute match-pattern)))
-        (define search-results
-          (syntax-search match-pattern-with-depths
-            #:datum-literals (?)
-            [(? (:lambda-by-any-name (subject-in-condition:id) condition:expr) subject:id)
-             #:when (equal? (syntax-property (attribute subject) 'match-pattern-ellipsis-depth) 0)
-             (stream
-              (unnecessary-predicate-pattern
-               (attribute subject) (attribute condition) (attribute subject-in-condition)))]))]
-  #:when (equal? (stream-length search-results) 1)
-  #:do [(match-define (unnecessary-predicate-pattern subject condition subject-in-condition)
-          (stream-first search-results))]
+  #:with (? (_ (subject-in-condition) condition) subject)
+  (syntax-find-first (match-pattern-add-ellipsis-depth-properties (attribute match-pattern))
+    #:datum-literals (?)
+    (? (:lambda-by-any-name (subject-in-condition:id) condition:expr) subject:id)
+    #:when (equal? (syntax-property (attribute subject) 'match-pattern-ellipsis-depth) 0))
 
   #:with new-pattern
-  (syntax-traverse match-pattern-with-depths
+  (syntax-traverse (attribute match-pattern)
     #:datum-literals (?)
     [(? _ subject2:id)
-     #:when (free-identifier=? subject (attribute subject2))
-     subject])
+     #:when (free-identifier=? (attribute subject) (attribute subject2))
+     (attribute subject)])
 
   #:with new-condition
-  (syntax-traverse condition
+  (syntax-traverse (attribute condition)
     [id:id
-     #:when (free-identifier=? #'id subject-in-condition)
-     subject])
+     #:when (free-identifier=? (attribute id) (attribute subject-in-condition))
+     (attribute subject)])
 
   #:with new-clause #'[new-pattern #:when new-condition option-or-body ...]
 
