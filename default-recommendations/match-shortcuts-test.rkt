@@ -86,3 +86,57 @@ test: "single-clause match expressions inside cond can be replaced with match-de
      (+ a b c)]
     [else (displayln "else")]))
 ------------------------------
+
+
+test: "match patterns using ? with a lambda can be simplified with #:when clauses"
+------------------------------
+(define (foo x)
+  (match x
+    [(? (λ (y) (< y 10)) y*)
+     (list y*)]
+    [_ 'no-match]))
+(foo 5)
+(foo 100)
+------------------------------
+------------------------------
+(define (foo x)
+  (match x
+    [y*
+     #:when (< y* 10)
+     (list y*)]
+    [_ 'no-match]))
+(foo 5)
+(foo 100)
+------------------------------
+
+
+test: "nested match patterns using ? with a lambda can be simplified with #:when clauses"
+------------------------------
+(define (foo xs)
+  (match xs
+    [(list (? (λ (y) (< y 10)) y*))
+     y*]
+    [_ 'no-match]))
+(foo (list 5 6 7))
+(foo (list 100 200 300))
+------------------------------
+------------------------------
+(define (foo xs)
+  (match xs
+    [(list y*)
+     #:when (< y* 10)
+     y*]
+    [_ 'no-match]))
+(foo (list 5 6 7))
+(foo (list 100 200 300))
+------------------------------
+
+
+test: "match patterns using ? with a lambda cannot be simplified when under ellipses"
+------------------------------
+(define (foo xs)
+  (match xs
+    [(list (? (λ (y) (< y 10)) y*) ...)
+     (list y*)]
+    [_ 'no-match]))
+------------------------------
