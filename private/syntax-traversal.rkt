@@ -11,7 +11,8 @@
 
 
 (require (for-syntax racket/base
-                     resyntax/private/more-syntax-parse-classes)
+                     resyntax/private/more-syntax-parse-classes
+                     syntax/parse)
          racket/match
          racket/sequence
          racket/stream
@@ -45,8 +46,9 @@
 (begin-for-syntax
   (define-syntax-class syntax-search-clause
     #:attributes (syntax-pattern [directive 1] output-stream)
-    (pattern [syntax-pattern directive:syntax-parse-pattern-directive ... body:expr ...+]
-      #:with output-stream #'(stream-lazy (let () body ...)))
+    (pattern [syntax-pattern directive:syntax-parse-pattern-directive ... body:expr ... last-body]
+      #:declare last-body (expr/c #'stream?)
+      #:with output-stream #'(stream-lazy (let () body ... last-body.c)))
     (pattern [syntax-pattern directive:syntax-parse-pattern-directive ...]
       #:with output-stream #'(stream this-syntax))))
 
