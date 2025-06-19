@@ -413,6 +413,20 @@ test: "refactoring always-throwing cond expressions to when doesn't reformat ent
 ------------------------------
 
 
+test: "always-throwing unless before returning condition variable refactorable to or"
+--------------------
+(define (f s)
+  (define x (string->number s))
+  (unless x
+   (error "string that is not a num"))
+  x)
+--------------------
+--------------------
+(define (f s)
+  (or (string->number s) (error "string that is not a num")))
+--------------------
+
+
 test: "cond with nested else-cond can be flattened"
 ------------------------------
 (define (f a b)

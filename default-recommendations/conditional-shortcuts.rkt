@@ -148,6 +148,21 @@
                                  #:original throwing-cond)))))
 
 
+(define-definition-context-refactoring-rule throw-unless-truthy-to-or
+  #:description
+  "Instead of using `unless` to throw an exception if a truthy value is false, consider using `or`."
+  #:literals (define unless)
+  (~seq body-before ...
+        (~and def (define truthy-var:id truthy-expr))
+        (~and check (unless truthy-var2:id fail:always-throwing-expression))
+        truthy-var3:id)
+  #:when (free-identifier=? #'truthy-var #'truthy-var2)
+  #:when (free-identifier=? #'truthy-var #'truthy-var3)
+  (body-before ...
+   (~focus-replacement-on
+    (~replacement (or truthy-expr fail) #:original-splice (def check truthy-var3)))))
+
+
 (define-refactoring-rule cond-else-cond-to-cond
   #:description
   "The `else` clause of this `cond` expression is another `cond` expression and can be flattened."
@@ -230,4 +245,5 @@
            if-let-to-cond
            if-void-to-when-or-unless
            if-x-else-x-to-and
-           nested-if-to-cond))
+           nested-if-to-cond
+           throw-unless-truthy-to-or))
