@@ -6,6 +6,7 @@
 
 (provide atom
          expression-directly-enclosing
+         syntax-find-first
          syntax-search
          syntax-traverse)
 
@@ -96,6 +97,28 @@
          [(cons _ _) (stream (syntax->datum this-syntax))])))
     (define expected '((cons x y) (cons a b) (cons c d)))
     (check-equal? actual expected)))
+
+
+(define-syntax-parse-rule (syntax-find-first stx-expr
+                                             option:syntax-parse-option ...
+                                             syntax-pattern
+                                             directive:syntax-parse-pattern-directive ...)
+  (let ()
+    (define results (syntax-search stx-expr (~@ . option) ... [syntax-pattern (~@ . directive) ...]))
+    (and (not (stream-empty? results)) (stream-first results))))
+
+
+(module+ test
+  (test-case "syntax-find-first"
+    (define stx
+      #'(define (foo)
+          (cons x y)
+          (define (bar)
+            (cons a b))
+          (cons c d)))
+    (define actual (syntax-find-first stx #:literals (cons) #:datum-literals (a) (cons a _)))
+    (check-equal? (syntax->datum actual) '(cons a b))
+    (check-false (syntax-find-first stx #:literals (cons) (cons _ _ _)))))
 
 
 (define-syntax-parse-rule
