@@ -10,6 +10,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          resyntax/base
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/exception
@@ -156,11 +157,17 @@
         (~and def (define truthy-var:id truthy-expr))
         (~and check (unless truthy-var2:id fail:always-throwing-expression))
         truthy-var3:id)
+
   #:when (free-identifier=? #'truthy-var #'truthy-var2)
   #:when (free-identifier=? #'truthy-var #'truthy-var3)
-  (body-before ...
-   (~focus-replacement-on
-    (~replacement (or truthy-expr fail) #:original-splice (def check truthy-var3)))))
+  #:with or-expression
+  #'(~replacement (or truthy-expr fail) #:original-splice (def check truthy-var3))
+  #:with focused-or-expression
+  (if (empty? (attribute body-before))
+      #'or-expression
+      #'(~focus-replacement-on or-expression))
+
+  (body-before ... focused-or-expression))
 
 
 (define-refactoring-rule cond-else-cond-to-cond

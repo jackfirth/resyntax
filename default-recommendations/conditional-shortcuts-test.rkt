@@ -427,6 +427,41 @@ test: "always-throwing unless before returning condition variable refactorable t
 --------------------
 
 
+test: "refactoring always-throwing unless to or doesn't reformat surrounding context"
+--------------------
+(define (f s)
+
+  ( define foo 42 )
+  
+  (define x (string->number s))
+  (unless x
+    (error "string that is not a num"))
+  x)
+--------------------
+--------------------
+(define (f s)
+
+  ( define foo 42 )
+  
+  (or (string->number s) (error "string that is not a num")))
+--------------------
+
+
+test: "refactoring always-throwing unless to or can reformat when its the only body"
+--------------------
+(define (f s)
+  (λ (v)
+    (define x (string->number s))
+    (unless x
+      (error "string that is not a num"))
+    x))
+--------------------
+--------------------
+(define (f s)
+  (λ (v) (or (string->number s) (error "string that is not a num"))))
+--------------------
+
+
 test: "cond with nested else-cond can be flattened"
 ------------------------------
 (define (f a b)
