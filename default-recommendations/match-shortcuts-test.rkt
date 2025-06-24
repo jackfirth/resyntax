@@ -88,6 +88,36 @@ test: "single-clause match expressions inside cond can be replaced with match-de
 ------------------------------
 
 
+test: "single-clause match not migratable when pattern bindings conflict with surrounding context"
+------------------------------
+(define (foo x)
+  (define a 42)
+  (match x
+    [(list a b c) a]))
+------------------------------
+
+
+test: "single-clause match not migratable when pattern would bind subject expression"
+------------------------------
+(define (foo x)
+  (match x
+    [(list x) x]))
+------------------------------
+
+
+test: "single-clause match still migratable when pattern bindings shadow surrounding context"
+------------------------------
+(define (foo x a)
+  (match x
+    [(list a b c) a]))
+------------------------------
+------------------------------
+(define (foo x a)
+  (match-define (list a b c) x)
+  a)
+------------------------------
+
+
 test: "match patterns using ? with a lambda can be simplified with #:when clauses"
 ------------------------------
 (define (foo x)
