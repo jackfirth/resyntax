@@ -12,13 +12,12 @@
 (require racket/list
          racket/match
          racket/set
-         racket/stream
          resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/private/syntax-traversal
-         resyntax/private/logger
-         syntax/parse)
+         syntax/parse
+         syntax/strip-context)
 
 
 (module+ test
@@ -31,7 +30,7 @@
 
 (define-syntax-class single-clause-match
   #:literals (match)
-  #:attributes (match-pattern [as-definition-context-body 1])
+  #:attributes (match-pattern subject [body 1] [as-definition-context-body 1])
 
   (pattern (match subject [match-pattern body ...])
     #:with definition #'(match-define match-pattern subject)
@@ -43,12 +42,26 @@
   #:description "This `match` expression can be simplified using `match-define`."
   #:literals (match)
   (~seq body-before ... match-expression:single-clause-match)
-  #:when (set-empty? (set-intersect (syntax-bound-identifiers #'(body-before ...))
-                                    (syntax-bound-identifiers #'match-expression.match-pattern)))
-  #:with (new-body ...) (if (empty? (attribute body-before))
-                            (attribute match-expression.as-definition-context-body)
-                            #'(~focus-replacement-on
-                               (match-expression.as-definition-context-body ...)))
+
+  #:do
+  [(define pattern-ids
+     (syntax-bound-identifiers (attribute match-expression.match-pattern)))
+   (define pattern-ids-in-surrounding-context
+     (syntax-bound-identifiers
+      (replace-context (attribute match-expression) (attribute match-expression.match-pattern))))
+   (define body-ids (syntax-bound-identifiers #'(body-before ... match-expression.subject)))
+   (define subject-ids-in-body-context
+     (syntax-bound-identifiers
+      (replace-context
+       (first (attribute match-expression.body)) (attribute match-expression.subject))))]
+  #:when (set-empty? (set-intersect pattern-ids-in-surrounding-context body-ids))
+  #:when (set-empty? (set-intersect pattern-ids subject-ids-in-body-context))
+  #:with (new-body ...)
+  (if (empty? (attribute body-before))
+      (attribute match-expression.as-definition-context-body)
+      #'(~focus-replacement-on
+         (match-expression.as-definition-context-body ...)))
+
   (body-before ... new-body ...))
 
 
@@ -144,5 +157,5 @@
 
 
 (define-refactoring-suite match-shortcuts
-   #:rules (predicate-pattern-with-lambda-to-when
-            single-clause-match-to-match-define))
+  #:rules (predicate-pattern-with-lambda-to-when
+           single-clause-match-to-match-define))
