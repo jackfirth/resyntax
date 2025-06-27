@@ -29,13 +29,17 @@
      (-> refactoring-rule? syntax? source? (option/c syntax-replacement?))])))
 
 
-(require (for-syntax racket/base racket/syntax resyntax/private/more-syntax-parse-classes)
+(require (for-syntax racket/base
+                     racket/list
+                     racket/syntax
+                     resyntax/private/more-syntax-parse-classes)
          racket/sequence
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/base/symbol
          rebellion/type/object
          resyntax/default-recommendations/private/definition-context
+         resyntax/private/logger
          resyntax/private/source
          resyntax/private/syntax-neighbors
          resyntax/private/syntax-replacement
@@ -128,6 +132,8 @@
     pattern-directive:syntax-parse-pattern-directive ...
     replacement)
   #:declare description (expr/c #'string?)
+  #:attr log-statement (and (not (empty? (attribute pattern-directive)))
+                            #'(log-resyntax-debug "~a: partial match" 'id))
   (define id
     (constructor:refactoring-rule
      #:name 'id
@@ -136,7 +142,9 @@
      (λ (stx)
        (syntax-parse stx
          (~@ . parse-option) ...
-         [pattern (~@ . pattern-directive) ... (present #'replacement)]
+         [pattern
+           (~? (~@ #:do [log-statement]))
+           (~@ . pattern-directive) ... (present #'replacement)]
          [_ absent])))))
 
 
@@ -154,12 +162,16 @@
   #:with body-matching-id (format-id #'macro-introduced-context "body-matching-~a" #'id)
   #:with expression-matching-id (format-id #'macro-introduced-context "expression-matching-~a" #'id)
 
+  #:attr log-statement (and (not (empty? (attribute pattern-directive)))
+                            #'(log-resyntax-debug "~a: partial match" 'id))
+
   (begin
 
     (define-splicing-syntax-class body-matching-id
       #:attributes ([refactored 1])
       (~@ . parse-option) ...
       (pattern splicing-pattern
+        (~? (~@ #:do [log-statement]))
         (~@ . pattern-directive) ...
         #:with (refactored (... ...)) #'(splicing-replacement ...)))
 

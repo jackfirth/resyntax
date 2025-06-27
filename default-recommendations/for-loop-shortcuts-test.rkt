@@ -634,6 +634,43 @@ test: "named let loop over list can be replaced by for/list"
 ------------------------------------------------------------
 
 
+test: "named let loop can be replaced with for/and when equivalent"
+------------------------------------------------------------
+(require racket/list)
+(define (f xs big? red?)
+  (let loop ([xs xs])
+    (cond
+      [(empty? xs) #true]
+      [(and (big? (first xs)) (not (red? (car xs))))
+       (loop (rest xs))]
+      [else #false])))
+------------------------------------------------------------
+------------------------------------------------------------
+(require racket/list)
+(define (f xs big? red?)
+  (for/and ([x (in-list xs)])
+    (and (big? x) (not (red? x)))))
+------------------------------------------------------------
+
+
+test: "named let loop can be replaced with for/or when equivalent"
+------------------------------------------------------------
+(require racket/list)
+(define (f xs big? red?)
+  (let loop ([xs xs])
+    (cond
+      [(empty? xs) #false]
+      [(and (big? (first xs)) (not (red? (car xs)))) #true]
+      [else (loop (rest xs))])))
+------------------------------------------------------------
+------------------------------------------------------------
+(require racket/list)
+(define (f xs big? red?)
+  (for/or ([x (in-list xs)])
+    (and (big? x) (not (red? x)))))
+------------------------------------------------------------
+
+
 test: "append-map with for/list can be replaced by for*/list"
 ------------------------------------------------------------
 (require racket/list)

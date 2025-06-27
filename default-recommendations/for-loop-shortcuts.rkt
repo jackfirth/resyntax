@@ -16,11 +16,13 @@
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/private/list-function
          resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/syntax-lines
          resyntax/private/identifier-naming
+         resyntax/private/logger
          resyntax/private/syntax-traversal
          syntax/parse)
 
@@ -376,19 +378,18 @@ return just that result."
   #:literals (let cond else null? empty? null quote car first cdr rest cons)
   (let loop:id ([vs:id init-list])
     (cond
-      [((~or null? empty?) vs2:id) (~or null '())]
+      [(:empty-predicate-by-any-name vs2:id) :empty-list-by-any-name]
       [else
        loop-body:expr ...
-       (cons loop-element:expr
-             (loop2:id ((~or cdr rest) vs3:id)))]))
+       (cons loop-element:expr (loop2:id (:rest-by-any-name vs3:id)))]))
   #:when (free-identifier=? #'loop #'loop2)
   #:when (free-identifier=? #'vs #'vs2)
   #:when (free-identifier=? #'vs #'vs3)
-  #:when (for*/and ([body-stx (in-list (cons #'loop-element (attribute loop-body)))]
-                    [vs-usage
-                     (syntax-search body-stx [(~var usage (expression-directly-enclosing #'vs))])]
-                    #:unless (syntax-free-identifier=? vs-usage #'(car vs)))
-           (syntax-free-identifier=? vs-usage #'(first vs)))
+  #:when (not
+          (for/or ([body-stx (in-list (cons #'loop-element (attribute loop-body)))])
+            (syntax-find-first body-stx
+              (~and (~var usage (expression-directly-enclosing (attribute vs)))
+                    (~not (:first-by-any-name _))))))
   #:cut
 
   #:with element-id (depluralize-id #'vs)
@@ -396,13 +397,68 @@ return just that result."
   #:with (modified-result-element modified-body ...)
   (for/list ([body-stx (cons #'loop-element (attribute loop-body))])
     (syntax-traverse body-stx
-      #:literals (car first)
-      [(car vs-usage:id) #:when (free-identifier=? #'vs-usage #'vs) #'element-id]
-      [(first vs-usage:id) #:when (free-identifier=? #'vs-usage #'vs) #'element-id]))
+      [(:first-by-any-name vs-usage:id) #:when (free-identifier=? #'vs-usage #'vs) #'element-id]))
 
   (for/list ([element-id (in-list init-list)])
     modified-body ...
     modified-result-element))
+
+
+(define-refactoring-rule named-let-loop-to-for/and
+  #:description "This named `let` expression is equivalent to a `for/and` loop."
+  #:literals (let cond else)
+  (let loop:id ([vs:id init-list])
+    (cond
+      [(:empty-predicate-by-any-name vs2:id) #true]
+      [element-condition:expr (loop2:id (:rest-by-any-name vs3:id))]
+      [else #false]))
+
+  #:when (free-identifier=? (attribute loop) (attribute loop2))
+  #:when (free-identifier=? (attribute vs) (attribute vs2))
+  #:when (free-identifier=? (attribute vs) (attribute vs3))
+  #:when (not (syntax-find-first (attribute element-condition)
+                (~and (~var usage (expression-directly-enclosing (attribute vs)))
+                      (~not (:first-by-any-name _)))))
+  #:cut
+
+  #:with element-id (depluralize-id (attribute vs))
+  #:with modified-element-condition
+  (syntax-traverse (attribute element-condition)
+    [(:first-by-any-name vs-usage:id)
+     #:when (free-identifier=? (attribute vs) (attribute vs-usage))
+     (attribute element-id)])
+
+  (for/and ([element-id (in-list init-list)])
+    modified-element-condition))
+
+
+(define-refactoring-rule named-let-loop-to-for/or
+  #:description "This named `let` expression is equivalent to a `for/or` loop."
+  #:literals (let cond else)
+  (let loop:id ([vs:id init-list])
+    (cond
+      [(:empty-predicate-by-any-name vs2:id) #false]
+      [element-condition:expr #true]
+      [else (loop2:id (:rest-by-any-name vs3:id))]))
+
+  #:when (free-identifier=? (attribute loop) (attribute loop2))
+  #:when (free-identifier=? (attribute vs) (attribute vs2))
+  #:when (free-identifier=? (attribute vs) (attribute vs3))
+  #:when (not (syntax-find-first (attribute element-condition)
+                (~and (~var usage (expression-directly-enclosing (attribute vs)))
+                      (~not (:first-by-any-name _)))))
+  #:cut
+
+  #:with element-id (depluralize-id (attribute vs))
+  #:with modified-element-condition
+  (syntax-traverse (attribute element-condition)
+    [(:first-by-any-name vs-usage:id)
+     #:when (free-identifier=? (attribute vs) (attribute vs-usage))
+     (attribute element-id)])
+
+  (for/or ([element-id (in-list init-list)])
+    modified-element-condition))
+  
 
 
 (define-refactoring-rule named-let-loop-to-for/first-in-vector
@@ -466,8 +522,10 @@ return just that result."
            list->set-to-for/set
            list->vector-to-for/vector
            map-to-for
-           named-let-loop-to-for/list
+           named-let-loop-to-for/and
            named-let-loop-to-for/first-in-vector
+           named-let-loop-to-for/list
+           named-let-loop-to-for/or
            nested-for-to-for*
            nested-for/and-to-for*/and
            nested-for/or-to-for*/or
