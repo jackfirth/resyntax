@@ -38,7 +38,7 @@
     #:when (for/or ([part-stx (in-list (attribute part))]
                     #:when (identifier? part-stx))
              (free-identifier=? id part-stx)))
-  (pattern (part ... . tail-part)
+  (pattern (part ...+ . tail-part)
     #:when (for/or ([part-stx (in-list (cons #'tail-part (attribute part)))]
                     #:when (identifier? part-stx))
              (free-identifier=? id part-stx))))
@@ -124,7 +124,7 @@
 (define-syntax-parse-rule
   (syntax-traverse (~var stx-expr (expr/c #'syntax?))
     option:syntax-parse-option ...
-    [clause-pattern directive:syntax-parse-pattern-directive ... clause-body:expr ...] ...)
+    [clause-pattern directive:syntax-parse-pattern-directive ... clause-body:expr ...+] ...)
   (let ()
     (define-syntax-class traversal-case
       #:attributes (traversed)
