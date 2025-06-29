@@ -62,6 +62,11 @@ test: "multi-line if else false can be refactored to a multi-line and expression
 ------------------------------
 
 
+test: "if and else false can be refactored to a single and expression"
+- (if (and 'a 'b) 'c #f)
+- (and 'a 'b 'c)
+
+
 test: "if x else x can be refactored to an and expression"
 ------------------------------
 (define x 'a)
@@ -84,6 +89,17 @@ test: "multi-line if x else x can be refactored to a multi-line and expression"
 (define some-variable 'a)
 (and some-variable
      (println "some very long true branch that is so very very very very very very very very long"))
+------------------------------
+
+
+test: "if x then and expression else x can be refactored to a single and expression"
+------------------------------
+(define x 'a)
+(if x (and 'b 'c 'd) x)
+------------------------------
+------------------------------
+(define x 'a)
+(and x 'b 'c 'd)
 ------------------------------
 
 

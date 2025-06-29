@@ -49,17 +49,17 @@
 
 (define-refactoring-rule if-else-false-to-and
   #:description equivalent-conditional-description
-  #:literals (if)
-  (if condition then-branch #false)
-  (and condition then-branch))
+  #:literals (if and)
+  (if (~or (and condition-part:expr ...) condition:expr) then-branch #false)  
+  (and (~? (~@ condition-part ...) condition) then-branch))
 
 
 (define-refactoring-rule if-x-else-x-to-and
   #:description equivalent-conditional-description
-  #:literals (if)
-  (if x:id then-branch:expr y:id)
-  #:when (free-identifier=? #'x #'y)
-  (and x then-branch))
+  #:literals (if and)
+  (if x:id (~or (and then-part ...) then-branch:expr) y:id)
+  #:when (free-identifier=? (attribute x) (attribute y))
+  (and x (~? (~@ then-part ...) then-branch)))
 
 
 (define-syntax-class block-expression
