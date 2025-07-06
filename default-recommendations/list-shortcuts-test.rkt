@@ -139,6 +139,10 @@ test: "unnecessary quasiquotation with constants refactorable to list"
 ------------------------------
 
 
+test: "quasiquotation with only constants not refactorable to list"
+- `(1 2 3)
+
+
 test: "unnecessary splicing quasiquotation refactorable to append"
 ------------------------------
 (define (f xs ys zs)
