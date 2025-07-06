@@ -246,6 +246,16 @@
   (expr.maker expr.element ... (~? expr.improper-tail)))
 
 
+(define-refactoring-rule length-comparison-to-empty-check
+  #:description
+  "Checking if a list's length is zero is less efficient than using the `empty?` predicate"
+  #:literals (length equal? eqv? eq? = zero?)
+  (~or ((~or equal? eqv? eq? =) (length list-expr:expr) 0)
+       ((~or equal? eqv? eq? =) 0 (length list-expr:expr))
+       (zero? (length list-expr:expr)))
+  (empty? list-expr))
+
+
 (define-refactoring-suite list-shortcuts
   #:rules (append-single-list-to-single-list
            append*-and-map-to-append-map
@@ -257,6 +267,7 @@
            filter-to-remv*
            first-reverse-to-last
            ignored-map-to-for-each
+           length-comparison-to-empty-check
            list-selectors-to-take-and-drop
            quasiquote-to-append
            quasiquote-to-list
