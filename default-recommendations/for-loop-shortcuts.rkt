@@ -176,6 +176,14 @@
     function.body ...))
 
 
+(define-refactoring-rule build-list-to-for
+  #:description "This `build-list` operation can be replaced with a `for/list` loop."
+  #:literals (build-list)
+  (build-list n function:worthwhile-loop-body-function)
+  (for/list ([function.x (in-range n)])
+    function.body ...))
+
+
 (define-syntax-class for-loop-supporting-leading-nested-clause
   #:literals (for/list for*/list)
   #:attributes ([clause 1] [body 1])
@@ -530,6 +538,7 @@ return just that result."
   #:rules (andmap-to-for/and
            append-map-for/list-to-for*/list
            apply-plus-to-for/sum
+           build-list-to-for
            for/fold-building-hash-to-for/hash
            for/fold-result-keyword
            for/fold-with-conditional-body-to-unless-keyword

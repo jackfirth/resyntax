@@ -262,6 +262,44 @@ test: "hash-for-each with let expression refactorable to for with definitions"
 ------------------------------
 
 
+test: "build-list with short single-body form not refactorable"
+- (build-list 10 (λ (i) (* i 2)))
+
+
+test: "build-list with long single-body form refactorable to for/list"
+------------------------------
+(build-list 10
+            (λ (a-very-very-very-long-variable-name-thats-so-very-long)
+              (* a-very-very-very-long-variable-name-thats-so-very-long 2)))
+------------------------------
+------------------------------
+(for/list ([a-very-very-very-long-variable-name-thats-so-very-long (in-range 10)])
+  (* a-very-very-very-long-variable-name-thats-so-very-long 2))
+------------------------------
+
+
+test: "build-list with multiple body forms refactorable to for/list"
+------------------------------
+(build-list 10 (λ (i) (displayln i) (* i 2)))
+------------------------------
+------------------------------
+(for/list ([i (in-range 10)])
+  (displayln i)
+  (* i 2))
+------------------------------
+
+
+test: "build-list with let expression refactorable to for/list"
+------------------------------
+(build-list 10 (λ (i) (let ([j (* i 2)]) (list i j))))
+------------------------------
+------------------------------
+(for/list ([i (in-range 10)])
+  (define j (* i 2))
+  (list i j))
+------------------------------
+
+
 test: "ormap to for/or"
 ------------------------------
 (define some-list (list 3 5 14 10 6 5 2))
