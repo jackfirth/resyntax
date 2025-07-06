@@ -28,6 +28,7 @@
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [source-code-analysis-expansion-time-output (-> source-code-analysis? immutable-string?)]
+  [source-code-analysis-namespace (-> source-code-analysis? namespace?)]
   [syntax-source-location (-> syntax? source-location?)]
   [with-input-from-source (-> source? (-> any) any)]))
 
@@ -79,7 +80,7 @@
   #:guard (λ (original contents _) (values original (string->immutable-string contents))))
 
 
-(define-record-type source-code-analysis (code visited-forms expansion-time-output))
+(define-record-type source-code-analysis (code visited-forms expansion-time-output namespace))
 (define-record-type source-location (source line column position span))
 
 
@@ -127,7 +128,9 @@
 
 
 (define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
-  (parameterize ([current-directory (or (source-directory code) (current-directory))])
+  (define ns (make-base-namespace))
+  (parameterize ([current-directory (or (source-directory code) (current-directory))]
+                 [current-namespace ns])
     (define code-linemap (string-linemap (source->string code)))
     (define program-stx (source-read-syntax code))
     (define program-source-name (syntax-source program-stx))
@@ -184,6 +187,12 @@
                      [current-output-port output-port])
         (expand program-stx)))
 
+    ;; We evaluate the module in order to ensure it's declared in the namespace, then we attach it at
+    ;; expansion time to ensure the module is visited (but not instantiated). This allows refactoring
+    ;; rules to access expansion-time values reflectively via the analysis namespace.
+    (eval expanded)
+    (namespace-require/expansion-time (extract-module-require-spec expanded))
+
     (define output (get-output-string output-port))
     (define binding-table (fully-expanded-syntax-binding-table expanded))
     (define original-binding-table-by-position
@@ -226,7 +235,10 @@
                  (sorting syntax-source-location<=> #:key syntax-source-location)
                  #:into into-list))
 
-    (source-code-analysis #:code code #:visited-forms visited #:expansion-time-output output)))
+    (source-code-analysis #:code code
+                          #:visited-forms visited
+                          #:expansion-time-output output
+                          #:namespace ns)))
 
 
 (define (syntax-source-location stx)
@@ -241,3 +253,8 @@
 (define syntax-source-location<=>
   (comparator-chain (comparator-map real<=> source-location-position)
                     (comparator-map (comparator-reverse real<=>) source-location-span)))
+
+
+(define (extract-module-require-spec mod-stx)
+  (syntax-parse mod-stx
+    [(_ name _ . _) `',(syntax-e #'name)]))

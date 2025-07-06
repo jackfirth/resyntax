@@ -162,9 +162,7 @@
     (with-handlers ([exn:fail:syntax? skip]
                     [exn:fail:filesystem:missing-module? skip]
                     [exn:fail:contract:variable? skip])
-      (define analysis
-        (parameterize ([current-namespace (make-base-namespace)])
-          (source-analyze source #:lines lines)))
+      (define analysis (source-analyze source #:lines lines))
       (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)))
   
   (refactoring-result-set #:base-source source #:results results))
@@ -279,7 +277,8 @@
             absent)])
       (guarded-block
         (guard-match (present replacement)
-          (refactoring-rule-refactor rule syntax (source-code-analysis-code analysis))
+          (parameterize ([current-namespace (source-code-analysis-namespace analysis)])
+            (refactoring-rule-refactor rule syntax (source-code-analysis-code analysis)))
           #:else absent)
         (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
           (log-resyntax-warning
