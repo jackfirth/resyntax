@@ -35,3 +35,7 @@
 
 (define racket-launcher-libraries
   (list "cli.rkt"))
+
+
+(define raco-commands
+  '(("resyntax" resyntax/raco "A refactoring tool for Racket" 1)))
