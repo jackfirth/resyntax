@@ -276,7 +276,7 @@
 
 (define-definition-context-refactoring-rule for-set!-to-for/fold
   #:description "`for/fold` can be used instead of a mutating `for` loop"
-  #:literals (for set!)
+  #:literals (for set! define)
   (~seq body-before ...
         (define accum:id init-expr:expr)
         (for clauses for-body ... (set! accum2:id update-expr:expr))
