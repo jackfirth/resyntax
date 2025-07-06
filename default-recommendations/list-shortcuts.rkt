@@ -106,16 +106,18 @@
 
 
 (define-syntax-class unquoted
-  #:attributes (expr)
+  #:attributes (expr literal?)
   #:literals (unquote)
-  (pattern expr:literal-constant)
-  (pattern (unquote expr)))
+  (pattern expr:literal-constant #:attr literal? #true)
+  (pattern (unquote expr) #:attr literal? #false))
 
 
 (define-refactoring-rule quasiquote-to-list
   #:description "This quasiquotation is equialent to a simple `list` call."
   #:literals (quasiquote)
   (quasiquote (arg:unquoted ...))
+  #:when (for/or ([literal? (in-list (attribute arg.literal?))])
+           (not literal?))
   (list arg.expr ...))
 
 
