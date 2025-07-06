@@ -269,3 +269,46 @@ test: "consing onto static improper list expression can be simplified"
 - (list* 1 2 (list* 3 4 (list* 5)))
 - (list* (list* 1 2 3 4 5))
 - (list* 1 2 3 4 5)
+
+
+test: "comparing length to zero refactorable to empty check"
+------------------------------
+(require racket/list)
+(equal? (length (list 1 2 3)) 0)
+------------------------------
+------------------------------
+(require racket/list)
+(eqv? (length (list 1 2 3)) 0)
+------------------------------
+------------------------------
+(require racket/list)
+(eq? (length (list 1 2 3)) 0)
+------------------------------
+------------------------------
+(require racket/list)
+(= (length (list 1 2 3)) 0)
+------------------------------
+------------------------------
+(require racket/list)
+(equal? 0 (length (list 1 2 3)))
+------------------------------
+------------------------------
+(require racket/list)
+(eqv? 0 (length (list 1 2 3)))
+------------------------------
+------------------------------
+(require racket/list)
+(eq? 0 (length (list 1 2 3)))
+------------------------------
+------------------------------
+(require racket/list)
+(= 0 (length (list 1 2 3)))
+------------------------------
+------------------------------
+(require racket/list)
+(zero? (length (list 1 2 3)))
+------------------------------
+------------------------------
+(require racket/list)
+(empty? (list 1 2 3))
+------------------------------
