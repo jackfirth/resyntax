@@ -266,6 +266,23 @@
   ((~replacement loop-id.set-id #:original loop-id) clauses body ...))
 
 
+(define-definition-context-refactoring-rule for-set!-to-for/fold
+  #:description "`for/fold` can be used instead of a mutating `for` loop"
+  #:literals (for set!)
+  (~seq body-before ...
+        (define accum:id init-expr:expr)
+        (for clauses for-body ... (set! accum2:id update-expr:expr))
+        body-after ...)
+  #:when (free-identifier=? (attribute accum) (attribute accum2))
+  (body-before ...
+   (define accum
+     (for/fold ([accum init-expr])
+               clauses
+       for-body ...
+       update-expr))
+   body-after ...))
+
+
 (define-refactoring-rule for/fold-building-hash-to-for/hash
   #:description "This `for` loop is building a hash and can be simplified."
   #:literals (for/fold for*/fold hash make-immutable-hash hash-set)
@@ -518,6 +535,7 @@ return just that result."
            for/fold-with-conditional-body-to-unless-keyword
            for/fold-with-conditional-body-to-when-keyword
            for-each-to-for
+           for-set!-to-for/fold
            hash-for-each-to-for
            list->set-to-for/set
            list->vector-to-for/vector

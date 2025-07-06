@@ -324,6 +324,25 @@ test: "for/and with or guarding simple expression not refactorable"
 ------------------------------
 
 
+test: "for with set! refactorable to for/fold"
+------------------------------
+(define (f)
+  (define xs '())
+  (for ([i (in-range 0 10)])
+    (define j (* i 2))
+    (set! xs (cons j xs)))
+  (reverse xs))
+------------------------------
+------------------------------
+(define (f)
+  (define xs
+    (for/fold ([xs '()]) ([i (in-range 0 10)])
+      (define j (* i 2))
+      (cons j xs)))
+  (reverse xs))
+------------------------------
+
+
 test: "for/fold building hash to for/hash"
 ------------------------------
 (for/fold ([h (hash)])
