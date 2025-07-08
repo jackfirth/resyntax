@@ -336,8 +336,9 @@ return just that result."
       (for-id ([accumulator-id initializer] ...
                #:result #,used-accumulator)
               loop-clauses loop-body ...))
+
   (body-before ...
-   (~replacement replacement-definition #:original original-definition)
+   (~focus-replacement-on (~replacement replacement-definition #:original original-definition))
    body-after ...))
 
 
