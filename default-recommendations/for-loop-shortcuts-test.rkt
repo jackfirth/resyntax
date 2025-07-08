@@ -447,6 +447,36 @@ test: "multi-accumulator for/fold with one used result refactorable to for/fold 
 ------------------------------
 
 
+test: "multi-accumulator for/fold with one used result refactorable without formatting surroundings"
+------------------------------
+(define (foo)
+  (  displayln   "foo"   )
+
+  (define-values (x y z)
+    (for/fold ([accum1 0]
+               [accum2 0]
+               [accum3 0])
+              ([n (in-naturals)])
+      (values 0 0 0)))
+
+  (*   x   2))
+------------------------------
+------------------------------
+(define (foo)
+  (  displayln   "foo"   )
+
+  (define x
+    (for/fold ([accum1 0]
+               [accum2 0]
+               [accum3 0]
+               #:result accum1)
+              ([n (in-naturals)])
+      (values 0 0 0)))
+
+  (*   x   2))
+------------------------------
+
+
 test: "for/fold with conditional body refactorable to for/fold with #:when"
 ------------------------------
 (define (foo)
