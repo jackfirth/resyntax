@@ -19,6 +19,7 @@
         "fancy-app"
         "fmt"
         "guard"
+        "macro-debugger-text-lib"
         "rackunit-lib"
         "rebellion"))
 
