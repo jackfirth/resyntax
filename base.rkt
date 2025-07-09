@@ -105,14 +105,14 @@
 
 (define (refactoring-rule-refactor rule syntax source)
 
-  ;; Before refactoring the input syntax, we do two things: create a new scope and add it, and
-  ;; traverse the syntax object making a note of each subform's original neighbors. Combined,
-  ;; these two things allow us to tell when two neighboring subforms within the output syntax object
-  ;; are originally from the input and were originally next to each other in the input. This allows
+  ;; Before refactoring the input syntax, we create a new scope and add it. Combined with the code in
+  ;; resyntax/private/source which marks the original path of every syntax object before expansion,
+  ;; this allows us to tell when two neighboring subforms within the output syntax object are
+  ;; originally from the input and were originally next to each other in the input. This allows
   ;; Resyntax to preserve any formatting and comments between those two subform when rendering the
   ;; resulting syntax replacement into a string transformation.
   (define rule-introduction-scope (make-syntax-introducer))
-  (define prepared-syntax (rule-introduction-scope (syntax-mark-original-neighbors syntax)))
+  (define prepared-syntax (rule-introduction-scope syntax))
 
   (option-map
    ((refactoring-rule-transformer rule) prepared-syntax)

@@ -15,16 +15,18 @@
 
 (provide
  (contract-out
-  [syntax-original-leading-neighbor (-> syntax? (or/c syntax? #false))]
-  [syntax-original-trailing-neighbor (-> syntax? (or/c syntax? #false))]
+  [syntax-original-path (-> syntax? (or/c syntax-path? #false))]
+  [syntax-label-original-paths (-> syntax? syntax?)]
   [syntax-originally-neighbors? (-> syntax? syntax? boolean?)]
-  [syntax-mark-original-neighbors (-> syntax? syntax?)]
   [syntax-extract-originals-from-pair (-> syntax? syntax? (values syntax? syntax?))]))
 
 
 (require guard
+         racket/match
+         racket/struct
          racket/syntax-srcloc
          resyntax/private/logger
+         resyntax/private/syntax-path
          syntax/parse
          syntax/parse/experimental/template)
 
@@ -38,43 +40,27 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define (syntax-mark-original-neighbors stx)
-  (syntax-parse stx
-    [(~and (subform ...+) (_ trailing-neighbor ...) (leading-neighbor ... _))
-     (define leading-neighbors (cons #false (attribute leading-neighbor)))
-     (define trailing-neighbors (append (attribute trailing-neighbor) (list #false)))
-     (define results
-       (for/list ([leading (in-list leading-neighbors)]
-                  [trailing (in-list trailing-neighbors)]
-                  [subform-stx (in-list (attribute subform))])
-         (define leading-pos (and leading (syntax-position leading)))
-         (define trailing-pos (and trailing (syntax-position trailing)))
-         (define subform-pos (syntax-position subform-stx))
-         (mark-neighbors (syntax-mark-original-neighbors subform-stx)
-                         #:leading-neighbor (and leading (< leading-pos subform-pos) leading)
-                         #:trailing-neighbor (and trailing (< subform-pos trailing-pos) trailing))))
-     (datum->syntax stx results stx stx)]
-    [_ stx]))
+(define original-syntax-path-key 'original-syntax-path)
 
 
-(define (mark-neighbors stx #:leading-neighbor leading-stx #:trailing-neighbor trailing-stx)
-  (define stx-with-leading
-    (if leading-stx
-        (syntax-property stx 'original-leading-neighbor leading-stx)
-        stx))
-  (if trailing-stx
-      (syntax-property stx-with-leading
-                       'original-trailing-neighbor
-                       trailing-stx)
-      stx-with-leading))
+(define (syntax-label-original-paths stx)
+  (syntax-label-paths stx original-syntax-path-key))
 
 
-(define (syntax-original-leading-neighbor stx)
-  (syntax-property stx 'original-leading-neighbor))
-
-
-(define (syntax-original-trailing-neighbor stx)
-  (syntax-property stx 'original-trailing-neighbor))
+(define (syntax-original-path stx)
+  ; The property value will be a cons tree if a macro produced a syntax object with the path property
+  ; set. The main way this occurs is via `(begin x ...)`, as each of the `x` subforms counts as an
+  ; "expansion" of the surrounding `(begin ...)` and therefore has its properties merged. In such a
+  ; case, each `x` counts as the "result" and the `(begin ...)` counts as the "original", so if an
+  ; `x` and the `(begin ...)` both have their paths set, the resulting property path will be
+  ; `(cons <path-of-x> <path-of-(begin...)>)`. We therefore want to pick the *head* of any cons cells
+  ; we encounter when looking up the original syntax path property value. There might be other cases
+  ; where we want to look at the tail for some reason, but if those cases exist I haven't found them
+  ; yet and they don't cause any of Resyntax's tests to fail.
+  (let loop ([possible-cons-tree (syntax-property stx original-syntax-path-key)])
+    (if (pair? possible-cons-tree)
+        (loop (car possible-cons-tree))
+        possible-cons-tree)))
 
 
 (define (syntax-extract-originals-from-pair left-stx right-stx)
@@ -89,12 +75,12 @@
 (define (syntax-originally-neighbors? left-stx* right-stx*)
   (define-values (left-stx right-stx) (syntax-extract-originals-from-pair left-stx* right-stx*))
   (guarded-block
-    (define left-trailer (syntax-original-trailing-neighbor left-stx))
-    (define right-leader (syntax-original-leading-neighbor right-stx))
+    (define left-path (syntax-original-path left-stx))
+    (define right-path (syntax-original-path right-stx))
     ;; If either of the above is missing, then they're not neighbors. We log a debug message in that
-    ;; case aide in debugging test failures caused by dropped comments.
-    (guard left-trailer #:else
-      (log-resyntax-debug (string-append "not neighbors because left-trailer is missing\n"
+    ;; case to aide in debugging test failures caused by dropped comments.
+    (guard left-path #:else
+      (log-resyntax-debug (string-append "not neighbors because left-path is missing\n"
                                          "  original left syntax: ~a\n"
                                          "  original right syntax: ~a\n"
                                          "  replacement left syntax: ~a\n"
@@ -104,8 +90,8 @@
                           (syntax->datum left-stx*)
                           (syntax->datum right-stx*))
       #false)
-    (guard right-leader #:else
-      (log-resyntax-debug (string-append "not neighbors because right-leader is missing\n"
+    (guard right-path #:else
+      (log-resyntax-debug (string-append "not neighbors because right-path is missing\n"
                                          "  original left syntax: ~a\n"
                                          "  original right syntax: ~a\n"
                                          "  replacement left syntax: ~a\n"
@@ -115,34 +101,45 @@
                           (syntax->datum left-stx*)
                           (syntax->datum right-stx*))
       #false)
-    (define left-srcloc (syntax-srcloc left-stx))
-    (define left-trailer-srcloc (syntax-srcloc left-trailer))
-    (define right-srcloc (syntax-srcloc right-stx))
-    (define right-leader-srcloc (syntax-srcloc right-leader))
-    (guard (and left-srcloc left-trailer-srcloc right-srcloc right-leader-srcloc) #:else #false)
-    (and (equal? left-trailer-srcloc right-srcloc) (equal? right-leader-srcloc left-srcloc))))
+    (define neighbors? (syntax-path-neighbors? left-path right-path))
+    (unless neighbors?
+      (log-resyntax-debug (string-append "not neighbors because syntax-path-neighbors? says so\n"
+                                         "  original left path: ~a\n"
+                                         "  original right path: ~a\n"
+                                         "  original left syntax: ~a\n"
+                                         "  original right syntax: ~a\n"
+                                         "  replacement left syntax: ~a\n"
+                                         "  replacement right syntax: ~a")
+                          left-path
+                          right-path
+                          (syntax->datum left-stx)
+                          (syntax->datum right-stx)
+                          (syntax->datum left-stx*)
+                          (syntax->datum right-stx*)))
+    neighbors?))
 
 
 (module+ test
-  (test-case "syntax-mark-original-neighbors"
+  (test-case "syntax-originally-neighbors?"
     (define stx #'(foo (a b c) bar (baz)))
-    (define marked (syntax-mark-original-neighbors stx))
-    (check-equal? (syntax->datum marked) (syntax->datum stx))
-    (define/with-syntax (foo* (a* b* c*) bar* (baz*)) marked)
-    (check-false (syntax-original-leading-neighbor #'foo*))
-    (check-equal? (syntax->datum (syntax-original-trailing-neighbor #'foo*)) '(a b c))
-    (check-false (syntax-original-leading-neighbor #'a*))
-    (check-equal? (syntax->datum (syntax-original-trailing-neighbor #'a*)) 'b)
-    (check-equal? (syntax->datum (syntax-original-leading-neighbor #'b*)) 'a)
-    (check-equal? (syntax->datum (syntax-original-trailing-neighbor #'b*)) 'c)
-    (check-equal? (syntax->datum (syntax-original-leading-neighbor #'c*)) 'b)
-    (check-false (syntax-original-trailing-neighbor #'c*))
-    (check-equal? (syntax->datum (syntax-original-leading-neighbor #'bar*)) '(a b c))
-    (check-equal? (syntax->datum (syntax-original-trailing-neighbor #'bar*)) '(baz))
-    (check-false (syntax-original-leading-neighbor #'baz*))
-    (check-false (syntax-original-trailing-neighbor #'baz*))
+    (define labeled (syntax-label-original-paths stx))
+    (check-equal? (syntax->datum labeled) (syntax->datum stx))
+    (define/with-syntax (foo* (a* b* c*) bar* (baz*)) labeled)
     (check-false (syntax-originally-neighbors? #'foo* #'b*))
     (check-true (syntax-originally-neighbors? #'a* #'b*))
     (check-true (syntax-originally-neighbors? #'b* #'c*))
     (check-false (syntax-originally-neighbors? #'c* #'bar*))
     (check-false (syntax-originally-neighbors? #'bar* #'baz*))))
+
+
+(define (improper-list-drop-tail improper-list)
+  (cons (car improper-list)
+        (let loop ([improper-list (cdr improper-list)])
+          (if (pair? improper-list)
+              (cons (car improper-list) (loop (cdr improper-list)))
+              '()))))
+
+
+(module+ test
+  (test-case "improper-list-drop-tail"
+    (check-equal? (improper-list-drop-tail '(1 2 3 . 4)) '(1 2 3))))
