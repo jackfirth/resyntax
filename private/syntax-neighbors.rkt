@@ -48,6 +48,15 @@
 
 
 (define (syntax-original-path stx)
+  ; The property value will be a cons tree if a macro produced a syntax object with the path property
+  ; set. The main way this occurs is via `(begin x ...)`, as each of the `x` subforms counts as an
+  ; "expansion" of the surrounding `(begin ...)` and therefore has its properties merged. In such a
+  ; case, each `x` counts as the "result" and the `(begin ...)` counts as the "original", so if an
+  ; `x` and the `(begin ...)` both have their paths set, the resulting property path will be
+  ; `(cons <path-of-x> <path-of-(begin...)>)`. We therefore want to pick the *head* of any cons cells
+  ; we encounter when looking up the original syntax path property value. There might be other cases
+  ; where we want to look at the tail for some reason, but if those cases exist I haven't found them
+  ; yet and they don't cause any of Resyntax's tests to fail.
   (let loop ([possible-cons-tree (syntax-property stx original-syntax-path-key)])
     (if (pair? possible-cons-tree)
         (loop (car possible-cons-tree))
