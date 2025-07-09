@@ -51,6 +51,7 @@
          resyntax/private/fully-expanded-syntax
          resyntax/private/linemap
          resyntax/private/logger
+         resyntax/private/syntax-neighbors
          syntax/id-table
          syntax/modread
          syntax/parse)
@@ -108,7 +109,7 @@
   (define (read-from-input)
     (port-count-lines! (current-input-port))
     (with-module-reading-parameterization read-syntax))
-  (with-input-from-source code read-from-input))
+  (syntax-label-original-paths (with-input-from-source code read-from-input)))
 
 
 (define/guard (source-path code)
@@ -133,6 +134,7 @@
                  [current-namespace ns])
     (define code-linemap (string-linemap (source->string code)))
     (define program-stx (source-read-syntax code))
+    (log-resyntax-debug "original syntax:\n  ~a" program-stx)
     (define program-source-name (syntax-source program-stx))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define original-visits (make-vector-builder))
@@ -234,6 +236,16 @@
                  (mapping enrich)
                  (sorting syntax-source-location<=> #:key syntax-source-location)
                  #:into into-list))
+
+    (for ([visit (in-list visited)])
+      (log-resyntax-debug (string-append "visited ~a:\n"
+                                         "  form: ~a\n"
+                                         "  original path property: ~a\n"
+                                         "  tracked origin: ~a")
+                          (syntax-original-path visit)
+                          visit
+                          (syntax-property visit 'original-syntax-path)
+                          (syntax-property visit 'origin)))
 
     (source-code-analysis #:code code
                           #:visited-forms visited
