@@ -12,7 +12,8 @@
 
 
 (define deps
-  (list "compatibility-lib"
+  (list "data-lib"
+        "compatibility-lib"
         "base"
         "br-parser-tools-lib"
         "brag-lib"

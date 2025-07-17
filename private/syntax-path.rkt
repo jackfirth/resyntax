@@ -11,6 +11,7 @@
  (struct-out tail-syntax)
  (contract-out
   [syntax-path? (-> any/c boolean?)]
+  [syntax-path<=> (comparator/c syntax-path?)]
   [nonempty-syntax-path? (-> any/c boolean?)]
   [empty-syntax-path syntax-path?]
   [syntax-path (-> (sequence/c syntax-path-element?) syntax-path?)]
@@ -25,12 +26,22 @@
   [box-element-syntax syntax-path-element?]))
 
 
-(require racket/sequence
+(require (for-syntax racket/base
+                     racket/list
+                     racket/match
+                     racket/sequence
+                     racket/syntax)
+         data/order
+         guard
+         racket/sequence
          racket/struct
          racket/treelist
          racket/list
          racket/match
-         rebellion/type/singleton)
+         rebellion/base/comparator
+         rebellion/type/singleton
+         resyntax/private/matching-comparator
+         syntax/parse/define)
 
 
 (module+ test
@@ -229,3 +240,55 @@
   (unless (prefab-struct? s)
     (raise-argument-error 'prefab-struct-ref "prefab-struct?" s))
   (list-ref (struct->list s) i))
+
+
+
+(define datum<=>
+  (make-comparator
+   (λ (left right)
+     (match (datum-order left right)
+       ['= equivalent]
+       ['> greater]
+       ['< lesser]))))
+
+
+(define syntax-path-element<=>
+  (matching-comparator
+   [(? exact-nonnegative-integer? i) #:compare i]
+   [(tail-syntax i) #:compare i]
+   [(vector-element-syntax i) #:compare i]
+   [(hash-value-syntax key) #:compare key datum<=>]
+   [(== box-element-syntax)]
+   [(prefab-field-syntax i) #:compare i]))
+
+
+(module+ test
+  (test-case "syntax-path-element<=>"
+    (define unsorted
+      (list 2
+            (tail-syntax 1)
+            box-element-syntax
+            1
+            3
+            (hash-value-syntax 'foo)
+            (tail-syntax 4)
+            (vector-element-syntax 5)))
+
+    (define sorted
+      (sort unsorted (λ (a b) (compare-infix syntax-path-element<=>  a < b))))
+
+    (define expected
+      (list 1
+            2
+            3
+            (tail-syntax 1)
+            (tail-syntax 4)
+            (vector-element-syntax 5)
+            (hash-value-syntax 'foo)
+            box-element-syntax))
+    (check-equal? sorted expected)))
+
+
+(define syntax-path<=>
+  (comparator-map (lexicographic-comparator syntax-path-element<=>) syntax-path-elements
+                  #:name 'syntax-path<=>))
