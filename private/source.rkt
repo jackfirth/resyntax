@@ -29,7 +29,6 @@
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [source-code-analysis-expansion-time-output (-> source-code-analysis? immutable-string?)]
   [source-code-analysis-namespace (-> source-code-analysis? namespace?)]
-  [syntax-source-location (-> syntax? source-location?)]
   [with-input-from-source (-> source? (-> any) any)]))
 
 
@@ -52,6 +51,7 @@
          resyntax/private/linemap
          resyntax/private/logger
          resyntax/private/syntax-neighbors
+         resyntax/private/syntax-path
          syntax/id-table
          syntax/modread
          syntax/parse)
@@ -82,7 +82,6 @@
 
 
 (define-record-type source-code-analysis (code visited-forms expansion-time-output namespace))
-(define-record-type source-location (source line column position span))
 
 
 (define (with-input-from-source code proc)
@@ -138,11 +137,11 @@
     (define program-source-name (syntax-source program-stx))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define original-visits (make-vector-builder))
-    (define expanded-originals-by-location (make-hash))
+    (define expanded-originals-by-path (make-hash))
 
     (define (add-all-original-subforms! stx)
       (when (resyntax-should-analyze-syntax? stx #:as-visit? #false)
-        (hash-set! expanded-originals-by-location (syntax-source-location stx) stx))
+        (hash-set! expanded-originals-by-path (syntax-original-path stx) stx))
       (syntax-parse stx
         [(subform ...) (for-each add-all-original-subforms! (attribute subform))]
         [(subform ...+ . tail-form)
@@ -197,25 +196,25 @@
 
     (define output (get-output-string output-port))
     (define binding-table (fully-expanded-syntax-binding-table expanded))
-    (define original-binding-table-by-position
+    (define original-binding-table-by-path
       (for*/fold ([table (hash)])
                  ([phase-table (in-hash-values binding-table)]
                   [(id uses) (in-free-id-table phase-table)]
                   #:when (syntax-original-and-from-source? id)
                   [use (in-list uses)])
-        (hash-update table (syntax-source-location id) (λ (previous) (cons use previous)) '())))
+        (hash-update table (syntax-original-path id) (λ (previous) (cons use previous)) '())))
     
     (add-all-original-subforms! expanded)
 
     (define/guard (add-usages stx)
       (guard (identifier? stx) #:else stx)
-      (define usages (hash-ref original-binding-table-by-position (syntax-source-location stx) '()))
+      (define usages (hash-ref original-binding-table-by-path (syntax-original-path stx) '()))
       (syntax-property stx 'identifier-usages usages))
 
     (define (enrich stx)
       (define new-context
         (add-usages
-         (or (hash-ref expanded-originals-by-location (syntax-source-location stx) #false) stx)))
+         (or (hash-ref expanded-originals-by-path (syntax-original-path stx) #false) stx)))
       (syntax-parse stx
         [(subform ...)
          (datum->syntax new-context
@@ -232,9 +231,9 @@
     
     (define visited
       (transduce (build-vector original-visits)
-                 (deduplicating #:key syntax-source-location)
+                 (deduplicating #:key syntax-original-path)
                  (mapping enrich)
-                 (sorting syntax-source-location<=> #:key syntax-source-location)
+                 (sorting syntax-path<=> #:key syntax-original-path)
                  #:into into-list))
 
     (for ([visit (in-list visited)])
@@ -251,20 +250,6 @@
                           #:visited-forms visited
                           #:expansion-time-output output
                           #:namespace ns)))
-
-
-(define (syntax-source-location stx)
-  (source-location
-   #:source (syntax-source stx)
-   #:line (syntax-line stx)
-   #:column (syntax-column stx)
-   #:position (syntax-position stx)
-   #:span (syntax-span stx)))
-
-
-(define syntax-source-location<=>
-  (comparator-chain (comparator-map real<=> source-location-position)
-                    (comparator-map (comparator-reverse real<=>) source-location-span)))
 
 
 (define (extract-module-require-spec mod-stx)
