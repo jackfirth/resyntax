@@ -103,6 +103,9 @@
         [(list #false _) (values accumulated piece)]
         [(list (inserted-string s1) (inserted-string s2))
          (values accumulated (inserted-string (string-append s1 s2)))]
+        [(list (copied-string start1 end1) (copied-string start2 end2))
+         #:when (equal? end1 start2)
+         (values accumulated (copied-string start1 end2))]
         [(list _ _) (values (cons previous accumulated) piece)])))
   (define new-span (transduce content-list (mapping replacement-string-span) #:into into-sum))
   (define max-end
@@ -134,9 +137,20 @@
          #:contents initial-pieces))
       (check-equal? (string-replacement-contents replacement) expected-pieces))
 
-    (test-case "should not merge copied pieces"
+    (test-case "should merge adjacent copied pieces"
       (define initial-pieces
         (list (copied-string 2 5) (copied-string 5 7) (copied-string 7 9)))
+      (define expected-pieces (list (copied-string 2 9)))
+      (define replacement
+        (string-replacement
+         #:start 0
+         #:end 10
+         #:contents initial-pieces))
+      (check-equal? (string-replacement-contents replacement) expected-pieces))
+
+    (test-case "should not merge non-adjacent copied pieces"
+      (define initial-pieces
+        (list (copied-string 2 5) (copied-string 6 8) (copied-string 10 12)))
       (define replacement
         (string-replacement
          #:start 0
