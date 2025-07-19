@@ -24,7 +24,8 @@
          resyntax/private/identifier-naming
          resyntax/private/logger
          resyntax/private/syntax-traversal
-         syntax/parse)
+         syntax/parse
+         syntax/parse/define)
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -408,22 +409,31 @@ return just that result."
       [else
        loop-body:expr ...
        (cons loop-element:expr (loop2:id (:rest-by-any-name vs3:id)))]))
-  #:when (free-identifier=? #'loop #'loop2)
-  #:when (free-identifier=? #'vs #'vs2)
-  #:when (free-identifier=? #'vs #'vs3)
-  #:when (not
-          (for/or ([body-stx (in-list (cons #'loop-element (attribute loop-body)))])
-            (syntax-find-first body-stx
-              (~and (~var usage (expression-directly-enclosing (attribute vs)))
-                    (~not (:first-by-any-name _))))))
+  #:when (log-resyntax-rule-condition (free-identifier=? #'loop #'loop2))
+  #:when (log-resyntax-rule-condition (free-identifier=? #'vs #'vs2))
+  #:when (log-resyntax-rule-condition (free-identifier=? #'vs #'vs3))
+  #:when (log-resyntax-rule-condition
+          (not
+           (for/or ([body-stx (in-list (cons #'loop-element (attribute loop-body)))])
+             (syntax-find-first body-stx
+               (~and (~var usage (expression-directly-enclosing (attribute vs)))
+                     (~not (:first-by-any-name _)))))))
   #:cut
 
   #:with element-id (depluralize-id #'vs)
 
   #:with (modified-result-element modified-body ...)
   (for/list ([body-stx (cons #'loop-element (attribute loop-body))])
+    (log-resyntax-debug "traversing ~a" body-stx)
     (syntax-traverse body-stx
-      [(:first-by-any-name vs-usage:id) #:when (free-identifier=? #'vs-usage #'vs) #'element-id]))
+      [(_ vs-usage:id)
+       #:when (log-resyntax-rule-condition (free-identifier=? #'vs-usage #'vs))
+       #:do [(log-resyntax-debug "traversal match ~a" this-syntax)]
+       ((make-syntax-introducer) #'42 'add)]))
+
+  #:do [(log-resyntax-debug "modified body: ~a" #'(modified-body ... modified-result-element))
+        (log-resyntax-debug "modified result original?: ~a"
+                            (syntax-original? #'modified-result-element))]
 
   (for/list ([element-id (in-list init-list)])
     modified-body ...
@@ -479,12 +489,11 @@ return just that result."
   #:with modified-element-condition
   (syntax-traverse (attribute element-condition)
     [(:first-by-any-name vs-usage:id)
-     #:when (free-identifier=? (attribute vs) (attribute vs-usage))
+     #:when (log-resyntax-rule-condition (free-identifier=? (attribute vs) (attribute vs-usage)))
      (attribute element-id)])
 
   (for/or ([element-id (in-list init-list)])
     modified-element-condition))
-  
 
 
 (define-refactoring-rule named-let-loop-to-for/first-in-vector
@@ -496,11 +505,11 @@ return just that result."
            (if condition:expr
                true-branch:expr
                (loop2:id (~or (add1 i4:id) (+ i4:id 1) (+ 1 i4:id)))))))
-  #:when (and (free-identifier=? #'loop1 #'loop2)
-              (free-identifier=? #'i1 #'i2)
-              (free-identifier=? #'i1 #'i3)
-              (free-identifier=? #'i1 #'i4)
-              (free-identifier=? #'vec1 #'vec2))
+  #:when (and (log-resyntax-rule-condition (free-identifier=? #'loop1 #'loop2))
+              (log-resyntax-rule-condition (free-identifier=? #'i1 #'i2))
+              (log-resyntax-rule-condition (free-identifier=? #'i1 #'i3))
+              (log-resyntax-rule-condition (free-identifier=? #'i1 #'i4))
+              (log-resyntax-rule-condition (free-identifier=? #'vec1 #'vec2)))
   (for/first ([x (in-vector vec1)] #:when condition)
     true-branch))
 

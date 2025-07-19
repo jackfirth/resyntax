@@ -16,6 +16,7 @@
 (provide
  (contract-out
   [syntax-original-path (-> syntax? (or/c syntax-path? #false))]
+  [syntax-has-original-path? (-> syntax? boolean?)]
   [syntax-label-original-paths (-> syntax? syntax?)]
   [syntax-originally-neighbors? (-> syntax? syntax? boolean?)]
   [syntax-extract-originals-from-pair (-> syntax? syntax? (values syntax? syntax?))]))
@@ -45,6 +46,10 @@
 
 (define (syntax-label-original-paths stx)
   (syntax-label-paths stx original-syntax-path-key))
+
+
+(define (syntax-has-original-path? stx)
+  (and (syntax-property stx original-syntax-path-key) #true))
 
 
 (define (syntax-original-path stx)
