@@ -104,6 +104,17 @@
         [(list (inserted-string s1) (inserted-string s2))
          (values accumulated (inserted-string (string-append s1 s2)))]
         [(list _ _) (values (cons previous accumulated) piece)])))
+    (for/fold ([accumulated '()]
+               [previous #false]
+               #:result
+               (reverse (append (if previous (list previous) (list)) accumulated)))
+              ([piece contents]
+               #:when (positive? (replacement-string-span piece)))
+      (match (list previous piece)
+        [(list #false _) (values accumulated piece)]
+        [(list (inserted-string s1) (inserted-string s2))
+         (values accumulated (inserted-string (string-append s1 s2)))]
+        [(list _ _) (values (cons previous accumulated) piece)])))
   (define new-span (transduce content-list (mapping replacement-string-span) #:into into-sum))
   (define max-end
     (transduce content-list
@@ -121,60 +132,18 @@
 
 
 (module+ test
-  (test-case "string-replacement constructor"
-
-    (test-case "should merge insertions"
-      (define initial-pieces
-        (list (inserted-string "aaa") (inserted-string "bbb") (inserted-string "ccc")))
-      (define expected-pieces (list (inserted-string "aaabbbccc")))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
-      (check-equal? (string-replacement-contents replacement) expected-pieces))
-
-    (test-case "should not merge copied pieces"
-      (define initial-pieces
-        (list (copied-string 2 5) (copied-string 5 7) (copied-string 7 9)))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
-      (check-equal? (string-replacement-contents replacement) initial-pieces))
-
-    (test-case "should not merge inserted pieces with copied pieces"
-      (define initial-pieces
-        (list (inserted-string "aaa") (copied-string 5 7) (inserted-string "bbb")))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
-      (check-equal? (string-replacement-contents replacement) initial-pieces))
-
-    (test-case "should merge inserted pieces when before copied piece"
-      (define initial-pieces
-        (list (inserted-string "aaa") (inserted-string "bbb") (copied-string 5 7)))
-      (define expected-pieces (list (inserted-string "aaabbb") (copied-string 5 7)))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
-      (check-equal? (string-replacement-contents replacement) expected-pieces))
-
-    (test-case "should merge inserted pieces when after copied piece"
-      (define initial-pieces
-        (list (copied-string 5 7) (inserted-string "ccc") (inserted-string "ddd")))
-      (define expected-pieces (list (copied-string 5 7) (inserted-string "cccddd")))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
-      (check-equal? (string-replacement-contents replacement) expected-pieces))))
+  (test-case "string-replacement"
+    (define from-multiple-insertions
+      (string-replacement
+       #:start 0
+       #:end 10
+       #:contents (list (inserted-string "aaa") (inserted-string "bbb") (inserted-string "ccc"))))
+    (define from-single-insertion
+      (string-replacement
+       #:start 0
+       #:end 10
+       #:contents (list (inserted-string "aaabbbccc"))))
+    (check-equal? from-multiple-insertions from-single-insertion)))
 
 
 (define (string-replacement-length-change replacement)
