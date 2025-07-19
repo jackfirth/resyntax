@@ -93,7 +93,17 @@
 
 (define (string-replacement #:start start #:end end #:contents contents)
   (define content-list
-    (transduce contents (filtering (λ (r) (positive? (replacement-string-span r)))) #:into into-list))
+    (for/fold ([accumulated '()]
+               [previous #false]
+               #:result
+               (reverse (append (if previous (list previous) (list)) accumulated)))
+              ([piece contents]
+               #:when (positive? (replacement-string-span piece)))
+      (match (list previous piece)
+        [(list #false _) (values accumulated piece)]
+        [(list (inserted-string s1) (inserted-string s2))
+         (values accumulated (inserted-string (string-append s1 s2)))]
+        [(list _ _) (values (cons previous accumulated) piece)])))
   (define new-span (transduce content-list (mapping replacement-string-span) #:into into-sum))
   (define max-end
     (transduce content-list
@@ -108,6 +118,63 @@
    #:new-span new-span
    #:required-length (option-get max-end end)
    #:contents content-list))
+
+
+(module+ test
+  (test-case "string-replacement constructor"
+
+    (test-case "should merge insertions"
+      (define initial-pieces
+        (list (inserted-string "aaa") (inserted-string "bbb") (inserted-string "ccc")))
+      (define expected-pieces (list (inserted-string "aaabbbccc")))
+      (define replacement
+        (string-replacement
+         #:start 0
+         #:end 10
+         #:contents initial-pieces))
+      (check-equal? (string-replacement-contents replacement) expected-pieces))
+
+    (test-case "should not merge copied pieces"
+      (define initial-pieces
+        (list (copied-string 2 5) (copied-string 5 7) (copied-string 7 9)))
+      (define replacement
+        (string-replacement
+         #:start 0
+         #:end 10
+         #:contents initial-pieces))
+      (check-equal? (string-replacement-contents replacement) initial-pieces))
+
+    (test-case "should not merge inserted pieces with copied pieces"
+      (define initial-pieces
+        (list (inserted-string "aaa") (copied-string 5 7) (inserted-string "bbb")))
+      (define replacement
+        (string-replacement
+         #:start 0
+         #:end 10
+         #:contents initial-pieces))
+      (check-equal? (string-replacement-contents replacement) initial-pieces))
+
+    (test-case "should merge inserted pieces when before copied piece"
+      (define initial-pieces
+        (list (inserted-string "aaa") (inserted-string "bbb") (copied-string 5 7)))
+      (define expected-pieces (list (inserted-string "aaabbb") (copied-string 5 7)))
+      (define replacement
+        (string-replacement
+         #:start 0
+         #:end 10
+         #:contents initial-pieces))
+      (check-equal? (string-replacement-contents replacement) expected-pieces))
+
+    (test-case "should merge inserted pieces when after copied piece"
+      (define initial-pieces
+        (list (copied-string 5 7) (inserted-string "ccc") (inserted-string "ddd")))
+      (define expected-pieces (list (copied-string 5 7) (inserted-string "cccddd")))
+      (define replacement
+        (string-replacement
+         #:start 0
+         #:end 10
+         #:contents initial-pieces))
+      (check-equal? (string-replacement-contents replacement) expected-pieces))))
 
 
 (define (string-replacement-length-change replacement)
@@ -250,13 +317,27 @@
 (define/guard (string-replacement-normalize replacement original-string
                                             #:preserve-start [preserve-start #false]
                                             #:preserve-end [preserve-end #false])
+  (define left-normalized
+    (string-replacement-left-normalize replacement original-string #:preserve-start preserve-start))
+  (define left-reversed (string-replacement-reverse left-normalized original-string))
+  (define reversed-original-string (string-reverse original-string))
+  (define reversed
+    (string-replacement-left-normalize
+     left-reversed
+     reversed-original-string
+     #:preserve-start (and preserve-end (- (string-length original-string) preserve-end))))
+  (string-replacement-reverse reversed reversed-original-string))
+
+
+(define/guard (string-replacement-left-normalize replacement original-string
+                                                 #:preserve-start [preserve-start #false])
   (define replaced (string-apply-replacement original-string replacement))
   (guard (not (equal? original-string replaced)) #:else replacement)
   (define actual-start
-    (inexact->exact (min (or preserve-start +inf.0) (string-diff-start original-string replaced))))
-  (define actual-end
     (inexact->exact
-     (max actual-start (or preserve-end -inf.0) (string-diff-end original-string replaced))))
+     (min (or preserve-start +inf.0)
+          (string-diff-start original-string replaced)
+          (string-replacement-original-end replacement))))
   (define left-trimmed-pieces
     (let loop ([pieces (string-replacement-contents replacement)]
                [pos (string-replacement-start replacement)])
@@ -267,20 +348,28 @@
         (if (< (+ pos piece-span) actual-start)
             (loop remaining (+ pos piece-span))
             (cons (replacement-string-drop-left next-piece (- actual-start pos)) remaining)))))
-  (define right-trimmed-pieces
-    (let loop ([pieces (reverse left-trimmed-pieces)]
-               [pos (string-replacement-original-end replacement)])
-      (guarded-block
-        (guard (> pos actual-end) #:else (reverse pieces))
-        (guard-match (cons next-piece remaining) pieces #:else (list))
-        (define piece-span (replacement-string-span next-piece))
-        (if (> (- pos piece-span) actual-start)
-            (loop remaining (- pos piece-span))
-            (reverse
-             (cons (replacement-string-drop-right next-piece (- pos actual-start)) remaining))))))
   (string-replacement #:start actual-start
-                      #:end actual-end
-                      #:contents right-trimmed-pieces))
+                      #:end (string-replacement-original-end replacement)
+                      #:contents left-trimmed-pieces))
+
+
+(define (string-replacement-reverse replacement original-string)
+  (define new-start (- (string-length original-string) (string-replacement-original-end replacement)))
+  (define new-end (+ new-start (string-replacement-original-span replacement)))
+  (define new-contents
+    (reverse
+     (for/list ([piece (in-list (string-replacement-contents replacement))])
+       (match piece
+         [(inserted-string s) (inserted-string (string-reverse s))]
+         [(copied-string start end)
+          (define new-start (- (string-length original-string) end))
+          (define new-end (+ new-start (- end start)))
+          (copied-string new-start new-end)]))))
+  (string-replacement #:start new-start #:end new-end #:contents new-contents))
+
+
+(define (string-reverse s)
+  (list->string (reverse (string->list s))))
 
 
 (define (string-diff-start original new)
@@ -414,7 +503,63 @@
       (check-equal? (string-replacement-normalize replacement s)
                     (string-replacement #:start 13
                                         #:end 13
-                                        #:contents (list (inserted-string "friend ")))))))
+                                        #:contents (list (inserted-string "friend ")))))
+
+    (test-case "normalizing by left-trimming a single size-increasing insertion"
+      (define s "hello my big friend")
+      (define s2 "hello my little friend")
+      (define replacement-pieces (list (inserted-string "my little")))
+      (define replacement (string-replacement #:start 6 #:end 12 #:contents replacement-pieces))
+      (check-equal? (string-apply-replacement s replacement) s2)
+
+      (define normalized (string-replacement-normalize replacement s))
+
+      (define expected
+        (string-replacement #:start 9 #:end 12 #:contents (list (inserted-string "little"))))
+      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? normalized expected))
+
+    (test-case "normalizing by left-trimming a single size-decreasing insertion"
+      (define s "hello my little friend")
+      (define s2 "hello my big friend")
+      (define replacement-pieces (list (inserted-string "my big")))
+      (define replacement (string-replacement #:start 6 #:end 15 #:contents replacement-pieces))
+      (check-equal? (string-apply-replacement s replacement) s2)
+
+      (define normalized (string-replacement-normalize replacement s))
+
+      (define expected
+        (string-replacement #:start 9 #:end 15 #:contents (list (inserted-string "big"))))
+      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? normalized expected))
+
+    (test-case "normalizing by right-trimming a single size-increasing insertion"
+      (define s "hello my big friend")
+      (define s2 "hello my little friend")
+      (define replacement-pieces (list (inserted-string "little friend")))
+      (define replacement (string-replacement #:start 9 #:end 19 #:contents replacement-pieces))
+      (check-equal? (string-apply-replacement s replacement) s2)
+
+      (define normalized (string-replacement-normalize replacement s))
+
+      (define expected
+        (string-replacement #:start 9 #:end 12 #:contents (list (inserted-string "little"))))
+      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? normalized expected))
+
+    (test-case "normalizing by right-trimming a single size-decreasing insertion"
+      (define s "hello my little friend")
+      (define s2 "hello my big friend")
+      (define replacement-pieces (list (inserted-string "big friend")))
+      (define replacement (string-replacement #:start 9 #:end 22 #:contents replacement-pieces))
+      (check-equal? (string-apply-replacement s replacement) s2)
+
+      (define normalized (string-replacement-normalize replacement s))
+
+      (define expected
+        (string-replacement #:start 9 #:end 15 #:contents (list (inserted-string "big"))))
+      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? normalized expected))))
 
 
 (define/guard (string-replacement-union replacement1 replacement2)
