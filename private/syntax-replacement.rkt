@@ -17,6 +17,8 @@
   [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
   [syntax-replacement-source (-> syntax-replacement? source?)]
+  [syntax-replacement-introduction-scope
+   (-> syntax-replacement? (->* (syntax?) ((or/c 'flip 'add 'remove)) syntax?))]
   [syntax-replacement-introduces-incorrect-bindings? (-> syntax-replacement? boolean?)]
   [syntax-replacement-introduced-incorrect-identifiers
    (-> syntax-replacement? (listof identifier?))]
