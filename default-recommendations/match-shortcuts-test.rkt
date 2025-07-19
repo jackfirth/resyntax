@@ -170,3 +170,31 @@ test: "match patterns using ? with a lambda cannot be simplified when under elli
      (list y*)]
     [_ 'no-match]))
 ------------------------------
+
+test: "match patterns using ? with a commented lambda can be simplified with #:when clauses"
+------------------------------
+(define (foo x)
+  (match x
+    [(? (λ (y) (< y
+                  10
+                  ; comment
+                  20)) y*)
+     (list y*)]
+    [_ 'no-match]))
+(foo 5)
+(foo 100)
+------------------------------
+------------------------------
+(define (foo x)
+  (match x
+    [y*
+     #:when (< y*
+               10
+               ; comment
+               20)
+     (list y*)]
+    [_ 'no-match]))
+(foo 5)
+(foo 100)
+------------------------------
+
