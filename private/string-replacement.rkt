@@ -93,7 +93,17 @@
 
 (define (string-replacement #:start start #:end end #:contents contents)
   (define content-list
-    (transduce contents (filtering (λ (r) (positive? (replacement-string-span r)))) #:into into-list))
+    (for/fold ([accumulated '()]
+               [previous #false]
+               #:result
+               (reverse (append (if previous (list previous) (list)) accumulated)))
+              ([piece contents]
+               #:when (positive? (replacement-string-span piece)))
+      (match (list previous piece)
+        [(list #false _) (values accumulated piece)]
+        [(list (inserted-string s1) (inserted-string s2))
+         (values accumulated (inserted-string (string-append s1 s2)))]
+        [(list _ _) (values (cons previous accumulated) piece)])))
   (define new-span (transduce content-list (mapping replacement-string-span) #:into into-sum))
   (define max-end
     (transduce content-list
@@ -108,6 +118,21 @@
    #:new-span new-span
    #:required-length (option-get max-end end)
    #:contents content-list))
+
+
+(module+ test
+  (test-case "string-replacement"
+    (define from-multiple-insertions
+      (string-replacement
+       #:start 0
+       #:end 10
+       #:contents (list (inserted-string "aaa") (inserted-string "bbb") (inserted-string "ccc"))))
+    (define from-single-insertion
+      (string-replacement
+       #:start 0
+       #:end 10
+       #:contents (list (inserted-string "aaabbbccc"))))
+    (check-equal? from-multiple-insertions from-single-insertion)))
 
 
 (define (string-replacement-length-change replacement)

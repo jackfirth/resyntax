@@ -71,6 +71,7 @@
     (guard (or focused? (not (syntax-property stx 'focus-replacement-on))) #:else
       (list (focus (pieces stx #:focused? #true))))
     (guard (not (syntax-original? stx)) #:else
+      (log-resyntax-debug "copying original syntax ~a" stx)
       (define start (sub1 (syntax-position stx)))
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
@@ -129,9 +130,6 @@
   (define start (sub1 (syntax-position orig-stx)))
   (define end (+ start (syntax-span orig-stx)))
   (define contents-with-possible-focus (pieces new-stx))
-  (when (log-level? resyntax-logger 'debug)
-    (define message (string-indent (pretty-format contents-with-possible-focus) #:amount 2))
-    (log-resyntax-debug "string replacement contents:\n~a" message))
   (define has-focus? (and (findf focus? contents-with-possible-focus) #true))
   (define focused-start
     (+ start
@@ -150,6 +148,10 @@
     (string-replacement #:start start
                         #:end end
                         #:contents raw-contents))
+  (when (log-level? resyntax-logger 'debug)
+    (define message
+      (string-indent (pretty-format (string-replacement-contents unformatted)) #:amount 2))
+    (log-resyntax-debug "string replacement contents:\n~a" message))
   (cond
     [(not format?) unformatted]
     [else
