@@ -69,6 +69,7 @@
 
   (define/guard (pieces stx #:focused? [focused? #false])
     (guard (or focused? (not (syntax-property stx 'focus-replacement-on))) #:else
+      (log-resyntax-debug "focusing in on ~a" stx)
       (list (focus (pieces stx #:focused? #true))))
     (guard (not (syntax-original? stx)) #:else
       (log-resyntax-debug "copying original syntax ~a" stx)
@@ -150,7 +151,7 @@
                         #:contents raw-contents))
   (when (log-level? resyntax-logger 'debug)
     (define message
-      (string-indent (pretty-format (string-replacement-contents unformatted)) #:amount 2))
+      (string-indent (pretty-format unformatted) #:amount 2))
     (log-resyntax-debug "string replacement contents:\n~a" message))
   (cond
     [(not format?) unformatted]
@@ -161,12 +162,16 @@
                                          #:preserve-start focused-start
                                          #:preserve-end focused-end)
            unformatted))
+     (when has-focus?
+       (log-resyntax-debug "string replacement after focusing:\n~a"
+                           (string-indent (pretty-format normalized) #:amount 2)))
      (string-replacement-format normalized (source->string source))]))
 
 
 (define/guard (original-separator-piece stx trailing-stx)
   (guard (syntax-originally-neighbors? stx trailing-stx) #:else #false)
   (let-values ([(stx trailing-stx) (syntax-extract-originals-from-pair stx trailing-stx)])
+    (log-resyntax-debug "copying separator between ~a and ~a" stx trailing-stx)
     (define stx-end (+ (sub1 (syntax-position stx)) (syntax-span stx)))
     (define trailing-start (sub1 (syntax-position trailing-stx)))
     (copied-string stx-end trailing-start)))
@@ -180,6 +185,8 @@
   (define end (string-replacement-new-end replacement))
   (define changed-code-substring (substring refactored-source-code start end))
   (define initial-columns (string-column-offset refactored-source-code start))
+  (log-resyntax-debug "unformatted code after applying replacement:\n~a"
+                      (string-indent refactored-source-code #:amount 2))
   (log-resyntax-debug "about to format unformatted code at indentation ~a:\n~a"
                       initial-columns changed-code-substring)
 
