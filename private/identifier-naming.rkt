@@ -23,4 +23,4 @@
       [(string-suffix? plural-name "es") (string-trim plural-name "es" #:left? #false)]
       [(string-suffix? plural-name "s") (string-trim plural-name "s" #:left? #false)]
       [else plural-name]))
-  (format-id id "~a" (string->symbol singular-name)))
+  (format-id #false "~a" (string->symbol singular-name)))
