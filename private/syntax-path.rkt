@@ -163,16 +163,108 @@
     [(list _ _) #false]))
 
 
-(define (syntax-ref stx path)
-  (for/fold ([stx stx])
-            ([element (in-treelist (syntax-path-elements path))])
-    (match element
-      [(? exact-nonnegative-integer? i) (list-ref (syntax-e stx) i)]
-      [(tail-syntax i) (drop (syntax-e stx) i)]
-      [(vector-element-syntax i) (vector-ref (syntax-e stx) i)]
-      [(== box-element-syntax) (unbox (syntax-e stx))]
-      [(hash-value-syntax key) (hash-ref (syntax-e stx) key)]
-      [(prefab-field-syntax i) (prefab-struct-ref (syntax-e stx) i)])))
+(define (syntax-ref init-stx path)
+  (define result
+    (for/fold ([stx init-stx])
+              ([element (in-treelist (syntax-path-elements path))])
+      (define unwrapped
+        ; It's only *not* syntax in the case where `tail-syntax` was used to pick out a trailing
+        ; list of subforms of a form. These sorts of syntax objects get created by #%app macro
+        ; insertion, which is how I discovered this check was necessary.
+        (if (syntax? stx)
+            (syntax-e stx)
+            stx))
+      (match element
+        [(? exact-nonnegative-integer? i)
+         (unless (possibly-improper-list-of-minimum-size? unwrapped (add1 i))
+           (raise-arguments-error 'syntax-ref
+                                  "syntax path is inconsistent with the syntax's shape"
+                                  "syntax" init-stx
+                                  "path" path
+                                  "malformed subform" stx
+                                  "path element" element))
+         (list-ref unwrapped i)]
+        [(tail-syntax i) (drop unwrapped i)]
+        [(vector-element-syntax i) (vector-ref unwrapped i)]
+        [(== box-element-syntax) (unbox unwrapped)]
+        [(hash-value-syntax key) (hash-ref unwrapped key)]
+        [(prefab-field-syntax i) (prefab-struct-ref unwrapped i)])))
+  (when (or (pair? result) (empty? result))
+    (raise-arguments-error 'syntax-ref
+                           "syntax path refers to a non-syntax component"
+                           "syntax" init-stx
+                           "path" path
+                           "component" result))
+  result)
+
+
+(module+ test
+  (test-case "syntax-ref"
+
+    (test-case "empty path"
+      (define stx #'a)
+      (define actual (syntax-ref stx empty-syntax-path))
+      (check-equal? actual stx))
+
+    (test-case "list element path"
+      (define stx #'(a b c))
+      (define actual (syntax-ref stx (syntax-path (list 1))))
+      (check-equal? (syntax->datum actual) 'b))
+
+    (test-case "tail syntax path"
+      (define stx #'(a . (b c)))
+      (define actual (syntax-ref stx (syntax-path (list (tail-syntax 1)))))
+      (check-equal? (syntax->datum actual) '(b c)))
+
+    (test-case "tail syntax path of flat syntax list"
+      (define stx #'(a b c))
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (syntax-ref stx (syntax-path (list (tail-syntax 1))))
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"syntax-ref:" (exn-message thrown))
+      (check-regexp-match #rx"path refers to a non-syntax component" (exn-message thrown)))
+
+    (test-case "vector element path"
+      (define stx #'#[a b c])
+      (define actual (syntax-ref stx (syntax-path (list (vector-element-syntax 1)))))
+      (check-equal? (syntax->datum actual) 'b))
+
+    (test-case "box element path"
+      (define stx #'#&a)
+      (define actual (syntax-ref stx (syntax-path (list box-element-syntax))))
+      (check-equal? (syntax->datum actual) 'a))
+
+    (test-case "hash value path"
+      (define stx #'#hash((a . 1) (b . 2) (c . 3)))
+      (define actual (syntax-ref stx (syntax-path (list (hash-value-syntax 'b)))))
+      (check-equal? (syntax->datum actual) 2))
+
+    (test-case "nested list path"
+      (define stx #'(a b c (m (FOO x y z) n)))
+      (define actual (syntax-ref stx (syntax-path (list 3 1 0))))
+      (check-equal? (syntax->datum actual) 'FOO))
+
+    (test-case "list element after tail syntax path"
+      (define stx #'(a b . (c FOO e)))
+      (define actual (syntax-ref stx (syntax-path (list (tail-syntax 2) 1))))
+      (check-equal? (syntax->datum actual) 'FOO))
+
+    (test-case "list element after tail syntax path in flat syntax"
+      (define stx #'(a b c FOO e))
+      (define actual (syntax-ref stx (syntax-path (list (tail-syntax 2) 1))))
+      (check-equal? (syntax->datum actual) 'FOO))
+
+    (test-case "list element on syntax that's too short"
+      (define stx #'(a b c))
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (syntax-ref stx (syntax-path (list 10)))
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"syntax-ref:" (exn-message thrown))
+      (check-regexp-match #rx"path is inconsistent" (exn-message thrown)))))
 
 
 (define (syntax-label-paths stx property-name)
@@ -292,3 +384,18 @@
 (define syntax-path<=>
   (comparator-map (lexicographic-comparator syntax-path-element<=>) syntax-path-elements
                   #:name 'syntax-path<=>))
+
+
+(define (possibly-improper-list-of-minimum-size? v size)
+  (or (zero? size)
+      (and (pair? v) (possibly-improper-list-of-minimum-size? (cdr v) (sub1 size)))))
+
+
+(module+ test
+  (test-case "possibly-improper-list-of-minimum-size?"
+    (check-true (possibly-improper-list-of-minimum-size? '(a b c d e) 2))
+    (check-false (possibly-improper-list-of-minimum-size? '(a b c d e) 8))
+    (check-true (possibly-improper-list-of-minimum-size? '(a b c d . e) 2))
+    (check-false (possibly-improper-list-of-minimum-size? '(a b c d . e) 8))
+    (check-true (possibly-improper-list-of-minimum-size? 'a 0))
+    (check-false (possibly-improper-list-of-minimum-size? 'a 1))))
