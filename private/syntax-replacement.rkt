@@ -32,6 +32,7 @@
          racket/match
          racket/pretty
          racket/sequence
+         racket/stream
          racket/string
          rebellion/base/comparator
          rebellion/collection/range-set
@@ -42,6 +43,7 @@
          resyntax/private/string-indent
          resyntax/private/string-replacement
          resyntax/private/syntax-neighbors
+         (only-in resyntax/private/syntax-traversal syntax-search-everything)
          syntax/parse
          syntax/parse/experimental/template
          (only-in rebellion/base/range closed-open-range)
@@ -71,7 +73,7 @@
     (guard (or focused? (not (syntax-property stx 'focus-replacement-on))) #:else
       (log-resyntax-debug "focusing in on ~a" stx)
       (list (focus (pieces stx #:focused? #true))))
-    (guard (not (syntax-original? stx)) #:else
+    (guard (not (syntax-completely-original? stx)) #:else
       (log-resyntax-debug "copying original syntax ~a" stx)
       (define start (sub1 (syntax-position stx)))
       (define end (+ start (syntax-span stx)))
@@ -298,3 +300,8 @@
 (define (syntax-source-range stx)
   (define start (sub1 (syntax-position stx)))
   (closed-open-range start (+ start (syntax-span stx)) #:comparator natural<=>))
+
+
+(define (syntax-completely-original? stx)
+  (for/and ([subform (in-stream (syntax-search-everything stx))])
+    (syntax-original? subform)))

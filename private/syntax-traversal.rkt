@@ -8,6 +8,7 @@
          expression-directly-enclosing
          syntax-find-first
          syntax-search
+         syntax-search-everything
          syntax-traverse)
 
 
@@ -53,31 +54,41 @@
 
 
 (define-syntax-parse-rule
-  (syntax-search stx-expr option:syntax-parse-option ... clause:syntax-search-clause ...)
+  (syntax-search stx-expr
+    (~optional (~seq #:skip-root? skip-root?) #:defaults ([skip-root? #'#false]))
+    option:syntax-parse-option ...
+    clause:syntax-search-clause ...)
   #:declare stx-expr (expr/c #'syntax?)
-  (let ()
+  (let ([skip-root-id skip-root?])
     (define-syntax-class search-case
       #:attributes (output-stream)
       (~@ . option) ...
       (pattern clause.syntax-pattern (~@ . clause.directive) ...
         #:attr output-stream clause.output-stream)
       ...)
-    (let loop ([stx stx-expr.c])
+    (let loop ([stx stx-expr.c] [root? #true])
       (stream-lazy
        (syntax-parse stx
-         [(~var matched search-case) (attribute matched.output-stream)]
+         [child
+          #:when (not (and skip-root-id root?))
+          #:with (~var matched search-case) (attribute child)
+          (attribute matched.output-stream)]
          [(part (... ...))
           #:cut
           (apply stream-append
                  (for/list ([part-stx (in-list (attribute part))])
-                   (loop part-stx)))]
+                   (loop part-stx #false)))]
          [(part (... ...+) . tail-part)
           #:cut
           (stream-append (apply stream-append
                                 (for/list ([part-stx (in-list (attribute part))])
-                                  (loop part-stx)))
-                         (loop #'tail-part))]
+                                  (loop part-stx #false)))
+                         (loop #'tail-part #false))]
          [_ (stream)])))))
+
+
+(define (syntax-search-everything stx)
+  (stream-cons stx (syntax-search stx #:skip-root? #true [_ (syntax-search-everything this-syntax)])))
 
 
 (module+ test
@@ -135,30 +146,27 @@
       (define (rewrap-datum datum)
         (datum->syntax stx datum stx stx))
 
-      (define scope (make-syntax-introducer))
-      
-      (scope
-       (syntax-parse (scope stx 'add)
+      (syntax-parse stx
 
-         [child
-          #:when (not (and skip-root-id root?))
-          #:with (~var matched traversal-case) (attribute child)
-          (attribute matched.traversed)]
+        [child
+         #:when (not (and skip-root-id root?))
+         #:with (~var matched traversal-case) (attribute child)
+         (define case-scope (make-syntax-introducer))
+         (case-scope (attribute matched.traversed) 'add)]
         
-         [(part (... ...))
-          #:cut
-          (rewrap-datum
+        [(part (... ...))
+         #:cut
+         (rewrap-datum
+          (for/list ([child (in-list (attribute part))])
+            (loop child #false)))]
+        [(part (... ...+) . tail-part)
+         #:cut
+         (define traversed-children
            (for/list ([child (in-list (attribute part))])
-             (loop child #false)))]
-         [(part (... ...+) . tail-part)
-          #:cut
-          (define traversed-children
-            (for/list ([child (in-list (attribute part))])
-              (loop child #false)))
-          (define traversed-tail (loop #'tail-part #false))
-          (rewrap-datum (append traversed-children traversed-tail))]
-         [_ stx])
-       'flip))))
+             (loop child #false)))
+         (define traversed-tail (loop #'tail-part #false))
+         (rewrap-datum (append traversed-children traversed-tail))]
+        [_ stx]))))
 
 
 (module+ test
@@ -205,4 +213,19 @@
       (syntax-traverse stx
         #:skip-root? #false
         [(_ ...) #'LIST]))
-    (check-equal? (syntax->datum actual) 'LIST)))
+    (check-equal? (syntax->datum actual) 'LIST))
+
+  (test-case "syntax-traverse originality"
+    (define stx (read-syntax #false (open-input-string "(1 2 (a b) 3 4)")))
+    (check-true (syntax-original? stx))
+    (define traversed-stx
+      (syntax-traverse stx
+        [(_ id:id) (attribute id)]))
+    (check-equal? (syntax->datum traversed-stx) '(1 2 b 3 4))
+    (check-true (syntax-original? traversed-stx))
+    (define/syntax-parse (1* 2* b* 3* 4*) traversed-stx)
+    (check-true (syntax-original? #'1*))
+    (check-true (syntax-original? #'2*))
+    (check-false (syntax-original? #'b*))
+    (check-true (syntax-original? #'3*))
+    (check-true (syntax-original? #'4*))))
