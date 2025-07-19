@@ -8,15 +8,18 @@
  (contract-out
   [syntax-replacement? (-> any/c boolean?)]
   [syntax-replacement
-   (-> #:original-syntax (and/c syntax? syntax-original?)
+   (-> #:original-syntax (and/c syntax? syntax-original? syntax-has-original-path?)
        #:new-syntax syntax?
        #:source source?
        #:introduction-scope (->* (syntax?) ((or/c 'flip 'add 'remove)) syntax?)
        syntax-replacement?)]
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
-  [syntax-replacement-original-syntax (-> syntax-replacement? (and/c syntax? syntax-original?))]
+  [syntax-replacement-original-syntax
+   (-> syntax-replacement? (and/c syntax? syntax-has-original-path?))]
   [syntax-replacement-new-syntax (-> syntax-replacement? syntax?)]
   [syntax-replacement-source (-> syntax-replacement? source?)]
+  [syntax-replacement-introduction-scope
+   (-> syntax-replacement? (->* (syntax?) ((or/c 'flip 'add 'remove)) syntax?))]
   [syntax-replacement-introduces-incorrect-bindings? (-> syntax-replacement? boolean?)]
   [syntax-replacement-introduced-incorrect-identifiers
    (-> syntax-replacement? (listof identifier?))]
@@ -231,7 +234,7 @@
 (module+ test
   (test-case (name-string syntax-replacement-render)
     (define orig-code "(+ 1 (+ 2 3))")
-    (define orig-stx (with-input-from-string orig-code read-syntax))
+    (define orig-stx (syntax-label-original-paths (with-input-from-string orig-code read-syntax)))
     (define orig-start (sub1 (syntax-position orig-stx)))
     (define flip (make-syntax-introducer))
     (define new-stx

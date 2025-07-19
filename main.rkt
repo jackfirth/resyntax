@@ -281,12 +281,23 @@
             (refactoring-rule-refactor rule syntax (source-code-analysis-code analysis)))
           #:else absent)
         (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
+          (define bad-ids (syntax-replacement-introduced-incorrect-identifiers replacement))
+          (define orig-stx (syntax-replacement-original-syntax replacement))
+          (define intro (syntax-replacement-introduction-scope replacement))
           (log-resyntax-warning
            (string-append
             "~a: suggestion discarded because it introduces identifiers with incorrect bindings\n"
-            "  incorrect identifiers: ~a")
+            "  incorrect identifiers: ~a\n"
+            "  bindings in original context: ~a\n"
+            "  bindings in syntax replacement: ~a\n"
+            "  replaced syntax: ~a")
            (object-name rule)
-           (syntax-replacement-introduced-incorrect-identifiers replacement))
+           bad-ids
+           (for/list ([id (in-list bad-ids)])
+             (identifier-binding (datum->syntax orig-stx (syntax->datum id))))
+           (for/list ([id (in-list bad-ids)])
+             (identifier-binding (intro id 'remove)))
+           orig-stx)
           absent)
         (guard (syntax-replacement-preserves-comments? replacement comments) #:else
           (log-resyntax-warning
