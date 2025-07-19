@@ -7,7 +7,8 @@
          rest-by-any-name)
 
 
-(require racket/list
+(require (for-template racket/list)
+         racket/list
          syntax/parse)
 
 

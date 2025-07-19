@@ -12,9 +12,7 @@
 
 
 (require (for-syntax racket/base
-                     resyntax/private/more-syntax-parse-classes
-                     syntax/parse)
-         racket/match
+                     resyntax/private/more-syntax-parse-classes)
          racket/sequence
          racket/stream
          syntax/parse
@@ -100,9 +98,9 @@
 
 
 (define-syntax-parse-rule (syntax-find-first stx-expr
-                                             option:syntax-parse-option ...
-                                             syntax-pattern
-                                             directive:syntax-parse-pattern-directive ...)
+                            option:syntax-parse-option ...
+                            syntax-pattern
+                            directive:syntax-parse-pattern-directive ...)
   (let ()
     (define results (syntax-search stx-expr (~@ . option) ... [syntax-pattern (~@ . directive) ...]))
     (and (not (stream-empty? results)) (stream-first results))))
@@ -123,27 +121,39 @@
 
 (define-syntax-parse-rule
   (syntax-traverse (~var stx-expr (expr/c #'syntax?))
+    (~optional (~seq #:skip-root? skip-root?) #:defaults ([skip-root? #'#false]))
     option:syntax-parse-option ...
     [clause-pattern directive:syntax-parse-pattern-directive ... clause-body:expr ...+] ...)
-  (let ()
+  (let ([skip-root-id skip-root?])
     (define-syntax-class traversal-case
       #:attributes (traversed)
       (~@ . option) ...
       (pattern clause-pattern (~@ . directive) ...
         #:attr traversed (let () clause-body ...)) ...)
-    (let loop ([stx stx-expr.c])
+    (let loop ([stx stx-expr.c] [root? #true])
+
+      (define (rewrap-datum datum)
+        (datum->syntax stx datum stx stx))
+      
       (syntax-parse stx
-        [(~var matched traversal-case) (attribute matched.traversed)]
+
+        [child
+         #:when (not (and skip-root-id root?))
+         #:with (~var matched traversal-case) (attribute child)
+         (attribute matched.traversed)]
         
         [(part (... ...))
          #:cut
-         #:with (traversed-part (... ...)) (map loop (attribute part))
-         #'(traversed-part (... ...))]
+         (rewrap-datum
+          (for/list ([child (in-list (attribute part))])
+            (loop child #false)))]
         [(part (... ...+) . tail-part)
          #:cut
-         #:with (traversed-part (... ...)) (map loop (attribute part))
-         #:with traversed-tail (loop #'tail-part)
-         #'(traversed-part (... ...) . traversed-tail)]
+         (define traversed-children
+           (for/list ([child (in-list (attribute part))])
+             (loop child #false)))
+         (define traversed-tail (loop #'tail-part #false))
+         (rewrap-datum (append traversed-children traversed-tail))]
         [_ stx]))))
 
 
@@ -156,14 +166,39 @@
             (cons a b))
           (cons c d)))
     (define actual
-      (syntax->datum
-       (syntax-traverse stx
-         #:literals (cons)
-         [(cons _ _) #'CONS-EXPRESSION])))
+      (syntax-traverse stx
+        #:literals (cons)
+        [(cons _ _) #'CONS-EXPRESSION]))
     (define expected
       '(define (foo)
          CONS-EXPRESSION
          (define (bar)
            CONS-EXPRESSION)
          CONS-EXPRESSION))
-    (check-equal? actual expected)))
+    (check-equal? (syntax->datum actual) expected))
+
+  (test-case "syntax-traverse #:skip-root? true"
+    (define stx #'(a b (c d) e))
+    (define actual
+      (syntax-traverse stx
+        #:skip-root? #true
+        [(_ ...) #'LIST]))
+    (check-equal? (syntax->datum actual) '(a b LIST e)))
+
+  (test-case "syntax-traverse #:skip-root? true doesn't execute directives on root"
+    (define stx #'(a b (c d) e))
+    (define execution-count 0)
+    (syntax-traverse stx
+      #:skip-root? #true
+      [(_ ...)
+       #:do [(set! execution-count (add1 execution-count))]
+       #'LIST])
+    (check-equal? execution-count 1))
+
+  (test-case "syntax-traverse #:skip-root? false"
+    (define stx #'(a b (c d) e))
+    (define actual
+      (syntax-traverse stx
+        #:skip-root? #false
+        [(_ ...) #'LIST]))
+    (check-equal? (syntax->datum actual) 'LIST)))
