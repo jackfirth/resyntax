@@ -236,16 +236,6 @@
                  (sorting syntax-path<=> #:key syntax-original-path)
                  #:into into-list))
 
-    (for ([visit (in-list visited)])
-      (log-resyntax-debug (string-append "visited ~a:\n"
-                                         "  form: ~a\n"
-                                         "  original path property: ~a\n"
-                                         "  tracked origin: ~a")
-                          (syntax-original-path visit)
-                          visit
-                          (syntax-property visit 'original-syntax-path)
-                          (syntax-property visit 'origin)))
-
     (source-code-analysis #:code code
                           #:visited-forms visited
                           #:expansion-time-output output
