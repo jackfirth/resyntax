@@ -192,7 +192,7 @@
   (log-resyntax-debug "unformatted code after applying replacement:\n~a"
                       (string-indent refactored-source-code #:amount 2))
   (log-resyntax-debug "about to format unformatted code at indentation ~a:\n~a"
-                      initial-columns changed-code-substring)
+                      initial-columns (string-indent changed-code-substring #:amount 2))
 
   ;; We could use the #:indent argument to program-format instead of lying to it about how much
   ;; horizontal space is available and indenting the resulting string. However, fmt has some odd

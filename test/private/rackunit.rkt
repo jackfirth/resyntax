@@ -32,6 +32,7 @@
          resyntax/private/logger
          resyntax/private/refactoring-result
          resyntax/private/source
+         resyntax/private/string-indent
          resyntax/private/string-replacement
          syntax/modread
          syntax/parse
@@ -39,6 +40,10 @@
 
 
 ;@----------------------------------------------------------------------------------------------------
+
+
+(define (string-block-info s)
+  (string-info (string-hanging-indent s #:amount 2)))
 
 
 (struct code-block (raw-string) #:transparent
@@ -50,13 +55,15 @@
      (define raw (code-block-raw-string this))
      (define-values (_line col _pos) (port-next-location out))
      (cond
-       [(and (pretty-printing) (integer? (pretty-print-columns)) col)
+       [(and (pretty-printing) col)
         (define lead (make-string col #\space))
         (for ([line (in-lines (open-input-string raw))]
               [i (in-naturals)])
           (unless (zero? i)
             (write-string lead out)
-            (pretty-print-newline out (pretty-print-columns)))
+            (if (integer? (pretty-print-columns))
+                (pretty-print-newline out (pretty-print-columns))
+                (newline out)))
           (write-string line out))]
        [else
         (for ([line (in-lines (open-input-string raw))]
@@ -118,7 +125,7 @@
     (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug 'resyntax))
 
   (define (build-logs-info)
-    (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
+    (string-block-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
 
   (define result-set
     (call-with-logs-captured
@@ -137,34 +144,34 @@
             ([exn:fail?
               (λ (e)
                 (with-check-info (['logs (build-logs-info)]
-                                  ['original original-program]
-                                  ['expected expected-program]
+                                  ['original (string-block-info (code-block-raw-string original-program))]
+                                  ['expected (string-block-info expected-program)]
                                   ['exception e])
                   (fail-check "an error occurred while processing refactoring results")))])
           (call-with-logs-captured
            (λ () (modified-source-contents (refactoring-result-set-updated-source result-set))))))
       (with-check-info (['logs (build-logs-info)]
-                        ['actual (code-block refactored-program)]
-                        ['expected expected-program])
+                        ['actual (string-block-info refactored-program)]
+                        ['expected (string-block-info (code-block-raw-string expected-program))])
         (when (empty? (refactoring-result-set-results result-set))
           (fail-check "no changes were made"))
         (when (equal? refactored-program (code-block-raw-string original-program))
           (fail-check "fixes were made, but they left the program unchanged"))
         (unless (equal? refactored-program (code-block-raw-string expected-program))
-          (with-check-info (['original original-program])
+          (with-check-info (['original (string-block-info (code-block-raw-string original-program))])
             (fail-check "incorrect changes were made"))))
       (match-define (program-output original-stdout original-stderr)
         (eval-program (code-block-raw-string original-program)))
       (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
       (unless (equal? original-stdout actual-stdout)
         (with-check-info (['logs (build-logs-info)]
-                          ['actual (code-block actual-stdout)]
-                          ['original (code-block original-stdout)])
+                          ['actual (string-block-info actual-stdout)]
+                          ['original (string-block-info original-stdout)])
           (fail-check "output to stdout changed")))
       (unless (equal? original-stderr actual-stderr)
         (with-check-info (['logs (build-logs-info)]
-                          ['actual (code-block actual-stderr)]
-                          ['original (code-block original-stderr)])
+                          ['actual (string-block-info actual-stderr)]
+                          ['original (string-block-info original-stderr)])
           (fail-check "output to stderr changed"))))))
 
 
@@ -180,7 +187,7 @@
     (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug 'resyntax))
 
   (define (build-logs-info)
-    (string-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
+    (string-block-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
 
   (define result-set
     (call-with-logs-captured
@@ -194,12 +201,12 @@
           (list (check-info 'matched-rules (refactoring-result-set-matched-rules-info result-set))))
     (λ ()
       (with-check-info (['logs (build-logs-info)]
-                        ['actual (code-block refactored-program)]
-                        ['original original-program])
+                        ['actual (string-block-info refactored-program)]
+                        ['original (string-block-info (code-block-raw-string original-program))])
         (unless (equal? refactored-program (code-block-raw-string original-program))
           (fail-check "expected no changes, but changes were made")))
       (with-check-info (['logs (build-logs-info)]
-                        ['actual (code-block refactored-program)])
+                        ['actual (string-block-info refactored-program)])
         (unless (empty? (refactoring-result-set-results result-set))
           (fail-check "the program was not changed, but no-op fixes were suggested"))))))
 
