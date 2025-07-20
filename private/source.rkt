@@ -231,8 +231,20 @@
     
     (define visited
       (transduce (build-vector original-visits)
+                 (peeking
+                  (λ (visit)
+                    (unless (syntax-original-path visit)
+                      (raise-arguments-error
+                       'source-analyze "pre-enriched visit is missing original path"
+                       "visited syntax" visit))))
                  (deduplicating #:key syntax-original-path)
                  (mapping enrich)
+                 (peeking
+                  (λ (visit)
+                    (unless (syntax-original-path visit)
+                      (raise-arguments-error
+                       'source-analyze "post-enriched visit is missing original path"
+                       "visited syntax" visit))))
                  (sorting syntax-path<=> #:key syntax-original-path)
                  #:into into-list))
 
