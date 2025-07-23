@@ -33,16 +33,17 @@
 
 
 (require guard
-         racket/file
-         racket/hash
          racket/match
          racket/path
          racket/port
+         racket/stream
          rebellion/base/comparator
          rebellion/base/immutable-string
+         rebellion/base/option
          rebellion/base/range
          rebellion/collection/list
          rebellion/collection/range-set
+         rebellion/collection/sorted-map
          rebellion/collection/vector/builder
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -50,8 +51,10 @@
          resyntax/private/fully-expanded-syntax
          resyntax/private/linemap
          resyntax/private/logger
+         resyntax/private/syntax-movement
          resyntax/private/syntax-neighbors
          resyntax/private/syntax-path
+         resyntax/private/syntax-traversal
          syntax/id-table
          syntax/modread
          syntax/parse)
@@ -137,30 +140,10 @@
     (define program-source-name (syntax-source program-stx))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define original-visits (make-vector-builder))
-    (define expanded-originals-by-path (make-hash))
-
-    (define (add-all-original-subforms! stx)
-      (when (resyntax-should-analyze-syntax? stx #:as-visit? #false)
-        (hash-set! expanded-originals-by-path (syntax-original-path stx) stx))
-      (syntax-parse stx
-        [(subform ...) (for-each add-all-original-subforms! (attribute subform))]
-        [(subform ...+ . tail-form)
-         (for-each add-all-original-subforms! (attribute subform))
-         (add-all-original-subforms! #'tail-form)]
-        [_ (void)]))
-
-    (define (syntax-original-and-from-source? stx)
-      (and (syntax-original? stx)
-           ;; Some macros are able to bend hygiene and syntax properties in such a way that they
-           ;; introduce syntax objects into the program that are syntax-original?, but from a
-           ;; different file than the one being expanded. So in addition to checking for
-           ;; originality, we also check that they come from the same source as the main program
-           ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
-           ;; in this way, and is what originally motivated the addition of this check.
-           (equal? (syntax-source stx) program-source-name)))
+    (define most-recent-visits-by-original-path (make-hash))
 
     (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
-      (guard (syntax-original-and-from-source? stx) #:else #false)
+      (guard (syntax-original-and-from-source? stx program-source-name) #:else #false)
       (guard as-visit? #:else #true)
       (define stx-lines (syntax-line-range stx #:linemap code-linemap))
       (define overlaps? (range-set-overlaps? lines stx-lines))
@@ -178,8 +161,12 @@
     (define/match (observe-event! sig val)
       [('visit (? syntax? visited))
        (when (resyntax-should-analyze-syntax? visited)
-         (vector-builder-add original-visits visited)
-         (add-all-original-subforms! visited))]
+         (vector-builder-add original-visits visited))
+       (for ([visit-subform (in-stream (syntax-search-everything visited))]
+             #:when (and (resyntax-should-analyze-syntax? visit-subform #:as-visit? #false)
+                         (syntax-has-original-path? visit-subform)))
+         (define path (syntax-original-path visit-subform))
+         (hash-set! most-recent-visits-by-original-path path visit-subform))]
       [(_ _) (void)])
 
     (define output-port (open-output-string))
@@ -195,39 +182,54 @@
     (namespace-require/expansion-time (extract-module-require-spec expanded))
 
     (define output (get-output-string output-port))
+    (define movement-table (syntax-movement-table expanded))
     (define binding-table (fully-expanded-syntax-binding-table expanded))
     (define original-binding-table-by-path
       (for*/fold ([table (hash)])
                  ([phase-table (in-hash-values binding-table)]
                   [(id uses) (in-free-id-table phase-table)]
-                  #:when (syntax-original-and-from-source? id)
+                  #:when (syntax-original-and-from-source? id program-source-name)
                   [use (in-list uses)])
         (hash-update table (syntax-original-path id) (λ (previous) (cons use previous)) '())))
+
+    (define expanded-with-properties
+      (syntax-traverse expanded
+        [id:id
+         #:do [(define path (syntax-original-path (attribute id)))]
+         #:when path
+         (define usages (hash-ref original-binding-table-by-path path '()))
+         (syntax-property this-syntax 'identifier-usages usages)]
+        #:parent-context-modifier values
+        #:parent-srcloc-modifier values
+        #:parent-props-modifier values))
     
-    (add-all-original-subforms! expanded)
-
-    (define/guard (add-usages stx)
-      (guard (identifier? stx) #:else stx)
-      (define usages (hash-ref original-binding-table-by-path (syntax-original-path stx) '()))
-      (syntax-property stx 'identifier-usages usages))
-
-    (define (enrich stx)
-      (define new-context
-        (add-usages
-         (or (hash-ref expanded-originals-by-path (syntax-original-path stx) #false) stx)))
-      (syntax-parse stx
-        [(subform ...)
-         (datum->syntax new-context
-                        (map enrich (attribute subform))
-                        new-context
-                        new-context)]
-        [(subform ...+ . tail-form)
-         (datum->syntax new-context
-                        (append (map enrich (attribute subform)) (enrich #'tail-form))
-                        new-context
-                        new-context)]
-        [_ new-context]))
-         
+    (define (enrich stx #:skip-root? [skip-root? #false])
+      (syntax-traverse stx
+        #:skip-root? skip-root?
+        [child
+         #:do [(define child-stx (attribute child))
+               (define orig-path (syntax-original-path child-stx))]
+         #:when (and orig-path (sorted-map-contains-key? movement-table orig-path))
+         #:do [(define expansion
+                 (transduce (sorted-map-get movement-table orig-path)
+                            (mapping (λ (p) (syntax-ref expanded-with-properties p)))
+                            (filtering syntax-original?)
+                            #:into into-first))]
+         #:when (present? expansion)
+         (match-define (present expanded-child) expansion)
+         (log-resyntax-debug "enriching ~a with scopes and properties from expansion" child-stx)
+         (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx expanded-child)
+                 #:skip-root? #true)]
+        [child
+         #:do [(define child-stx (attribute child))
+               (define orig-path (syntax-original-path child-stx))]
+         #:when (and orig-path (hash-has-key? most-recent-visits-by-original-path orig-path))
+         #:do [(define visit (hash-ref most-recent-visits-by-original-path orig-path))]
+         (log-resyntax-debug "enriching ~a with scopes from visit" child-stx)
+         (enrich (datum->syntax visit (syntax-e child-stx) child-stx child-stx) #:skip-root? #true)]
+        #:parent-context-modifier values
+        #:parent-srcloc-modifier values
+        #:parent-props-modifier values))
     
     (define visited
       (transduce (build-vector original-visits)
@@ -252,6 +254,17 @@
                           #:visited-forms visited
                           #:expansion-time-output output
                           #:namespace ns)))
+
+
+(define (syntax-original-and-from-source? stx source-name)
+  (and (syntax-original? stx)
+       ;; Some macros are able to bend hygiene and syntax properties in such a way that they
+       ;; introduce syntax objects into the program that are syntax-original?, but from a
+       ;; different file than the one being expanded. So in addition to checking for
+       ;; originality, we also check that they come from the same source as the main program
+       ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
+       ;; in this way, and is what originally motivated the addition of this check.
+       (equal? (syntax-source stx) source-name)))
 
 
 (define (extract-module-require-spec mod-stx)
