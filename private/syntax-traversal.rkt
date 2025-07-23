@@ -14,6 +14,7 @@
 
 (require (for-syntax racket/base
                      resyntax/private/more-syntax-parse-classes)
+         racket/match
          racket/sequence
          racket/stream
          syntax/parse
@@ -21,7 +22,8 @@
 
 
 (module+ test
-  (require rackunit
+  (require racket/syntax-srcloc
+           rackunit
            (submod "..")))
 
 
@@ -130,43 +132,64 @@
     (check-false (syntax-find-first stx #:literals (cons) (cons _ _ _)))))
 
 
+(define (perform-syntax-traversal stx modifier
+                                  #:skip-root? [skip-root? #false]
+                                  #:parent-context-modifier [context-modifier* #false]
+                                  #:parent-srcloc-modifier [srcloc-modifier (λ (_) #'here)]
+                                  #:parent-props-modifier [props-modifier (λ (_) #false)])
+  (define context-modifier
+    (or context-modifier*
+        (let ([scope (make-syntax-introducer)])
+          (λ (stx) (scope stx 'add)))))
+  (let loop ([stx stx] [root? #true])
+    (define should-skip-because-root? (and skip-root? root?))
+    (define modified-stx (and (not should-skip-because-root?) (modifier stx)))
+    (match modified-stx
+      [(== stx) stx]
+      [(? syntax?) modified-stx]
+      [#false
+       (syntax-parse stx
+         [(child ...)
+          (define traversed-children
+            (for/list ([child-stx (in-list (attribute child))])
+              (loop child-stx #false)))
+          (define all-same?
+            (for/and ([traversed-child (in-list traversed-children)]
+                      [child-stx (in-list (attribute child))])
+              (equal? traversed-child child-stx)))
+          (if all-same?
+              stx
+              (datum->syntax (context-modifier stx)
+                             traversed-children
+                             (srcloc-modifier stx)
+                             (props-modifier stx)))]
+         [_ stx])])))
+
+
 (define-syntax-parse-rule
   (syntax-traverse (~var stx-expr (expr/c #'syntax?))
-    (~optional (~seq #:skip-root? skip-root?) #:defaults ([skip-root? #'#false]))
+    (~optional (~seq #:skip-root? skip-root?))
     option:syntax-parse-option ...
-    [clause-pattern directive:syntax-parse-pattern-directive ... clause-body:expr ...+] ...)
-  (let ([skip-root-id skip-root?])
-    (define-syntax-class traversal-case
-      #:attributes (traversed)
-      (~@ . option) ...
-      (pattern clause-pattern (~@ . directive) ...
-        #:attr traversed (let () clause-body ...)) ...)
-    (let loop ([stx stx-expr.c] [root? #true])
+    [clause-pattern directive:syntax-parse-pattern-directive ... clause-body:expr ...+] ...
+    (~optional (~seq #:parent-context-modifier context-modifier:expr))
+    (~optional (~seq #:parent-srcloc-modifier srcloc-modifier:expr))
+    (~optional (~seq #:parent-props-modifier props-modifier:expr)))
+    
 
-      (define (rewrap-datum datum)
-        (datum->syntax stx datum stx stx))
+  (let ()
 
+    (define (traversal-case stx)
       (syntax-parse stx
+        (~@ . option) ...
+        [clause-pattern (~@ . directive) ... clause-body ...]
+        ...
+        [_ #false]))
 
-        [child
-         #:when (not (and skip-root-id root?))
-         #:with (~var matched traversal-case) (attribute child)
-         (define case-scope (make-syntax-introducer))
-         (case-scope (attribute matched.traversed) 'add)]
-        
-        [(part (... ...))
-         #:cut
-         (rewrap-datum
-          (for/list ([child (in-list (attribute part))])
-            (loop child #false)))]
-        [(part (... ...+) . tail-part)
-         #:cut
-         (define traversed-children
-           (for/list ([child (in-list (attribute part))])
-             (loop child #false)))
-         (define traversed-tail (loop #'tail-part #false))
-         (rewrap-datum (append traversed-children traversed-tail))]
-        [_ stx]))))
+    (perform-syntax-traversal stx-expr.c traversal-case
+                              (~? (~@ #:skip-root? skip-root?))
+                              (~? (~@ #:parent-context-modifier context-modifier))
+                              (~? (~@ #:parent-srcloc-modifier srcloc-modifier))
+                              (~? (~@ #:parent-props-modifier props-modifier)))))
 
 
 (module+ test
@@ -222,10 +245,11 @@
       (syntax-traverse stx
         [(_ id:id) (attribute id)]))
     (check-equal? (syntax->datum traversed-stx) '(1 2 b 3 4))
-    (check-true (syntax-original? traversed-stx))
+    (check-false (syntax-original? traversed-stx))
+    (check-not-equal? (syntax-srcloc traversed-stx) (syntax-srcloc stx))
     (define/syntax-parse (1* 2* b* 3* 4*) traversed-stx)
     (check-true (syntax-original? #'1*))
     (check-true (syntax-original? #'2*))
-    (check-false (syntax-original? #'b*))
+    (check-true (syntax-original? #'b*))
     (check-true (syntax-original? #'3*))
     (check-true (syntax-original? #'4*))))

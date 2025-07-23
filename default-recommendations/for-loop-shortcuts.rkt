@@ -424,16 +424,10 @@ return just that result."
 
   #:with (modified-result-element modified-body ...)
   (for/list ([body-stx (cons #'loop-element (attribute loop-body))])
-    (log-resyntax-debug "traversing ~a" body-stx)
     (syntax-traverse body-stx
-      [(_ vs-usage:id)
-       #:when (log-resyntax-rule-condition (free-identifier=? #'vs-usage #'vs))
-       #:do [(log-resyntax-debug "traversal match ~a" this-syntax)]
-       ((make-syntax-introducer) #'42 'add)]))
-
-  #:do [(log-resyntax-debug "modified body: ~a" #'(modified-body ... modified-result-element))
-        (log-resyntax-debug "modified result original?: ~a"
-                            (syntax-original? #'modified-result-element))]
+      [(:first-by-any-name vs-usage:id)
+       #:when (free-identifier=? (attribute vs-usage) (attribute vs))
+       (attribute element-id)]))
 
   (for/list ([element-id (in-list init-list)])
     modified-body ...
@@ -461,7 +455,7 @@ return just that result."
   #:with modified-element-condition
   (syntax-traverse (attribute element-condition)
     [(:first-by-any-name vs-usage:id)
-     #:when (free-identifier=? (attribute vs) (attribute vs-usage))
+     #:when (free-identifier=? (attribute vs-usage) (attribute vs))
      (attribute element-id)])
 
   (for/and ([element-id (in-list init-list)])

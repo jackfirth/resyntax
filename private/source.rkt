@@ -33,11 +33,10 @@
 
 
 (require guard
-         racket/file
-         racket/hash
          racket/match
          racket/path
          racket/port
+         racket/stream
          rebellion/base/comparator
          rebellion/base/immutable-string
          rebellion/base/option
@@ -45,7 +44,6 @@
          rebellion/collection/list
          rebellion/collection/range-set
          rebellion/collection/sorted-map
-         rebellion/collection/sorted-set
          rebellion/collection/vector/builder
          rebellion/streaming/reducer
          rebellion/streaming/transducer
@@ -142,6 +140,7 @@
     (define program-source-name (syntax-source program-stx))
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define original-visits (make-vector-builder))
+    (define most-recent-visits-by-original-path (make-hash))
 
     (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
       (guard (syntax-original-and-from-source? stx program-source-name) #:else #false)
@@ -162,7 +161,12 @@
     (define/match (observe-event! sig val)
       [('visit (? syntax? visited))
        (when (resyntax-should-analyze-syntax? visited)
-         (vector-builder-add original-visits visited))]
+         (vector-builder-add original-visits visited))
+       (for ([visit-subform (in-stream (syntax-search-everything visited))]
+             #:when (and (resyntax-should-analyze-syntax? visit-subform #:as-visit? #false)
+                         (syntax-has-original-path? visit-subform)))
+         (define path (syntax-original-path visit-subform))
+         (hash-set! most-recent-visits-by-original-path path visit-subform))]
       [(_ _) (void)])
 
     (define output-port (open-output-string))
@@ -194,7 +198,10 @@
          #:do [(define path (syntax-original-path (attribute id)))]
          #:when path
          (define usages (hash-ref original-binding-table-by-path path '()))
-         (syntax-property this-syntax 'identifier-usages usages)]))
+         (syntax-property this-syntax 'identifier-usages usages)]
+        #:parent-context-modifier values
+        #:parent-srcloc-modifier values
+        #:parent-props-modifier values))
     
     (define (enrich stx #:skip-root? [skip-root? #false])
       (syntax-traverse stx
@@ -210,8 +217,19 @@
                             #:into into-first))]
          #:when (present? expansion)
          (match-define (present expanded-child) expansion)
+         (log-resyntax-debug "enriching ~a with scopes and properties from expansion" child-stx)
          (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx expanded-child)
-                 #:skip-root? #true)]))
+                 #:skip-root? #true)]
+        [child
+         #:do [(define child-stx (attribute child))
+               (define orig-path (syntax-original-path child-stx))]
+         #:when (and orig-path (hash-has-key? most-recent-visits-by-original-path orig-path))
+         #:do [(define visit (hash-ref most-recent-visits-by-original-path orig-path))]
+         (log-resyntax-debug "enriching ~a with scopes from visit" child-stx)
+         (enrich (datum->syntax visit (syntax-e child-stx) child-stx child-stx) #:skip-root? #true)]
+        #:parent-context-modifier values
+        #:parent-srcloc-modifier values
+        #:parent-props-modifier values))
     
     (define visited
       (transduce (build-vector original-visits)
