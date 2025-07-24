@@ -81,18 +81,33 @@
   (list #`(λ #,first-formals #,@(build-lambda-expressions remaining-formals innermost-body-forms))))
 
 
-(define-refactoring-rule define-lambda-to-define
+(define-refactoring-rule define-variable-lambda-to-define
   #:description "The `define` form supports a shorthand for defining functions."
   #:literals (define)
-  (define header lambda-form:possibly-nested-lambdas)
+  (define header:id lambda-form:possibly-nested-lambdas)
   #:when (not (syntax-property this-syntax 'class-body))
   #:do [(define multiline-lambda-header-count
           (count multiline-syntax? (attribute lambda-form.argument-lists)))]
   #:when (< multiline-lambda-header-count 2)
   #:when (oneline-syntax? #'header)
-  #:when (or (identifier? #'header) (zero? multiline-lambda-header-count))
-  #:when (or (identifier? #'header)
-             (not (zero-argument-formals? (first (attribute lambda-form.argument-lists)))))
+  #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
+  #:with (new-body ...)
+  (build-function-body #'header (attribute lambda-form.argument-lists) (attribute lambda-form.body))
+  (define new-header new-body ...))
+
+
+(define-refactoring-rule define-function-lambda-to-define
+  #:description "Functions that return functions can be defined using nested argument lists."
+  #:literals (define)
+  (define header lambda-form:possibly-nested-lambdas)
+  #:when (not (syntax-property this-syntax 'class-body))
+  #:when (not (identifier? #'header))
+  #:do [(define multiline-lambda-header-count
+          (count multiline-syntax? (attribute lambda-form.argument-lists)))]
+  #:when (< multiline-lambda-header-count 2)
+  #:when (oneline-syntax? #'header)
+  #:when (zero? multiline-lambda-header-count)
+  #:when (not (zero-argument-formals? (first (attribute lambda-form.argument-lists))))
   #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
   #:with (new-body ...)
   (build-function-body #'header (attribute lambda-form.argument-lists) (attribute lambda-form.body))
@@ -127,5 +142,6 @@
 
 
 (define-refactoring-suite function-definition-shortcuts
-  #:rules (define-lambda-to-define
+  #:rules (define-variable-lambda-to-define
+            define-function-lambda-to-define
             define-case-lambda-to-define))
