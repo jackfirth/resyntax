@@ -488,3 +488,170 @@ mind:
  @item{Refactoring rules should be @emph{self-contained}, meaning they can operate locally on a single
   expression. Refactoring rules that require whole-program analysis are not a good fit for Resyntax,
   nor are rules that require global knowledge of the whole codebase.}]
+
+
+@section{Testing Refactoring Rules}
+@defmodule[resyntax/test]
+
+
+Testing @tech{refactoring rules} is crucial to ensure they work correctly and safely. Resyntax provides
+a domain-specific testing language called @racketmodname[resyntax/test] that makes it easy to write
+comprehensive tests for refactoring rules. This language is designed specifically for testing code
+transformations and provides a clean, readable syntax for specifying before-and-after code examples.
+
+
+@subsection{Basic Test Structure}
+
+
+The basic structure of a test file is:
+
+@itemlist[#:style 'ordered
+ @item{Start with @racket[#,hash-lang[] resyntax/test]}
+ @item{Use @racket[require:] to import the refactoring suite to test}
+ @item{Use @racket[header:] to specify common code for all tests}  
+ @item{Use @racket[test:] to define individual test cases}]
+
+Here's an example:
+
+@codeblock[#:keep-lang-line? #false]|{
+require: module-name suite-name
+
+header:
+- #lang racket/base
+
+test: "description of what is being tested"
+------------------------------
+original code here  
+------------------------------
+------------------------------
+expected refactored code here
+------------------------------
+}|
+
+The main components are:
+
+@itemlist[
+ @item{@racket[require:] --- Imports a refactoring suite to test. The @racket[module-name] specifies
+  where the suite is defined, and @racket[suite-name] is the identifier of the suite.}
+
+ @item{@racket[header:] --- Specifies a code block that will be prepended to all test cases. This
+  typically contains @racket[@hash-lang[]] declarations and any necessary @racket[require] statements.}
+
+ @item{@racket[test:] --- Defines a test case with a description. Test cases can specify either code
+  that should be refactored or code that should not be refactored.}]
+
+
+@subsection{Test Case Types}
+
+
+There are two types of test cases you can write:
+
+@subsubsection{Positive Test Cases (Code That Should Be Refactored)}
+
+Positive test cases specify code that should be transformed by the refactoring rules. They consist of
+two code blocks separated by a line of dashes:
+
+@verbatim|{
+test: "lambda variable definition to function definition"
+------------------------------
+(define f
+  (λ (a b c)
+    1))
+------------------------------
+------------------------------
+(define (f a b c)
+  1)
+------------------------------
+}|
+
+@subsubsection{Negative Test Cases (Code That Should Not Be Refactored)}
+
+Negative test cases specify code that should be left unchanged by the refactoring rules. They consist
+of a single code block:
+
+@verbatim|{
+test: "class lambda variable definition not refactorable"
+------------------------------
+(require racket/class)
+(class object%
+  (define f
+    (λ (a b c)
+      1)))
+------------------------------
+}|
+
+
+@subsection{Test Options}
+
+
+Test cases can include options that modify how the test is executed:
+
+@subsubsection{Line Range Restrictions}
+
+The @racket[@lines] option restricts refactoring to specific line ranges, which is useful for testing
+that rules only affect the intended parts of multi-definition code:
+
+@verbatim|{
+test: "refactoring respects requested line range"
+@lines 2..3
+------------------------------
+(define (foo)
+  (define-values (a b c)
+    (values 1 2 3))
+  (+ a b c))
+(define (bar)
+  (define-values (x y z)
+    (values 4 5 6))
+  (+ x y z))
+------------------------------
+------------------------------
+(define (foo)
+  (define a 1)
+  (define b 2)
+  (define c 3)
+  (+ a b c))
+(define (bar)
+  (define-values (x y z)
+    (values 4 5 6))
+  (+ x y z))
+------------------------------
+}|
+
+Line ranges use the syntax @racket[start..end] where @racket[start] and @racket[end] are line numbers
+(starting from 1). Multiple ranges can be specified by separating them with commas.
+
+
+@subsection{Writing Effective Tests}
+
+
+When writing tests for refactoring rules, consider these guidelines:
+
+@itemlist[
+ @item{@emph{Test both positive and negative cases} --- Include tests for code that should be
+  refactored and code that should be left alone. This ensures your rules are neither too aggressive
+  nor too conservative.}
+
+ @item{@emph{Test edge cases} --- Include tests for unusual or borderline cases, such as nested
+  expressions, complex argument lists, or interactions with other language features.}
+
+ @item{@emph{Use descriptive test names} --- Test descriptions should clearly explain what is being
+  tested and why. This makes it easier to understand test failures and maintain the test suite.}
+
+ @item{@emph{Test formatting preservation} --- Include tests that verify your rules preserve code
+  formatting and comments appropriately. Resyntax aims to make minimal changes to code structure.}
+
+ @item{@emph{Test line range restrictions} --- If your rule might be applied to part of a file,
+  include tests with @racket[@lines] options to ensure it behaves correctly in that context.}]
+
+
+@subsection{Running Tests}
+
+
+Tests can be run using Racket's standard testing tools:
+
+@verbatim|{
+raco test my-rule-test.rkt
+}|
+
+This will execute all test cases in the file and report any failures. Test failures typically indicate
+that a refactoring rule is not behaving as expected and needs to be fixed.
