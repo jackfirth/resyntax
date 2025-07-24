@@ -214,6 +214,11 @@ test: "let with hash-ref! and hash-set! can be simplified to hash-update!"
 ------------------------------
 ------------------------------
 (define (f h term)
+  (let ([sum (hash-ref h (cadr term) (λ () 0))])
+    (hash-set! h (cadr term) (+ (car term) sum))))
+------------------------------
+------------------------------
+(define (f h term)
   (hash-update! h (cadr term) (λ (sum) (+ (car term) sum)) 0))
 ------------------------------
 
@@ -222,6 +227,11 @@ test: "let with hash-ref! and hash-set! works with different pure expressions"
 ------------------------------
 (define (f h lst)
   (let ([val (hash-ref! h (car lst) (λ () 1))])
+    (hash-set! h (car lst) (* 2 val))))
+------------------------------
+------------------------------
+(define (f h lst)
+  (let ([val (hash-ref h (car lst) (λ () 1))])
     (hash-set! h (car lst) (* 2 val))))
 ------------------------------
 ------------------------------
@@ -238,6 +248,11 @@ test: "let with hash-ref! and hash-set! works with literal keys"
 ------------------------------
 ------------------------------
 (define (f h x)
+  (let ([count (hash-ref h 'counter (λ () 0))])
+    (hash-set! h 'counter (+ x count))))
+------------------------------
+------------------------------
+(define (f h x)
   (hash-update! h 'counter (λ (count) (+ x count)) 0))
 ------------------------------
 
@@ -246,6 +261,11 @@ test: "let with hash-ref! preserves variable names in complex expressions"
 ------------------------------
 (define (f h term)
   (let ([result (hash-ref! h (cdr term) (λ () 42))])
+    (hash-set! h (cdr term) (+ (* 3 result) 5))))
+------------------------------
+------------------------------
+(define (f h term)
+  (let ([result (hash-ref h (cdr term) (λ () 42))])
     (hash-set! h (cdr term) (+ (* 3 result) 5))))
 ------------------------------
 ------------------------------
