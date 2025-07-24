@@ -149,11 +149,27 @@
      (λ () body-inside ...))))
 
 
+(define-definition-context-refactoring-rule manual-with-output-to-string-separated
+  #:description "This code is equivalent to a use of `with-output-to-string`."
+  #:literals (define open-output-string parameterize current-output-port get-output-string)
+  (~seq body-before ...
+        (define out:id (open-output-string))
+        (parameterize ([current-output-port out2:id])
+          body-inside ...)
+        (get-output-string out3:id))
+  #:when (free-identifier=? (attribute out) (attribute out2))
+  #:when (free-identifier=? (attribute out) (attribute out3))
+  (body-before ...
+   (with-output-to-string
+     (λ () body-inside ...))))
+
+
 (define-refactoring-suite string-shortcuts
   #:rules (display-and-newline-to-displayln
            display-newline-to-newline
            format-identity
            manual-string-join
            manual-with-output-to-string
+           manual-with-output-to-string-separated
            string-append-and-string-join-to-string-join
            string-append-identity))
