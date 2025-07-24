@@ -24,6 +24,7 @@
                resyntax/default-recommendations/list-shortcuts
                resyntax/default-recommendations/match-shortcuts
                resyntax/default-recommendations/miscellaneous-suggestions
+               resyntax/default-recommendations/mutability-predicates
                resyntax/default-recommendations/numeric-shortcuts
                resyntax/default-recommendations/require-and-provide-suggestions
                resyntax/default-recommendations/string-shortcuts
@@ -56,6 +57,7 @@
          resyntax/default-recommendations/list-shortcuts
          resyntax/default-recommendations/match-shortcuts
          resyntax/default-recommendations/miscellaneous-suggestions
+         resyntax/default-recommendations/mutability-predicates
          resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/require-and-provide-suggestions
          resyntax/default-recommendations/string-shortcuts
@@ -95,6 +97,7 @@
             list-shortcuts
             match-shortcuts
             miscellaneous-suggestions
+            mutability-predicates
             numeric-shortcuts
             require-and-provide-suggestions
             string-shortcuts
