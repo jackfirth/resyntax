@@ -4,6 +4,7 @@
 @(require (for-label racket/base
                      resyntax/base
                      resyntax/default-recommendations
+                     resyntax/test
                      syntax/parse
                      syntax/parse/define)
           scribble/bnf
@@ -65,7 +66,7 @@ To see a list of suggestions that Resyntax would apply, use @exec{resyntax analy
 Use the Racket package manager to install Resyntax in the installation scope:  
  
 @verbatim{
-% raco pkg install --installation resyntax
+ % raco pkg install --installation resyntax
 }
  
 The @exec{--installation} flag (shorthand for @exec{--scope installation}) installs packages for 
@@ -488,3 +489,154 @@ mind:
  @item{Refactoring rules should be @emph{self-contained}, meaning they can operate locally on a single
   expression. Refactoring rules that require whole-program analysis are not a good fit for Resyntax,
   nor are rules that require global knowledge of the whole codebase.}]
+
+
+@section{Testing Refactoring Rules}
+@defmodulelang[resyntax/test]
+
+
+The @racketmodname[resyntax/test] language provides a convenient domain-specific language for testing
+@tech{refactoring rules}. This language makes it easy to write comprehensive tests that verify
+refactoring rules work correctly across a variety of inputs, and that they properly handle edge cases
+without making unwanted transformations.
+
+@subsection{Basic Test Syntax}
+
+Tests are written using @racket[@#,hash-lang[] @#,racketmodname[resyntax/test]] and consist of a
+series of @deftech{test statements}. Each statement begins with a keyword followed by a colon, and
+the statement's body follows. Strings of code are written using @tech{code blocks}. Here's a simple
+example:
+
+@verbatim{
+ #lang resyntax/test
+  
+ require: my-rules my-suite
+  
+ header:
+ - #lang racket
+  
+ test: "my rule transforms code as expected"
+ - (old-pattern 1 2 3)
+ - (new-pattern 1 2 3)
+}
+
+
+@subsection{Code Blocks}
+
+A @deftech{code block} is a delimited section of Racket code used within @tech{test statements}.
+There are two types of code blocks:
+
+@itemlist[
+ @item{@deftech{Single-line code blocks} are preceded by a single dash and a space (@litchar{- }).}
+ @item{@deftech{Multi-line code blocks} are delimited by lines of at least three consecutive dashes
+  (@litchar{-----}).}]
+
+Code blocks are essentially string literals, and can contain code written in any language. For this
+reason, it's common for Resyntax tests to include a @racket[header:] test statement which specifies
+what @hash-lang[] each code block in that file is written in.
+
+
+@subsection{Test Statements}
+
+The @racketmodname[resyntax/test] language supports three types of @tech{test statements}:
+
+@itemlist[
+ @item{@racket[require:] statements for loading @tech{refactoring suites}}
+ @item{@racket[header:] statements for defining common code used in all tests}
+ @item{@racket[test:] statements for defining individual test cases}]
+
+
+@defform[#:kind "test statement" (require: module-path suite-name)]{
+ Loads the @tech{refactoring suite} named @racket[suite-name] from the module at
+ @racket[module-path]. The refactoring suite will be used in all tests defined in the surrounding
+ file. Multiple @racket[require:] statements can be used to test rules from multiple different suites.
+
+ @verbatim{
+  #lang resyntax/test
+
+  require: resyntax/default-recommendations list-shortcuts
+  require: my-custom-rules my-suite
+}}
+
+
+@defform[#:kind "test statement" (header: code-block)]{
+ Defines a @tech{code block} that will be prepended to every test case in the file. This is
+ useful for @racket[require] statements and other common setup code that all tests need.
+
+ @verbatim{
+  #lang resyntax/test
+
+  header:
+  --------------------
+  #lang racket/base
+  (require racket/list)
+  --------------------
+}}
+
+@defform[#:kind "test statement" (test: description-string test-body ...)]{
+ Defines a test case with the given @racket[description-string]. The @racket[test-body] consists of
+ one or more @tech{code blocks}. The number of code blocks determines what the test checks. If two
+ code blocks are provided, the test case checks that Resyntax refactors the first block into the
+ second:
+
+ @verbatim{
+  #lang resyntax/test
+
+  test: "should rewrite old function to new function"
+  --------------------
+  #lang racket
+  (old-function 1 2 3)
+  --------------------
+  --------------------
+  #lang racket
+  (new-function 1 2 3)
+  --------------------
+ }
+
+ If more than two code blocks are provided, the last code block is the desired code and the test case
+ checks that Resyntax refactors @emph{each} of the preceding code blocks into the desired code:
+
+ @verbatim{
+  #lang resyntax/test
+
+  test: "should remove old-condition from and expressions"
+  - (and old-condition x)
+  - (and x old-condition)
+  - (and old-condition x old-condition)
+  - x
+ }
+
+ When only a single code block is provided, the resulting test checks that Resyntax does @emph{not}
+ make any changes to the code block:
+
+ @verbatim{
+  #lang resyntax/test
+
+  test: "should not rewrite old function to new function in higher-order uses"
+  --------------------
+  #lang racket
+  (map old-function (list 1 2 3))
+  --------------------
+}}
+
+
+@subsection{Running Resyntax Tests}
+
+Tests written in @racketmodname[resyntax/test] are integrated with RackUnit and can be run using
+the standard @exec{raco test} command:
+
+@verbatim{
+ % raco test my-rule-test.rkt
+ raco test: (submod "my-rule-test.rkt" test)
+ 5 tests passed
+}
+
+Each @racket[test:] statement becomes a RackUnit test case, and the entire test file becomes a module
+with a single submodule named @racket[test]. Clicking the Run button in DrRacket will execute each
+test in the file. Just like in RackUnit, failing tests are highlighted by DrRacket and print failure
+messages.
+
+When executing tests, the @racketmodname[resyntax/test] language enables Resyntax's debug logging and
+captures all of its logs. Failing test cases include the captured Resyntax logs in their printed
+output. This output can be somewhat verbose, but it makes it much easier to tell why Resyntax did or
+didn't refactor code and how Resyntax came to produce a malformed suggestion.
