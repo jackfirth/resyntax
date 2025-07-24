@@ -7,7 +7,8 @@ require: resyntax/default-recommendations string-shortcuts
 header:
 ------------------------------
 #lang racket/base
-(require racket/string)
+(require racket/string
+         racket/port)
 ------------------------------
 
 
@@ -92,7 +93,6 @@ test: "format with only one argument can't be removed when formatting directives
 
 test: "manual with-output-to-string should be refactored to use with-output-to-string"
 ------------------------------
-#lang racket
 (define (f)
   (define os (open-output-string))
   (parameterize ([current-output-port os])
@@ -100,7 +100,6 @@ test: "manual with-output-to-string should be refactored to use with-output-to-s
     (get-output-string os)))
 ------------------------------
 ------------------------------
-#lang racket
 (define (f)
   (with-output-to-string (λ () (displayln "foo"))))
 ------------------------------
@@ -108,7 +107,6 @@ test: "manual with-output-to-string should be refactored to use with-output-to-s
 
 test: "manual with-output-to-string with get-output-string outside parameterize"
 ------------------------------
-#lang racket
 (define (f)
   (define out (open-output-string))
   (parameterize ([current-output-port out])
@@ -116,7 +114,6 @@ test: "manual with-output-to-string with get-output-string outside parameterize"
   (get-output-string out))
 ------------------------------
 ------------------------------
-#lang racket
 (define (f)
   (with-output-to-string (λ () (displayln "hello world"))))
 ------------------------------
@@ -124,7 +121,6 @@ test: "manual with-output-to-string with get-output-string outside parameterize"
 
 test: "manual with-output-to-string with multiple output operations"
 ------------------------------
-#lang racket
 (define (f)
   (define port (open-output-string))
   (parameterize ([current-output-port port])
@@ -134,7 +130,6 @@ test: "manual with-output-to-string with multiple output operations"
     (get-output-string port)))
 ------------------------------
 ------------------------------
-#lang racket
 (define (f)
   (with-output-to-string
     (λ ()
