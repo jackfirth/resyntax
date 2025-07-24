@@ -280,3 +280,96 @@ test: "nested and patterns not refactorable (yet)"
     [_ 'no-match]))
 ------------------------------
 
+
+test: "if in match clause can be extracted as when guard"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (if (> x y)
+         (list y x)
+         pt)]
+    [_ 'no-match]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (list y x)]
+    [(list x y) pt]
+    [_ 'no-match]))
+------------------------------
+
+
+test: "cond in match clause can be extracted as when guard"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (cond
+       [(> x y) (list y x)]
+       [else pt])]
+    [_ 'no-match]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (list y x)]
+    [(list x y) pt]
+    [_ 'no-match]))
+------------------------------
+
+
+test: "if with additional body forms before and after"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (displayln "before")
+     (if (> x y)
+         (list y x)
+         pt)
+     (displayln "after")]
+    [_ 'no-match]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (displayln "before")
+     (list y x)
+     (displayln "after")]
+    [(list x y)
+     (displayln "before")
+     pt
+     (displayln "after")]
+    [_ 'no-match]))
+------------------------------
+
+
+test: "single clause match with if not refactorable (would become match-define)"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (if (> x y)
+         (list y x)
+         pt)]))
+------------------------------
+
+
+test: "complex pattern with if not refactorable"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list a b c d e f g)
+     (if (> a b)
+         (list b a c d e f g)
+         pt)]
+    [_ 'no-match]))
+------------------------------
+

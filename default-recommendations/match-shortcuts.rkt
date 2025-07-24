@@ -191,7 +191,51 @@
     clause-after ...))
 
 
+(define-refactoring-rule conditional-in-match-to-when-guard
+  #:description "This conditional in a `match` clause can be extracted as a `#:when` guard."
+  #:literals (match if cond else)
+
+  (match subject:expr
+    clause-before ...
+    (~and clause-to-replace
+          [pattern option-or-body-before ... conditional option-or-body-after ...])
+    clause-after ...)
+
+  ; Must have multiple clauses to avoid converting to match-define
+  #:when (> (+ (length (attribute clause-before)) (length (attribute clause-after))) 0)
+
+  #:with (if condition then-expr else-expr)
+  (syntax-parse (attribute conditional)
+    #:literals (if cond else)
+    [(if condition:expr then-expr:expr else-expr:expr)
+     #'(if condition then-expr else-expr)]
+    [(cond [condition:expr then-expr:expr] [else else-expr:expr])
+     #'(if condition then-expr else-expr)]
+    [_ #false])
+
+  #:when (syntax? (attribute condition))
+
+  ; Only apply when the pattern is small (single identifier or simple list)
+  #:when (syntax-parse (attribute pattern)
+           [id:id #true]
+           [(list id:id ...)
+            #:when (<= (length (attribute id)) 4)
+            #true]
+           [(cons id1:id id2:id) #true]
+           [_ #false])
+
+  #:with new-clause-1 #'[pattern #:when condition option-or-body-before ... then-expr option-or-body-after ...]
+  #:with new-clause-2 #'[pattern option-or-body-before ... else-expr option-or-body-after ...]
+
+  (match subject
+    clause-before ...
+    (~replacement new-clause-1 #:original clause-to-replace)
+    new-clause-2
+    clause-after ...))
+
+
 (define-refactoring-suite match-shortcuts
   #:rules (predicate-pattern-with-lambda-to-when
            single-clause-match-to-match-define
-           unnecessary-root-level-and-pattern))
+           unnecessary-root-level-and-pattern
+           conditional-in-match-to-when-guard))
