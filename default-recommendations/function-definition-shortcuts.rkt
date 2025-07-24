@@ -84,24 +84,22 @@
 (define-refactoring-rule define-lambda-to-define
   #:description "The `define` form supports a shorthand for defining functions."
   #:literals (define)
-  (define header:id lambda-form:possibly-nested-lambdas)
+  (define id:id lambda-form:possibly-nested-lambdas)
   #:when (not (syntax-property this-syntax 'class-body))
   #:do [(define multiline-lambda-header-count
           (count multiline-syntax? (attribute lambda-form.argument-lists)))]
   #:when (< multiline-lambda-header-count 2)
-  #:when (oneline-syntax? #'header)
-  #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
+  #:with new-header (build-function-header #'id (attribute lambda-form.argument-lists))
   #:with (new-body ...)
-  (build-function-body #'header (attribute lambda-form.argument-lists) (attribute lambda-form.body))
+  (build-function-body #'id (attribute lambda-form.argument-lists) (attribute lambda-form.body))
   (define new-header new-body ...))
 
 
-(define-refactoring-rule define-function-lambda-to-curried-define
+(define-refactoring-rule define-lambda-to-curried-define
   #:description "Functions returning lambdas can be written using curried function syntax."
   #:literals (define)
-  (define header lambda-form:possibly-nested-lambdas)
+  (define (~and header (~not :id)) lambda-form:possibly-nested-lambdas)
   #:when (not (syntax-property this-syntax 'class-body))
-  #:when (not (identifier? #'header))
   #:do [(define multiline-lambda-header-count
           (count multiline-syntax? (attribute lambda-form.argument-lists)))]
   #:when (< multiline-lambda-header-count 2)
@@ -143,5 +141,5 @@
 
 (define-refactoring-suite function-definition-shortcuts
   #:rules (define-lambda-to-define
-            define-function-lambda-to-curried-define
+            define-lambda-to-curried-define
             define-case-lambda-to-define))
