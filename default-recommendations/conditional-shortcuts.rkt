@@ -241,9 +241,20 @@
         (~replacement [else else-expr.refactored ...] #:original else-expr)))
 
 
+(define-refactoring-rule and-let-to-cond
+  #:description
+  "Using `cond` allows converting `let` to internal definitions, reducing nesting"
+  #:literals (and cond)
+  (and condition let-expr:refactorable-let-expression)
+  #:when (not (empty? (attribute let-expr.id)))
+  (cond [condition let-expr.refactored ...]
+        [else #false]))
+
+
 (define-refactoring-suite conditional-shortcuts
   #:rules (always-throwing-cond-to-when
            always-throwing-if-to-when
+           and-let-to-cond
            cond-else-cond-to-cond
            cond-let-to-cond-define
            cond-void-to-when-or-unless
