@@ -488,3 +488,221 @@ mind:
  @item{Refactoring rules should be @emph{self-contained}, meaning they can operate locally on a single
   expression. Refactoring rules that require whole-program analysis are not a good fit for Resyntax,
   nor are rules that require global knowledge of the whole codebase.}]
+
+
+@section{Testing Refactoring Rules}
+@defmodule[resyntax/test]
+
+
+The @racketmodname[resyntax/test] language provides a convenient domain-specific language for testing
+@tech{refactoring rules}. This language makes it easy to write comprehensive tests that verify
+refactoring rules work correctly across a variety of inputs, and that they properly handle edge cases
+without making unwanted transformations.
+
+@subsection{Basic Test Syntax}
+
+Tests are written using @racket[@#,hash-lang[] @#,racketmodname[resyntax/test]] and consist of a
+series of @deftech{test statements}. Each statement begins with a keyword followed by a colon, and
+the statement's body follows. Here's a simple example:
+
+@(racketmod
+  #:file "my-rule-test.rkt"
+  resyntax/test
+  
+  (code:comment "Load the refactoring suite containing our rule")
+  require: my-rules my-suite
+  
+  (code:comment "Define common header code used by all tests")
+  header:
+  (code:comment "- #lang racket/base")
+  
+  (code:comment "Test that the rule works correctly")
+  test: "my rule transforms code as expected"
+  (code:comment "------------------------------")
+  (code:comment "(old-pattern 1 2 3)")
+  (code:comment "------------------------------")
+  (code:comment "------------------------------")
+  (code:comment "(new-pattern 1 2 3)")
+  (code:comment "------------------------------"))
+
+@subsection{Test Statements}
+
+The @racketmodname[resyntax/test] language supports three types of @tech{test statements}:
+
+@itemlist[
+ @item{@racket[require:] statements for loading @tech{refactoring suites}}
+ @item{@racket[header:] statements for defining common code used in all tests}
+ @item{@racket[test:] statements for defining individual test cases}]
+
+@defform[#:kind "statement" (require: module-path suite-name)]{
+ Loads the @tech{refactoring suite} named @racket[suite-name] from the module at
+ @racket[module-path]. All tests in the file will apply rules from this suite. Multiple
+ @racket[require:] statements can be used to combine rules from different suites.
+
+
+@verbatim{
+require: resyntax/default-recommendations list-shortcuts
+require: my-custom-rules my-suite
+}}
+
+@defform[#:kind "statement" (header: code-block)]{
+ Defines a @racket[code-block] that will be prepended to every test case in the file. This is
+ useful for @racket[require] statements or other common setup code that all tests need.
+
+@verbatim{
+header:
+- #lang racket/base
+- (require racket/list)
+}}
+
+@defform[#:kind "statement" (test: description test-body ...)]{
+ Defines a test case with the given @racket[description]. The @racket[test-body] consists of one or
+ more @tech{code blocks} that specify either code that should @emph{not} be refactored, or an
+ input-to-output transformation that should occur.}
+
+@subsection{Code Blocks}
+
+@deftech{Code blocks} are delimited sections of Racket code used within @tech{test statements}.
+There are two types of code blocks:
+
+@itemlist[
+ @item{@deftech{Single-line code blocks} are preceded by a single dash and a space (@litchar{- }).
+  These are typically used in @racket[header:] statements.}
+ @item{@deftech{Multi-line code blocks} are delimited by lines of at least three consecutive dashes
+  (@litchar{-----}). These are used in @racket[test:] statements to specify input and expected
+  output code.}]
+
+@subsection{Test Case Patterns}
+
+Test cases can follow several patterns depending on what behavior you want to verify:
+
+@subsubsection{Testing That Code Should Not Be Refactored}
+
+To test that certain code should @emph{not} be transformed by any rule in the loaded suites, use a
+single @tech{multi-line code block}:
+
+@(racketmod
+  #:file "negative-test-example.rkt"
+  resyntax/test
+  
+  require: resyntax/default-recommendations list-shortcuts
+  
+  test: "car of non-reversed list should not be refactored"
+  (code:comment "------------------------------")
+  (code:comment "(car (list 1 2 3))")
+  (code:comment "------------------------------"))
+
+@subsubsection{Testing Refactoring Transformations}
+
+To test that code @emph{should} be refactored in a specific way, use two @tech{multi-line code
+blocks}. The first block contains the input code, and the second contains the expected output after
+refactoring:
+
+@(racketmod
+  #:file "positive-test-example.rkt"
+  resyntax/test
+  
+  require: resyntax/default-recommendations list-shortcuts
+  
+  header:
+  (code:comment "- #lang racket/base")
+  (code:comment "- (require racket/list)")
+  
+  test: "first of reverse should become last"
+  (code:comment "------------------------------")
+  (code:comment "(first (reverse (list 1 2 3)))")
+  (code:comment "------------------------------")
+  (code:comment "------------------------------")
+  (code:comment "(last (list 1 2 3))")
+  (code:comment "------------------------------"))
+
+@subsubsection{Testing Multiple Inputs Against One Expected Output}
+
+Sometimes you want to test that multiple different input patterns all refactor to the same output.
+You can use multiple input @tech{code blocks} followed by a single expected output block:
+
+@(racketmod
+  #:file "multiple-input-example.rkt"
+  resyntax/test
+  
+  require: resyntax/default-recommendations list-shortcuts
+  
+  test: "various empty list comparisons should use null?"
+  (code:comment "------------------------------")
+  (code:comment "(eq? some-list '())")
+  (code:comment "------------------------------")
+  (code:comment "------------------------------")
+  (code:comment "(equal? some-list null)")
+  (code:comment "------------------------------")
+  (code:comment "------------------------------")
+  (code:comment "(eqv? some-list (list))")
+  (code:comment "------------------------------")
+  (code:comment "------------------------------")
+  (code:comment "(null? some-list)")
+  (code:comment "------------------------------"))
+
+@subsection{Line Masking}
+
+Sometimes you want to test refactoring behavior on only part of a larger code example. The
+@racket[@#,litchar{lines}] option allows you to focus a test on specific line ranges:
+
+@(racketmod
+  #:file "line-masking-example.rkt"
+  resyntax/test
+  
+  require: resyntax/default-recommendations definition-shortcuts
+  
+  test: "refactoring should only affect specified lines"
+  @"@"lines 2..3
+  (code:comment "------------------------------")
+  (code:comment "(define (foo)")
+  (code:comment "  (define-values (a b c)")
+  (code:comment "    (values 1 2 3))")
+  (code:comment "  (+ a b c))")
+  (code:comment "(define (bar)")
+  (code:comment "  (define-values (x y z)")
+  (code:comment "    (values 4 5 6))")
+  (code:comment "  (+ x y z))")
+  (code:comment "------------------------------")
+  (code:comment "------------------------------")
+  (code:comment "(define (foo)")
+  (code:comment "  (define a 1)")
+  (code:comment "  (define b 2)")
+  (code:comment "  (define c 3)")
+  (code:comment "  (+ a b c))")
+  (code:comment "(define (bar)")
+  (code:comment "  (define-values (x y z)")
+  (code:comment "    (values 4 5 6))")
+  (code:comment "  (+ x y z))")
+  (code:comment "------------------------------"))
+
+The @racket[@#,litchar{lines}] option accepts range specifications in the form
+@racket[start..end], where @racket[start] and @racket[end] are line numbers (starting from 1).
+Multiple ranges can be specified by separating them with commas, such as
+@racket[@#,litchar{lines} 1..3,7..9].
+
+@defproc[(line-range [first-line exact-nonnegative-integer?]
+                     [last-line exact-nonnegative-integer?])
+         range?]{
+ Creates a range representing lines from @racket[first-line] to @racket[last-line], inclusive.
+ This function is provided for programmatic construction of line ranges, though most users will
+ prefer the @racket[@#,litchar{lines}] syntax.}
+
+@defproc[(range-set [range range?] ...) range-set?]{
+ Creates a set of ranges. This function can be used in @racket[@#,litchar{lines}] options to
+ specify non-contiguous line ranges.}
+
+@subsection{Running Tests}
+
+Tests written in @racketmodname[resyntax/test] are integrated with RackUnit and can be run using
+the standard @exec{raco test} command:
+
+@verbatim{
+% raco test my-rule-test.rkt
+raco test: (submod "my-rule-test.rkt" test)
+5 tests passed
+}
+
+Each @racket[test:] statement becomes a RackUnit test case, and the entire test file can be run as
+part of a larger test suite. This makes it easy to integrate refactoring rule tests into your
+project's continuous integration system.
