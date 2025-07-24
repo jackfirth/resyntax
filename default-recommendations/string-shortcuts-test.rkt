@@ -88,3 +88,57 @@ test: "format with only one argument can be removed"
 
 test: "format with only one argument can't be removed when formatting directives are present"
 - (format "hello ~a")
+
+
+test: "manual with-output-to-string should be refactored to use with-output-to-string"
+------------------------------
+#lang racket
+(define (f)
+  (define os (open-output-string))
+  (parameterize ([current-output-port os])
+    (displayln "foo")
+    (get-output-string os)))
+------------------------------
+------------------------------
+#lang racket
+(define (f)
+  (with-output-to-string (λ () (displayln "foo"))))
+------------------------------
+
+
+test: "manual with-output-to-string with get-output-string outside parameterize"
+------------------------------
+#lang racket
+(define (f)
+  (define out (open-output-string))
+  (parameterize ([current-output-port out])
+    (displayln "hello world"))
+  (get-output-string out))
+------------------------------
+------------------------------
+#lang racket
+(define (f)
+  (with-output-to-string (λ () (displayln "hello world"))))
+------------------------------
+
+
+test: "manual with-output-to-string with multiple output operations"
+------------------------------
+#lang racket
+(define (f)
+  (define port (open-output-string))
+  (parameterize ([current-output-port port])
+    (display "Hello")
+    (display " ")
+    (display "world")
+    (get-output-string port)))
+------------------------------
+------------------------------
+#lang racket
+(define (f)
+  (with-output-to-string
+    (λ ()
+      (display "Hello")
+      (display " ")
+      (display "world"))))
+------------------------------
