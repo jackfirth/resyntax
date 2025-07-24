@@ -131,9 +131,8 @@ test: "manual with-output-to-string with multiple output operations"
 ------------------------------
 ------------------------------
 (define (f)
-  (with-output-to-string
-    (λ ()
-      (display "Hello")
-      (display " ")
-      (display "world"))))
+  (with-output-to-string (λ ()
+                           (display "Hello")
+                           (display " ")
+                           (display "world"))))
 ------------------------------
