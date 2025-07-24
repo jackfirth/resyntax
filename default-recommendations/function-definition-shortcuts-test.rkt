@@ -293,3 +293,57 @@ test: "case-lambda with default arg and body form with interior comments"
     ;;comment
     1))
 ------------------------------
+
+
+test: "empty-checked rest args to optional arg"
+------------------------------
+(require racket/list)
+(define (foo a b . x*)
+  (define x (if (null? x*) "default" (car x*)))
+  (+ a b (string-length x)))
+------------------------------
+------------------------------
+(require racket/list)
+(define (foo a b . x*)
+  (define x (if (empty? x*) "default" (car x*)))
+  (+ a b (string-length x)))
+------------------------------
+------------------------------
+(require racket/list)
+(define (foo a b . x*)
+  (define x (if (null? x*) "default" (first x*)))
+  (+ a b (string-length x)))
+------------------------------
+------------------------------
+(require racket/list)
+(define (foo a b . x*)
+  (define x (if (empty? x*) "default" (first x*)))
+  (+ a b (string-length x)))
+------------------------------
+------------------------------
+(require racket/list)
+(define (foo a b [x "default"])
+  (+ a b (string-length x)))
+------------------------------
+
+
+test: "empty-checked rest args not refactorable to optional arg when default expression is multiline"
+------------------------------
+(define (foo a b . x*)
+  (define x
+    (if (null? x*) 
+        (λ ()
+          (displayln "foo")
+          "default")
+        (car x*)))
+  (+ a b (string-length (x))))
+------------------------------
+
+
+test: "empty-checked rest args not refactorable to optional arg when rest args used elsewhere"
+------------------------------
+(define (foo a b . x*)
+  (define x (if (null? x*) "default" (car x*)))
+  (displayln x*)
+  (+ a b (string-length x)))
+------------------------------

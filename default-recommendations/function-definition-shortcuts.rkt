@@ -15,6 +15,7 @@
          resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/syntax-lines
+         resyntax/private/logger
          syntax/parse)
 
 
