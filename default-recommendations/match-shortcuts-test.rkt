@@ -198,3 +198,68 @@ test: "match patterns using ? with a commented lambda can be simplified with #:w
 (foo 100)
 ------------------------------
 
+
+test: "match patterns with if conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (if (> x y)
+         (list y x)
+         pt)]
+    [(list) '()]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (list y x)]
+    [(list x y) pt]
+    [(list) '()]))
+------------------------------
+
+
+test: "match patterns with cond conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (cond
+       [(> x y) (list y x)]
+       [else pt])]
+    [(list) '()]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (list y x)]
+    [(list x y) pt]
+    [(list) '()]))
+------------------------------
+
+
+test: "single-clause match with if conditional should not be refactored"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (if (> x y)
+         (list y x)
+         pt)]))
+------------------------------
+
+
+test: "match patterns with complex nested patterns should not be refactored"
+------------------------------
+(define (f data)
+  (match data
+    [(list (list (list x y) z) w)
+     (if (> x y)
+         (list y x)
+         data)]
+    [_ 'no-match]))
+------------------------------
+

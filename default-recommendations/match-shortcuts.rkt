@@ -156,6 +156,45 @@
     clause-after ...))
 
 
+(define-syntax-class simple-pattern
+  #:description "simple match pattern"
+  #:attributes ()
+  (pattern id:id)
+  (pattern (~or null (quote ()) '()))
+  (pattern (list id:id ...))
+  (pattern (cons head:id tail:id))
+  (pattern literal:number)
+  (pattern literal:string)
+  (pattern literal:boolean))
+
+
+(define-syntax-class conditional-body
+  #:description "conditional expression in match clause body"
+  #:attributes (condition then-expr else-expr)
+  #:literals (if cond else)
+  
+  (pattern (if condition then-expr else-expr))
+  
+  (pattern (cond [condition then-expr] [else else-expr])))
+
+
+(define-refactoring-rule match-conditional-to-when
+  #:description "This conditional in a `match` clause can be simplified using `#:when`."
+  #:literals (match)
+
+  (match subject
+    clause-before ...
+    (~and [pattern:simple-pattern conditional:conditional-body] clause-to-replace)
+    clause-after ...+)
+
+  (match subject
+    clause-before ...
+    [pattern #:when conditional.condition conditional.then-expr]
+    [pattern conditional.else-expr]
+    clause-after ...))
+
+
 (define-refactoring-suite match-shortcuts
-  #:rules (predicate-pattern-with-lambda-to-when
+  #:rules (match-conditional-to-when
+           predicate-pattern-with-lambda-to-when
            single-clause-match-to-match-define))
