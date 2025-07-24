@@ -7,11 +7,8 @@ require: resyntax/default-recommendations mutability-predicates
 header:
 ------------------------------
 #lang racket/base
-(require racket/contract/base)
-(define (immutable-hash? x) (and (hash? x) (immutable? x)))
-(define (immutable-string? x) (and (string? x) (immutable? x)))
-(define (immutable-bytes? x) (and (bytes? x) (immutable? x)))
-(define (immutable-vector? x) (and (vector? x) (immutable? x)))
+(require racket/contract/base
+         racket/mutability)
 ------------------------------
 
 
@@ -37,5 +34,41 @@ test: "vector? and immutable? can be refactored to immutable-vector?"
 - (void (and/c vector? immutable?))
 - (void (and/c immutable? vector?))
 - (void immutable-vector?)
+
+
+test: "box? and immutable? can be refactored to immutable-box?"
+- (void (and/c box? immutable?))
+- (void (and/c immutable? box?))
+- (void immutable-box?)
+
+
+test: "hash? and (not/c immutable?) can be refactored to mutable-hash?"
+- (void (and/c hash? (not/c immutable?)))
+- (void (and/c (not/c immutable?) hash?))
+- (void mutable-hash?)
+
+
+test: "string? and (not/c immutable?) can be refactored to mutable-string?"
+- (void (and/c string? (not/c immutable?)))
+- (void (and/c (not/c immutable?) string?))
+- (void mutable-string?)
+
+
+test: "bytes? and (not/c immutable?) can be refactored to mutable-bytes?"
+- (void (and/c bytes? (not/c immutable?)))
+- (void (and/c (not/c immutable?) bytes?))
+- (void mutable-bytes?)
+
+
+test: "vector? and (not/c immutable?) can be refactored to mutable-vector?"
+- (void (and/c vector? (not/c immutable?)))
+- (void (and/c (not/c immutable?) vector?))
+- (void mutable-vector?)
+
+
+test: "box? and (not/c immutable?) can be refactored to mutable-box?"
+- (void (and/c box? (not/c immutable?)))
+- (void (and/c (not/c immutable?) box?))
+- (void mutable-box?)
 
 
