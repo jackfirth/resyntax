@@ -1,3 +1,14 @@
 compiled/
 doc/
 *~
+# These only come up if you generate the scribble docs manually, instead of
+# through `raco setup`. But we exclude them anyway to help newcomers (and
+# Copilot) avoid accidentally committing rendered documentation files.
+main.html
+manual-fonts.css
+manual-racket.css
+manual-racket.js
+manual-style.css
+racket.css
+scribble-common.js
+scribble.css
