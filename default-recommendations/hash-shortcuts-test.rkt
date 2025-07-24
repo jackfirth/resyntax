@@ -204,3 +204,15 @@ test: "hash-map with value-returning lamda can be refactored to hash-values"
 (define h (make-hash))
 (hash-values h)
 ------------------------------
+
+
+test: "let with hash-ref! and hash-set! can be simplified to hash-update!"
+------------------------------
+(define (f h term)
+  (let ([sum (hash-ref! h (cadr term) (λ () 0))])
+    (hash-set! h (cadr term) (+ (car term) sum))))
+------------------------------
+------------------------------
+(define (f h term)
+  (hash-update! h (cadr term) (λ (sum) (+ (car term) sum)) 0))
+------------------------------
