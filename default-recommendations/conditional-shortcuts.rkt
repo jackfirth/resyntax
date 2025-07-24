@@ -246,7 +246,8 @@
   "Using `cond` allows converting `let` to internal definitions, reducing nesting"
   #:literals (and cond)
   (and condition let-expr:refactorable-let-expression)
-  (cond [condition (~@ . (~focus-replacement-on (let-expr.refactored ...)))]
+  #:when (not (empty? (attribute let-expr.id)))
+  (cond [condition let-expr.refactored ...]
         [else #false]))
 
 

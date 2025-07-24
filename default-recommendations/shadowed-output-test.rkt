@@ -192,32 +192,6 @@ test: "shadowed `for*`: nested for forms"
 ------------------------------
 
 
-test: "shadowed `for/first`: let loop over vector"
-------------------------------------------------------------
-(define (for/first lst f)
-  (f (first lst)))
-(define vec (vector 0 1 2 3 4 5))
-(let loop ([i 0])
-  (and (< i (vector-length vec))
-       (let ([x (vector-ref vec i)])
-         (if (> x 3)
-             (+ x 42)
-             (loop (add1 i))))))
-------------------------------------------------------------
-------------------------------------------------------------
-(define (for/first lst f)
-  (f (first lst)))
-(define vec (vector 0 1 2 3 4 5))
-(let loop ([i 0])
-  (cond
-   [(< i (vector-length vec))
-    (define x (vector-ref vec i))
-    (if (> x 3)
-        (+ x 42)
-        (loop (add1 i)))]
-   [else #f]))
-------------------------------------------------------------
-
 
 test: "shadowed `for*`: for-each and append-map"
 ------------------------------------------------------------

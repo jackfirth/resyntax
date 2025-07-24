@@ -1013,6 +1013,26 @@ test: "and with let can be refactored to cond with define"
 ------------------------------
 ------------------------------
 (cond
- ['some-condition (define x 42) (* x 2)]
- [else #f])
+  ['some-condition
+   (define x 42)
+   (* x 2)]
+  [else #f])
+------------------------------
+
+
+test: "and without let should not be refactored"
+------------------------------
+(and 'some-condition (* 42 2))
+------------------------------
+
+
+test: "and with empty let should not be refactored"
+------------------------------
+(and 'some-condition (let () (* 42 2)))
+------------------------------
+
+
+test: "and with more than two arguments should not be refactored"
+------------------------------
+(and 'some-condition 'another-condition (let ([x 42]) (* x 2)))
 ------------------------------
