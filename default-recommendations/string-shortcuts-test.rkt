@@ -7,7 +7,8 @@ require: resyntax/default-recommendations string-shortcuts
 header:
 ------------------------------
 #lang racket/base
-(require racket/string)
+(require racket/string
+         racket/port)
 ------------------------------
 
 
@@ -88,3 +89,50 @@ test: "format with only one argument can be removed"
 
 test: "format with only one argument can't be removed when formatting directives are present"
 - (format "hello ~a")
+
+
+test: "manual with-output-to-string should be refactored to use with-output-to-string"
+------------------------------
+(define (f)
+  (define os (open-output-string))
+  (parameterize ([current-output-port os])
+    (displayln "foo")
+    (get-output-string os)))
+------------------------------
+------------------------------
+(define (f)
+  (with-output-to-string (λ () (displayln "foo"))))
+------------------------------
+
+
+test: "manual with-output-to-string with get-output-string outside parameterize"
+------------------------------
+(define (f)
+  (define out (open-output-string))
+  (parameterize ([current-output-port out])
+    (displayln "hello world"))
+  (get-output-string out))
+------------------------------
+------------------------------
+(define (f)
+  (with-output-to-string (λ () (displayln "hello world"))))
+------------------------------
+
+
+test: "manual with-output-to-string with multiple output operations"
+------------------------------
+(define (f)
+  (define port (open-output-string))
+  (parameterize ([current-output-port port])
+    (display "Hello")
+    (display " ")
+    (display "world")
+    (get-output-string port)))
+------------------------------
+------------------------------
+(define (f)
+  (with-output-to-string (λ ()
+                           (display "Hello")
+                           (display " ")
+                           (display "world"))))
+------------------------------
