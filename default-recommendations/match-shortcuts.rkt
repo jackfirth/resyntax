@@ -156,6 +156,42 @@
     clause-after ...))
 
 
+(define-refactoring-rule unnecessary-root-level-and-pattern
+  #:description "This `and` pattern is unnecessary when matching on a simple variable."
+  #:literals (match and)
+
+  (match subject:id
+    clause-before ...
+    (~and [match-pattern:expr option-or-body ...] clause-to-replace)
+    clause-after ...)
+
+  #:with (and variable-identifier other-pattern)
+  (syntax-parse (attribute match-pattern)
+    #:literals (and)
+    [(and variable-identifier:id other-pattern) 
+     #'(and variable-identifier other-pattern)]
+    [_ #false])
+
+  #:when (syntax? (attribute variable-identifier))
+
+  #:with new-pattern (attribute other-pattern)
+
+  #:with (new-option-or-body ...)
+  (for/list ([option-or-body-stx (in-list (attribute option-or-body))])
+    (syntax-traverse option-or-body-stx
+      [id:id
+       #:when (free-identifier=? (attribute id) (attribute variable-identifier))
+       (attribute subject)]))
+
+  #:with new-clause #'[new-pattern new-option-or-body ...]
+
+  (match subject
+    clause-before ...
+    (~replacement new-clause #:original clause-to-replace)
+    clause-after ...))
+
+
 (define-refactoring-suite match-shortcuts
   #:rules (predicate-pattern-with-lambda-to-when
-           single-clause-match-to-match-define))
+           single-clause-match-to-match-define
+           unnecessary-root-level-and-pattern))

@@ -198,3 +198,85 @@ test: "match patterns using ? with a commented lambda can be simplified with #:w
 (foo 100)
 ------------------------------
 
+
+test: "root-level and pattern can be removed when matching on a variable"
+------------------------------
+(define (f xs)
+  (match xs
+    [(and foo (list x y ...))
+     (cons x (reverse foo))]
+    [_ 'no-match]))
+------------------------------
+------------------------------
+(define (f xs)
+  (match xs
+    [(list x y ...)
+     (cons x (reverse xs))]
+    [_ 'no-match]))
+------------------------------
+
+
+test: "and pattern removal works with multiple clauses"
+------------------------------
+(define (f xs)
+  (match xs
+    [(and items (list x y ...))
+     (cons x (reverse items))]
+    [(and value (list x))
+     (list value x)]
+    [_ 'no-match]))
+------------------------------
+------------------------------
+(define (f xs)
+  (match xs
+    [(list x y ...)
+     (cons x (reverse xs))]
+    [(list x)
+     (list xs x)]
+    [_ 'no-match]))
+------------------------------
+
+
+test: "and pattern removal preserves other and patterns"
+------------------------------
+(define (f xs ys)
+  (match xs
+    [(and foo (list x y ...))
+     (match ys
+       [(and (list a b) (cons c d))
+        (list foo a b c d)]
+       [_ 'no-inner-match])]
+    [_ 'no-match]))
+------------------------------
+------------------------------
+(define (f xs ys)
+  (match xs
+    [(list x y ...)
+     (match ys
+       [(and (list a b) (cons c d))
+        (list xs a b c d)]
+       [_ 'no-inner-match])]
+    [_ 'no-match]))
+------------------------------
+
+
+test: "and pattern with complex expression not refactorable"
+------------------------------
+(define (complex-expression) '(1 2 3))
+(define (f)
+  (match (complex-expression)
+    [(and foo (list x y ...))
+     (cons x (reverse foo))]
+    [_ 'no-match]))
+------------------------------
+
+
+test: "nested and patterns not refactorable (yet)"
+------------------------------
+(define (f xs)
+  (match xs
+    [(list (and item x) y ...)
+     (cons item (reverse xs))]
+    [_ 'no-match]))
+------------------------------
+
