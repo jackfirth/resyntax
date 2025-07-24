@@ -25,6 +25,14 @@
 
 ;@----------------------------------------------------------------------------------------------------
 
+(define (substitute-identifier datum old-sym new-sym)
+  (cond
+    [(eq? datum old-sym) new-sym]
+    [(list? datum) (map (lambda (x) (substitute-identifier x old-sym new-sym)) datum)]
+    [else datum]))
+
+;@----------------------------------------------------------------------------------------------------
+
 
 (define-refactoring-rule hash-ref-with-constant-lambda-to-hash-ref-without-lambda
   #:description "The lambda can be removed from the failure result in this `hash-ref` expression."
@@ -115,18 +123,22 @@
   (hash-update! h1 k1 updater (~? failure-result)))
 
 
-(define-refactoring-rule let-hash-ref!-set!-to-hash-update!
+(define-refactoring-rule let-hash-ref-set!-to-hash-update!
   #:description
   "This expression can be replaced with a simpler, equivalent `hash-update!` expression."
-  #:literals (let hash-ref! hash-set!)
-  (let ([v1:id (hash-ref! h1:id k1:pure-expression failure-result:literal-constant)])
+  #:literals (let hash-ref hash-ref! hash-set!)
+  (let ([v1:id (~or (hash-ref h1:id k1:pure-expression failure-result)
+                    (hash-ref! h1:id k1:pure-expression failure-result))])
     (hash-set! h2:id k2:pure-expression update-expr:expr))
   #:when (free-identifier=? #'h1 #'h2)
   #:when (syntax-free-identifier=? #'k1 #'k2)
   #:when (let ([var-uses (for/list ([id (in-syntax-identifiers #'update-expr)])
                            (and (free-identifier=? id #'v1) id))])
            (not (empty? (remove #false var-uses))))
-  (hash-update! h1 k1 (λ (v1) update-expr) failure-result))
+  #:with simplified-failure-result (syntax-parse #'failure-result
+                                     [(_:lambda-by-any-name () v:literal-constant) #'v]
+                                     [other #'other])
+  (hash-update! h1 k1 (λ (v1) update-expr) simplified-failure-result))
 
 
 (define-refactoring-rule hash-map-to-hash-keys
@@ -150,7 +162,7 @@
            hash-map-to-hash-values
            hash-ref-set!-to-hash-ref!
            hash-ref-set!-with-constant-to-hash-ref!
-           let-hash-ref!-set!-to-hash-update!
+           let-hash-ref-set!-to-hash-update!
            hash-ref-with-constant-lambda-to-hash-ref-without-lambda
            hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
            hash-set!-ref-to-hash-update!
