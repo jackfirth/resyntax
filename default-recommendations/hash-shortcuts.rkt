@@ -119,21 +119,14 @@
   #:description
   "This expression can be replaced with a simpler, equivalent `hash-update!` expression."
   #:literals (let hash-ref! hash-set!)
-  (let ([v1:id (hash-ref! h1:id k1:pure-expression failure-result)])
-    (hash-set! h2:id k2:pure-expression 
-               (f:id arg-before:expr ... v2:id arg-after:expr ...)))
+  (let ([v1:id (hash-ref! h1:id k1:pure-expression failure-result:literal-constant)])
+    (hash-set! h2:id k2:pure-expression update-expr:expr))
   #:when (free-identifier=? #'h1 #'h2)
   #:when (syntax-free-identifier=? #'k1 #'k2)
-  #:when (free-identifier=? #'v1 #'v2)
-  #:with updater
-  (if (and (empty? (attribute arg-before)) (empty? (attribute arg-after)))
-      #'f
-      #`(λ (#,#'v1) (f arg-before ... #,#'v1 arg-after ...)))
-  #:with final-failure-result
-  (syntax-parse #'failure-result
-    [(_:lambda-by-any-name () v:literal-constant) #'v]
-    [other #'other])
-  (hash-update! h1 k1 updater final-failure-result))
+  #:when (let ([var-uses (for/list ([id (in-syntax-identifiers #'update-expr)])
+                           (and (free-identifier=? id #'v1) id))])
+           (not (empty? (remove #false var-uses))))
+  (hash-update! h1 k1 (λ (v1) update-expr) failure-result))
 
 
 (define-refactoring-rule hash-map-to-hash-keys
@@ -159,6 +152,6 @@
            hash-ref-set!-with-constant-to-hash-ref!
            let-hash-ref!-set!-to-hash-update!
            hash-ref-with-constant-lambda-to-hash-ref-without-lambda
-           ;; Temporarily disabled: hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
+           hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
            hash-set!-ref-to-hash-update!
            or-hash-ref-set!-to-hash-ref!))
