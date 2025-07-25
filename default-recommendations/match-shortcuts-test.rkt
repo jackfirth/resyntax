@@ -171,6 +171,7 @@ test: "match patterns using ? with a lambda cannot be simplified when under elli
     [_ 'no-match]))
 ------------------------------
 
+
 test: "match patterns using ? with a commented lambda can be simplified with #:when clauses"
 ------------------------------
 (define (foo x)
@@ -198,3 +199,102 @@ test: "match patterns using ? with a commented lambda can be simplified with #:w
 (foo 100)
 ------------------------------
 
+
+test: "match patterns with if conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (if (> x y)
+         (list y x)
+         pt)]
+    [(list) '()]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (list y x)]
+    [(list x y) pt]
+    [(list) '()]))
+------------------------------
+
+
+test: "match patterns with cond conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (cond
+       [(> x y) (list y x)]
+       [else pt])]
+    [(list) '()]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (list y x)]
+    [(list x y) pt]
+    [(list) '()]))
+------------------------------
+
+
+test: "match patterns with multi-body cond conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (cond
+       [(> x y)
+        (displayln "true case")
+        (list y x)]
+       [else
+        (displayln "false case")
+        pt])]
+    [(list) '()]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (displayln "true case")
+     (list y x)]
+    [(list x y)
+     (displayln "false case")
+     pt]
+    [(list) '()]))
+------------------------------
+
+
+test: "single-clause match with if conditional should be refactored to match-define instead of #:when"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (if (> x y)
+         (list y x)
+         pt)]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match-define (list x y) pt)
+  (if (> x y)
+      (list y x)
+      pt))
+------------------------------
+
+
+test: "match with if conditional and long pattern should not be refactored to use #:when"
+------------------------------
+(define (f data)
+  (match data
+    [(list x y _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _)
+     (if (> x y)
+         (list y x)
+         data)]
+    [_ 'no-match]))
+------------------------------
