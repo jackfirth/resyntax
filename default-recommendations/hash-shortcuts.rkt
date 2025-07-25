@@ -25,14 +25,6 @@
 
 ;@----------------------------------------------------------------------------------------------------
 
-(define (substitute-identifier datum old-sym new-sym)
-  (cond
-    [(eq? datum old-sym) new-sym]
-    [(list? datum) (map (lambda (x) (substitute-identifier x old-sym new-sym)) datum)]
-    [else datum]))
-
-;@----------------------------------------------------------------------------------------------------
-
 
 (define-refactoring-rule hash-ref-with-constant-lambda-to-hash-ref-without-lambda
   #:description "The lambda can be removed from the failure result in this `hash-ref` expression."
@@ -127,18 +119,28 @@
   #:description
   "This expression can be replaced with a simpler, equivalent `hash-update!` expression."
   #:literals (let hash-ref hash-ref! hash-set!)
-  (let ([v1:id (~or (hash-ref h1:id k1:pure-expression failure-result)
-                    (hash-ref! h1:id k1:pure-expression failure-result))])
+  (let ([v:id ((~or hash-ref hash-ref!) h1:id k1:pure-expression (~optional failure-result))])
     (hash-set! h2:id k2:pure-expression update-expr:expr))
   #:when (free-identifier=? #'h1 #'h2)
   #:when (syntax-free-identifier=? #'k1 #'k2)
-  #:when (let ([var-uses (for/list ([id (in-syntax-identifiers #'update-expr)])
-                           (and (free-identifier=? id #'v1) id))])
-           (not (empty? (remove #false var-uses))))
-  #:with simplified-failure-result (syntax-parse #'failure-result
-                                     [(_:lambda-by-any-name () v:literal-constant) #'v]
-                                     [other #'other])
-  (hash-update! h1 k1 (λ (v1) update-expr) simplified-failure-result))
+  (hash-update! h1 k1 (λ (v) update-expr) (~? failure-result)))
+
+
+(define-definition-context-refactoring-rule define-hash-ref-set!-to-hash-update!
+  #:description
+  "These expression can be replaced with a simpler, equivalent `hash-update!` expression."
+  #:literals (define hash-ref hash-ref! hash-set!)
+  (~seq body-before ...
+        (~and orig-definition
+              (define v:id
+                ((~or hash-ref hash-ref!) h1:id k1:pure-expression (~optional failure-result))))
+        (~and orig-hash-set! (hash-set! h2:id k2:pure-expression update-expr)))
+  #:when (free-identifier=? #'h1 #'h2)
+  #:when (syntax-free-identifier=? #'k1 #'k2)
+  (body-before ...
+   (~focus-replacement-on
+    (~replacement (hash-update! h1 k1 (λ (v) update-expr) (~? failure-result))
+                  #:original-splice (orig-definition orig-hash-set!)))))
 
 
 (define-refactoring-rule hash-map-to-hash-keys
@@ -158,7 +160,8 @@
 
 
 (define-refactoring-suite hash-shortcuts
-  #:rules (hash-map-to-hash-keys
+  #:rules (define-hash-ref-set!-to-hash-update!
+            hash-map-to-hash-keys
            hash-map-to-hash-values
            hash-ref-set!-to-hash-ref!
            hash-ref-set!-with-constant-to-hash-ref!
