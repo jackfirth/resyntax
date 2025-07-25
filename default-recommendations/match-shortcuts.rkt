@@ -157,6 +157,29 @@
     clause-after ...))
 
 
+(define-refactoring-rule remove-unnecessary-root-and-pattern
+  #:description
+  "This `match` expression has an unnecessary root-level `and` pattern that can be simplified."
+  #:literals (match and)
+
+  (match subject-var:id
+    clause-before ...
+    [(and bound-id:id inner-pattern) body-part ...]
+    clause-after ...)
+
+  #:with (modified-body ...)
+  (for/list ([part (in-list (attribute body-part))])
+    (syntax-traverse part
+      [id:id
+       #:when (free-identifier=? (attribute id) (attribute bound-id))
+       (attribute subject-var)]))
+
+  (match subject-var
+    clause-before ...
+    [inner-pattern modified-body ...]
+    clause-after ...))
+
+
 (define-syntax-class conditional-body
   #:description "conditional expression in match clause body"
   #:attributes (condition [then-expr 1] [else-expr 1])
@@ -195,4 +218,5 @@
 (define-refactoring-suite match-shortcuts
   #:rules (match-conditional-to-when
            predicate-pattern-with-lambda-to-when
+           remove-unnecessary-root-and-pattern
            single-clause-match-to-match-define))

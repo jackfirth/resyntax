@@ -200,6 +200,45 @@ test: "match patterns using ? with a commented lambda can be simplified with #:w
 ------------------------------
 
 
+test: "root-level and pattern can be removed when matching on a variable"
+------------------------------
+(define (f xs)
+  (match xs
+    [(and foo (list x y ...)) (cons x (reverse foo))]
+    [(list) (list)]))
+------------------------------
+------------------------------
+(define (f xs)
+  (match xs
+    [(list x y ...) (cons x (reverse xs))]
+    [(list) (list)]))
+------------------------------
+
+
+test: "root-level and pattern can be removed when it binds unused variable"
+------------------------------
+(define (f xs)
+  (match xs
+    [(and foo (list x y ...)) (cons x y)]
+    [(list) (list)]))
+------------------------------
+------------------------------
+(define (f xs)
+  (match xs
+    [(list x y ...) (cons x y)]
+    [(list) (list)]))
+------------------------------
+
+
+test: "root-level and pattern not removed when not matching on a simple variable"
+------------------------------
+(define (f lst)
+  (match (car lst)
+    [(and foo (list x y ...)) (cons x (reverse foo))]
+    [(list) (list)]))
+------------------------------
+
+
 test: "match patterns with if conditionals can be simplified using #:when clauses"
 ------------------------------
 (define (f pt)
