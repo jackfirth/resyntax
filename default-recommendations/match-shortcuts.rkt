@@ -156,30 +156,30 @@
     clause-after ...))
 
 
-(define-refactoring-rule debug-and-pattern
-  #:description "Debug and pattern"
-  #:literals (and)
-
-  (and bound-id:id inner-pattern)
-
-  inner-pattern)
-
-
 (define-refactoring-rule remove-unnecessary-root-and-pattern
-  #:description "This `match` expression has an unnecessary root-level `and` pattern that can be simplified."
+  #:description
+  "This `match` expression has an unnecessary root-level `and` pattern that can be simplified."
   #:literals (match and)
 
   (match subject-var:id
+    clause-before ...
     [(and bound-id:id inner-pattern) body-part ...]
-    other-clauses ...)
+    clause-after ...)
+
+  #:with (modified-body ...)
+  (for/list ([part (in-list (attribute body-part))])
+    (syntax-traverse part
+      [id:id
+       #:when (free-identifier=? (attribute id) (attribute bound-id))
+       (attribute subject-var)]))
 
   (match subject-var
-    [inner-pattern body-part ...]
-    other-clauses ...))
+    clause-before ...
+    [inner-pattern modified-body ...]
+    clause-after ...))
 
 
 (define-refactoring-suite match-shortcuts
-  #:rules (debug-and-pattern
-           remove-unnecessary-root-and-pattern
+  #:rules (remove-unnecessary-root-and-pattern
            predicate-pattern-with-lambda-to-when
            single-clause-match-to-match-define))

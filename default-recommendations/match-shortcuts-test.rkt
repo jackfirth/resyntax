@@ -203,44 +203,29 @@ test: "root-level and pattern can be removed when matching on a variable"
 ------------------------------
 (define (f xs)
   (match xs
-    [(and foo (list x y ...))
-     (cons x (reverse foo))]))
+    [(and foo (list x y ...)) (cons x (reverse foo))]
+    [(list) (list)]))
 ------------------------------
 ------------------------------
 (define (f xs)
   (match xs
-    [(list x y ...)
-     (cons x (reverse xs))]))
+    [(list x y ...) (cons x (reverse xs))]
+    [(list) (list)]))
 ------------------------------
 
 
-test: "root-level and pattern removal works with multiple clauses"
+test: "root-level and pattern can be removed when it binds unused variable"
 ------------------------------
 (define (f xs)
   (match xs
-    [(and foo (list x))
-     (cons x foo)]
-    [(and bar (list x y))
-     (list x y bar)]
-    [else 'no-match]))
+    [(and foo (list x y ...)) (cons x y)]
+    [(list) (list)]))
 ------------------------------
 ------------------------------
 (define (f xs)
   (match xs
-    [(list x)
-     (cons x xs)]
-    [(list x y)
-     (list x y xs)]
-    [else 'no-match]))
-------------------------------
-
-
-test: "root-level and pattern not removed when identifier is not used in body"
-------------------------------
-(define (f xs)
-  (match xs
-    [(and foo (list x y ...))
-     (cons x y)]))
+    [(list x y ...) (cons x y)]
+    [(list) (list)]))
 ------------------------------
 
 
@@ -248,7 +233,6 @@ test: "root-level and pattern not removed when not matching on a simple variable
 ------------------------------
 (define (f lst)
   (match (car lst)
-    [(and foo (list x y ...))
-     (cons x (reverse foo))]))
+    [(and foo (list x y ...)) (cons x (reverse foo))]
+    [(list) (list)]))
 ------------------------------
-
