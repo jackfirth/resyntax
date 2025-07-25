@@ -236,6 +236,7 @@ test: "root-level and pattern not removed when not matching on a simple variable
   (match (car lst)
     [(and foo (list x y ...)) (cons x (reverse foo))]
     [(list) (list)]))
+------------------------------
 
 
 test: "match patterns with if conditionals can be simplified using #:when clauses"
