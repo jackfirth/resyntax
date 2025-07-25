@@ -132,8 +132,16 @@
     pattern-directive:syntax-parse-pattern-directive ...
     replacement)
   #:declare description (expr/c #'string?)
-  #:attr log-statement (and (not (empty? (attribute pattern-directive)))
-                            #'(log-resyntax-debug "~a: partial match" 'id))
+
+  #:attr partial-match-log-statement
+  (and (not (empty? (attribute pattern-directive)))
+       #'(log-resyntax-debug "~a: partial match on line ~a" 'id (syntax-line this-syntax)))
+  #:with (wrapped-pattern-directive ...)
+  (for/list ([directive (in-list (attribute pattern-directive))])
+    (syntax-parse directive
+      [(#:when condition:expr) #'(#:when (log-resyntax-rule-condition condition))]
+      [_ directive]))
+
   (define id
     (constructor:refactoring-rule
      #:name 'id
@@ -143,8 +151,8 @@
        (syntax-parse stx
          (~@ . parse-option) ...
          [pattern
-           (~? (~@ #:do [log-statement]))
-           (~@ . pattern-directive) ... (present #'replacement)]
+           (~? (~@ #:do [partial-match-log-statement]))
+           (~@ . wrapped-pattern-directive) ... (present #'replacement)]
          [_ absent])))))
 
 
@@ -162,8 +170,9 @@
   #:with body-matching-id (format-id #'macro-introduced-context "body-matching-~a" #'id)
   #:with expression-matching-id (format-id #'macro-introduced-context "expression-matching-~a" #'id)
 
-  #:attr log-statement (and (not (empty? (attribute pattern-directive)))
-                            #'(log-resyntax-debug "~a: partial match" 'id))
+  #:attr log-statement
+  (and (not (empty? (attribute pattern-directive)))
+       #'(log-resyntax-debug "~a: partial match" 'id))
 
   (begin
 
