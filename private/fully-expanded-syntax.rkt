@@ -264,7 +264,8 @@
     #:attr used-ids-by-phase (hash))
 
   (pattern (id:id ...+ . rest-id:id)
-    #:attr bound-ids-by-phase (hash phase (list->treelist (attribute id)))
+    #:attr bound-ids-by-phase
+    (hash phase (treelist-add (list->treelist (attribute id)) (attribute rest-id)))
     #:attr used-ids-by-phase (hash))
 
   (pattern id:id
