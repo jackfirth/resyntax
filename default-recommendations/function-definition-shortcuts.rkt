@@ -14,7 +14,9 @@
          racket/list
          resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
+         resyntax/default-recommendations/private/list-function
          resyntax/default-recommendations/private/syntax-lines
+         resyntax/private/logger
          syntax/parse)
 
 
@@ -84,15 +86,28 @@
 (define-refactoring-rule define-lambda-to-define
   #:description "The `define` form supports a shorthand for defining functions."
   #:literals (define)
-  (define header lambda-form:possibly-nested-lambdas)
+  (define id:id lambda-form:possibly-nested-lambdas)
+  #:when (not (syntax-property this-syntax 'class-body))
+  #:do [(define multiline-lambda-header-count
+          (count multiline-syntax? (attribute lambda-form.argument-lists)))]
+  #:when (< multiline-lambda-header-count 2)
+  #:with new-header (build-function-header #'id (attribute lambda-form.argument-lists))
+  #:with (new-body ...)
+  (build-function-body #'id (attribute lambda-form.argument-lists) (attribute lambda-form.body))
+  (define new-header new-body ...))
+
+
+(define-refactoring-rule define-lambda-to-curried-define
+  #:description "Functions returning lambdas can be written using curried function syntax."
+  #:literals (define)
+  (define (~and header (~not :id)) lambda-form:possibly-nested-lambdas)
   #:when (not (syntax-property this-syntax 'class-body))
   #:do [(define multiline-lambda-header-count
           (count multiline-syntax? (attribute lambda-form.argument-lists)))]
   #:when (< multiline-lambda-header-count 2)
   #:when (oneline-syntax? #'header)
-  #:when (or (identifier? #'header) (zero? multiline-lambda-header-count))
-  #:when (or (identifier? #'header)
-             (not (zero-argument-formals? (first (attribute lambda-form.argument-lists)))))
+  #:when (zero? multiline-lambda-header-count)
+  #:when (not (zero-argument-formals? (first (attribute lambda-form.argument-lists))))
   #:with new-header (build-function-header #'header (attribute lambda-form.argument-lists))
   #:with (new-body ...)
   (build-function-body #'header (attribute lambda-form.argument-lists) (attribute lambda-form.body))
@@ -126,6 +141,29 @@
     body ...))
 
 
+(define-refactoring-rule empty-checked-rest-args-to-optional-arg
+  #:description
+  "This function definition uses rest arguments in a way equivalent to using an optional argument."
+  #:literals (define if)
+
+  (define (f arg ... . rest-args:id)
+    (define optional-arg:id
+      (if (:empty-predicate-by-any-name rest-args2:id)
+          default-expr
+          (:first-by-any-name rest-args3:id)))
+    body ...)
+
+  #:when (oneline-syntax? (attribute default-expr))
+  #:when (free-identifier=? (attribute rest-args) (attribute rest-args2))
+  #:when (free-identifier=? (attribute rest-args) (attribute rest-args3))
+  #:when (equal? (length (syntax-property (attribute rest-args) 'identifier-usages)) 2)
+
+  (define (f arg ... [optional-arg default-expr])
+    body ...))
+
+
 (define-refactoring-suite function-definition-shortcuts
   #:rules (define-lambda-to-define
-            define-case-lambda-to-define))
+            define-lambda-to-curried-define
+            define-case-lambda-to-define
+            empty-checked-rest-args-to-optional-arg))
