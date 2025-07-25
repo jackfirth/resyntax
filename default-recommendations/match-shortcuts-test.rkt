@@ -171,6 +171,7 @@ test: "match patterns using ? with a lambda cannot be simplified when under elli
     [_ 'no-match]))
 ------------------------------
 
+
 test: "match patterns using ? with a commented lambda can be simplified with #:when clauses"
 ------------------------------
 (define (foo x)
@@ -241,7 +242,35 @@ test: "match patterns with cond conditionals can be simplified using #:when clau
 ------------------------------
 
 
-test: "single-clause match with if conditional should not be refactored"
+test: "match patterns with multi-body cond conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (cond
+       [(> x y)
+        (displayln "true case")
+        (list y x)]
+       [else
+        (displayln "false case")
+        pt])]
+    [(list) '()]))
+------------------------------
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (displayln "true case")
+     (list y x)]
+    [(list x y)
+     (displayln "false case")
+     pt]
+    [(list) '()]))
+------------------------------
+
+
+test: "single-clause match with if conditional should be refactored to match-define instead of #:when"
 ------------------------------
 (define (f pt)
   (match pt
@@ -250,16 +279,22 @@ test: "single-clause match with if conditional should not be refactored"
          (list y x)
          pt)]))
 ------------------------------
+------------------------------
+(define (f pt)
+  (match-define (list x y) pt)
+  (if (> x y)
+      (list y x)
+      pt))
+------------------------------
 
 
-test: "match patterns with complex nested patterns should not be refactored"
+test: "match with if conditional and long pattern should not be refactored to use #:when"
 ------------------------------
 (define (f data)
   (match data
-    [(list (list (list x y) z) w)
+    [(list x y _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _)
      (if (> x y)
          (list y x)
          data)]
     [_ 'no-match]))
 ------------------------------
-

@@ -15,6 +15,7 @@
          resyntax/base
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/syntax-identifier-sets
+         resyntax/default-recommendations/private/syntax-lines
          resyntax/private/syntax-traversal
          syntax/parse
          syntax/strip-context)
@@ -158,12 +159,12 @@
 
 (define-syntax-class conditional-body
   #:description "conditional expression in match clause body"
-  #:attributes (condition then-expr else-expr)
+  #:attributes (condition [then-expr 1] [else-expr 1])
   #:literals (if cond else)
-  
-  (pattern (if condition then-expr else-expr))
-  
-  (pattern (cond [condition then-expr] [else else-expr])))
+  (pattern (if condition only-then-expr only-else-expr)
+    #:attr [then-expr 1] (list (attribute only-then-expr))
+    #:attr [else-expr 1] (list (attribute only-else-expr)))
+  (pattern (cond [condition then-expr ...] [else else-expr ...])))
 
 
 (define-refactoring-rule match-conditional-to-when
@@ -175,10 +176,19 @@
     (~and [pattern conditional:conditional-body] clause-to-replace)
     clause-after ...+)
 
+  #:when (positive? (+ (length (attribute clause-before)) (length (attribute clause-after))))
+
+  ; Duplicating a long or complex match pattern isn't worth the reduction in nesting from
+  ; refactoring the code to use #:when, so we don't bother if the pattern is multiple lines or if
+  ; it's a fairly long line.
+  #:when (oneline-syntax? (attribute pattern))
+  #:when (<= (syntax-span (attribute pattern)) 60)
+
   (match subject
     clause-before ...
-    [pattern #:when conditional.condition conditional.then-expr]
-    [pattern conditional.else-expr]
+    (~@ . (~splicing-replacement ([pattern #:when conditional.condition conditional.then-expr ...]
+                                  [pattern conditional.else-expr ...])
+                                 #:original pattern))
     clause-after ...))
 
 
