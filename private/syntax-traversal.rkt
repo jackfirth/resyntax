@@ -150,6 +150,7 @@
       [#false
        (syntax-parse stx
          [(child ...)
+          #:cut
           (define traversed-children
             (for/list ([child-stx (in-list (attribute child))])
               (loop child-stx #false)))
@@ -161,6 +162,23 @@
               stx
               (datum->syntax (context-modifier stx)
                              traversed-children
+                             (srcloc-modifier stx)
+                             (props-modifier stx)))]
+         [(child ...+ . tail-child)
+          #:cut
+          (define traversed-children
+            (for/list ([child-stx (in-list (attribute child))])
+              (loop child-stx #false)))
+          (define traversed-tail-child (loop (attribute tail-child) #false))
+          (define all-same?
+            (and (for/and ([traversed-child (in-list traversed-children)]
+                           [child-stx (in-list (attribute child))])
+                   (equal? traversed-child child-stx))
+                 (equal? traversed-tail-child (attribute tail-child))))
+          (if all-same?
+              stx
+              (datum->syntax (context-modifier stx)
+                             (append traversed-children traversed-tail-child)
                              (srcloc-modifier stx)
                              (props-modifier stx)))]
          [_ stx])])))
@@ -210,6 +228,12 @@
          (define (bar)
            CONS-EXPRESSION)
          CONS-EXPRESSION))
+    (check-equal? (syntax->datum actual) expected))
+
+  (test-case "syntax-traverse dotted tail syntax"
+    (define stx #'(a b . c))
+    (define actual (syntax-traverse stx [:id #'ID]))
+    (define expected '(ID ID . ID))
     (check-equal? (syntax->datum actual) expected))
 
   (test-case "syntax-traverse #:skip-root? true"
