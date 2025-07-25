@@ -204,3 +204,116 @@ test: "hash-map with value-returning lamda can be refactored to hash-values"
 (define h (make-hash))
 (hash-values h)
 ------------------------------
+
+
+test: "hash-ref and hash-set! with variable to hash-update! can be simplified to hash-update!"
+------------------------------
+(define (f h term)
+  (let ([sum (hash-ref! h (cadr term) 0)])
+    (hash-set! h (cadr term) (+ (car term) sum))))
+------------------------------
+------------------------------
+(define (f h term)
+  (let ([sum (hash-ref h (cadr term) 0)])
+    (hash-set! h (cadr term) (+ (car term) sum))))
+------------------------------
+------------------------------
+(define (f h term)
+  (define sum (hash-ref! h (cadr term) 0))
+  (hash-set! h (cadr term) (+ (car term) sum)))
+------------------------------
+------------------------------
+(define (f h term)
+  (define sum (hash-ref h (cadr term) 0))
+  (hash-set! h (cadr term) (+ (car term) sum)))
+------------------------------
+------------------------------
+(define (f h term)
+  (hash-update! h (cadr term) (λ (sum) (+ (car term) sum)) 0))
+------------------------------
+
+
+test: "hash-ref and hash-set! with variable to hash-update! works with different pure expressions"
+------------------------------
+(define (f h lst)
+  (let ([val (hash-ref! h (car lst) 1)])
+    (hash-set! h (car lst) (* 2 val))))
+------------------------------
+------------------------------
+(define (f h lst)
+  (let ([val (hash-ref h (car lst) 1)])
+    (hash-set! h (car lst) (* 2 val))))
+------------------------------
+------------------------------
+(define (f h lst)
+  (define val (hash-ref! h (car lst) 1))
+  (hash-set! h (car lst) (* 2 val)))
+------------------------------
+------------------------------
+(define (f h lst)
+  (define val (hash-ref h (car lst) 1))
+  (hash-set! h (car lst) (* 2 val)))
+------------------------------
+------------------------------
+(define (f h lst)
+  (hash-update! h (car lst) (λ (val) (* 2 val)) 1))
+------------------------------
+
+
+test: "hash-ref and hash-set! with variable to hash-update! works with literal keys"
+------------------------------
+(define (f h x)
+  (let ([count (hash-ref! h 'counter 0)])
+    (hash-set! h 'counter (+ x count))))
+------------------------------
+------------------------------
+(define (f h x)
+  (let ([count (hash-ref h 'counter 0)])
+    (hash-set! h 'counter (+ x count))))
+------------------------------
+------------------------------
+(define (f h x)
+  (define count (hash-ref! h 'counter 0))
+  (hash-set! h 'counter (+ x count)))
+------------------------------
+------------------------------
+(define (f h x)
+  (define count (hash-ref h 'counter 0))
+  (hash-set! h 'counter (+ x count)))
+------------------------------
+------------------------------
+(define (f h x)
+  (hash-update! h 'counter (λ (count) (+ x count)) 0))
+------------------------------
+
+
+test: "hash-ref and hash-set! with let cannot be simplified when key expressions are different"
+------------------------------
+(define (f h term other)
+  (let ([sum (hash-ref! h (cadr term) 0)])
+    (hash-set! h (cadr other) (+ (car term) sum))))
+------------------------------
+
+
+test: "hash-ref and hash-set! with define cannot be simplified when key expressions are different"
+------------------------------
+(define (f h term other)
+  (define sum (hash-ref! h (cadr term) 0))
+  (hash-set! h (cadr other) (+ (car term) sum)))
+------------------------------
+
+
+test: "hash-ref and hash-set! with let cannot be simplified when hash expressions are different"
+------------------------------
+(define (f h1 h2 term)
+  (let ([sum (hash-ref! h1 (cadr term) 0)])
+    (hash-set! h2 (cadr term) (+ (car term) sum))))
+------------------------------
+
+
+test: "hash-ref and hash-set! with define cannot be simplified when hash expressions are different"
+------------------------------
+(define (f h1 h2 term)
+  (define sum (hash-ref! h1 (cadr term) 0))
+  (hash-set! h2 (cadr term) (+ (car term) sum)))
+------------------------------
