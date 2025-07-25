@@ -210,13 +210,13 @@
          #:do [(define child-stx (attribute child))
                (define orig-path (syntax-original-path child-stx))]
          #:when (and orig-path (sorted-map-contains-key? movement-table orig-path))
-         #:do [(define expansion
+         #:do [(define expansions
                  (transduce (sorted-map-get movement-table orig-path)
                             (mapping (λ (p) (syntax-ref expanded-with-properties p)))
                             (filtering syntax-original?)
-                            #:into into-first))]
-         #:when (present? expansion)
-         (match-define (present expanded-child) expansion)
+                            #:into into-list))]
+         #:when (equal? (length expansions) 1)
+         (match-define (list expanded-child) expansions)
          (log-resyntax-debug "enriching ~a with scopes and properties from expansion" child-stx)
          (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx expanded-child)
                  #:skip-root? #true)]
