@@ -19,8 +19,7 @@ test: "single-clause match expressions can be replaced with match-define express
     [(list a b c)
      (displayln "foo!")
      (+ a b c)]))
-------------------------------
-------------------------------
+==============================
 (define (foo x)
   (displayln "foo?")
   (match-define (list a b c) x)
@@ -39,8 +38,7 @@ test: "migrating single-clause match expressions to match-define doesn't reforma
     [(list a b c)
      (displayln "foo!")
      (+ a b c)]))
-------------------------------
-------------------------------
+==============================
 (define (foo x)
 
   (  displayln "foo?"   )
@@ -55,8 +53,7 @@ test: "migrating single-clause match expressions in single-form contexts does re
 ------------------------------
 (map (λ (x) (match x [(list a b c) (+ a b c)]))
      (list (list 1 2 3) (list 4 5 6)))
-------------------------------
-------------------------------
+==============================
 (map (λ (x)
        (match-define (list a b c) x)
        (+ a b c))
@@ -75,8 +72,7 @@ test: "single-clause match expressions inside cond can be replaced with match-de
         (displayln "foo!")
         (+ a b c)])]
     [else (displayln "else")]))
-------------------------------
-------------------------------
+==============================
 (define (foo x condition)
   (cond
     [condition
@@ -110,8 +106,7 @@ test: "single-clause match still migratable when pattern bindings shadow surroun
 (define (foo x a)
   (match x
     [(list a b c) a]))
-------------------------------
-------------------------------
+==============================
 (define (foo x a)
   (match-define (list a b c) x)
   a)
@@ -127,8 +122,7 @@ test: "match patterns using ? with a lambda can be simplified with #:when clause
     [_ 'no-match]))
 (foo 5)
 (foo 100)
-------------------------------
-------------------------------
+==============================
 (define (foo x)
   (match x
     [y*
@@ -149,8 +143,7 @@ test: "nested match patterns using ? with a lambda can be simplified with #:when
     [_ 'no-match]))
 (foo (list 5 6 7))
 (foo (list 100 200 300))
-------------------------------
-------------------------------
+==============================
 (define (foo xs)
   (match xs
     [(list y*)
@@ -184,8 +177,7 @@ test: "match patterns using ? with a commented lambda can be simplified with #:w
     [_ 'no-match]))
 (foo 5)
 (foo 100)
-------------------------------
-------------------------------
+==============================
 (define (foo x)
   (match x
     [y*
@@ -206,8 +198,7 @@ test: "root-level and pattern can be removed when matching on a variable"
   (match xs
     [(and foo (list x y ...)) (cons x (reverse foo))]
     [(list) (list)]))
-------------------------------
-------------------------------
+==============================
 (define (f xs)
   (match xs
     [(list x y ...) (cons x (reverse xs))]
@@ -221,8 +212,7 @@ test: "root-level and pattern can be removed when it binds unused variable"
   (match xs
     [(and foo (list x y ...)) (cons x y)]
     [(list) (list)]))
-------------------------------
-------------------------------
+==============================
 (define (f xs)
   (match xs
     [(list x y ...) (cons x y)]
@@ -248,8 +238,7 @@ test: "match patterns with if conditionals can be simplified using #:when clause
          (list y x)
          pt)]
     [(list) '()]))
-------------------------------
-------------------------------
+==============================
 (define (f pt)
   (match pt
     [(list x y)
@@ -269,8 +258,7 @@ test: "match patterns with cond conditionals can be simplified using #:when clau
        [(> x y) (list y x)]
        [else pt])]
     [(list) '()]))
-------------------------------
-------------------------------
+==============================
 (define (f pt)
   (match pt
     [(list x y)
@@ -294,8 +282,7 @@ test: "match patterns with multi-body cond conditionals can be simplified using 
         (displayln "false case")
         pt])]
     [(list) '()]))
-------------------------------
-------------------------------
+==============================
 (define (f pt)
   (match pt
     [(list x y)
@@ -317,8 +304,7 @@ test: "single-clause match with if conditional should be refactored to match-def
      (if (> x y)
          (list y x)
          pt)]))
-------------------------------
-------------------------------
+==============================
 (define (f pt)
   (match-define (list x y) pt)
   (if (> x y)
