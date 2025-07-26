@@ -923,3 +923,89 @@ test: "for/vector with multiple clauses won't have #:length added"
              [j (in-range 0 m)]) 
   (+ i j))
 ------------------------------------------------------------
+
+
+test: "in-hash refactorable to in-hash-keys when only the key is used"
+--------------------
+(for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
+  (displayln k))
+====================
+(for ([k (in-hash-keys (hash 'a 1 'b 2 'c 3))])
+  (displayln k))
+--------------------
+
+
+test: "in-hash refactorable to in-hash-values when only the value is used"
+--------------------
+(for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
+  (displayln v))
+====================
+(for ([v (in-hash-values (hash 'a 1 'b 2 'c 3))])
+  (displayln v))
+--------------------
+
+
+test: "in-hash not refactorable to in-hash-keys when key and value both used"
+--------------------
+(for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
+  (displayln k)
+  (displayln v))
+--------------------
+
+
+test: "in-hash between other clauses refactorable to in-hash-keys when only the key is used"
+--------------------
+(for ([i (in-naturals)]
+      [(k v) (in-hash (hash 'a 1 'b 2 'c 3))]
+      [j (in-naturals)])
+  (displayln (list i j k)))
+====================
+(for ([i (in-naturals)]
+      [k (in-hash-keys (hash 'a 1 'b 2 'c 3))]
+      [j (in-naturals)])
+  (displayln (list i j k)))
+--------------------
+
+
+test: "in-hash between other clauses refactorable to in-hash-values when only the value is used"
+--------------------
+(for ([i (in-naturals)]
+      [(k v) (in-hash (hash 'a 1 'b 2 'c 3))]
+      [j (in-naturals)])
+  (displayln (list i j v)))
+====================
+(for ([i (in-naturals)]
+      [v (in-hash-values (hash 'a 1 'b 2 'c 3))]
+      [j (in-naturals)])
+  (displayln (list i j v)))
+--------------------
+
+
+test: "in-hash in for* loop refactorable to in-hash-keys"
+--------------------
+(for* ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
+  (displayln k))
+====================
+(for* ([k (in-hash-keys (hash 'a 1 'b 2 'c 3))])
+  (displayln k))
+--------------------
+
+
+test: "in-hash in for/list loop refactorable to in-hash-keys"
+--------------------
+(for/list ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
+  k)
+====================
+(for/list ([k (in-hash-keys (hash 'a 1 'b 2 'c 3))])
+  k)
+--------------------
+
+
+test: "in-hash in for/list loop refactorable to in-hash-values"
+--------------------
+(for/list ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
+  v)
+====================
+(for/list ([v (in-hash-values (hash 'a 1 'b 2 'c 3))])
+  v)
+--------------------
