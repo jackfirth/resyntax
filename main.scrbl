@@ -527,9 +527,12 @@ A @deftech{code block} is a delimited section of Racket code used within @tech{t
 There are two types of code blocks:
 
 @itemlist[
+
  @item{@deftech{Single-line code blocks} are preceded by a single dash and a space (@litchar{- }).}
+
  @item{@deftech{Multi-line code blocks} are delimited by lines of at least three consecutive dashes
-  (@litchar{-----}).}]
+  (@litchar{---}). As a convenience, two adjacent multi-line code blocks can be separated by a single
+  line of equals signs (@litchar{===}) instead of two lines of dashes.}]
 
 Code blocks are essentially string literals, and can contain code written in any language. For this
 reason, it's common for Resyntax tests to include a @racket[header:] test statement which specifies
@@ -586,8 +589,7 @@ The @racketmodname[resyntax/test] language supports three types of @tech{test st
   --------------------
   #lang racket
   (old-function 1 2 3)
-  --------------------
-  --------------------
+  ====================
   #lang racket
   (new-function 1 2 3)
   --------------------

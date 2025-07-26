@@ -149,8 +149,11 @@
     [read-syntax procedure?]))
 
 
-  (require resyntax/test/private/grammar
-           resyntax/test/private/tokenizer)
+  (require racket/list
+           resyntax/private/syntax-traversal
+           resyntax/test/private/grammar
+           resyntax/test/private/tokenizer
+           syntax/parse)
   
 
   ;@--------------------------------------------------------------------------------------------------
@@ -162,12 +165,42 @@
 
   (define (read-syntax source-name in)
     (define parse-tree (parse source-name (make-refactoring-test-tokenizer in)))
+    (define cleaned-parse-tree
+      (syntax-traverse parse-tree
+        #:datum-literals (standalone-code-block
+                          starting-code-block
+                          middle-code-block
+                          ending-code-block)
+        [((~or id:standalone-code-block
+               id:starting-code-block
+               id:middle-code-block
+               id:ending-code-block)
+          line:str
+          ...)
+         (define id-stx (attribute id))
+         (define normalized-id (datum->syntax #false 'code-block id-stx id-stx))
+         (define joined-lines
+           (apply string-append
+                  (for/list ([line-stx (in-list (attribute line))])
+                    (syntax-e line-stx))))
+         (define joined-srcloc (srcloc-spanning (first (attribute line)) (last (attribute line))))
+         (define joined-lines-stx (datum->syntax #false joined-lines joined-srcloc #false))
+         (datum->syntax #false (list normalized-id joined-lines-stx) this-syntax this-syntax)]))
     (define module-datum
       `(module refactoring-test racket/base
          (module test resyntax/test
-           ,parse-tree)))
+           ,cleaned-parse-tree)))
     (datum->syntax #f module-datum))
 
 
   (define (read-using-syntax-reader syntax-reader in)
-    (syntax->datum (syntax-reader #false in))))
+    (syntax->datum (syntax-reader #false in)))
+
+  (define (srcloc-spanning first-stx last-stx)
+    (define total-span
+      (+ (- (syntax-position last-stx) (syntax-position first-stx)) (syntax-span last-stx)))
+    (srcloc (syntax-source first-stx)
+            (syntax-line first-stx)
+            (syntax-column first-stx)
+            (syntax-position first-stx)
+            total-span)))

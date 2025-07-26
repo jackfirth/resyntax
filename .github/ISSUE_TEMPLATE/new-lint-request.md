@@ -18,8 +18,7 @@ header:
 test: "original code should be refactorable to new code"
 --------------------
 ;; Put the original code here
---------------------
---------------------
+====================
 ;; Put the code you'd like Resyntax to generate here
 --------------------
 ```

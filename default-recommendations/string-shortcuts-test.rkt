@@ -23,8 +23,7 @@ test: "display followed by newline refactorable to displayln"
 (define (foo)
   (display 42)
   (newline))
-------------------------------
-------------------------------
+==============================
 (define (foo)
   (displayln 42))
 ------------------------------
@@ -58,8 +57,7 @@ test:
  "The "
  (string-join (list "fox" "hen" "dog" "cat" "horse"))
  " all jumped together")
-------------------------------
-------------------------------
+==============================
 (string-join (list "fox" "hen" "dog" "cat" "horse")
              #:before-first "The "
              #:after-last " all jumped together")
@@ -75,8 +73,7 @@ test: "manual string-join can be replaced with real string-join"
 ------------------------------
 (require racket/list)
 (apply string-append (add-between (list "apple" "orange" "banana") ", "))
-------------------------------
-------------------------------
+==============================
 (require racket/list)
 (string-join (list "apple" "orange" "banana") ", ")
 ------------------------------
@@ -98,8 +95,7 @@ test: "manual with-output-to-string should be refactored to use with-output-to-s
   (parameterize ([current-output-port os])
     (displayln "foo")
     (get-output-string os)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (with-output-to-string (λ () (displayln "foo"))))
 ------------------------------
@@ -112,8 +108,7 @@ test: "manual with-output-to-string with get-output-string outside parameterize"
   (parameterize ([current-output-port out])
     (displayln "hello world"))
   (get-output-string out))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (with-output-to-string (λ () (displayln "hello world"))))
 ------------------------------
@@ -128,8 +123,7 @@ test: "manual with-output-to-string with multiple output operations"
     (display " ")
     (display "world")
     (get-output-string port)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (with-output-to-string (λ ()
                            (display "Hello")

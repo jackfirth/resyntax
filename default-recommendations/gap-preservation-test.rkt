@@ -14,8 +14,7 @@ test: "comments preserved in splice when form inserted at front"
   (insert-foo-first a
                     ; comment
                     b))
------------------------------------
------------------------------------
+===================================
 (define (code insert-foo-first a b)
   ("foo" a
          ; comment
@@ -30,8 +29,7 @@ test: "later comments preserved in splice when form inserted after first"
                      b
                      ; preserved comment
                      c))
------------------------------------
------------------------------------
+===================================
 (define (code insert-foo-second a b c)
   (a "foo"
      b
@@ -57,8 +55,7 @@ test: "comments preserved in splice when form inserted at end"
                    b
                    ; comment
                    c))
------------------------------------
------------------------------------
+===================================
 (define (code insert-foo-last a b c)
   (a b
      ; comment
@@ -74,8 +71,7 @@ test: "comments preserved in splice when first form replaced"
                           ; comment after
                           b
                           c))
------------------------------------
------------------------------------
+===================================
 (define (code replace-first-with-foo a b c)
   ; comment after
   ("foo" b c))
@@ -90,8 +86,7 @@ test: "comments preserved in splice when second form replaced"
                            b
                            ; comment after
                            c))
------------------------------------
------------------------------------
+===================================
 (define (code replace-second-with-foo a b c)
   ; comment before
   (a "foo"
@@ -107,8 +102,7 @@ test: "comments preserved in splice when last form replaced"
                          b
                          ; comment before
                          c))
------------------------------------
------------------------------------
+===================================
 (define (code replace-last-with-foo a b c)
   (a b
      ; comment before
@@ -124,8 +118,7 @@ test: "comments preserved in splice when first and last forms replaced"
                                    b
                                    ; comment before
                                    c))
------------------------------------
------------------------------------
+===================================
 (define (code replace-first-and-last-with-foo a b c)
   ; comment after
   ("foo" b

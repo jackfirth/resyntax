@@ -102,8 +102,7 @@ test: "when not can be refactored to use unless"
 ------------------------------
 (when (not 'foo)
   (displayln "not foo"))
-------------------------------
-------------------------------
+==============================
 (unless 'foo
   (displayln "not foo"))
 ------------------------------
@@ -117,8 +116,7 @@ test: "refactoring negated when into unless preserves comments"
     (not 'foo)
   ; comment after
   (displayln "not foo"))
-------------------------------
-------------------------------
+==============================
 ; comment before
 ; strangely positioned comment before
 (unless 'foo
@@ -131,8 +129,7 @@ test: "unless not can be refactored to use when"
 ------------------------------
 (unless (not 'foo)
   (displayln "foo"))
-------------------------------
-------------------------------
+==============================
 (when 'foo
   (displayln "foo"))
 ------------------------------
@@ -146,8 +143,7 @@ test: "refactoring negated unless into when preserves comments"
     (not 'foo)
   ; comment after
   (displayln "foo"))
-------------------------------
-------------------------------
+==============================
 ; comment before
 ; strangely positioned comment before
 (when 'foo
