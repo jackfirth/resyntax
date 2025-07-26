@@ -24,13 +24,16 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-lex-abbrev refactoring-test-separator-line
-  (concatenation (repetition 3 +inf.0 #\-)))
+(define-lex-abbrev rest-of-line
+  (concatenation (complement (concatenation any-string #\newline any-string)) #\newline))
+
+(define-lex-abbrev dash-line (concatenation (repetition 3 +inf.0 #\-) #\newline))
+(define-lex-abbrev equals-line (concatenation (repetition 3 +inf.0 #\=) #\newline))
 
 
 (define-lex-abbrev refactoring-test-code-block
   (concatenation refactoring-test-separator-line
-                 (complement (concatenation any-string #\newline "-" any-string))
+                 (complement (concatenation any-string #\newline (union "-" "=") any-string))
                  #\newline
                  refactoring-test-separator-line))
 
@@ -53,8 +56,11 @@
 
 
 (define-tokens refactoring-test-tokens
-  (IDENTIFIER COLON-IDENTIFIER AT-SIGN-IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-BLOCK))
-(define-empty-tokens empty-refactoring-test-tokens (DOUBLE-DOT COMMA))
+  (IDENTIFIER COLON-IDENTIFIER AT-SIGN-IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-LINE))
+
+
+(define-empty-tokens empty-refactoring-test-tokens
+  (DOUBLE-DOT COMMA SINGLE-DASH DASH-LINE EQUALS-LINE))
 
 
 (define (string-lines str)
@@ -62,88 +68,118 @@
     (string->immutable-string line)))
 
 
-(define refactoring-test-lexer
-  (lexer-src-pos
-   [whitespace (return-without-pos (refactoring-test-lexer input-port))]
-   [".." (token-DOUBLE-DOT)]
-   ["," (token-COMMA)]
-   [refactoring-test-code-line (token-CODE-BLOCK (string->immutable-string (substring lexeme 2)))]
-   [refactoring-test-code-block
-    (block
-     (define lines (drop-right (drop (string-lines lexeme) 1) 1))
-     (token-CODE-BLOCK
-      (if (empty? lines) "" (string->immutable-string (string-join lines "\n" #:after-last "\n")))))]
-   [refactoring-test-literal-string
-    (token-LITERAL-STRING
-     (string->immutable-string (substring lexeme 1 (sub1 (string-length lexeme)))))]
-   [refactoring-test-literal-integer (token-LITERAL-INTEGER (string->number lexeme))]
-   [(concatenation refactoring-test-identifier ":")
-    (token-COLON-IDENTIFIER (string->symbol lexeme))]
-   [(concatenation "@" refactoring-test-identifier)
-    (token-AT-SIGN-IDENTIFIER (string->symbol lexeme))]
-   [refactoring-test-identifier (token-IDENTIFIER (string->symbol lexeme))]))
 
 
-(define ((make-refactoring-test-tokenizer port))
-  (refactoring-test-lexer port))
+
+(define (make-refactoring-test-tokenizer port)
+
+  (define initial-lexer
+    (lexer-src-pos
+     [whitespace (return-without-pos (initial-lexer input-port))]
+     [".." (token-DOUBLE-DOT)]
+     ["," (token-COMMA)]
+     ["- "
+      (let ()
+        (set! active-lexer single-code-line-lexer)
+        (token-SINGLE-DASH))]
+     [dash-line
+      (let ()
+        (set! active-lexer multi-code-line-lexer)
+        (token-DASH-LINE))]
+     [refactoring-test-literal-string
+      (token-LITERAL-STRING
+       (string->immutable-string (substring lexeme 1 (sub1 (string-length lexeme)))))]
+     [refactoring-test-literal-integer (token-LITERAL-INTEGER (string->number lexeme))]
+     [(concatenation refactoring-test-identifier ":")
+      (token-COLON-IDENTIFIER (string->symbol lexeme))]
+     [(concatenation "@" refactoring-test-identifier)
+      (token-AT-SIGN-IDENTIFIER (string->symbol lexeme))]
+     [refactoring-test-identifier (token-IDENTIFIER (string->symbol lexeme))]))
+
+  (define single-code-line-lexer
+    (lexer-src-pos
+     [rest-of-line
+      (let ()
+        (set! active-lexer initial-lexer)
+        (token-CODE-LINE lexeme))]))
+
+  (define multi-code-line-lexer
+    (lexer-src-pos
+     [(concatenation (intersection any-char (complement (char-set "-="))) rest-of-line)
+      (token-CODE-LINE lexeme)]
+     [dash-line
+      (let ()
+        (set! active-lexer initial-lexer)
+        (token-DASH-LINE))]
+     [equals-line (token-EQUALS-LINE)]))
+
+  (define active-lexer initial-lexer)
+
+  (λ () (active-lexer port)))
 
 
 (module+ test
+
+  (define (tokenize-until-eof tokenizer)
+    (for/list ([t (in-producer tokenizer eof)])
+      t))
+
   (test-case "make-refactoring-test-tokenizer"
 
     (test-case "statements"
       (define input (open-input-string "header:\n- #lang racket\n"))
       (port-count-lines! input)
       (define tokenizer (make-refactoring-test-tokenizer input))
-      (check-equal? (tokenizer)
-                    (position-token (token-COLON-IDENTIFIER 'header:)
-                                    (position 1 1 0)
-                                    (position 8 1 7)))
-      (check-equal? (tokenizer)
-                    (position-token (token-CODE-BLOCK "#lang racket\n")
-                                    (position 9 2 0)
-                                    (position 24 3 0))))
+      (define expected-tokens
+        (list
+         (position-token (token-COLON-IDENTIFIER 'header:) (position 1 1 0) (position 8 1 7))
+         (position-token (token-SINGLE-DASH) (position 9 2 0) (position 11 2 2))
+         (position-token (token-CODE-LINE "#lang racket\n") (position 11 2 2) (position 24 3 0))))
+      (check-equal? (tokenize-until-eof tokenizer) expected-tokens))
 
     (test-case "code blocks"
-      (define input (open-input-string "---\n#lang racket/base\n(void)\n---"))
+      (define input (open-input-string "---\n#lang racket/base\n(void)\n---\n"))
       (port-count-lines! input)
       (define tokenizer (make-refactoring-test-tokenizer input))
-      (define expected-token
-        (position-token
-         (token-CODE-BLOCK "#lang racket/base\n(void)\n")
-         (position 1 1 0)
-         (position 33 4 3)))
-      (check-equal? (tokenizer) expected-token))
+      (define expected-tokens
+        (list
+         (position-token (token-DASH-LINE) (position 1 1 0) (position 5 2 0))
+         (position-token (token-CODE-LINE "#lang racket/base\n") (position 5 2 0) (position 23 3 0))
+         (position-token (token-CODE-LINE "(void)\n") (position 23 3 0) (position 30 4 0))
+         (position-token (token-DASH-LINE) (position 30 4 0) (position 34 5 0))))
+      (check-equal? (tokenize-until-eof tokenizer) expected-tokens))
 
     (test-case "empty code blocks"
-      (define input (open-input-string "---\n---"))
+      (define input (open-input-string "---\n---\n"))
       (port-count-lines! input)
       (define tokenizer (make-refactoring-test-tokenizer input))
-      (define expected-token
-        (position-token
-         (token-CODE-BLOCK "")
-         (position 1 1 0)
-         (position 8 2 3)))
-      (check-equal? (tokenizer) expected-token))
+      (define expected-tokens
+        (list
+         (position-token (token-DASH-LINE) (position 1 1 0) (position 5 2 0))
+         (position-token (token-DASH-LINE) (position 5 2 0) (position 9 3 0))))
+      (check-equal? (tokenize-until-eof tokenizer) expected-tokens))
 
     (test-case "code lines"
       (define input (open-input-string "- #lang racket/base (void)\n"))
       (port-count-lines! input)
       (define tokenizer (make-refactoring-test-tokenizer input))
-      (define expected-token
-        (position-token
-         (token-CODE-BLOCK "#lang racket/base (void)\n")
-         (position 1 1 0)
-         (position 28 2 0)))
-      (check-equal? (tokenizer) expected-token))
+      (define expected-tokens
+        (list
+         (position-token (token-SINGLE-DASH) (position 1 1 0) (position 3 1 2))
+         (position-token
+          (token-CODE-LINE "#lang racket/base (void)\n") (position 3 1 2) (position 28 2 0))))
+      (check-equal? (tokenize-until-eof tokenizer) expected-tokens))
 
     (test-case "multiple code lines"
       (define input (open-input-string "- #lang racket/base (f)\n- #lang racket/base (g)\n"))
       (port-count-lines! input)
       (define tokenizer (make-refactoring-test-tokenizer input))
-      (define expected-token
-        (position-token
-         (token-CODE-BLOCK "#lang racket/base (f)\n")
-         (position 1 1 0)
-         (position 25 2 0)))
-      (check-equal? (tokenizer) expected-token))))
+      (define expected-tokens
+        (list
+         (position-token (token-SINGLE-DASH) (position 1 1 0) (position 3 1 2))
+         (position-token
+          (token-CODE-LINE "#lang racket/base (f)\n") (position 3 1 2) (position 25 2 0))
+         (position-token (token-SINGLE-DASH) (position 25 2 0) (position 27 2 2))
+         (position-token
+          (token-CODE-LINE "#lang racket/base (g)\n") (position 27 2 2) (position 49 3 0))))
+      (check-equal? (tokenize-until-eof tokenizer) expected-tokens))))
