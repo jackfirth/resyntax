@@ -18,6 +18,7 @@
 (module+ test
   (require brag/support
            rackunit
+           racket/string
            (submod "..")))
 
 
@@ -163,4 +164,38 @@
          (token-CODE-BLOCK "#lang racket/base (f)\n")
          (position 1 1 0)
          (position 25 2 0)))
-      (check-equal? (tokenizer) expected-token))))
+      (check-equal? (tokenizer) expected-token))
+
+    (test-case "equals separator"
+      (define input (open-input-string "====================\n"))
+      (port-count-lines! input)
+      (define tokenizer (make-refactoring-test-tokenizer input))
+      (define expected-token
+        (position-token
+         (token-EQUALS-SEPARATOR "====================")
+         (position 1 1 0)
+         (position 21 1 20)))
+      (check-equal? (tokenizer) expected-token))
+
+    (test-case "code block sequence with equals separator"
+      (define input (open-input-string "test: \"demo\"\n--------------------\n(block1)\n--------------------\n====================\n--------------------\n(block2)\n--------------------\n"))
+      (port-count-lines! input)
+      (define tokenizer (make-refactoring-test-tokenizer input))
+      
+      ;; Should get: COLON-IDENTIFIER, LITERAL-STRING, CODE-BLOCK, EQUALS-SEPARATOR, CODE-BLOCK
+      (define token1 (tokenizer))
+      (check-equal? (token-name (position-token-token token1)) 'COLON-IDENTIFIER)
+      
+      (define token2 (tokenizer))
+      (check-equal? (token-name (position-token-token token2)) 'LITERAL-STRING)
+      
+      (define token3 (tokenizer))
+      (check-equal? (token-name (position-token-token token3)) 'CODE-BLOCK)
+      (check-true (string-contains? (token-value (position-token-token token3)) "(block1)"))
+      
+      (define token4 (tokenizer))
+      (check-equal? (token-name (position-token-token token4)) 'EQUALS-SEPARATOR)
+      
+      (define token5 (tokenizer))
+      (check-equal? (token-name (position-token-token token5)) 'CODE-BLOCK)
+      (check-true (string-contains? (token-value (position-token-token token5)) "(block2)")))))
