@@ -34,23 +34,16 @@
 
 (define-lex-abbrev refactoring-test-code-block
   (concatenation refactoring-test-separator-line
-                 (complement (concatenation any-string #\newline (union #\- #\=) any-string))
+                 (complement (concatenation any-string #\newline "-" any-string))
                  #\newline
                  refactoring-test-separator-line))
 
 
-;; Code block with dash start and equals end - produces CODE-BLOCK token  
-(define-lex-abbrev refactoring-test-code-block-dash-to-equals
+;; Special pattern for code block that starts with --- and ends with ===
+(define-lex-abbrev refactoring-test-code-block-to-equals
   (concatenation refactoring-test-separator-line
                  (complement (concatenation any-string #\newline "=" any-string))
                  #\newline))
-
-
-;; Code block content after equals separator
-(define-lex-abbrev refactoring-test-code-block-after-equals
-  (concatenation (complement (concatenation any-string #\newline "-" any-string))
-                 #\newline
-                 refactoring-test-separator-line))
 
 
 (define-lex-abbrev refactoring-test-code-line
@@ -87,14 +80,9 @@
    ["," (token-COMMA)]
    [refactoring-test-equals-separator-line (token-EQUALS-SEPARATOR lexeme)]
    [refactoring-test-code-line (token-CODE-BLOCK (string->immutable-string (substring lexeme 2)))]
-   [refactoring-test-code-block-after-equals
+   [refactoring-test-code-block-to-equals
     (block
-     (define lines (drop-right (string-lines lexeme) 1))  ; drop ending --- line
-     (token-CODE-BLOCK
-      (if (empty? lines) "" (string->immutable-string (string-join lines "\n" #:after-last "\n")))))]
-   [refactoring-test-code-block-dash-to-equals
-    (block
-     (define lines (drop (string-lines lexeme) 1))  ; drop starting --- line
+     (define lines (drop (string-lines lexeme) 1))  ; drop the starting --- line 
      (token-CODE-BLOCK
       (if (empty? lines) "" (string->immutable-string (string-join lines "\n" #:after-last "\n")))))]
    [refactoring-test-code-block
