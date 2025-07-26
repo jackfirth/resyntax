@@ -279,9 +279,9 @@
   #:description "Add `#:length` to `for/vector` loops to improve performance when the number of iterations is known."
   #:literals (for/vector in-range)
   (for/vector
-   (~and for-clauses ([var:id (~and range-expr (in-range (~optional 0) end:id))]))
+   (~and for-clauses ([var:id (in-range (~optional 0) end:id)]))
    body:expr ...+)
-  (for/vector #:length end ([var range-expr]) body ...))
+  (for/vector #:length end for-clauses body ...))
 
 
 (define-definition-context-refactoring-rule for-set!-to-for/fold
