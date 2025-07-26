@@ -251,6 +251,14 @@
         [else #false]))
 
 
+(define-refactoring-rule nested-when-to-compound-when
+  #:description
+  "Nested `when` expressions can be merged into a single compound `when` expression."
+  #:literals (when and)
+  (when outer-condition:expr (when inner-condition:expr body:expr ...))
+  (when (and outer-condition inner-condition) body ...))
+
+
 (define-refactoring-suite conditional-shortcuts
   #:rules (always-throwing-cond-to-when
            always-throwing-if-to-when
@@ -264,4 +272,5 @@
            if-void-to-when-or-unless
            if-x-else-x-to-and
            nested-if-to-cond
+           nested-when-to-compound-when
            throw-unless-truthy-to-or))
