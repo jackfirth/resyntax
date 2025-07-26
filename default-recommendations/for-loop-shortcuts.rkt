@@ -31,6 +31,31 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
+(define-literal-set simple-for-loops
+  (for
+      for*
+    for/list
+    for*/list
+    for/vector
+    for*/vector
+    for/set
+    for*/set 
+    for/sum
+    for*/sum
+    for/product
+    for*/product
+    for/and
+    for*/and
+    for/or
+    for*/or
+    for/first
+    for*/first
+    for/last
+    for*/last
+    for/hash
+    for*/hash))
+
+
 (define-syntax-class sequence-syntax-convertible-list-expression
   #:attributes (refactored)
   #:literals (vector->list range hash-keys hash-values hash->list bytes->list string->list)
@@ -276,7 +301,9 @@
 
 
 (define-refactoring-rule for/vector-with-in-range-to-length
-  #:description "Add `#:length` to `for/vector` loops to improve performance when the number of iterations is known."
+  #:description
+  "Add `#:length` to `for/vector` loops to improve performance when the number of iterations is \
+known."
   #:literals (for/vector in-range)
   (for/vector
    (~and for-clauses ([var:id (in-range (~optional 0) end:id)]))
@@ -549,28 +576,18 @@ return just that result."
 
 (define-refactoring-rule in-hash-to-in-hash-keys
   #:description "This `in-hash` can be replaced with `in-hash-keys` since the value is not used."
-  #:literals (in-hash for for* for/list for*/list for/vector for*/vector for/set for*/set 
-              for/sum for*/sum for/product for*/product for/and for*/and for/or for*/or
-              for/first for*/first for/last for*/last for/fold for*/fold for/hash for*/hash)
-  ((~or for-id:for for-id:for* for-id:for/list for-id:for*/list for-id:for/vector for-id:for*/vector
-        for-id:for/set for-id:for*/set for-id:for/sum for-id:for*/sum for-id:for/product for-id:for*/product
-        for-id:for/and for-id:for*/and for-id:for/or for-id:for*/or for-id:for/first for-id:for*/first
-        for-id:for/last for-id:for*/last for-id:for/fold for-id:for*/fold for-id:for/hash for-id:for*/hash)
-   (clause-before ... [(key:id value:id) (in-hash hash-expr)] clause-after ...) body ...)
+  #:literals (in-hash)
+  (for-id:id (clause-before ... [(key:id value:id) (in-hash hash-expr)] clause-after ...) body ...)
+  #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
   #:when (empty? (or (syntax-property #'value 'identifier-usages) '()))
   (for-id (clause-before ... [key (in-hash-keys hash-expr)] clause-after ...) body ...))
 
 
 (define-refactoring-rule in-hash-to-in-hash-values
   #:description "This `in-hash` can be replaced with `in-hash-values` since the key is not used."
-  #:literals (in-hash for for* for/list for*/list for/vector for*/vector for/set for*/set 
-              for/sum for*/sum for/product for*/product for/and for*/and for/or for*/or
-              for/first for*/first for/last for*/last for/fold for*/fold for/hash for*/hash)
-  ((~or for-id:for for-id:for* for-id:for/list for-id:for*/list for-id:for/vector for-id:for*/vector
-        for-id:for/set for-id:for*/set for-id:for/sum for-id:for*/sum for-id:for/product for-id:for*/product
-        for-id:for/and for-id:for*/and for-id:for/or for-id:for*/or for-id:for/first for-id:for*/first
-        for-id:for/last for-id:for*/last for-id:for/fold for-id:for*/fold for-id:for/hash for-id:for*/hash)
-   (clause-before ... [(key:id value:id) (in-hash hash-expr)] clause-after ...) body ...)
+  #:literals (in-hash)
+  (for-id:id (clause-before ... [(key:id value:id) (in-hash hash-expr)] clause-after ...) body ...)
+  #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
   #:when (empty? (or (syntax-property #'key 'identifier-usages) '()))
   (for-id (clause-before ... [value (in-hash-values hash-expr)] clause-after ...) body ...))
 
