@@ -909,3 +909,58 @@ test: "(unless ...) in a for* loop refactored to #:when clause"
        #:unless (number? x))
   (displayln x))
 ------------------------------------------------------------
+
+
+test: "for/vector with in-range 0 n gets #:length n"
+------------------------------------------------------------
+(define n 5)
+(for/vector ([i (in-range 0 n)]) i)
+------------------------------------------------------------
+------------------------------------------------------------
+(define n 5)
+(for/vector #:length n
+            ([i (in-range 0 n)])
+  i)
+------------------------------------------------------------
+
+
+test: "for/vector with in-range n gets #:length n"
+------------------------------------------------------------
+(define n 5)
+(for/vector ([i (in-range n)]) i)
+------------------------------------------------------------
+------------------------------------------------------------
+(define n 5)
+(for/vector #:length n
+            ([i (in-range n)])
+  i)
+------------------------------------------------------------
+
+
+test: "for/vector with literal end won't have #:length added"
+- (for/vector ([i (in-range 0 10)]) i)
+
+
+test: "for/vector with expression end won't have #:length added"
+------------------------------------------------------------
+(define n 5)
+(define m 3)
+(for/vector ([i (in-range 0 (+ n m))]) i)
+------------------------------------------------------------
+
+
+test: "for/vector with non-zero start won't have #:length added"
+------------------------------------------------------------
+(define n 5)
+(for/vector ([i (in-range 2 n)]) i)
+------------------------------------------------------------
+
+
+test: "for/vector with multiple clauses won't have #:length added"
+------------------------------------------------------------
+(define n 5)
+(define m 3)
+(for/vector ([i (in-range 0 n)]
+             [j (in-range 0 m)]) 
+  (+ i j))
+------------------------------------------------------------
