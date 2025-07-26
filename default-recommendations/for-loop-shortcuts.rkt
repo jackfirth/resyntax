@@ -277,13 +277,11 @@
 
 (define-refactoring-rule for/vector-with-in-range-to-length
   #:description "Add `#:length` to `for/vector` loops to improve performance when the number of iterations is known."
-  #:literals (for/vector for*/vector in-range)
-  ((~or (~and for/vector (~bind [for-id #'for/vector]))
-        (~and for*/vector (~bind [for-id #'for*/vector])))
-   ([var:id (~or (in-range end:id)
-                 (in-range 0 end:id))])
+  #:literals (for/vector in-range)
+  (for/vector
+   (~and for-clauses ([var:id (~and range-expr (in-range (~optional 0) end:id))]))
    body:expr ...+)
-  (for-id #:length end ([var (in-range 0 end)]) body ...))
+  (for/vector #:length end ([var range-expr]) body ...))
 
 
 (define-definition-context-refactoring-rule for-set!-to-for/fold
