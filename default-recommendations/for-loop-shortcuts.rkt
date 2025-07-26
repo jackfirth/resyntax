@@ -275,6 +275,17 @@
   ((~replacement loop-id.set-id #:original loop-id) clauses body ...))
 
 
+(define-refactoring-rule for/vector-with-in-range-to-length
+  #:description "Add `#:length` to `for/vector` loops to improve performance when the number of iterations is known."
+  #:literals (for/vector for*/vector in-range)
+  ((~or (~and for/vector (~bind [for-id #'for/vector]))
+        (~and for*/vector (~bind [for-id #'for*/vector])))
+   ([var:id (~or (in-range end:id)
+                 (in-range 0 end:id))])
+   body:expr ...+)
+  (for-id #:length end ([var (in-range 0 end)]) body ...))
+
+
 (define-definition-context-refactoring-rule for-set!-to-for/fold
   #:description "`for/fold` can be used instead of a mutating `for` loop"
   #:literals (for set! define)
@@ -548,6 +559,7 @@ return just that result."
            for/fold-with-conditional-body-to-unless-keyword
            for/fold-with-conditional-body-to-when-keyword
            for-each-to-for
+           for/vector-with-in-range-to-length
            for-set!-to-for/fold
            hash-for-each-to-for
            list->set-to-for/set
