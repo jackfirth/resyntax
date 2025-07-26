@@ -15,8 +15,7 @@ test: "empty let form"
     (displayln "foo")
     (displayln "foo")
     1))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (displayln "foo")
   (displayln "foo")
@@ -29,8 +28,7 @@ test: "single let binding"
 (define (f)
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   x)
@@ -45,8 +43,7 @@ test: "single let binding inside cond"
      (let ([x 1])
        x)]
     [else (displayln "else")]))
-------------------------------
-------------------------------
+==============================
 (define (f c)
   (cond
     [c
@@ -61,8 +58,7 @@ test: "single let* binding"
 (define (f)
   (let* ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   x)
@@ -74,8 +70,7 @@ test: "single-clause let-values binding"
 (define (f)
   (let-values ([(x y) (values 1 1)])
     (+ x y)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define-values (x y) (values 1 1))
   (+ x y))
@@ -87,8 +82,7 @@ test: "single-clause single-identifier let-values binding"
 (define (f)
   (let-values ([(x) 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   x)
@@ -103,8 +97,7 @@ test: "single-clause single-identifier multiline let-values binding"
                       2000000000000000000000000000000000
                       3000000000000000000000000000000000)])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x
     (list 1000000000000000000000000000000000
@@ -119,8 +112,7 @@ test: "single-clause let*-values binding"
 (define (f)
   (let*-values ([(x y) (values 1 1)])
     (+ x y)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define-values (x y) (values 1 1))
   (+ x y))
@@ -132,8 +124,7 @@ test: "single-clause single-identifier let*-values binding"
 (define (f)
   (let*-values ([(x) 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   x)
@@ -148,8 +139,7 @@ test: "single-clause single-identifier multiline let*-values binding"
                        2000000000000000000000000000000000
                        3000000000000000000000000000000000)])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x
     (list 1000000000000000000000000000000000
@@ -165,8 +155,7 @@ test: "multiple let bindings"
   (let ([x 1]
         [y 1])
     (+ x y)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (define y 1)
@@ -180,8 +169,7 @@ test: "multiple let* bindings"
   (let* ([x 1]
          [y 1])
     (+ x y)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (define y 1)
@@ -195,8 +183,7 @@ test: "multiple let-values bindings"
   (let-values ([(x y) (values 1 1)]
                [(a b) (values 1 1)])
     (+ x y a b)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define-values (x y) (values 1 1))
   (define-values (a b) (values 1 1))
@@ -210,8 +197,7 @@ test: "multiple let*-values bindings"
   (let*-values ([(x y) (values 1 1)]
                 [(a b) (values 1 1)])
     (+ x y a b)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define-values (x y) (values 1 1))
   (define-values (a b) (values 1 1))
@@ -256,8 +242,7 @@ test: "let binding that only appears self shadowing before expansion (issue #230
 (define (f b)
   (let ([x (let ([x 1]) (+ x 1))])
     (+ x 1)))
-------------------------------
-------------------------------
+==============================
 (define (f b)
   (define x (let ([x 1]) (+ x 1)))
   (+ x 1))
@@ -271,8 +256,7 @@ test: "let* with later right-hand-sides referring to earlier bindings is refacto
          [c (+ b 1)]
          [d (+ c 1)])
     d))
-------------------------------
-------------------------------
+==============================
 (define (f a)
   (define b (+ a 1))
   (define c (+ b 1))
@@ -296,23 +280,19 @@ test: "unused let binding is refactorable to side-effectful expression"
 (define (f)
   (let ([x (println "foo")])
     42))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (let* ([x (println "foo")])
     42))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (let-values ([(x) (println "foo")])
     42))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (let*-values ([(x) (println "foo")])
     42))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (println "foo")
   42)
@@ -325,8 +305,7 @@ test: "unused let* binding shadowed by later bindings is refactorable to side-ef
   (let* ([x (println "foo")]
          [x 42])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (println "foo")
   (define x 42)
@@ -339,8 +318,7 @@ test: "partially used let-values binding refactorable to define-values"
 (define (f)
   (let-values ([(x y) (values 1 2)])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define-values (x y) (values 1 2))
   x)
@@ -356,8 +334,7 @@ test: "partially used let-values binding at phase 1 refactorable to define-value
       (let-values ([(x y) (values 1 2)])
         x))
     (values 1 2 3)))
-------------------------------
-------------------------------
+==============================
 (require (for-syntax racket/base))
 (define-syntaxes (a b c)
   (let ()
@@ -393,8 +370,7 @@ test: "let forms inside lambdas"
 (λ ()
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (λ ()
   (define x 1)
   x)
@@ -407,8 +383,7 @@ test: "let forms inside unrefactorable let forms"
 (let ([a (+ a 1)])
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define a 1)
 (let ([a (+ a 1)])
   (define x 1)
@@ -421,8 +396,7 @@ test: "let forms inside let loops"
 (let loop ()
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (let loop ()
   (define x 1)
   x)
@@ -436,8 +410,7 @@ test: "let forms inside unrefactorable let* forms"
        [a a])
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define a 1)
 (let* ([a a]
        [a a])
@@ -452,8 +425,7 @@ test: "let forms inside unrefactorable let-values forms"
 (let-values ([(a b) (values a 1)])
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define a 1)
 (let-values ([(a b) (values a 1)])
   (define x 1)
@@ -467,8 +439,7 @@ test: "let forms inside unrefactorable let*-values forms"
 (let*-values ([(a b) (values a 1)])
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define a 1)
 (let*-values ([(a b) (values a 1)])
   (define x 1)
@@ -481,8 +452,7 @@ test: "let forms inside when forms"
 (when #true
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (when #true
   (define x 1)
   x)
@@ -494,8 +464,7 @@ test: "let forms inside unless forms"
 (unless #false
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (unless #false
   (define x 1)
   x)
@@ -507,8 +476,7 @@ test: "let forms inside with-handlers forms"
 (with-handlers ([exn:fail? void])
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (with-handlers ([exn:fail? void])
   (define x 1)
   x)
@@ -521,8 +489,7 @@ test: "let forms inside parameterize forms"
 (parameterize ([p #true])
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define p (make-parameter #false))
 (parameterize ([p #true])
   (define x 1)
@@ -535,8 +502,7 @@ test: "let forms inside for loop bodies"
 (for ([i (in-range 0 10)])
   (let ([x 1])
     (displayln x)))
-------------------------------
-------------------------------
+==============================
 (for ([i (in-range 0 10)])
   (define x 1)
   (displayln x))
@@ -561,8 +527,7 @@ test: "let forms at submodule level not refactorable to define"
 test: "named lets which don't refer to the name are refactorable to unnamed lets"
 ------------------------------
 (let loop ([x 1]) x)
-------------------------------
-------------------------------
+==============================
 (let ([x 1]) x)
 ------------------------------
 
@@ -615,8 +580,7 @@ test: "variable definition with nested let binding refactorable to two variable 
   (displayln "foo")
   (define y (let ([x 1]) (* x 2)))
   (* y 3))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (displayln "foo")
   (define x 1)
@@ -635,8 +599,7 @@ test:
      (define y (let ([x 1]) (* x 2)))
      (* y 3)]
     [else (displayln "else")]))
-------------------------------
-------------------------------
+==============================
 (define (f c)
   (cond
     [c
@@ -688,8 +651,7 @@ test: "let binding nested in begin0 extractable to definition"
 (define (f)
   (begin0 (let ([x 1]) x)
     (displayln "foo")))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (begin0 x
@@ -704,8 +666,7 @@ test: "let binding with body nested in begin0 extractable to definition and body
             (displayln "foo")
             x)
     (displayln "bar")))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (displayln "foo")
@@ -719,8 +680,7 @@ test: "redundant let bindings can be removed"
 (define x 1)
 (let ([x x])
   (* x 2))
-------------------------------
-------------------------------
+==============================
 (define x 1)
 (* x 2)
 ------------------------------

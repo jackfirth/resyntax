@@ -12,8 +12,7 @@ test: "should suggest 'any linemode with read-line when linemode not specified"
 ----------------------------------------
 (define (foo in)
   (read-line in))
-----------------------------------------
-----------------------------------------
+========================================
 (define (foo in)
   (read-line in 'any))
 ----------------------------------------
@@ -23,8 +22,7 @@ test: "should suggest 'any linemode with read-line when linemode and port not sp
 ----------------------------------------
 (define (foo)
   (read-line))
-----------------------------------------
-----------------------------------------
+========================================
 (define (foo)
   (read-line (current-input-port) 'any))
 ----------------------------------------

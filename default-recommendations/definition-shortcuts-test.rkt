@@ -13,8 +13,7 @@ test: "define-values with values refactorable to separate definitions"
 (define (foo)
   (define-values (a b c) (values 1 2 3))
   (+ a b c))
-------------------------------
-------------------------------
+==============================
 (define (foo)
   (define a 1)
   (define b 2)
@@ -29,8 +28,7 @@ test: "define-values with values and body before refactorable to separate defini
   (displayln "foo")
   (define-values (a b c) (values 1 2 3))
   (+ a b c))
-------------------------------
-------------------------------
+==============================
 (define (foo)
   (displayln "foo")
   (define a 1)
@@ -48,8 +46,7 @@ test: "define-values with values inside cond refactorable to separate definition
      (define-values (a b c) (values 1 2 3))
      (+ a b c)]
     [else (displayln "else")]))
-------------------------------
-------------------------------
+==============================
 (define (foo condition)
   (cond
     [condition
@@ -70,8 +67,7 @@ test: "refactoring define-values to separate definitions doesn't reformat contex
   (define-values (a b c) (values 1 2 3))
 
   (  +  a  b   c ))
-------------------------------
-------------------------------
+==============================
 (define (foo)
 
   (  displayln   "foo"   )
@@ -95,8 +91,7 @@ test: "refactoring define-values to separate definitions respects requested line
   (define-values (x y z)
     (values 4 5 6))
   (+ x y z))
-------------------------------
-------------------------------
+==============================
 (define (foo)
   (define a 1)
   (define b 2)
@@ -114,8 +109,7 @@ test: "immediately returned variable definition can be inlined"
 (define (foo)
   (define x 1)
   x)
-------------------------------
-------------------------------
+==============================
 (define (foo)
   1)
 ------------------------------
@@ -154,8 +148,7 @@ test: "inlining immediately returned variable definition doesn't reformat entire
 
   (define x 1)
   x)
-------------------------------
-------------------------------
+==============================
 (define (foo)
 
   ( displayln    "foo" )
@@ -170,8 +163,7 @@ test: "inlining immediately returned variable definition in empty context does r
        (define y (* x 2))
        y)
      (list 1 2 3))
-------------------------------
-------------------------------
+==============================
 (map (λ (x) (* x 2))
      (list 1 2 3))
 ------------------------------
@@ -189,8 +181,7 @@ test: "inlining immediately returned variable definition respects requested line
 (define (baz)
   (define x 1)
   x)
-------------------------------
-------------------------------
+==============================
 (define (foo)
   (define x 1)
   x)
@@ -207,8 +198,7 @@ test: "begin in right hand side of variable definition can be removed"
 (define (foo)
   (define x (begin (displayln "foo") 42))
   (* x 2))
---------------------
---------------------
+====================
 (define (foo)
   (displayln "foo")
   (define x 42)
@@ -221,8 +211,7 @@ test: "begin in right hand side of function definition can be flattened"
 (define (foo)
   (define (x) (begin (displayln "foo") 42))
   (* (x) 2))
---------------------
---------------------
+====================
 (define (foo)
   (define (x)
     (displayln "foo")
@@ -236,8 +225,7 @@ test: "begin0 in right hand side of variable definition can be removed"
 (define (foo)
   (define x (begin0 42 (displayln "foo")))
   (* x 2))
---------------------
---------------------
+====================
 (define (foo)
   (define x 42)
   (displayln "foo")
@@ -259,8 +247,7 @@ test: "begin inside begin0 in definition context should be extractable"
   (displayln "starting")
   (begin0 (begin (displayln "before") (* x 2))
     (displayln "after")))
---------------------
---------------------
+====================
 (define (f x)
   (displayln "starting")
   (displayln "before")
@@ -277,8 +264,7 @@ test: "begin inside definition context should be flattenable"
     (define y (* x 2))
     (define z (* y 3)))
   (+ x y z))
---------------------
---------------------
+====================
 (define (f x)
   (displayln "starting")
   (define y (* x 2))
@@ -296,8 +282,7 @@ test: "commented begin inside definition context should be flattenable"
     (define y (* x 2))
     (define z (* y 3)))
   (+ x y z))
---------------------
---------------------
+====================
 (define (f x)
   (displayln "starting")
   ; comment

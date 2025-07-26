@@ -21,8 +21,7 @@ test: "predicate/c in contract-out refactorable to ->"
 (provide (contract-out [foo? predicate/c]))
 (define (foo? _)
   #true)
-------------------------------
-------------------------------
+==============================
 (provide (contract-out [foo? (-> any/c boolean?)]))
 (define (foo? _)
   #true)
@@ -35,8 +34,7 @@ test: "predicate/c in define/contract refactorable to ->"
 (define/contract (foo? _)
   predicate/c
   #true)
-------------------------------
-------------------------------
+==============================
 (require racket/contract/region)
 (define/contract (foo? _)
   (-> any/c boolean?)

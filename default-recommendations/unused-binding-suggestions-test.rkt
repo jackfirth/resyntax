@@ -14,8 +14,7 @@ test: "should remove unused function definitions from internal definition contex
   (define (bar)
     (displayln "bar"))
   42)
-------------------------------
-------------------------------
+==============================
 (define (foo)
   42)
 ------------------------------
@@ -42,8 +41,7 @@ test: "removing unused function definitions shouldn't reformat entire context"
 
   (define x 2)
   ( * x 2 ))
-------------------------------
-------------------------------
+==============================
 (define (foo)
   ( displayln "foo" )
 
@@ -58,8 +56,7 @@ test: "should remove unused side-effect-free variable definitions from internal 
 (define (foo)
   (define bar "bar")
   42)
-------------------------------
-------------------------------
+==============================
 (define (foo)
   42)
 ------------------------------

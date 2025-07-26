@@ -22,8 +22,7 @@ test: "define-struct with supertype"
 ----------------------------------------
 (struct point ())
 (define-struct (2d-point point) (x y))
-----------------------------------------
-----------------------------------------
+========================================
 (struct point ())
 (struct 2d-point point (x y) #:extra-constructor-name make-2d-point)
 ----------------------------------------
@@ -36,8 +35,7 @@ test: "define-struct with multi-form single-line options"
   #:property prop:custom-print-quotable
   'never
   #:inspector #false)
-----------------------------------------
-----------------------------------------
+========================================
 (struct point (x y)
   #:guard (λ (x y _) (values x y))
   #:property prop:custom-print-quotable
@@ -52,8 +50,7 @@ test: "define-struct with multi-line options"
 (define-struct point (x y)
   #:property prop:custom-write
   (λ (this out mode) (write-string "#<point>" out)))
-----------------------------------------
-----------------------------------------
+========================================
 (struct point (x y)
   #:property prop:custom-write
   (λ (this out mode) (write-string "#<point>" out))
@@ -69,8 +66,7 @@ test: "define-struct with options with separating whitespace"
   (λ (this out mode) (write-string "#<point>" out))
 
   #:guard (λ (x y _) (values x y)))
-----------------------------------------
-----------------------------------------
+========================================
 (struct point (x y)
 
   #:property prop:custom-write
@@ -87,8 +83,7 @@ test: "define-struct with field comments"
                (x ;; The X coordinate of the point
                 y ;; The Y coordinate of the point
                 ))
-----------------------------------------
-----------------------------------------
+========================================
 (struct point
         (x ;; The X coordinate of the point
          y ;; The Y coordinate of the point
@@ -107,8 +102,7 @@ test: "define-struct with comments between options"
 
   ;; Field guard
   #:guard (λ (x y _) (values x y)))
-----------------------------------------
-----------------------------------------
+========================================
 (struct point (x y)
 
   ;; Custom write implementation

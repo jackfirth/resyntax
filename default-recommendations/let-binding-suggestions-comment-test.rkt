@@ -15,8 +15,7 @@ test: "let binding with commented right-hand-side expression"
          ;; The number one
          1])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x
     ;; The number one
@@ -31,8 +30,7 @@ test: "let binding with commented second clause"
         ;; The number two
         [y 2])
     (+ x y)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   ;; The number two
@@ -57,8 +55,7 @@ test: "let binding with commented first body form refactorable"
     ;; Comment
     (void)
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   ;; Comment
@@ -74,8 +71,7 @@ test: "let binding with commented second body form refactorable"
     (void)
     ;; Comment
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (void)
@@ -92,8 +88,7 @@ test: "let binding with comments before let form refactorable"
   ;; Comment
   (let ([x 1])
     x))
-------------------------------
-------------------------------
+==============================
 (define (f)
   ;; Comment
   (void)

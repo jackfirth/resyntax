@@ -13,8 +13,7 @@ test: "lambda variable definition to function definition"
 (define f
   (λ (a b c)
     1))
-------------------------------
-------------------------------
+==============================
 (define (f a b c)
   1)
 ------------------------------
@@ -25,8 +24,7 @@ test: "lambda variable definition with no arguments to function definition"
 (define f
   (λ ()
     1))
-------------------------------
-------------------------------
+==============================
 (define (f)
   1)
 ------------------------------
@@ -35,8 +33,7 @@ test: "lambda variable definition with no arguments to function definition"
 test: "one-line lambda variable definition to function definition"
 ------------------------------
 (define f (λ (a b c) 1))
-------------------------------
-------------------------------
+==============================
 (define (f a b c)
   1)
 ------------------------------
@@ -47,8 +44,7 @@ test: "lambda variable definition with only rest argument to function definition
 (define f
   (λ xs
     1))
-------------------------------
-------------------------------
+==============================
 (define (f . xs)
   1)
 ------------------------------
@@ -59,8 +55,7 @@ test: "lambda variable definition with rest argument to function definition"
 (define f
   (λ (a b c . xs)
     1))
-------------------------------
-------------------------------
+==============================
 (define (f a b c . xs)
   1)
 ------------------------------
@@ -81,8 +76,7 @@ test: "lambda function definition to function definition"
 (define (f a b c)
   (λ (x y z)
     1))
-------------------------------
-------------------------------
+==============================
 (define ((f a b c) x y z)
   1)
 ------------------------------
@@ -122,8 +116,7 @@ test: "lambda variable definition with commented second body refactorable to def
     (void)
     ; comment
     1))
-------------------------------
-------------------------------
+==============================
 (define (f a)
   (void)
   ; comment
@@ -137,8 +130,7 @@ test: "nested lambda variable definition to function definition"
   (λ (a)
     (λ (b)
       1)))
-------------------------------
-------------------------------
+==============================
 (define ((f a) b)
   1)
 ------------------------------
@@ -149,8 +141,7 @@ test: "nested lambda variable definition with thunk to function definition retur
 (define f
   (λ (a)
     (λ () 1)))
-------------------------------
-------------------------------
+==============================
 (define (f a)
   (λ () 1))
 ------------------------------
@@ -162,8 +153,7 @@ test: "nested lambda function definition to function definition"
   (λ (b)
     (λ (c)
       1)))
-------------------------------
-------------------------------
+==============================
 (define (((f a) b) c)
   1)
 ------------------------------
@@ -210,8 +200,7 @@ test: "case-lambda with default arg"
      (f 1)]
     [(x)
      1]))
-------------------------------
-------------------------------
+==============================
 (define (f [x 1])
   1)
 ------------------------------
@@ -225,8 +214,7 @@ test: "case-lambda with default arg and required args"
      (f a b c 1)]
     [(a b c x)
      1]))
-------------------------------
-------------------------------
+==============================
 (define (f a b c [x 1])
   1)
 ------------------------------
@@ -268,8 +256,7 @@ test: "case-lambda with default arg and multiple body forms"
     [(x)
      (void)
      1]))
-------------------------------
-------------------------------
+==============================
 (define (f [x 1])
   (void)
   1)
@@ -286,8 +273,7 @@ test: "case-lambda with default arg and body form with interior comments"
      (begin
        ;;comment
        1)]))
-------------------------------
-------------------------------
+==============================
 (define (f [x 1])
   (begin
     ;;comment
@@ -301,26 +287,22 @@ test: "empty-checked rest args to optional arg"
 (define (foo a b . x*)
   (define x (if (null? x*) "default" (car x*)))
   (+ a b (string-length x)))
-------------------------------
-------------------------------
+==============================
 (require racket/list)
 (define (foo a b . x*)
   (define x (if (empty? x*) "default" (car x*)))
   (+ a b (string-length x)))
-------------------------------
-------------------------------
+==============================
 (require racket/list)
 (define (foo a b . x*)
   (define x (if (null? x*) "default" (first x*)))
   (+ a b (string-length x)))
-------------------------------
-------------------------------
+==============================
 (require racket/list)
 (define (foo a b . x*)
   (define x (if (empty? x*) "default" (first x*)))
   (+ a b (string-length x)))
-------------------------------
-------------------------------
+==============================
 (require racket/list)
 (define (foo a b [x "default"])
   (+ a b (string-length x)))

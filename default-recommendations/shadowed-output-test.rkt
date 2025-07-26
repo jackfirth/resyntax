@@ -66,8 +66,7 @@ test: "shadowed `displayln`: when not -> unless is fine"
   s)
 (when (not 'foo)
   (displayln "not foo"))
-------------------------------
-------------------------------
+==============================
 (define (displayln s)
   s)
 (unless 'foo
@@ -89,8 +88,7 @@ test: "shadowed `displayln`: unless not -> when is fine"
   s)
 (unless (not 'foo)
   (displayln "foo"))
-------------------------------
-------------------------------
+==============================
 (define (displayln s)
   s)
 (when 'foo
@@ -119,8 +117,7 @@ test: "shadowed `println`: single-line if-else-false-to-and is fine"
 (define (println v)
   v)
 (if 'a (println "true branch") #f)
-------------------------------
-------------------------------
+==============================
 (define (println v)
   v)
 (and 'a (println "true branch"))
@@ -134,8 +131,7 @@ test: "shadowed `println`: multi-line if-else-false-to-and is fine"
 (if 'some-long-condition-expression
     (println "some very long true branch that should stay on its own line")
     #f)
-------------------------------
-------------------------------
+==============================
 (define (println v)
   v)
 (and 'some-long-condition-expression
@@ -343,8 +339,7 @@ test: "`define-syntax-rule` isn't actually shadowed in this scope"
   (define-syntax-rule def define)
   (def x 5)
   x)
-------------------------------
-------------------------------
+==============================
 (define-syntax-rule (my-or a b)
   (let ([tmp a]) (if a a b)))
 (let ()

@@ -15,8 +15,7 @@ test: "nested let bindings"
     (let ([y 1])
       (let ([z 1])
         (+ x y z)))))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (define y 1)
@@ -34,8 +33,7 @@ test: "nested let bindings with interleaved expressions"
       (displayln "bar")
       (let ([z 1])
         (+ x y z)))))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (displayln "foo")
@@ -53,8 +51,7 @@ test: "nested conflicting let bindings only partially refactorable"
     (displayln x)
     (let ([x 2])
       x)))
-------------------------------
-------------------------------
+==============================
 (define (f)
   (define x 1)
   (displayln x)

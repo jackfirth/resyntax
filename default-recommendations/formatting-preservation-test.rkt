@@ -13,8 +13,7 @@ test: "refactoring an expression doesn't affect formatting of unrefactored code"
 ( displayln "foo" )
 (or 1 (or 2 3))
 ( displayln "bar" )
-----------------------------------------
-----------------------------------------
+========================================
 ( displayln "foo" )
 (or 1 2 3)
 ( displayln "bar" )
@@ -27,8 +26,7 @@ test: "define-let-to-double-define doesn't reformat the entire definition contex
   ( displayln "foo" )
   (define y (let ([x 1]) (* x 2)))
   ( displayln "bar" ))
-----------------------------------------
-----------------------------------------
+========================================
 (define (f)
   ( displayln "foo" )
   (define x 1)
@@ -43,8 +41,7 @@ test: "let-to-define doesn't reformat the entire definition context"
   ( displayln "foo" )
   (let ([x 1])
     (* x 2)))
-----------------------------------------
-----------------------------------------
+========================================
 (define (f)
   ( displayln "foo" )
   (define x 1)
@@ -62,8 +59,7 @@ test: "cond-let-to-cond-define doesn't reformat the entire cond expression"
      (let ([x 1])
        (* x 2))]
     [else ( displayln "else" )]))
-----------------------------------------
-----------------------------------------
+========================================
 (define (f c1 c2)
   (cond
     [c1 ( displayln "foo" )]

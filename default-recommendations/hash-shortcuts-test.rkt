@@ -13,8 +13,7 @@ test: "hash-ref with constant lambda can be simplified to hash-ref without lambd
 (define h (make-hash))
 (define k 'a)
 (hash-ref h k (λ () 42))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-ref h k 42)
@@ -36,8 +35,7 @@ test: "hash-ref! with constant lambda can be simplified to hash-ref! without lam
 (define h (make-hash))
 (define k 'a)
 (hash-ref! h k (λ () 42))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-ref! h k 42)
@@ -62,16 +60,14 @@ test: "hash-ref with hash-set! can be simplified to hash-ref!"
                 (define v (+ 1 2 3))
                 (hash-set! h k v)
                 v))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (or (hash-ref h k #false)
     (let ([v (+ 1 2 3)])
       (hash-set! h k v)
       v))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-ref! h k (λ () (+ 1 2 3)))
@@ -85,15 +81,13 @@ test: "hash-ref with hash-set! and literal keys can be simplified to hash-ref!"
                  (define v (+ 1 2 3))
                  (hash-set! h 'a v)
                  v))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (or (hash-ref h 'a #false)
     (let ([v (+ 1 2 3)])
       (hash-set! h 'a v)
       v))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (hash-ref! h 'a (λ () (+ 1 2 3)))
 ------------------------------
@@ -106,16 +100,14 @@ test: "hash-ref with hash-set! lambda with constant can be simplified to hash-re
 (hash-ref h k (λ ()
                 (hash-set! h k 0)
                 0))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-ref h k (λ ()
                 (define v 0)
                 (hash-set! h k v)
                 v))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-ref! h k 0)
@@ -130,8 +122,7 @@ test: "hash-ref with hash-set! lambda with thunk can be simplified to hash-ref!"
                 (define v (make-hash))
                 (hash-set! h k v)
                 v))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-ref! h k make-hash)
@@ -143,8 +134,7 @@ test: "hash-set! with hash-ref can be simplified to hash-update!"
 (define h (make-hash))
 (define k 'a)
 (hash-set! h k (+ 5 (hash-ref h k 0)))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-update! h k (λ (v) (+ 5 v)) 0)
@@ -155,8 +145,7 @@ test: "hash-set! with hash-ref and literal keys can be simplified to hash-update
 ------------------------------
 (define h (make-hash))
 (hash-set! h 'a (+ 5 (hash-ref h 'a 0)))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (hash-update! h 'a (λ (v) (+ 5 v)) 0)
 ------------------------------
@@ -167,8 +156,7 @@ test: "hash-set! with hash-ref can be simplified to hash-update! without lambda"
 (define h (make-hash))
 (define k 'a)
 (hash-set! h k (add1 (hash-ref h k 0)))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (define k 'a)
 (hash-update! h k add1 0)
@@ -188,8 +176,7 @@ test: "hash-map with key-returning lamda can be refactored to hash-keys"
 ------------------------------
 (define h (make-hash))
 (hash-map h (λ (k v) k))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (hash-keys h)
 ------------------------------
@@ -199,8 +186,7 @@ test: "hash-map with value-returning lamda can be refactored to hash-values"
 ------------------------------
 (define h (make-hash))
 (hash-map h (λ (k v) v))
-------------------------------
-------------------------------
+==============================
 (define h (make-hash))
 (hash-values h)
 ------------------------------
@@ -211,23 +197,19 @@ test: "hash-ref and hash-set! with variable to hash-update! can be simplified to
 (define (f h term)
   (let ([sum (hash-ref! h (cadr term) 0)])
     (hash-set! h (cadr term) (+ (car term) sum))))
-------------------------------
-------------------------------
+==============================
 (define (f h term)
   (let ([sum (hash-ref h (cadr term) 0)])
     (hash-set! h (cadr term) (+ (car term) sum))))
-------------------------------
-------------------------------
+==============================
 (define (f h term)
   (define sum (hash-ref! h (cadr term) 0))
   (hash-set! h (cadr term) (+ (car term) sum)))
-------------------------------
-------------------------------
+==============================
 (define (f h term)
   (define sum (hash-ref h (cadr term) 0))
   (hash-set! h (cadr term) (+ (car term) sum)))
-------------------------------
-------------------------------
+==============================
 (define (f h term)
   (hash-update! h (cadr term) (λ (sum) (+ (car term) sum)) 0))
 ------------------------------
@@ -238,23 +220,19 @@ test: "hash-ref and hash-set! with variable to hash-update! works with different
 (define (f h lst)
   (let ([val (hash-ref! h (car lst) 1)])
     (hash-set! h (car lst) (* 2 val))))
-------------------------------
-------------------------------
+==============================
 (define (f h lst)
   (let ([val (hash-ref h (car lst) 1)])
     (hash-set! h (car lst) (* 2 val))))
-------------------------------
-------------------------------
+==============================
 (define (f h lst)
   (define val (hash-ref! h (car lst) 1))
   (hash-set! h (car lst) (* 2 val)))
-------------------------------
-------------------------------
+==============================
 (define (f h lst)
   (define val (hash-ref h (car lst) 1))
   (hash-set! h (car lst) (* 2 val)))
-------------------------------
-------------------------------
+==============================
 (define (f h lst)
   (hash-update! h (car lst) (λ (val) (* 2 val)) 1))
 ------------------------------
@@ -265,23 +243,19 @@ test: "hash-ref and hash-set! with variable to hash-update! works with literal k
 (define (f h x)
   (let ([count (hash-ref! h 'counter 0)])
     (hash-set! h 'counter (+ x count))))
-------------------------------
-------------------------------
+==============================
 (define (f h x)
   (let ([count (hash-ref h 'counter 0)])
     (hash-set! h 'counter (+ x count))))
-------------------------------
-------------------------------
+==============================
 (define (f h x)
   (define count (hash-ref! h 'counter 0))
   (hash-set! h 'counter (+ x count)))
-------------------------------
-------------------------------
+==============================
 (define (f h x)
   (define count (hash-ref h 'counter 0))
   (hash-set! h 'counter (+ x count)))
-------------------------------
-------------------------------
+==============================
 (define (f h x)
   (hash-update! h 'counter (λ (count) (+ x count)) 0))
 ------------------------------
