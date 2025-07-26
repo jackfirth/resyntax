@@ -28,9 +28,27 @@
   (concatenation (repetition 3 +inf.0 #\-)))
 
 
+(define-lex-abbrev refactoring-test-equals-separator-line
+  (concatenation (repetition 3 +inf.0 #\=)))
+
+
 (define-lex-abbrev refactoring-test-code-block
   (concatenation refactoring-test-separator-line
-                 (complement (concatenation any-string #\newline "-" any-string))
+                 (complement (concatenation any-string #\newline (union #\- #\=) any-string))
+                 #\newline
+                 refactoring-test-separator-line))
+
+
+;; Code block with dash start and equals end - produces CODE-BLOCK token  
+(define-lex-abbrev refactoring-test-code-block-dash-to-equals
+  (concatenation refactoring-test-separator-line
+                 (complement (concatenation any-string #\newline "=" any-string))
+                 #\newline))
+
+
+;; Code block content after equals separator
+(define-lex-abbrev refactoring-test-code-block-after-equals
+  (concatenation (complement (concatenation any-string #\newline "-" any-string))
                  #\newline
                  refactoring-test-separator-line))
 
@@ -53,7 +71,7 @@
 
 
 (define-tokens refactoring-test-tokens
-  (IDENTIFIER COLON-IDENTIFIER AT-SIGN-IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-BLOCK))
+  (IDENTIFIER COLON-IDENTIFIER AT-SIGN-IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-BLOCK EQUALS-SEPARATOR))
 (define-empty-tokens empty-refactoring-test-tokens (DOUBLE-DOT COMMA))
 
 
@@ -67,7 +85,18 @@
    [whitespace (return-without-pos (refactoring-test-lexer input-port))]
    [".." (token-DOUBLE-DOT)]
    ["," (token-COMMA)]
+   [refactoring-test-equals-separator-line (token-EQUALS-SEPARATOR lexeme)]
    [refactoring-test-code-line (token-CODE-BLOCK (string->immutable-string (substring lexeme 2)))]
+   [refactoring-test-code-block-after-equals
+    (block
+     (define lines (drop-right (string-lines lexeme) 1))  ; drop ending --- line
+     (token-CODE-BLOCK
+      (if (empty? lines) "" (string->immutable-string (string-join lines "\n" #:after-last "\n")))))]
+   [refactoring-test-code-block-dash-to-equals
+    (block
+     (define lines (drop (string-lines lexeme) 1))  ; drop starting --- line
+     (token-CODE-BLOCK
+      (if (empty? lines) "" (string->immutable-string (string-join lines "\n" #:after-last "\n")))))]
    [refactoring-test-code-block
     (block
      (define lines (drop-right (drop (string-lines lexeme) 1) 1))
