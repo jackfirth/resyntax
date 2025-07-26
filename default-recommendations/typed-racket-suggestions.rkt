@@ -18,40 +18,33 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-refactoring-rule tr-dash-app-constructor-pattern
-  #:description "This constructor abbreviation follows a common Typed Racket pattern."
+(define-refactoring-rule tr-constructor-abbreviation-pattern
+  #:description "This constructor abbreviation follows the Typed Racket convention of prefixing constructors with '-'."
   #:literals (define)
-  (define -App make-App)
+  (define abbrev-name:id make-constructor:id)
+  #:when (let ([abbrev-str (symbol->string (syntax-e #'abbrev-name))]
+               [make-str (symbol->string (syntax-e #'make-constructor))])
+           (and (string-prefix? abbrev-str "-")
+                (string-prefix? make-str "make-")
+                ;; The name after '-' should match the name after 'make-' (case insensitive)
+                (string-ci=? (substring abbrev-str 1)
+                             (substring make-str 5))))
   #:no-replacement)
 
 
-(define-refactoring-rule tr-dash-box-constructor-pattern
-  #:description "This constructor abbreviation follows a common Typed Racket pattern."
+(define-refactoring-rule tr-parametric-constructor-pattern
+  #:description "This parametric constructor follows a common Typed Racket pattern for constructors with optional arguments."
   #:literals (define)
-  (define -box make-Box)
+  (define (constructor-name:id param1:id [param2:id default-val:expr]) (make-constructor:id arg1:id arg2:id))
+  #:when (let ([constructor-str (symbol->string (syntax-e #'constructor-name))]
+               [make-str (symbol->string (syntax-e #'make-constructor))])
+           (and (string-prefix? constructor-str "-")
+                (string-prefix? make-str "make-")
+                (string-ci=? (substring constructor-str 1)
+                             (substring make-str 5))))
   #:no-replacement)
-
-
-(define-refactoring-rule tr-dash-channel-constructor-pattern
-  #:description "This constructor abbreviation follows a common Typed Racket pattern."
-  #:literals (define)
-  (define -channel make-Channel)
-  #:no-replacement)
-
-
-(define-refactoring-rule tr-lambda-wrapper-simplification
-  #:description "This lambda wrapper around a constructor can be simplified to a direct reference."
-  #:literals (define lambda)
-  (define wrapper:id (lambda args:id make-name:id))
-  #:when (and (identifier? #'args)
-              (identifier? #'make-name)
-              (let ([make-str (symbol->string (syntax-e #'make-name))])
-                (string-prefix? make-str "make-")))
-  (define wrapper make-name))
 
 
 (define-refactoring-suite typed-racket-suggestions
-  #:rules (tr-dash-app-constructor-pattern
-           tr-dash-box-constructor-pattern
-           tr-dash-channel-constructor-pattern
-           tr-lambda-wrapper-simplification))
+  #:rules (tr-constructor-abbreviation-pattern
+           tr-parametric-constructor-pattern))
