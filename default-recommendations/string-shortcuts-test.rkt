@@ -118,6 +118,36 @@ test: "string-append with only format call can be simplified"
 ------------------------------
 
 
+test: "string-append with format containing multiple placeholders"
+------------------------------
+(define (multi x y)
+  (string-append "Result: " (format "~a and ~a" x y) "!"))
+==============================
+(define (multi x y)
+  (format "Result: ~a and ~a!" x y))
+------------------------------
+
+
+test: "string-append with format before string literals"
+------------------------------
+(define name "Alice")
+(string-append (format "~a" name) " is the winner!")
+==============================
+(define name "Alice")
+(format "~a is the winner!" name)
+------------------------------
+
+
+test: "string-append with multiple non-string expressions"
+------------------------------
+(define (complex a b c d)
+  (string-append a (format " = ~a, " b) c))
+==============================
+(define (complex a b c d)
+  (format "~a = ~a, ~a" a b c))
+------------------------------
+
+
 test: "manual with-output-to-string should be refactored to use with-output-to-string"
 ------------------------------
 (define (f)
