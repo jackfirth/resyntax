@@ -31,6 +31,7 @@
                resyntax/default-recommendations/syntax-shortcuts
                resyntax/default-recommendations/syntax-parse-shortcuts
                resyntax/default-recommendations/syntax-rules-shortcuts
+               resyntax/default-recommendations/typed-racket-suggestions
                resyntax/default-recommendations/unused-binding-suggestions)
  (contract-out
   [default-recommendations refactoring-suite?]))
@@ -64,6 +65,7 @@
          resyntax/default-recommendations/syntax-parse-shortcuts
          resyntax/default-recommendations/syntax-rules-shortcuts
          resyntax/default-recommendations/syntax-shortcuts
+         resyntax/default-recommendations/typed-racket-suggestions
          resyntax/default-recommendations/unused-binding-suggestions)
 
 
@@ -104,6 +106,7 @@
             syntax-shortcuts
             syntax-parse-shortcuts
             syntax-rules-shortcuts
+            typed-racket-suggestions
 
             ;; Excluded because of https://github.com/jackfirth/resyntax/issues/410
             ;; unused-binding-suggestions
