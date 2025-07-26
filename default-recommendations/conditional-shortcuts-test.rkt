@@ -984,3 +984,41 @@ test: "and with more than two arguments should not be refactored"
 ------------------------------
 (and 'some-condition 'another-condition (let ([x 42]) (* x 2)))
 ------------------------------
+
+
+test: "immediately-nested when expressions can be merged"
+--------------------
+(define (f c1 c2)
+  (when c1
+    (when c2
+      (displayln "both passed"))))
+====================
+(define (f c1 c2)
+  (when (and c1 c2)
+    (displayln "both passed")))
+--------------------
+
+
+test: "nested when with multiple body expressions can be merged"
+--------------------
+(define (f c1 c2)
+  (when c1
+    (when c2
+      (displayln "first")
+      (displayln "second"))))
+====================
+(define (f c1 c2)
+  (when (and c1 c2)
+    (displayln "first")
+    (displayln "second")))
+--------------------
+
+
+test: "when with multiple forms in outer body should not be merged"
+--------------------
+(define (f c1 c2)
+  (when c1
+    (displayln "before")
+    (when c2
+      (displayln "nested"))))
+--------------------
