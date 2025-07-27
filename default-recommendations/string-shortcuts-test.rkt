@@ -88,6 +88,66 @@ test: "format with only one argument can't be removed when formatting directives
 - (format "hello ~a")
 
 
+test: "string-append with format expression can be simplified - literals only"
+------------------------------
+(string-append "Hello "
+               (format "~a" 'USERNAME)
+               ", how are you today?")
+==============================
+(format "Hello ~a, how are you today?" 'USERNAME)
+------------------------------
+
+
+test: "string-append with format expression can be simplified - mixed expressions and literals"
+------------------------------
+(define (f s1 s2 x)
+  (string-append s1 (format ", x = ~a, " x) s2))
+==============================
+(define (f s1 s2 x)
+  (format "~a, x = ~a, ~a" s1 x s2))
+------------------------------
+
+
+test: "string-append with only format call can be simplified"
+------------------------------
+(define value 'test)
+(string-append (format "~a" value))
+==============================
+(define value 'test)
+(format "~a" value)
+------------------------------
+
+
+test: "string-append with format containing multiple placeholders"
+------------------------------
+(define (multi x y)
+  (string-append "Result: " (format "~a and ~a" x y) "!"))
+==============================
+(define (multi x y)
+  (format "Result: ~a and ~a!" x y))
+------------------------------
+
+
+test: "string-append with format before string literals"
+------------------------------
+(define name "Alice")
+(string-append (format "~a" name) " is the winner!")
+==============================
+(define name "Alice")
+(format "~a is the winner!" name)
+------------------------------
+
+
+test: "string-append with multiple non-string expressions"
+------------------------------
+(define (complex a b c d)
+  (string-append a (format " = ~a, " b) c))
+==============================
+(define (complex a b c d)
+  (format "~a = ~a, ~a" a b c))
+------------------------------
+
+
 test: "manual with-output-to-string should be refactored to use with-output-to-string"
 ------------------------------
 (define (f)

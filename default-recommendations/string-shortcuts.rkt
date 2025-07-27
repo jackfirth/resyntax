@@ -152,6 +152,38 @@
      (λ () body-inside ...))))
 
 
+(define (build-new-format-template expressions-before template-stx expressions-after)
+  (define parts-before (map string-expr->format-template-text expressions-before))
+  (define parts-after (map string-expr->format-template-text expressions-after))
+  (define all-parts (append parts-before (list (syntax-e template-stx)) parts-after))
+  (apply string-append all-parts))
+
+
+(define (string-expr->format-template-text expr)
+  (if (string-literal? expr)
+      (syntax-e expr)
+      "~a"))
+
+
+(define (string-literal? stx)
+  (and (syntax? stx) (string? (syntax-e stx))))
+
+
+(define-refactoring-rule string-append-with-format-to-format
+  #:description
+  "This `string-append` with `format` expression can be simplified to a single `format` call."
+  #:literals (string-append format)
+  (string-append before ... (format template:str arg ...) after ...)
+
+  #:with new-template
+  (build-new-format-template (attribute before) (attribute template) (attribute after))
+
+  #:with (arg-before ...) (filter-not string-literal? (attribute before))
+  #:with (arg-after ...) (filter-not string-literal? (attribute after))
+  
+  (format new-template arg-before ... arg ... arg-after ...))
+
+
 (define-refactoring-suite string-shortcuts
   #:rules (display-and-newline-to-displayln
            display-newline-to-newline
@@ -159,4 +191,5 @@
            manual-string-join
            manual-with-output-to-string
            string-append-and-string-join-to-string-join
-           string-append-identity))
+           string-append-identity
+           string-append-with-format-to-format))
