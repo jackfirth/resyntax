@@ -115,10 +115,7 @@
 
 
 (define/guard (rkt-file? portion)
-  (define path (file-portion-path portion))
-  (guard (path-has-extension? path #".rkt") #:else #false)
-  (define content (file->string path))
-  (string-prefix? content "#lang racket"))
+  (path-has-extension? (file-portion-path portion) #".rkt"))
 
 
 ;; GitHub allows pull request reviews to include comments only on modified lines, plus the 3 lines
