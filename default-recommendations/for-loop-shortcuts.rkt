@@ -56,6 +56,20 @@
     for*/hash))
 
 
+(define-literal-set nested-for-loops
+  (for*
+   for*/list
+   for*/vector
+   for*/set 
+   for*/sum
+   for*/product
+   for*/and
+   for*/or
+   for*/first
+   for*/last
+   for*/hash))
+
+
 (define-syntax-class sequence-syntax-convertible-list-expression
   #:attributes (refactored)
   #:literals (vector->list range hash-keys hash-values hash->list bytes->list string->list)
@@ -592,6 +606,24 @@ return just that result."
   (for-id (clause-before ... [value (in-hash-values hash-expr)] clause-after ...) body ...))
 
 
+(define-refactoring-rule in-value-to-do-define
+  #:description "This `in-value` can be replaced with `#:do` to make the binding more explicit."
+  #:literals (in-value)
+  (for-id:id (clause-before ... [var:id (in-value expr)] clause-after ...) body ...)
+  #:when ((literal-set->predicate nested-for-loops) (attribute for-id))
+  #:when (not (empty? (or (syntax-property #'var 'identifier-usages) '())))
+  (for-id (clause-before ... #:do [(define var expr)] clause-after ...) body ...))
+
+
+(define-refactoring-rule in-value-to-do-expression
+  #:description "This `in-value` clause can be replaced with `#:do` since the variable is unused."
+  #:literals (in-value)
+  (for-id:id (clause-before ... [var:id (in-value expr)] clause-after ...) body ...)
+  #:when ((literal-set->predicate nested-for-loops) (attribute for-id))
+  #:when (empty? (or (syntax-property #'var 'identifier-usages) '()))
+  (for-id (clause-before ... #:do [expr] clause-after ...) body ...))
+
+
 (define-refactoring-suite for-loop-shortcuts
   #:rules (andmap-to-for/and
            append-map-for/list-to-for*/list
@@ -607,6 +639,8 @@ return just that result."
            hash-for-each-to-for
            in-hash-to-in-hash-keys
            in-hash-to-in-hash-values
+           in-value-to-do-define
+           in-value-to-do-expression
            list->set-to-for/set
            list->vector-to-for/vector
            map-to-for
