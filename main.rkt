@@ -34,6 +34,7 @@
          racket/file
          racket/match
          racket/sequence
+         racket/string
          rebellion/base/comparator
          rebellion/base/option
          rebellion/base/range
@@ -142,11 +143,15 @@
     (git-commit! message)))
 
 
-(define (resyntax-analyze source
+(define/guard (resyntax-analyze source
                           #:suite [suite default-recommendations]
                           #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (define comments (with-input-from-source source read-comment-locations))
   (define full-source (source->string source))
+  (guard (string-prefix? full-source "#lang racket") #:else
+    (log-resyntax-warning "skipping ~a because it does not start with #lang racket"
+                          (or (source-path source) "string source"))
+    (refactoring-result-set #:base-source source #:results '()))
   (log-resyntax-info "analyzing ~a" (or (source-path source) "string source"))
   (for ([comment (in-range-set comments)])
     (log-resyntax-debug "parsed comment: ~a: ~v" comment (substring-by-range full-source comment)))
