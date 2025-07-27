@@ -22,6 +22,7 @@
   [syntax-path-add (-> syntax-path? syntax-path-element? syntax-path?)]
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
+  [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
   [syntax-label-paths (-> syntax? symbol? syntax?)]
   [box-element-syntax syntax-path-element?]))
 
@@ -265,6 +266,35 @@
       (check-pred exn:fail:contract? thrown)
       (check-regexp-match #rx"syntax-ref:" (exn-message thrown))
       (check-regexp-match #rx"path is inconsistent" (exn-message thrown)))))
+
+
+(define (syntax-set init-stx path new-subform)
+  (let loop ([stx init-stx] [elements (syntax-path-elements path)])
+    (guarded-block
+      (guard (not (treelist-empty? elements)) #:else new-subform)
+      (define next-element (treelist-first elements))
+      (define remaining-elements (treelist-rest elements))
+      (match next-element
+        [(? exact-nonnegative-integer? i)
+         (define updated-child (loop (list-ref (syntax-e stx) i) remaining-elements))
+         (define updated-datum (list-set (syntax-e stx) i updated-child))
+         (datum->syntax stx updated-datum stx stx)]))))
+
+
+(module+ test
+  (test-case "syntax-set"
+
+    (define new-subform #'FOO)
+
+    (test-case "empty path"
+      (define stx #'a)
+      (define actual (syntax-set stx empty-syntax-path new-subform))
+      (check-equal? actual new-subform))
+
+    (test-case "list element path"
+      (define stx #'(a b c))
+      (define actual (syntax-set stx (syntax-path (list 1)) new-subform))
+      (check-equal? (syntax->datum actual) '(a FOO c)))))
 
 
 (define (syntax-label-paths stx property-name)
