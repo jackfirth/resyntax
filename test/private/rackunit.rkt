@@ -104,20 +104,10 @@
       (range-bound (+ (range-bound-endpoint bound) amount) (range-bound-type bound))))
 
 
-(define-check (check-suite-refactors original-program expected-program)
-  (define suite (current-suite-under-test))
-  (set! original-program (code-block-append (current-header) original-program))
-  (set! expected-program (code-block-append (current-header) expected-program))
-  (define header-line-count
-    (count (λ (ch) (equal? ch #\newline)) (string->list (code-block-raw-string (current-header)))))
-  (define modified-line-mask
-    (for/range-set #:comparator natural<=>
-      ([r (in-range-set (current-line-mask))])
-      (range (range-bound-add (range-lower-bound r) header-line-count)
-             (range-bound-add (range-upper-bound r) header-line-count)
-             #:comparator natural<=>)))
+;; Helper function to create logging utilities
+(define (make-log-capture-utilities)
   (define logged-messages-builder (make-vector-builder))
-
+  
   (define (save-log log-entry)
     (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
 
@@ -126,6 +116,32 @@
 
   (define (build-logs-info)
     (string-block-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
+  
+  (values call-with-logs-captured build-logs-info))
+
+;; Helper function to compute the modified line mask based on header
+(define (compute-modified-line-mask header-line-count)
+  (for/range-set #:comparator natural<=>
+    ([r (in-range-set (current-line-mask))])
+    (range (range-bound-add (range-lower-bound r) header-line-count)
+           (range-bound-add (range-upper-bound r) header-line-count)
+           #:comparator natural<=>)))
+
+;; Helper function to create check-info list for matched rules
+(define (make-matched-rules-check-info result-set)
+  (if (empty? (refactoring-result-set-results result-set))
+      '()
+      (list (check-info 'matched-rules (refactoring-result-set-matched-rules-info result-set)))))
+
+
+(define-check (check-suite-refactors original-program expected-program)
+  (define suite (current-suite-under-test))
+  (set! original-program (code-block-append (current-header) original-program))
+  (set! expected-program (code-block-append (current-header) expected-program))
+  (define header-line-count
+    (count (λ (ch) (equal? ch #\newline)) (string->list (code-block-raw-string (current-header)))))
+  (define modified-line-mask (compute-modified-line-mask header-line-count))
+  (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
 
   (define result-set
     (call-with-logs-captured
@@ -134,10 +150,7 @@
                          #:suite suite
                          #:lines modified-line-mask))))
   
-  (with-check-info*
-      (if (empty? (refactoring-result-set-results result-set))
-          '()
-          (list (check-info 'matched-rules (refactoring-result-set-matched-rules-info result-set))))
+  (with-check-info* (make-matched-rules-check-info result-set)
     (λ ()
       (define refactored-program
         (with-handlers
@@ -178,16 +191,7 @@
 (define-check (check-suite-does-not-refactor original-program)
   (define suite (current-suite-under-test))
   (set! original-program (code-block-append (current-header) original-program))
-  (define logged-messages-builder (make-vector-builder))
-
-  (define (save-log log-entry)
-    (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
-
-  (define (call-with-logs-captured proc)
-    (with-intercepted-logging save-log #:logger resyntax-logger proc 'debug 'resyntax))
-
-  (define (build-logs-info)
-    (string-block-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
+  (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
 
   (define result-set
     (call-with-logs-captured
@@ -195,10 +199,7 @@
        (resyntax-analyze (string-source (code-block-raw-string original-program)) #:suite suite))))
   (define refactored-program
     (modified-source-contents (refactoring-result-set-updated-source result-set)))
-  (with-check-info*
-      (if (empty? (refactoring-result-set-results result-set))
-          '()
-          (list (check-info 'matched-rules (refactoring-result-set-matched-rules-info result-set))))
+  (with-check-info* (make-matched-rules-check-info result-set)
     (λ ()
       (with-check-info (['logs (build-logs-info)]
                         ['actual (string-block-info refactored-program)]
