@@ -286,7 +286,9 @@
         [(? exact-nonnegative-integer? i)
          (define updated-child (loop (list-ref unwrapped i) remaining-elements))
          (define updated-datum (list-set unwrapped i updated-child))
-         (datum->syntax stx updated-datum stx stx)]
+         (if (syntax? stx)
+             (datum->syntax stx updated-datum stx stx)
+             updated-datum)]
         [(tail-syntax i)
          (define tail-part (drop unwrapped i))
          (define updated-tail (loop tail-part remaining-elements))
