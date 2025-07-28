@@ -4,19 +4,34 @@
 (provide pure-expression)
 
 
-(require resyntax/default-recommendations/private/literal-constant
+(require racket/list
+         resyntax/default-recommendations/private/literal-constant
          syntax/parse)
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-syntax-class pure-list-accessor
-  #:literals (car cdr cadr cdar caar cddr caddr cadddr)
-  (pattern (~or car cdr cadr cdar caar cddr caddr cadddr)))
+(define-literal-set pure-functions
+  (list-ref
+   hash-ref
+   first
+   second
+   third
+   fourth
+   fifth
+   car
+   cdr
+   cadr
+   cdar
+   caar
+   cddr
+   caddr
+   cadddr))
 
 
 (define-syntax-class pure-expression
-  (pattern (~or _:literal-constant 
-                _:id
-                (_:pure-list-accessor arg:pure-expression))))
+  (pattern :literal-constant)
+  (pattern :id)
+  (pattern (f:id arg:pure-expression ...)
+    #:when ((literal-set->predicate pure-functions) (attribute f))))
