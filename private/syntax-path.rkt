@@ -39,6 +39,7 @@
          racket/treelist
          racket/list
          racket/match
+         racket/vector
          rebellion/base/comparator
          rebellion/type/singleton
          resyntax/private/matching-comparator
@@ -274,10 +275,44 @@
       (guard (not (treelist-empty? elements)) #:else new-subform)
       (define next-element (treelist-first elements))
       (define remaining-elements (treelist-rest elements))
+      (define unwrapped
+        ; It's only *not* syntax in the case where `tail-syntax` was used to pick out a trailing
+        ; list of subforms of a form. These sorts of syntax objects get created by #%app macro
+        ; insertion, which is how I discovered this check was necessary.
+        (if (syntax? stx)
+            (syntax-e stx)
+            stx))
       (match next-element
         [(? exact-nonnegative-integer? i)
-         (define updated-child (loop (list-ref (syntax-e stx) i) remaining-elements))
-         (define updated-datum (list-set (syntax-e stx) i updated-child))
+         (define updated-child (loop (list-ref unwrapped i) remaining-elements))
+         (define updated-datum (list-set unwrapped i updated-child))
+         (if (syntax? stx)
+             (datum->syntax stx updated-datum stx stx)
+             updated-datum)]
+        [(tail-syntax i)
+         (define tail-part (drop unwrapped i))
+         (define updated-tail (loop tail-part remaining-elements))
+         (define updated-datum (append (take unwrapped i) updated-tail))
+         (datum->syntax stx updated-datum stx stx)]
+        [(vector-element-syntax i)
+         (define updated-child (loop (vector-ref unwrapped i) remaining-elements))
+         (define updated-vector (vector-copy unwrapped))
+         (vector-set! updated-vector i updated-child)
+         (datum->syntax stx updated-vector stx stx)]
+        [(== box-element-syntax)
+         (define updated-child (loop (unbox unwrapped) remaining-elements))
+         (define updated-datum (box-immutable updated-child))
+         (datum->syntax stx updated-datum stx stx)]
+        [(hash-value-syntax key)
+         (define updated-child (loop (hash-ref unwrapped key) remaining-elements))
+         (define updated-datum (hash-set unwrapped key updated-child))
+         (datum->syntax stx updated-datum stx stx)]
+        [(prefab-field-syntax i)
+         (define updated-child (loop (prefab-struct-ref unwrapped i) remaining-elements))
+         (define key (prefab-struct-key unwrapped))
+         (define fields (struct->list unwrapped))
+         (define updated-fields (list-set fields i updated-child))
+         (define updated-datum (apply make-prefab-struct key updated-fields))
          (datum->syntax stx updated-datum stx stx)]))))
 
 
@@ -294,7 +329,52 @@
     (test-case "list element path"
       (define stx #'(a b c))
       (define actual (syntax-set stx (syntax-path (list 1)) new-subform))
-      (check-equal? (syntax->datum actual) '(a FOO c)))))
+      (check-equal? (syntax->datum actual) '(a FOO c)))
+
+    (test-case "tail syntax path"
+      (define stx #'(a . (b c)))
+      (define actual (syntax-set stx (syntax-path (list (tail-syntax 1))) #'(FOO bar)))
+      (check-equal? (syntax->datum actual) '(a FOO bar)))
+
+    (test-case "tail syntax path of flat syntax list"
+      (define stx #'(a b c))
+      (define actual (syntax-set stx (syntax-path (list (tail-syntax 1))) #'(FOO bar)))
+      (check-equal? (syntax->datum actual) '(a FOO bar)))
+
+    (test-case "vector element path"
+      (define stx #'#[a b c])
+      (define actual (syntax-set stx (syntax-path (list (vector-element-syntax 1))) new-subform))
+      (check-equal? (syntax->datum actual) '#[a FOO c]))
+
+    (test-case "box element path"
+      (define stx #'#&a)
+      (define actual (syntax-set stx (syntax-path (list box-element-syntax)) new-subform))
+      (check-equal? (syntax->datum actual) '#&FOO))
+
+    (test-case "hash value path"
+      (define stx #'#hash((a . 1) (b . 2) (c . 3)))
+      (define actual (syntax-set stx (syntax-path (list (hash-value-syntax 'b))) new-subform))
+      (check-equal? (syntax->datum actual) '#hash((a . 1) (b . FOO) (c . 3))))
+
+    (test-case "prefab field path"
+      (define stx #'#s(point 1 2))
+      (define actual (syntax-set stx (syntax-path (list (prefab-field-syntax 0))) new-subform))
+      (check-equal? (syntax->datum actual) '#s(point FOO 2)))
+
+    (test-case "nested list path"
+      (define stx #'(a b c (m (OLD x y z) n)))
+      (define actual (syntax-set stx (syntax-path (list 3 1 0)) new-subform))
+      (check-equal? (syntax->datum actual) '(a b c (m (FOO x y z) n))))
+
+    (test-case "list element after tail syntax path"
+      (define stx #'(a b . (c OLD e)))
+      (define actual (syntax-set stx (syntax-path (list (tail-syntax 2) 1)) new-subform))
+      (check-equal? (syntax->datum actual) '(a b c FOO e)))
+
+    (test-case "list element after tail syntax path in flat syntax"
+      (define stx #'(a b c OLD e))
+      (define actual (syntax-set stx (syntax-path (list (tail-syntax 2) 1)) new-subform))
+      (check-equal? (syntax->datum actual) '(a b c FOO e)))))
 
 
 (define (syntax-label-paths stx property-name)
