@@ -1,14 +1,10 @@
 #lang racket/base
 
-
 (provide lambda-by-any-name)
-
 
 (require syntax/parse)
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 ;; λ and lambda aren't free-identifier=?. Additionally, by using a syntax class instead of #:literals
 ;; we can produce the same lambda identifier that the input syntax had instead of changing all lambda

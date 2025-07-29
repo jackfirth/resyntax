@@ -1,22 +1,21 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [string-linemap (-> string? linemap?)]
-  [linemap? (-> any/c boolean?)]
-  [linemap-lines (-> linemap? (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
-  [linemap-position-to-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
-  [linemap-line-start-position (-> linemap? exact-positive-integer? exact-positive-integer?)]
-  [linemap-position-to-start-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
-  [linemap-position-to-end-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
-  [syntax-start-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
-  [syntax-end-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
-  [syntax-line-range (-> syntax? #:linemap linemap? range?)]))
-
+(provide (contract-out
+          [string-linemap (-> string? linemap?)]
+          [linemap? (-> any/c boolean?)]
+          [linemap-lines
+           (-> linemap? (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
+          [linemap-position-to-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
+          [linemap-line-start-position (-> linemap? exact-positive-integer? exact-positive-integer?)]
+          [linemap-position-to-start-of-line
+           (-> linemap? exact-positive-integer? exact-positive-integer?)]
+          [linemap-position-to-end-of-line
+           (-> linemap? exact-positive-integer? exact-positive-integer?)]
+          [syntax-start-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
+          [syntax-end-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
+          [syntax-line-range (-> syntax? #:linemap linemap? range?)]))
 
 (require rebellion/base/comparator
          rebellion/base/option
@@ -25,24 +24,22 @@
          rebellion/collection/sorted-map
          rebellion/collection/vector/builder)
 
-
 (module+ test
   (require rackunit
            rebellion/private/static-name))
 
-
 ;@----------------------------------------------------------------------------------------------------
 
-
 (struct linemap (lines line-numbers-by-start-position start-positions-by-line-number) #:transparent)
-
 
 (define (string-linemap str)
   (define lines (make-vector-builder))
   (define line-numbers-by-start-position (make-sorted-map-builder natural<=>))
   (define start-positions-by-line-number (make-vector-builder))
   (define char-count (string-length str))
-  (let loop ([line-number 1] [line-start-index 0] [index 0])
+  (let loop ([line-number 1]
+             [line-start-index 0]
+             [index 0])
     (cond
       [(= index char-count)
        (define last-line (substring str line-start-index index))
@@ -61,40 +58,30 @@
            (build-sorted-map line-numbers-by-start-position)
            (build-vector start-positions-by-line-number)))
 
-
 (define (linemap-line map line)
   (vector-ref (linemap-lines map) (sub1 line)))
-
 
 (define (linemap-position-to-line map position)
   (define line-numbers (linemap-line-numbers-by-start-position map))
   (entry-value (present-value (sorted-map-entry-at-most line-numbers position))))
 
-
 (define (linemap-line-start-position map line)
   (vector-ref (linemap-start-positions-by-line-number map) (sub1 line)))
 
-
 (define (linemap-line-end-position map line)
-  (+ (linemap-line-start-position map line)
-     (string-length (linemap-line map line))))
-
+  (+ (linemap-line-start-position map line) (string-length (linemap-line map line))))
 
 (define (linemap-position-to-start-of-line map position)
   (linemap-line-start-position map (linemap-position-to-line map position)))
 
-
 (define (linemap-position-to-end-of-line map position)
   (linemap-line-end-position map (linemap-position-to-line map position)))
-
 
 (define (syntax-start-line-position stx #:linemap map)
   (linemap-position-to-start-of-line map (syntax-position stx)))
 
-
 (define (syntax-end-line-position stx #:linemap map)
   (linemap-position-to-end-of-line map (+ (syntax-position stx) (syntax-span stx))))
-
 
 (define (syntax-line-range stx #:linemap map)
   (define first-line (syntax-line stx))
@@ -102,13 +89,17 @@
   (unless (<= first-line last-line)
     (raise-arguments-error 'syntax-line-range
                            "syntax object's last line number is before its first line number"
-                           "syntax" stx
-                           "first line" first-line
-                           "last line" last-line
-                           "position" (syntax-position stx)
-                           "span" (syntax-span stx)))
+                           "syntax"
+                           stx
+                           "first line"
+                           first-line
+                           "last line"
+                           last-line
+                           "position"
+                           (syntax-position stx)
+                           "span"
+                           (syntax-span stx)))
   (closed-range first-line last-line #:comparator natural<=>))
-
 
 (module+ test
 
@@ -116,7 +107,7 @@
 
     (define (nat-map . args)
       (apply sorted-map #:key-comparator natural<=> args))
-    
+
     (check-equal? (string-linemap "") (linemap #("") (nat-map 1 1) #(1)))
     (check-equal? (string-linemap "a") (linemap #("a") (nat-map 1 1) #(1)))
     (check-equal? (string-linemap "λ") (linemap #("λ") (nat-map 1 1) #(1)))
@@ -128,7 +119,7 @@
                   (linemap #("aaa" "bbb" "") (nat-map 1 1 5 2 9 3) #(1 5 9)))
     (check-equal? (string-linemap "a\n\n\nb")
                   (linemap #("a" "" "" "b") (nat-map 1 1 3 2 4 3 5 4) #(1 3 4 5))))
-  
+
   (test-case (name-string linemap-position-to-line)
 
     (test-case "two-line string with ending newline"

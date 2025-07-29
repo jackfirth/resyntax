@@ -1,20 +1,18 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (struct-out syntax-property-entry)
- (contract-out
-  [syntax-property-bundle (-> syntax-property-entry? ... syntax-property-bundle?)]
-  [syntax-property-bundle? (-> any/c boolean?)]
-  [syntax-property-bundle-as-map (-> syntax-property-bundle? immutable-sorted-map?)]
-  [syntax-property-bundle-entries (-> syntax-property-bundle? (sequence/c syntax-property-entry?))]
-  [sequence->syntax-property-bundle (-> (sequence/c syntax-property-entry?) syntax-property-bundle?)]
-  [into-syntax-property-bundle (reducer/c syntax-property-entry? syntax-property-bundle?)]
-  [syntax-add-all-properties (-> syntax? syntax-property-bundle? syntax?)]))
-
+(provide (struct-out syntax-property-entry)
+         (contract-out
+          [syntax-property-bundle (-> syntax-property-entry? ... syntax-property-bundle?)]
+          [syntax-property-bundle? (-> any/c boolean?)]
+          [syntax-property-bundle-as-map (-> syntax-property-bundle? immutable-sorted-map?)]
+          [syntax-property-bundle-entries
+           (-> syntax-property-bundle? (sequence/c syntax-property-entry?))]
+          [sequence->syntax-property-bundle
+           (-> (sequence/c syntax-property-entry?) syntax-property-bundle?)]
+          [into-syntax-property-bundle (reducer/c syntax-property-entry? syntax-property-bundle?)]
+          [syntax-add-all-properties (-> syntax? syntax-property-bundle? syntax?)]))
 
 (require racket/match
          racket/sequence
@@ -26,15 +24,12 @@
          rebellion/streaming/transducer
          resyntax/private/syntax-path)
 
-
 (module+ test
   (require (submod "..")
            rackunit
            syntax/parse))
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (struct syntax-property-bundle (as-map)
   #:omit-define-syntaxes
@@ -45,24 +40,19 @@
   #:guard (struct-guard/c syntax-path? any/c any/c)
   #:transparent)
 
-
 (define into-syntax-property-bundle
-  (into-transduced
-   (mapping
-    (λ (prop-entry)
-      (match-define (syntax-property-entry path k v) prop-entry)
-      (entry path (entry k v))))
-   (grouping into-hash)
-   #:into (reducer-map (into-sorted-map syntax-path<=>) #:range constructor:syntax-property-bundle)))
-
+  (into-transduced (mapping (λ (prop-entry)
+                              (match-define (syntax-property-entry path k v) prop-entry)
+                              (entry path (entry k v))))
+                   (grouping into-hash)
+                   #:into (reducer-map (into-sorted-map syntax-path<=>)
+                                       #:range constructor:syntax-property-bundle)))
 
 (define (sequence->syntax-property-bundle prop-entry-seq)
   (transduce prop-entry-seq #:into into-syntax-property-bundle))
 
-
 (define (syntax-property-bundle . prop-entries)
   (sequence->syntax-property-bundle prop-entries))
-
 
 (module+ test
   (define term-01-quoted-prop (syntax-property-entry (syntax-path (list 0 1)) 'quoted? #true))
@@ -72,11 +62,13 @@
     (define actual
       (syntax-property-bundle term-01-quoted-prop term-02-quoted-prop term-03-quoted-prop))
     (define expected
-      (constructor:syntax-property-bundle
-       (sorted-map #:key-comparator syntax-path<=>
-                   (syntax-path (list 0 1)) (hash 'quoted? #true)
-                   (syntax-path (list 0 2)) (hash 'quoted? #true)
-                   (syntax-path (list 0 3)) (hash 'quoted? #true))))
+      (constructor:syntax-property-bundle (sorted-map #:key-comparator syntax-path<=>
+                                                      (syntax-path (list 0 1))
+                                                      (hash 'quoted? #true)
+                                                      (syntax-path (list 0 2))
+                                                      (hash 'quoted? #true)
+                                                      (syntax-path (list 0 3))
+                                                      (hash 'quoted? #true))))
     (check-equal? actual expected))
 
   (test-case "sequence->syntax-property-bundle"
@@ -95,29 +87,23 @@
       (syntax-property-bundle term-01-quoted-prop term-02-quoted-prop term-03-quoted-prop))
     (check-equal? actual expected)))
 
-
 (define (syntax-property-bundle-entries prop-bundle)
   (for*/stream ([e (in-sorted-map (syntax-property-bundle-as-map prop-bundle))]
                 #:do [(match-define (entry path props) e)]
                 [(k v) (in-hash props)])
-    (syntax-property-entry path k v)))
-
+               (syntax-property-entry path k v)))
 
 (define (syntax-add-all-properties stx prop-bundle)
-  (for/fold ([stx stx])
-            ([e (in-sorted-map (syntax-property-bundle-as-map prop-bundle))])
+  (for/fold ([stx stx]) ([e (in-sorted-map (syntax-property-bundle-as-map prop-bundle))])
     (match-define (entry path props) e)
     (syntax-add-properties-at stx path props)))
-
 
 (define (syntax-add-properties-at stx path props)
   (define old-subform (syntax-ref stx path))
   (define new-subform
-    (for/fold ([subform old-subform])
-              ([(k v) (in-hash props)])
+    (for/fold ([subform old-subform]) ([(k v) (in-hash props)])
       (syntax-property subform k v)))
   (syntax-set stx path new-subform))
-
 
 (module+ test
   (test-case "syntax-add-all-properties"

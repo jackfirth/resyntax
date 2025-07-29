@@ -1,13 +1,8 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [read-comment-locations (->* () (input-port?) range-set?)]))
-
+(provide (contract-out [read-comment-locations (->* () (input-port?) range-set?)]))
 
 (require br-parser-tools/lex
          racket/sequence
@@ -20,14 +15,11 @@
          resyntax/private/syntax-traversal
          (prefix-in : br-parser-tools/lex-sre))
 
-
 (module+ test
   (require rackunit
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (define (read-comment-locations [in (current-input-port)])
   (port-count-lines! in)
@@ -38,41 +30,32 @@
              (mapping srcloc-range)
              #:into (into-range-set natural<=>)))
 
-
 (define (srcloc-range srcloc)
   (define start (sub1 (srcloc-position srcloc)))
   (define end (+ start (srcloc-span srcloc)))
   (closed-open-range start end #:comparator natural<=>))
 
-
 (define-tokens racket-tokens (LINE-COMMENT BLOCK-COMMENT))
 
-
 (define-lex-abbrev racket-line-comment
-  (concatenation ";" (complement (:: any-string "\n" any-string)) "\n"))
-
+                   (concatenation ";" (complement (:: any-string "\n" any-string)) "\n"))
 
 (define (build-racket-line-comment lexeme)
   (token-LINE-COMMENT (string->immutable-string lexeme)))
 
-
 ;; Technically not correct because block comments can be nested.
 (define-lex-abbrev racket-block-comment
-  (concatenation "#|" (complement (:: any-string (:or "#|" "#|") any-string)) "|#"))
-
+                   (concatenation "#|" (complement (:: any-string (:or "#|" "#|") any-string)) "|#"))
 
 (define (build-racket-block-comment lexeme)
   (token-BLOCK-COMMENT (string->immutable-string lexeme)))
 
-
 ;; This lexer should also read string literals and discard them, so that comment-starting characters
 ;; inside string literals are ignored.
 (define comment-lexer
-  (lexer-srcloc
-   [racket-line-comment (build-racket-line-comment lexeme)]
-   [racket-block-comment (build-racket-block-comment lexeme)]
-   [any-char (return-without-srcloc (comment-lexer input-port))]))
-
+  (lexer-srcloc [racket-line-comment (build-racket-line-comment lexeme)]
+                [racket-block-comment (build-racket-block-comment lexeme)]
+                [any-char (return-without-srcloc (comment-lexer input-port))]))
 
 (module+ test
   (test-case "comment-lexer"

@@ -1,8 +1,8 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations legacy-contract-migrations
-
+require:
+resyntax/default-recommendations
+legacy-contract-migrations
 
 header:
 ------------------------------
@@ -10,13 +10,15 @@ header:
 (require racket/contract/base)
 ------------------------------
 
+test:
+"predicate/c in expression position refactorable to ->"
+-
+(void predicate/c)
+-
+(void (-> any/c boolean?))
 
-test: "predicate/c in expression position refactorable to ->"
-- (void predicate/c)
-- (void (-> any/c boolean?))
-
-
-test: "predicate/c in contract-out refactorable to ->"
+test:
+"predicate/c in contract-out refactorable to ->"
 ------------------------------
 (provide (contract-out [foo? predicate/c]))
 (define (foo? _)
@@ -27,8 +29,8 @@ test: "predicate/c in contract-out refactorable to ->"
   #true)
 ------------------------------
 
-
-test: "predicate/c in define/contract refactorable to ->"
+test:
+"predicate/c in define/contract refactorable to ->"
 ------------------------------
 (require racket/contract/region)
 (define/contract (foo? _)

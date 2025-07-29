@@ -1,101 +1,100 @@
 #lang racket/base
 
-
 (require racket/contract)
 
-
-(provide
- (contract-out
-  [legacy-contract-migrations refactoring-suite?]))
-
+(provide (contract-out [legacy-contract-migrations refactoring-suite?]))
 
 (require (for-syntax racket/base)
          racket/syntax
          rebellion/private/static-name
          resyntax/base)
 
-
 ;@----------------------------------------------------------------------------------------------------
 
-
 (define-refactoring-rule false/c-migration
-  #:description "`false/c` is an alias for `#f` that exists for backwards compatibility."
-  #:literals (false/c)
-  false/c
-  #false)
-
+                         #:description
+                         "`false/c` is an alias for `#f` that exists for backwards compatibility."
+                         #:literals (false/c)
+                         false/c
+                         #false)
 
 (define-refactoring-rule symbols-migration
-  #:description "`symbols` is equivalent to `or/c` and exists for backwards compatibility."
-  #:literals (symbols)
-  (symbols sym ...)
-  (or/c sym ...))
+                         #:description
+                         "`symbols` is equivalent to `or/c` and exists for backwards compatibility."
+                         #:literals (symbols)
+                         (symbols sym ...)
+                         (or/c sym ...))
 
-
-(define-refactoring-rule vector-immutableof-migration
-  #:description "`vector-immutableof` is a legacy form that is equivalent to `vectorof` with the\
+(define-refactoring-rule
+ vector-immutableof-migration
+ #:description
+ "`vector-immutableof` is a legacy form that is equivalent to `vectorof` with the\
  `#:immutable` option"
-  #:literals (vector-immutableof)
-  (vector-immutableof c)
-  (vectorof c #:immutable #true))
+ #:literals (vector-immutableof)
+ (vector-immutableof c)
+ (vectorof c #:immutable #true))
 
-
-(define-refactoring-rule vector-immutable/c-migration
-  #:description "`vector-immutable/c` is a legacy form that is equivalent to `vector/c` with the\
+(define-refactoring-rule
+ vector-immutable/c-migration
+ #:description
+ "`vector-immutable/c` is a legacy form that is equivalent to `vector/c` with the\
  `#:immutable` option"
-  #:literals (vector-immutable/c)
-  (vector-immutable/c c ...)
-  (vector/c c ... #:immutable #true))
+ #:literals (vector-immutable/c)
+ (vector-immutable/c c ...)
+ (vector/c c ... #:immutable #true))
 
-
-(define-refactoring-rule box-immutable/c-migration
-  #:description "`box-immutable/c` is a legacy form that is equivalent to `box/c` with the\
+(define-refactoring-rule
+ box-immutable/c-migration
+ #:description
+ "`box-immutable/c` is a legacy form that is equivalent to `box/c` with the\
  `#:immutable` option"
-  #:literals (box-immutable/c)
-  (box-immutable/c c)
-  (box/c c #:immutable #true))
+ #:literals (box-immutable/c)
+ (box-immutable/c c)
+ (box/c c #:immutable #true))
 
-
-(define-refactoring-rule flat-contract-migration
-  #:description "flat-contract is a legacy form for constructing contracts from predicates;\
+(define-refactoring-rule
+ flat-contract-migration
+ #:description
+ "flat-contract is a legacy form for constructing contracts from predicates;\
  predicates can be used directly as contracts now."
-  #:literals (flat-contract)
-  (flat-contract predicate)
-  predicate)
+ #:literals (flat-contract)
+ (flat-contract predicate)
+ predicate)
 
-
-(define-refactoring-rule contract-struct-migration
-  #:description "The `contract-struct` form is deprecated; use `struct` instead. Lazy struct\
+(define-refactoring-rule
+ contract-struct-migration
+ #:description
+ "The `contract-struct` form is deprecated; use `struct` instead. Lazy struct\
  contracts no longer require a separate struct declaration."
-  #:literals (contract-struct)
-  (contract-struct id fields)
-  (struct id fields))
+ #:literals (contract-struct)
+ (contract-struct id fields)
+ (struct id fields))
 
-
-(define-refactoring-rule define-contract-struct-migration
-  #:description "The `define-contract-struct` form is deprecated, use `struct` instead. Lazy struct\
+(define-refactoring-rule
+ define-contract-struct-migration
+ #:description
+ "The `define-contract-struct` form is deprecated, use `struct` instead. Lazy struct\
  contracts no longer require a separate struct declaration."
-  #:literals (define-contract-struct)
-  (define-contract-struct id fields)
-  #:with make-id (format-id #'id "make-~a" #'id)
-  (struct id fields #:extra-constructor-name make-id))
+ #:literals (define-contract-struct)
+ (define-contract-struct id fields)
+ #:with make-id
+ (format-id #'id "make-~a" #'id)
+ (struct id fields #:extra-constructor-name make-id))
 
-
-(define-refactoring-rule predicate/c-migration
-  #:description
-  "The `predicate/c` contract is less clear than a `->` contract and no longer improves performance."
-  #:literals (predicate/c)
-  predicate/c
-  (-> any/c boolean?))
-
+(define-refactoring-rule
+ predicate/c-migration
+ #:description
+ "The `predicate/c` contract is less clear than a `->` contract and no longer improves performance."
+ #:literals (predicate/c)
+ predicate/c
+ (-> any/c boolean?))
 
 (define-refactoring-suite legacy-contract-migrations
-  #:rules (box-immutable/c-migration
-           contract-struct-migration
-           define-contract-struct-migration
-           false/c-migration
-           flat-contract-migration
-           predicate/c-migration
-           symbols-migration
-           vector-immutableof-migration
-           vector-immutable/c-migration))
+                          #:rules (box-immutable/c-migration contract-struct-migration
+                                                             define-contract-struct-migration
+                                                             false/c-migration
+                                                             flat-contract-migration
+                                                             predicate/c-migration
+                                                             symbols-migration
+                                                             vector-immutableof-migration
+                                                             vector-immutable/c-migration))

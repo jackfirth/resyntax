@@ -1,8 +1,8 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations match-shortcuts
-
+require:
+resyntax/default-recommendations
+match-shortcuts
 
 header:
 ------------------------------
@@ -10,8 +10,8 @@ header:
 (require racket/match)
 ------------------------------
 
-
-test: "single-clause match expressions can be replaced with match-define expressions"
+test:
+"single-clause match expressions can be replaced with match-define expressions"
 ------------------------------
 (define (foo x)
   (displayln "foo?")
@@ -27,12 +27,12 @@ test: "single-clause match expressions can be replaced with match-define express
   (+ a b c))
 ------------------------------
 
-
-test: "migrating single-clause match expressions to match-define doesn't reformat context"
+test:
+"migrating single-clause match expressions to match-define doesn't reformat context"
 ------------------------------
 (define (foo x)
 
-  (  displayln "foo?"   )
+  (displayln "foo?")
 
   (match x
     [(list a b c)
@@ -41,17 +41,19 @@ test: "migrating single-clause match expressions to match-define doesn't reforma
 ==============================
 (define (foo x)
 
-  (  displayln "foo?"   )
+  (displayln "foo?")
 
   (match-define (list a b c) x)
   (displayln "foo!")
   (+ a b c))
 ------------------------------
 
-
-test: "migrating single-clause match expressions in single-form contexts does reformat"
+test:
+"migrating single-clause match expressions in single-form contexts does reformat"
 ------------------------------
-(map (λ (x) (match x [(list a b c) (+ a b c)]))
+(map (λ (x)
+       (match x
+         [(list a b c) (+ a b c)]))
      (list (list 1 2 3) (list 4 5 6)))
 ==============================
 (map (λ (x)
@@ -60,8 +62,8 @@ test: "migrating single-clause match expressions in single-form contexts does re
      (list (list 1 2 3) (list 4 5 6)))
 ------------------------------
 
-
-test: "single-clause match expressions inside cond can be replaced with match-define expressions"
+test:
+"single-clause match expressions inside cond can be replaced with match-define expressions"
 ------------------------------
 (define (foo x condition)
   (cond
@@ -83,8 +85,8 @@ test: "single-clause match expressions inside cond can be replaced with match-de
     [else (displayln "else")]))
 ------------------------------
 
-
-test: "single-clause match not migratable when pattern bindings conflict with surrounding context"
+test:
+"single-clause match not migratable when pattern bindings conflict with surrounding context"
 ------------------------------
 (define (foo x)
   (define a 42)
@@ -92,16 +94,16 @@ test: "single-clause match not migratable when pattern bindings conflict with su
     [(list a b c) a]))
 ------------------------------
 
-
-test: "single-clause match not migratable when pattern would bind subject expression"
+test:
+"single-clause match not migratable when pattern would bind subject expression"
 ------------------------------
 (define (foo x)
   (match x
     [(list x) x]))
 ------------------------------
 
-
-test: "single-clause match still migratable when pattern bindings shadow surrounding context"
+test:
+"single-clause match still migratable when pattern bindings shadow surrounding context"
 ------------------------------
 (define (foo x a)
   (match x
@@ -112,13 +114,12 @@ test: "single-clause match still migratable when pattern bindings shadow surroun
   a)
 ------------------------------
 
-
-test: "match patterns using ? with a lambda can be simplified with #:when clauses"
+test:
+"match patterns using ? with a lambda can be simplified with #:when clauses"
 ------------------------------
 (define (foo x)
   (match x
-    [(? (λ (y) (< y 10)) y*)
-     (list y*)]
+    [(? (λ (y) (< y 10)) y*) (list y*)]
     [_ 'no-match]))
 (foo 5)
 (foo 100)
@@ -133,13 +134,12 @@ test: "match patterns using ? with a lambda can be simplified with #:when clause
 (foo 100)
 ------------------------------
 
-
-test: "nested match patterns using ? with a lambda can be simplified with #:when clauses"
+test:
+"nested match patterns using ? with a lambda can be simplified with #:when clauses"
 ------------------------------
 (define (foo xs)
   (match xs
-    [(list (? (λ (y) (< y 10)) y*))
-     y*]
+    [(list (? (λ (y) (< y 10)) y*)) y*]
     [_ 'no-match]))
 (foo (list 5 6 7))
 (foo (list 100 200 300))
@@ -154,25 +154,26 @@ test: "nested match patterns using ? with a lambda can be simplified with #:when
 (foo (list 100 200 300))
 ------------------------------
 
-
-test: "match patterns using ? with a lambda cannot be simplified when under ellipses"
+test:
+"match patterns using ? with a lambda cannot be simplified when under ellipses"
 ------------------------------
 (define (foo xs)
   (match xs
-    [(list (? (λ (y) (< y 10)) y*) ...)
-     (list y*)]
+    [(list (? (λ (y) (< y 10)) y*) ...) (list y*)]
     [_ 'no-match]))
 ------------------------------
 
-
-test: "match patterns using ? with a commented lambda can be simplified with #:when clauses"
+test:
+"match patterns using ? with a commented lambda can be simplified with #:when clauses"
 ------------------------------
 (define (foo x)
   (match x
-    [(? (λ (y) (< y
-                  10
-                  ; comment
-                  20)) y*)
+    [(? (λ (y)
+          (< y
+             10
+             ; comment
+             20))
+        y*)
      (list y*)]
     [_ 'no-match]))
 (foo 5)
@@ -191,8 +192,8 @@ test: "match patterns using ? with a commented lambda can be simplified with #:w
 (foo 100)
 ------------------------------
 
-
-test: "root-level and pattern can be removed when matching on a variable"
+test:
+"root-level and pattern can be removed when matching on a variable"
 ------------------------------
 (define (f xs)
   (match xs
@@ -205,8 +206,8 @@ test: "root-level and pattern can be removed when matching on a variable"
     [(list) (list)]))
 ------------------------------
 
-
-test: "root-level and pattern can be removed when it binds unused variable"
+test:
+"root-level and pattern can be removed when it binds unused variable"
 ------------------------------
 (define (f xs)
   (match xs
@@ -219,8 +220,8 @@ test: "root-level and pattern can be removed when it binds unused variable"
     [(list) (list)]))
 ------------------------------
 
-
-test: "root-level and pattern not removed when not matching on a simple variable"
+test:
+"root-level and pattern not removed when not matching on a simple variable"
 ------------------------------
 (define (f lst)
   (match (car lst)
@@ -228,8 +229,8 @@ test: "root-level and pattern not removed when not matching on a simple variable
     [(list) (list)]))
 ------------------------------
 
-
-test: "match patterns with if conditionals can be simplified using #:when clauses"
+test:
+"match patterns with if conditionals can be simplified using #:when clauses"
 ------------------------------
 (define (f pt)
   (match pt
@@ -248,8 +249,8 @@ test: "match patterns with if conditionals can be simplified using #:when clause
     [(list) '()]))
 ------------------------------
 
-
-test: "match patterns with cond conditionals can be simplified using #:when clauses"
+test:
+"match patterns with cond conditionals can be simplified using #:when clauses"
 ------------------------------
 (define (f pt)
   (match pt
@@ -268,8 +269,8 @@ test: "match patterns with cond conditionals can be simplified using #:when clau
     [(list) '()]))
 ------------------------------
 
-
-test: "match patterns with multi-body cond conditionals can be simplified using #:when clauses"
+test:
+"match patterns with multi-body cond conditionals can be simplified using #:when clauses"
 ------------------------------
 (define (f pt)
   (match pt
@@ -295,8 +296,8 @@ test: "match patterns with multi-body cond conditionals can be simplified using 
     [(list) '()]))
 ------------------------------
 
-
-test: "single-clause match with if conditional should be refactored to match-define instead of #:when"
+test:
+"single-clause match with if conditional should be refactored to match-define instead of #:when"
 ------------------------------
 (define (f pt)
   (match pt
@@ -312,8 +313,8 @@ test: "single-clause match with if conditional should be refactored to match-def
       pt))
 ------------------------------
 
-
-test: "match with if conditional and long pattern should not be refactored to use #:when"
+test:
+"match with if conditional and long pattern should not be refactored to use #:when"
 ------------------------------
 (define (f data)
   (match data

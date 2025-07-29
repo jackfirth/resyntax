@@ -1,19 +1,24 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations conditional-shortcuts
-
+require:
+resyntax/default-recommendations
+conditional-shortcuts
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
+test:
+"if without nested ifs not refactorable"
+-
+(if 'cond 'then 'else)
 
-test: "if without nested ifs not refactorable"
-- (if 'cond 'then 'else)
-
-
-test: "singly-nested ifs refactorable to cond"
-- (if 'cond 'then (if 'cond2 'then2 'else))
+test:
+"singly-nested ifs refactorable to cond"
+-
+(if 'cond
+    'then
+    (if 'cond2 'then2 'else))
 ------------------------------
 (cond
   ['cond 'then]
@@ -21,9 +26,16 @@ test: "singly-nested ifs refactorable to cond"
   [else 'else])
 ------------------------------
 
-
-test: "nested ifs refactorable to cond"
-- (if 'a 'b (if 'c 'd (if 'e 'f (if 'g 'h 'i))))
+test:
+"nested ifs refactorable to cond"
+-
+(if 'a
+    'b
+    (if 'c
+        'd
+        (if 'e
+            'f
+            (if 'g 'h 'i))))
 ------------------------------
 (if 'a
     'b
@@ -31,9 +43,7 @@ test: "nested ifs refactorable to cond"
         'd
         (if 'e
             'f
-            (if 'g
-                'h
-                'i))))
+            (if 'g 'h 'i))))
 ==============================
 (cond
   ['a 'b]
@@ -43,13 +53,17 @@ test: "nested ifs refactorable to cond"
   [else 'i])
 ------------------------------
 
+test:
+"if else false can be refactored to an and expression"
+-
+(if 'a
+    (println "true branch")
+    #f)
+-
+(and 'a (println "true branch"))
 
-test: "if else false can be refactored to an and expression"
-- (if 'a (println "true branch") #f)
-- (and 'a (println "true branch"))
-
-
-test: "multi-line if else false can be refactored to a multi-line and expression"
+test:
+"multi-line if else false can be refactored to a multi-line and expression"
 ------------------------------
 (if 'some-very-long-condition-that-is-so-very-long
     (println "some very long true branch that is so very long")
@@ -59,23 +73,27 @@ test: "multi-line if else false can be refactored to a multi-line and expression
      (println "some very long true branch that is so very long"))
 ------------------------------
 
+test:
+"if and else false can be refactored to a single and expression"
+-
+(if (and 'a 'b) 'c #f)
+-
+(and 'a 'b 'c)
 
-test: "if and else false can be refactored to a single and expression"
-- (if (and 'a 'b) 'c #f)
-- (and 'a 'b 'c)
-
-
-test: "if x else x can be refactored to an and expression"
+test:
+"if x else x can be refactored to an and expression"
 ------------------------------
 (define x 'a)
-(if x (println "true branch") x)
+(if x
+    (println "true branch")
+    x)
 ==============================
 (define x 'a)
 (and x (println "true branch"))
 ------------------------------
 
-
-test: "multi-line if x else x can be refactored to a multi-line and expression"
+test:
+"multi-line if x else x can be refactored to a multi-line and expression"
 ------------------------------
 (define some-variable 'a)
 (if some-variable
@@ -87,18 +105,20 @@ test: "multi-line if x else x can be refactored to a multi-line and expression"
      (println "some very long true branch that is so very very very very very very very very long"))
 ------------------------------
 
-
-test: "if x then and expression else x can be refactored to a single and expression"
+test:
+"if x then and expression else x can be refactored to a single and expression"
 ------------------------------
 (define x 'a)
-(if x (and 'b 'c 'd) x)
+(if x
+    (and 'b 'c 'd)
+    x)
 ==============================
 (define x 'a)
 (and x 'b 'c 'd)
 ------------------------------
 
-
-test: "if expressions can be refactored to when expressions when equivalent"
+test:
+"if expressions can be refactored to when expressions when equivalent"
 ------------------------------
 (if #true
     (begin
@@ -120,8 +140,8 @@ test: "if expressions can be refactored to when expressions when equivalent"
   (println "second line"))
 ------------------------------
 
-
-test: "if expressions can be refactored to unless expressions when equivalent"
+test:
+"if expressions can be refactored to unless expressions when equivalent"
 ------------------------------
 (if #false
     (void)
@@ -143,8 +163,8 @@ test: "if expressions can be refactored to unless expressions when equivalent"
   (println "second line"))
 ------------------------------
 
-
-test: "cond expressions can be refactored to when expressions when equivalent"
+test:
+"cond expressions can be refactored to when expressions when equivalent"
 ------------------------------
 (cond
   [#true
@@ -168,16 +188,16 @@ test: "cond expressions can be refactored to when expressions when equivalent"
   (println "second line"))
 ------------------------------
 
-
-test: "cond expressions can be refactored to unless expressions when equivalent"
+test:
+"cond expressions can be refactored to unless expressions when equivalent"
 ------------------------------
 (cond
   [#false (void)]
   [else
    (begin
-      (println "first line")
-      ;; preserved comment
-      (println "second line"))])
+     (println "first line")
+     ;; preserved comment
+     (println "second line"))])
 ==============================
 (cond
   [(not #false)
@@ -193,8 +213,8 @@ test: "cond expressions can be refactored to unless expressions when equivalent"
   (println "second line"))
 ------------------------------
 
-
-test: "if expressions with an always-throwing first branch can be refactored to when"
+test:
+"if expressions with an always-throwing first branch can be refactored to when"
 ------------------------------
 (define (f c)
   (if c
@@ -207,8 +227,8 @@ test: "if expressions with an always-throwing first branch can be refactored to 
   (displayln "foo"))
 ------------------------------
 
-
-test: "if expressions with an always-throwing second branch can be refactored to unless"
+test:
+"if expressions with an always-throwing second branch can be refactored to unless"
 ------------------------------
 (define (f c)
   (if c
@@ -221,8 +241,8 @@ test: "if expressions with an always-throwing second branch can be refactored to
   (displayln "foo"))
 ------------------------------
 
-
-test: "negated if expressions with an always-throwing first branch can be refactored to unless"
+test:
+"negated if expressions with an always-throwing first branch can be refactored to unless"
 ------------------------------
 (define (f c)
   (if (not c)
@@ -235,8 +255,8 @@ test: "negated if expressions with an always-throwing first branch can be refact
   (displayln "foo"))
 ------------------------------
 
-
-test: "negated if expressions with an always-throwing second branch can be refactored to when"
+test:
+"negated if expressions with an always-throwing second branch can be refactored to when"
 ------------------------------
 (define (f c)
   (if (not c)
@@ -249,12 +269,12 @@ test: "negated if expressions with an always-throwing second branch can be refac
   (displayln "foo"))
 ------------------------------
 
-
-test: "refactoring always-throwing if expressions to when doesn't reformat entire context"
+test:
+"refactoring always-throwing if expressions to when doesn't reformat entire context"
 ------------------------------
 (define (f c)
 
-  ( displayln   "foo" )
+  (displayln "foo")
 
   (if c
       (error 'oops)
@@ -262,15 +282,15 @@ test: "refactoring always-throwing if expressions to when doesn't reformat entir
 ==============================
 (define (f c)
 
-  ( displayln   "foo" )
+  (displayln "foo")
 
   (when c
     (error 'oops))
   (displayln "foo"))
 ------------------------------
 
-
-test: "if expressions inside cond with an always-throwing first branch can be refactored to when"
+test:
+"if expressions inside cond with an always-throwing first branch can be refactored to when"
 ------------------------------
 (define (f c1 c2)
   (cond
@@ -289,13 +309,12 @@ test: "if expressions inside cond with an always-throwing first branch can be re
     [else (displayln "else")]))
 ------------------------------
 
-
-test: "cond expressions with an always-throwing first branch can be refactored to when"
+test:
+"cond expressions with an always-throwing first branch can be refactored to when"
 ------------------------------
 (define (f c)
   (cond
-    [c
-     (error 'oops)]
+    [c (error 'oops)]
     [else
      (displayln "foo")
      (displayln "bar")]))
@@ -307,13 +326,12 @@ test: "cond expressions with an always-throwing first branch can be refactored t
   (displayln "bar"))
 ------------------------------
 
-
-test: "cond expressions with an always-throwing negated first branch can be refactored to unless"
+test:
+"cond expressions with an always-throwing negated first branch can be refactored to unless"
 ------------------------------
 (define (f c)
   (cond
-    [(not c)
-     (error 'oops)]
+    [(not c) (error 'oops)]
     [else
      (displayln "foo")
      (displayln "bar")]))
@@ -325,19 +343,15 @@ test: "cond expressions with an always-throwing negated first branch can be refa
   (displayln "bar"))
 ------------------------------
 
-
-test: "cond expressions with an always-throwing first branch (of multiple) can't be refactored"
+test:
+"cond expressions with an always-throwing first branch (of multiple) can't be refactored"
 ------------------------------
 (define (f condition1 condition2 condition3)
   (cond
-    [condition1
-     (error 'oops)]
-    [condition2
-     1]
-    [condition3
-     2]))
+    [condition1 (error 'oops)]
+    [condition2 1]
+    [condition3 2]))
 ------------------------------
-
 
 test:
 "cond expressions with multiple always-throwing branches and an else branch can be refactored"
@@ -356,15 +370,14 @@ test:
   2)
 ------------------------------
 
-
-test: "cond expressions inside cond with an always-throwing first branch can be refactored to when"
+test:
+"cond expressions inside cond with an always-throwing first branch can be refactored to when"
 ------------------------------
 (define (f c1 c2)
   (cond
     [c1
      (cond
-       [c2
-        (error 'oops)]
+       [c2 (error 'oops)]
        [else
         (displayln "foo")
         (displayln "bar")])]
@@ -380,50 +393,49 @@ test: "cond expressions inside cond with an always-throwing first branch can be 
     [else (displayln "else")]))
 ------------------------------
 
-
-test: "refactoring always-throwing cond expressions to when doesn't reformat entire context"
+test:
+"refactoring always-throwing cond expressions to when doesn't reformat entire context"
 ------------------------------
 (define (f c)
-  
-  ( displayln   "foo" )
-  
+
+  (displayln "foo")
+
   (cond
-    [c
-     (error 'oops)]
+    [c (error 'oops)]
     [else
      (displayln "foo")
      (displayln "bar")]))
 ==============================
 (define (f c)
-  
-  ( displayln   "foo" )
-  
+
+  (displayln "foo")
+
   (when c
     (error 'oops))
   (displayln "foo")
   (displayln "bar"))
 ------------------------------
 
-
-test: "always-throwing unless before returning condition variable refactorable to or"
+test:
+"always-throwing unless before returning condition variable refactorable to or"
 --------------------
 (define (f s)
   (define x (string->number s))
   (unless x
-   (error "string that is not a num"))
+    (error "string that is not a num"))
   x)
 ====================
 (define (f s)
   (or (string->number s) (error "string that is not a num")))
 --------------------
 
-
-test: "refactoring always-throwing unless to or doesn't reformat surrounding context"
+test:
+"refactoring always-throwing unless to or doesn't reformat surrounding context"
 --------------------
 (define (f s)
 
-  ( define foo 42 )
-  
+  (define foo 42)
+
   (define x (string->number s))
   (unless x
     (error "string that is not a num"))
@@ -431,13 +443,13 @@ test: "refactoring always-throwing unless to or doesn't reformat surrounding con
 ====================
 (define (f s)
 
-  ( define foo 42 )
-  
+  (define foo 42)
+
   (or (string->number s) (error "string that is not a num")))
 --------------------
 
-
-test: "refactoring always-throwing unless to or can reformat when its the only body"
+test:
+"refactoring always-throwing unless to or can reformat when its the only body"
 --------------------
 (define (f s)
   (λ (v)
@@ -450,8 +462,8 @@ test: "refactoring always-throwing unless to or can reformat when its the only b
   (λ (v) (or (string->number s) (error "string that is not a num"))))
 --------------------
 
-
-test: "cond with nested else-cond can be flattened"
+test:
+"cond with nested else-cond can be flattened"
 ------------------------------
 (define (f a b)
   (cond
@@ -468,8 +480,8 @@ test: "cond with nested else-cond can be flattened"
     [else (displayln "else")]))
 ------------------------------
 
-
-test: "cond with commented nested else-cond can be flattened"
+test:
+"cond with commented nested else-cond can be flattened"
 ------------------------------
 (define (f a b)
   (cond
@@ -488,8 +500,8 @@ test: "cond with commented nested else-cond can be flattened"
     [else (displayln "else")]))
 ------------------------------
 
-
-test: "cond with nested else-cond with commented second clause can be flattened"
+test:
+"cond with nested else-cond with commented second clause can be flattened"
 ------------------------------
 (define (f a b)
   (cond
@@ -508,36 +520,34 @@ test: "cond with nested else-cond with commented second clause can be flattened"
     [else (displayln "else")]))
 ------------------------------
 
-
-test: "cond with nested cond in last clause without else can't be flattened"
+test:
+"cond with nested cond in last clause without else can't be flattened"
 ------------------------------
 (define (f a b last-condition)
   (cond
-    [a
-     (displayln "a")]
+    [a (displayln "a")]
     [last-condition
      (cond
-       [b
-        (displayln "b")]
-       [else
-        (displayln "else")])]))
+       [b (displayln "b")]
+       [else (displayln "else")])]))
 ------------------------------
 
-
-test: "`if-else-false-to-and` is not refactorable when `and` is shadowed"
+test:
+"`if-else-false-to-and` is not refactorable when `and` is shadowed"
 ------------------------------
-(define (and x y) (list x y))
-(if 'a (println "true branch") #f)
+(define (and x y)
+  (list x y))
+(if 'a
+    (println "true branch")
+    #f)
 ------------------------------
 
-
-test: "cond with nested let refactorable to cond with define"
+test:
+"cond with nested let refactorable to cond with define"
 ------------------------------
 (define (f a c)
   (cond
-    [a
-     (let ([x "stuff"])
-       x)]
+    [a (let ([x "stuff"]) x)]
     [else c]))
 ==============================
 (define (f a c)
@@ -548,15 +558,13 @@ test: "cond with nested let refactorable to cond with define"
     [else c]))
 ------------------------------
 
-
-test: "cond with nested let in else clause refactorable to cond with define"
+test:
+"cond with nested let in else clause refactorable to cond with define"
 ------------------------------
 (define (f a b)
   (cond
     [a b]
-    [else
-     (let ([x "stuff"])
-       x)]))
+    [else (let ([x "stuff"]) x)]))
 ==============================
 (define (f a b)
   (cond
@@ -566,8 +574,8 @@ test: "cond with nested let in else clause refactorable to cond with define"
      x]))
 ------------------------------
 
-
-test: "if clause with begin in true branch refactorable to cond"
+test:
+"if clause with begin in true branch refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -584,8 +592,8 @@ test: "if clause with begin in true branch refactorable to cond"
     [else c]))
 ------------------------------
 
-
-test: "if clause with begin in false branch refactorable to cond"
+test:
+"if clause with begin in false branch refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -602,8 +610,8 @@ test: "if clause with begin in false branch refactorable to cond"
      c]))
 ------------------------------
 
-
-test: "if clause with begin in both branches refactorable to cond"
+test:
+"if clause with begin in both branches refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -624,8 +632,8 @@ test: "if clause with begin in both branches refactorable to cond"
      c]))
 ------------------------------
 
-
-test: "if clause with begin in commented true branch refactorable to cond"
+test:
+"if clause with begin in commented true branch refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -644,8 +652,8 @@ test: "if clause with begin in commented true branch refactorable to cond"
     [else c]))
 ------------------------------
 
-
-test: "if clause with begin in commented false branch refactorable to cond"
+test:
+"if clause with begin in commented false branch refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -664,8 +672,8 @@ test: "if clause with begin in commented false branch refactorable to cond"
      c]))
 ------------------------------
 
-
-test: "if clause with begin in both commented branches refactorable to cond"
+test:
+"if clause with begin in both commented branches refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -690,9 +698,8 @@ test: "if clause with begin in both commented branches refactorable to cond"
      c]))
 ------------------------------
 
-
-
-test: "if clause with begin in true branch and commented false branch refactorable to cond"
+test:
+"if clause with begin in true branch and commented false branch refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -711,8 +718,8 @@ test: "if clause with begin in true branch and commented false branch refactorab
     [else c]))
 ------------------------------
 
-
-test: "if clause with begin in false branch and commented true branch refactorable to cond"
+test:
+"if clause with begin in false branch and commented true branch refactorable to cond"
 ------------------------------
 (define (f a b c)
   (if a
@@ -731,13 +738,12 @@ test: "if clause with begin in false branch and commented true branch refactorab
      c]))
 ------------------------------
 
-
-test: "if clause with let in true branch refactorable to cond"
+test:
+"if clause with let in true branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if a
-      (let ([x 1])
-        x)
+      (let ([x 1]) x)
       b))
 ==============================
 (define (f a b)
@@ -748,14 +754,13 @@ test: "if clause with let in true branch refactorable to cond"
     [else b]))
 ------------------------------
 
-
-test: "if clause with let in false branch refactorable to cond"
+test:
+"if clause with let in false branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if a
       b
-      (let ([x 1])
-        x)))
+      (let ([x 1]) x)))
 ==============================
 (define (f a b)
   (cond
@@ -765,15 +770,13 @@ test: "if clause with let in false branch refactorable to cond"
      x]))
 ------------------------------
 
-
-test: "if clause with let in both branches refactorable to cond"
+test:
+"if clause with let in both branches refactorable to cond"
 ------------------------------
 (define (f a)
   (if a
-      (let ([x 1])
-        x)
-      (let ([x 1])
-        x)))
+      (let ([x 1]) x)
+      (let ([x 1]) x)))
 ==============================
 (define (f a)
   (cond
@@ -785,15 +788,14 @@ test: "if clause with let in both branches refactorable to cond"
      x]))
 ------------------------------
 
-
-test: "if clause with multiline condition and let in true branch refactorable to cond"
+test:
+"if clause with multiline condition and let in true branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if (a 10000000000000000000000000000000000000
          20000000000000000000000000000000000000
          30000000000000000000000000000000000000)
-      (let ([x 1])
-        x)
+      (let ([x 1]) x)
       b))
 ==============================
 (define (f a b)
@@ -806,16 +808,15 @@ test: "if clause with multiline condition and let in true branch refactorable to
     [else b]))
 ------------------------------
 
-
-test: "if clause with multiline condition and let in false branch refactorable to cond"
+test:
+"if clause with multiline condition and let in false branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if (a 10000000000000000000000000000000000000
          20000000000000000000000000000000000000
          30000000000000000000000000000000000000)
       b
-      (let ([x 1])
-        x)))
+      (let ([x 1]) x)))
 ==============================
 (define (f a b)
   (cond
@@ -828,17 +829,15 @@ test: "if clause with multiline condition and let in false branch refactorable t
      x]))
 ------------------------------
 
-
-test: "if clause with multiline condition and let in both branches refactorable to cond"
+test:
+"if clause with multiline condition and let in both branches refactorable to cond"
 ------------------------------
 (define (f a)
   (if (a 10000000000000000000000000000000000000
          20000000000000000000000000000000000000
          30000000000000000000000000000000000000)
-      (let ([x 1])
-        x)
-      (let ([x 1])
-        x)))
+      (let ([x 1]) x)
+      (let ([x 1]) x)))
 ==============================
 (define (f a)
   (cond
@@ -852,14 +851,13 @@ test: "if clause with multiline condition and let in both branches refactorable 
      x]))
 ------------------------------
 
-
-test: "if clause with let in commented true branch refactorable to cond"
+test:
+"if clause with let in commented true branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if a
       ;; This is the true case
-      (let ([x 1])
-        x)
+      (let ([x 1]) x)
       b))
 ==============================
 (define (f a b)
@@ -871,15 +869,14 @@ test: "if clause with let in commented true branch refactorable to cond"
     [else b]))
 ------------------------------
 
-
-test: "if clause with let in commented false branch refactorable to cond"
+test:
+"if clause with let in commented false branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if a
       b
       ;; This is the false case
-      (let ([x 1])
-        x)))
+      (let ([x 1]) x)))
 ==============================
 (define (f a b)
   (cond
@@ -890,17 +887,15 @@ test: "if clause with let in commented false branch refactorable to cond"
      x]))
 ------------------------------
 
-
-test: "if clause with let in both commented branches refactorable to cond"
+test:
+"if clause with let in both commented branches refactorable to cond"
 ------------------------------
 (define (f a)
   (if a
       ;; This is the true case
-      (let ([x 1])
-        x)
+      (let ([x 1]) x)
       ;; This is the false case
-      (let ([x 1])
-        x)))
+      (let ([x 1]) x)))
 ==============================
 (define (f a)
   (cond
@@ -914,14 +909,12 @@ test: "if clause with let in both commented branches refactorable to cond"
      x]))
 ------------------------------
 
-
-
-test: "if clause with let in true branch and commented false branch refactorable to cond"
+test:
+"if clause with let in true branch and commented false branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if a
-      (let ([x 1])
-        x)
+      (let ([x 1]) x)
       ;; This is the false case
       b))
 ==============================
@@ -934,15 +927,14 @@ test: "if clause with let in true branch and commented false branch refactorable
     [else b]))
 ------------------------------
 
-
-test: "if clause with let in false branch and commented true branch refactorable to cond"
+test:
+"if clause with let in false branch and commented true branch refactorable to cond"
 ------------------------------
 (define (f a b)
   (if a
       ;; This is the true case
       b
-      (let ([x 1])
-        x)))
+      (let ([x 1]) x)))
 ==============================
 (define (f a b)
   (cond
@@ -953,12 +945,10 @@ test: "if clause with let in false branch and commented true branch refactorable
      x]))
 ------------------------------
 
-
-test: "and with let can be refactored to cond with define"
+test:
+"and with let can be refactored to cond with define"
 ------------------------------
-(and 'some-condition
-     (let ([x 42])
-       (* x 2)))
+(and 'some-condition (let ([x 42]) (* x 2)))
 ==============================
 (cond
   ['some-condition
@@ -967,26 +957,26 @@ test: "and with let can be refactored to cond with define"
   [else #f])
 ------------------------------
 
-
-test: "and without let should not be refactored"
+test:
+"and without let should not be refactored"
 ------------------------------
 (and 'some-condition (* 42 2))
 ------------------------------
 
-
-test: "and with empty let should not be refactored"
+test:
+"and with empty let should not be refactored"
 ------------------------------
 (and 'some-condition (let () (* 42 2)))
 ------------------------------
 
-
-test: "and with more than two arguments should not be refactored"
+test:
+"and with more than two arguments should not be refactored"
 ------------------------------
 (and 'some-condition 'another-condition (let ([x 42]) (* x 2)))
 ------------------------------
 
-
-test: "immediately-nested when expressions can be merged"
+test:
+"immediately-nested when expressions can be merged"
 --------------------
 (define (f c1 c2)
   (when c1
@@ -998,8 +988,8 @@ test: "immediately-nested when expressions can be merged"
     (displayln "both passed")))
 --------------------
 
-
-test: "nested when with multiple body expressions can be merged"
+test:
+"nested when with multiple body expressions can be merged"
 --------------------
 (define (f c1 c2)
   (when c1
@@ -1013,8 +1003,8 @@ test: "nested when with multiple body expressions can be merged"
     (displayln "second")))
 --------------------
 
-
-test: "when with multiple forms in outer body should not be merged"
+test:
+"when with multiple forms in outer body should not be merged"
 --------------------
 (define (f c1 c2)
   (when c1

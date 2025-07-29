@@ -1,14 +1,15 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations definition-shortcuts
-
+require:
+resyntax/default-recommendations
+definition-shortcuts
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "define-values with values refactorable to separate definitions"
+test:
+"define-values with values refactorable to separate definitions"
 ------------------------------
 (define (foo)
   (define-values (a b c) (values 1 2 3))
@@ -21,8 +22,8 @@ test: "define-values with values refactorable to separate definitions"
   (+ a b c))
 ------------------------------
 
-
-test: "define-values with values and body before refactorable to separate definitions"
+test:
+"define-values with values and body before refactorable to separate definitions"
 ------------------------------
 (define (foo)
   (displayln "foo")
@@ -37,8 +38,8 @@ test: "define-values with values and body before refactorable to separate defini
   (+ a b c))
 ------------------------------
 
-
-test: "define-values with values inside cond refactorable to separate definitions"
+test:
+"define-values with values inside cond refactorable to separate definitions"
 ------------------------------
 (define (foo condition)
   (cond
@@ -57,39 +58,38 @@ test: "define-values with values inside cond refactorable to separate definition
     [else (displayln "else")]))
 ------------------------------
 
-
-test: "refactoring define-values to separate definitions doesn't reformat context"
+test:
+"refactoring define-values to separate definitions doesn't reformat context"
 ------------------------------
 (define (foo)
 
-  (  displayln   "foo"   )
+  (displayln "foo")
 
   (define-values (a b c) (values 1 2 3))
 
-  (  +  a  b   c ))
+  (+ a b c))
 ==============================
 (define (foo)
 
-  (  displayln   "foo"   )
+  (displayln "foo")
 
   (define a 1)
   (define b 2)
   (define c 3)
 
-  (  +  a  b   c ))
+  (+ a b c))
 ------------------------------
 
-
-test: "refactoring define-values to separate definitions respects requested line range"
-@lines 2..3
+test:
+"refactoring define-values to separate definitions respects requested line range"
+@lines
+2..3
 ------------------------------
 (define (foo)
-  (define-values (a b c)
-    (values 1 2 3))
+  (define-values (a b c) (values 1 2 3))
   (+ a b c))
 (define (bar)
-  (define-values (x y z)
-    (values 4 5 6))
+  (define-values (x y z) (values 4 5 6))
   (+ x y z))
 ==============================
 (define (foo)
@@ -98,13 +98,12 @@ test: "refactoring define-values to separate definitions respects requested line
   (define c 3)
   (+ a b c))
 (define (bar)
-  (define-values (x y z)
-    (values 4 5 6))
+  (define-values (x y z) (values 4 5 6))
   (+ x y z))
 ------------------------------
 
-
-test: "immediately returned variable definition can be inlined"
+test:
+"immediately returned variable definition can be inlined"
 ------------------------------
 (define (foo)
   (define x 1)
@@ -114,8 +113,8 @@ test: "immediately returned variable definition can be inlined"
   1)
 ------------------------------
 
-
-test: "immediately returned function definition cannot be inlined"
+test:
+"immediately returned function definition cannot be inlined"
 ------------------------------
 (define (foo)
   (define (x)
@@ -123,54 +122,54 @@ test: "immediately returned function definition cannot be inlined"
   x)
 ------------------------------
 
-
-test: "immediately used variable definition cannot be inlined"
+test:
+"immediately used variable definition cannot be inlined"
 ------------------------------
 (define (foo)
   (define x 1)
   (* x 2))
 ------------------------------
 
-
-test: "immediately returned recursive definition cannot be inlined"
+test:
+"immediately returned recursive definition cannot be inlined"
 ------------------------------
 (define (foo)
   (define x (list (lambda () x)))
   x)
 ------------------------------
 
-
-test: "inlining immediately returned variable definition doesn't reformat entire context"
+test:
+"inlining immediately returned variable definition doesn't reformat entire context"
 ------------------------------
 (define (foo)
 
-  ( displayln    "foo" )
+  (displayln "foo")
 
   (define x 1)
   x)
 ==============================
 (define (foo)
 
-  ( displayln    "foo" )
+  (displayln "foo")
 
   1)
 ------------------------------
 
-
-test: "inlining immediately returned variable definition in empty context does reformat"
+test:
+"inlining immediately returned variable definition in empty context does reformat"
 ------------------------------
 (map (λ (x)
        (define y (* x 2))
        y)
      (list 1 2 3))
 ==============================
-(map (λ (x) (* x 2))
-     (list 1 2 3))
+(map (λ (x) (* x 2)) (list 1 2 3))
 ------------------------------
 
-
-test: "inlining immediately returned variable definition respects requested line range"
-@lines 4..6
+test:
+"inlining immediately returned variable definition respects requested line range"
+@lines
+4..6
 ------------------------------
 (define (foo)
   (define x 1)
@@ -192,11 +191,14 @@ test: "inlining immediately returned variable definition respects requested line
   x)
 ------------------------------
 
-
-test: "begin in right hand side of variable definition can be removed"
+test:
+"begin in right hand side of variable definition can be removed"
 --------------------
 (define (foo)
-  (define x (begin (displayln "foo") 42))
+  (define x
+    (begin
+      (displayln "foo")
+      42))
   (* x 2))
 ====================
 (define (foo)
@@ -205,11 +207,14 @@ test: "begin in right hand side of variable definition can be removed"
   (* x 2))
 --------------------
 
-
-test: "begin in right hand side of function definition can be flattened"
+test:
+"begin in right hand side of function definition can be flattened"
 --------------------
 (define (foo)
-  (define (x) (begin (displayln "foo") 42))
+  (define (x)
+    (begin
+      (displayln "foo")
+      42))
   (* (x) 2))
 ====================
 (define (foo)
@@ -219,11 +224,13 @@ test: "begin in right hand side of function definition can be flattened"
   (* (x) 2))
 --------------------
 
-
-test: "begin0 in right hand side of variable definition can be removed"
+test:
+"begin0 in right hand side of variable definition can be removed"
 --------------------
 (define (foo)
-  (define x (begin0 42 (displayln "foo")))
+  (define x
+    (begin0 42
+      (displayln "foo")))
   (* x 2))
 ====================
 (define (foo)
@@ -232,20 +239,24 @@ test: "begin0 in right hand side of variable definition can be removed"
   (* x 2))
 --------------------
 
-
-test: "begin0 in right hand side of function definition can't be removed"
+test:
+"begin0 in right hand side of function definition can't be removed"
 --------------------
 (define (foo)
-  (define (x) (begin0 42 (displayln "foo")))
+  (define (x)
+    (begin0 42
+      (displayln "foo")))
   (* (x) 2))
 --------------------
 
-
-test: "begin inside begin0 in definition context should be extractable"
+test:
+"begin inside begin0 in definition context should be extractable"
 --------------------
 (define (f x)
   (displayln "starting")
-  (begin0 (begin (displayln "before") (* x 2))
+  (begin0 (begin
+            (displayln "before")
+            (* x 2))
     (displayln "after")))
 ====================
 (define (f x)
@@ -255,8 +266,8 @@ test: "begin inside begin0 in definition context should be extractable"
     (displayln "after")))
 --------------------
 
-
-test: "begin inside definition context should be flattenable"
+test:
+"begin inside definition context should be flattenable"
 --------------------
 (define (f x)
   (displayln "starting")
@@ -272,8 +283,8 @@ test: "begin inside definition context should be flattenable"
   (+ x y z))
 --------------------
 
-
-test: "commented begin inside definition context should be flattenable"
+test:
+"commented begin inside definition context should be flattenable"
 --------------------
 (define (f x)
   (displayln "starting")

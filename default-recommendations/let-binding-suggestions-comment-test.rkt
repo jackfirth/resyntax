@@ -1,19 +1,19 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations let-binding-suggestions
-
+require:
+resyntax/default-recommendations
+let-binding-suggestions
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "let binding with commented right-hand-side expression"
+test:
+"let binding with commented right-hand-side expression"
 ------------------------------
 (define (f)
-  (let ([x
-         ;; The number one
-         1])
+  (let (;; The number one
+        [x 1])
     x))
 ==============================
 (define (f)
@@ -23,7 +23,8 @@ test: "let binding with commented right-hand-side expression"
   x)
 ------------------------------
 
-test: "let binding with commented second clause"
+test:
+"let binding with commented second clause"
 ------------------------------
 (define (f)
   (let ([x 1]
@@ -38,8 +39,8 @@ test: "let binding with commented second clause"
   (+ x y))
 ------------------------------
 
-
-test: "let binding with commented first clause not refactorable (yet)"
+test:
+"let binding with commented first clause not refactorable (yet)"
 ------------------------------
 (define (f)
   (let (;; The number one
@@ -47,8 +48,8 @@ test: "let binding with commented first clause not refactorable (yet)"
     x))
 ------------------------------
 
-
-test: "let binding with commented first body form refactorable"
+test:
+"let binding with commented first body form refactorable"
 ------------------------------
 (define (f)
   (let ([x 1])
@@ -63,8 +64,8 @@ test: "let binding with commented first body form refactorable"
   x)
 ------------------------------
 
-
-test: "let binding with commented second body form refactorable"
+test:
+"let binding with commented second body form refactorable"
 ------------------------------
 (define (f)
   (let ([x 1])
@@ -79,15 +80,14 @@ test: "let binding with commented second body form refactorable"
   x)
 ------------------------------
 
-
-test: "let binding with comments before let form refactorable"
+test:
+"let binding with comments before let form refactorable"
 ------------------------------
 (define (f)
   ;; Comment
   (void)
   ;; Comment
-  (let ([x 1])
-    x))
+  (let ([x 1]) x))
 ==============================
 (define (f)
   ;; Comment

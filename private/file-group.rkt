@@ -1,26 +1,23 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [file-portion? (-> any/c boolean?)]
-  [file-portion (-> path-string? range-set? file-portion?)]
-  [file-portion-path (-> file-portion? complete-path?)]
-  [file-portion-lines (-> file-portion? immutable-range-set?)]
-  [file-groups-resolve (-> (sequence/c file-group?) (hash/c file-source? immutable-range-set?))]
-  [file-group? (-> any/c boolean?)]
-  [single-file-group? (-> any/c boolean?)]
-  [single-file-group (-> path-string? immutable-range-set? single-file-group?)]
-  [directory-file-group? (-> any/c boolean?)]
-  [directory-file-group (-> path-string? directory-file-group?)]
-  [package-file-group? (-> any/c boolean?)]
-  [package-file-group (-> string? package-file-group?)]
-  [git-repository-file-group? (-> any/c boolean?)]
-  [git-repository-file-group (-> path-string? string? git-repository-file-group?)]))
-
+(provide (contract-out [file-portion? (-> any/c boolean?)]
+                       [file-portion (-> path-string? range-set? file-portion?)]
+                       [file-portion-path (-> file-portion? complete-path?)]
+                       [file-portion-lines (-> file-portion? immutable-range-set?)]
+                       [file-groups-resolve
+                        (-> (sequence/c file-group?) (hash/c file-source? immutable-range-set?))]
+                       [file-group? (-> any/c boolean?)]
+                       [single-file-group? (-> any/c boolean?)]
+                       [single-file-group (-> path-string? immutable-range-set? single-file-group?)]
+                       [directory-file-group? (-> any/c boolean?)]
+                       [directory-file-group (-> path-string? directory-file-group?)]
+                       [package-file-group? (-> any/c boolean?)]
+                       [package-file-group (-> string? package-file-group?)]
+                       [git-repository-file-group? (-> any/c boolean?)]
+                       [git-repository-file-group
+                        (-> path-string? string? git-repository-file-group?)]))
 
 (require fancy-app
          guard
@@ -42,44 +39,34 @@
          resyntax/private/logger
          resyntax/private/source)
 
-
 (module+ test
   (require (submod "..")
            rackunit))
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (struct file-portion (path lines)
   #:transparent
   #:guard (λ (path lines _) (values (simple-form-path path) lines)))
 
-
 (struct file-group () #:transparent)
-
 
 (struct single-file-group file-group (path ranges)
   #:transparent
   #:guard (λ (path ranges _) (values (simple-form-path path) ranges)))
 
-
 (struct directory-file-group file-group (path)
   #:transparent
   #:guard (λ (path _) (simple-form-path path)))
-
 
 (struct package-file-group file-group (package-name)
   #:transparent
   #:guard (λ (package-name _) (string->immutable-string package-name)))
 
-
 (struct git-repository-file-group file-group (repository-path ref)
   #:transparent
-  #:guard
-  (λ (repository-path ref _)
-    (values (simple-form-path repository-path) (string->immutable-string ref))))
-
+  #:guard (λ (repository-path ref _)
+            (values (simple-form-path repository-path) (string->immutable-string ref))))
 
 (define (file-groups-resolve groups)
   (transduce groups
@@ -88,12 +75,10 @@
              (grouping (make-fold-reducer range-set-add-all (range-set #:comparator natural<=>)))
              #:into into-hash))
 
-
 (define (file-group-resolve group)
   (define files
     (match group
-      [(single-file-group path ranges)
-       (list (file-portion path ranges))]
+      [(single-file-group path ranges) (list (file-portion path ranges))]
       [(directory-file-group path)
        (for/list ([file (in-directory path)])
          (file-portion file (range-set (unbounded-range #:comparator natural<=>))))]
@@ -113,10 +98,7 @@
            (file-portion file (expand-modified-line-set lines))))]))
   (transduce files (filtering rkt-file?) #:into into-list))
 
-
-(define/guard (rkt-file? portion)
-  (path-has-extension? (file-portion-path portion) #".rkt"))
-
+(define/guard (rkt-file? portion) (path-has-extension? (file-portion-path portion) #".rkt"))
 
 ;; GitHub allows pull request reviews to include comments only on modified lines, plus the 3 lines
 ;; before and after any modified lines.
@@ -128,15 +110,13 @@
              #:comparator (range-comparator line-range))))
   (range-set-add-all lines context-lines))
 
-
 (define (range-bound-map bound f)
   (if (unbounded? bound)
       unbounded
       (range-bound (f (range-bound-endpoint bound)) (range-bound-type bound))))
 
-
 (module+ test
   (test-case "expand-modified-line-set"
     (define ranges (range-set (closed-open-range 4 6) (greater-than-range 15)))
-    (define expected (range-set (closed-open-range 1 9) (greater-than-range 12))) 
+    (define expected (range-set (closed-open-range 1 9) (greater-than-range 12)))
     (check-equal? (expand-modified-line-set ranges) expected)))

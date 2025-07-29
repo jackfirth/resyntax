@@ -1,6 +1,5 @@
 #lang racket/base
 
-
 ;; This module defines a syntax-tree syntax class for recognizing trees of nested expressions. It's
 ;; primarily intended for implementing various tree-flattening refactoring rules that rewrite forms
 ;; like (or a b (or c d) e) to (or a b c d e). The syntax class accepts an identifier that determines
@@ -8,23 +7,18 @@
 ;; of the tree (the number of levels in the tree) available as an attribute, so that the flattening
 ;; refactoring rules can avoid flattening trees that are already flat.
 
-
 (provide syntax-tree)
-
 
 (require rebellion/base/option
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          syntax/parse)
 
-
 (module+ test
   (require rackunit
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (define-syntax-class (syntax-tree branch-identifier)
   #:attributes ([leaf 1] rank)
@@ -40,7 +34,6 @@
   (pattern other
     #:with (leaf ...) #'(other)
     #:attr rank 0))
-
 
 (module+ test
   (test-case "expression-tree"

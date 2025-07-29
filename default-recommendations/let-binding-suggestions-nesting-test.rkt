@@ -1,20 +1,18 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations let-binding-suggestions
-
+require:
+resyntax/default-recommendations
+let-binding-suggestions
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "nested let bindings"
+test:
+"nested let bindings"
 ------------------------------
 (define (f)
-  (let ([x 1])
-    (let ([y 1])
-      (let ([z 1])
-        (+ x y z)))))
+  (let ([x 1]) (let ([y 1]) (let ([z 1]) (+ x y z)))))
 ==============================
 (define (f)
   (define x 1)
@@ -23,16 +21,15 @@ test: "nested let bindings"
   (+ x y z))
 ------------------------------
 
-
-test: "nested let bindings with interleaved expressions"
+test:
+"nested let bindings with interleaved expressions"
 ------------------------------
 (define (f)
   (let ([x 1])
     (displayln "foo")
     (let ([y 1])
       (displayln "bar")
-      (let ([z 1])
-        (+ x y z)))))
+      (let ([z 1]) (+ x y z)))))
 ==============================
 (define (f)
   (define x 1)
@@ -43,14 +40,13 @@ test: "nested let bindings with interleaved expressions"
   (+ x y z))
 ------------------------------
 
-
-test: "nested conflicting let bindings only partially refactorable"
+test:
+"nested conflicting let bindings only partially refactorable"
 ------------------------------
 (define (f)
   (let ([x 1])
     (displayln x)
-    (let ([x 2])
-      x)))
+    (let ([x 2]) x)))
 ==============================
 (define (f)
   (define x 1)

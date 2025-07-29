@@ -1,13 +1,8 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [function-shortcuts refactoring-suite?]))
-
+(provide (contract-out [function-shortcuts refactoring-suite?]))
 
 (require (for-syntax racket/base)
          rebellion/private/static-name
@@ -16,16 +11,13 @@
          resyntax/private/syntax-replacement
          syntax/parse)
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (define-syntax-class unquoted
   #:attributes (expr)
   #:literals (unquote)
   (pattern expr:literal-constant)
   (pattern (unquote expr:expr)))
-
 
 (define-syntax-class trailing-list-argument
   #:attributes ([lifted 1] trailing)
@@ -55,22 +47,23 @@
     #:with (lifted ...) #'(arg.expr ...)
     #:with trailing #'rest))
 
-
-(define-refactoring-rule apply-flattening
-  #:description
-  "The `apply` function accepts single arguments in addition to a trailing list argument."
-  #:literals (apply)
-  ((~and id apply) function:expr arg ... trailing-arg:trailing-list-argument)
-  (id function arg ... trailing-arg.lifted ... trailing-arg.trailing))
-
+(define-refactoring-rule
+ apply-flattening
+ #:description
+ "The `apply` function accepts single arguments in addition to a trailing list argument."
+ #:literals (apply)
+ ((~and id apply) function:expr arg ... trailing-arg:trailing-list-argument)
+ (id function arg ... trailing-arg.lifted ... trailing-arg.trailing))
 
 (define-refactoring-rule case-lambda-with-single-case-to-lambda
-  #:description "This `case-lambda` form only has one case. Use a regular lambda instead."
-  #:literals (case-lambda)
-  (case-lambda [args body ...])
-  (λ args body ...))
-
+                         #:description
+                         "This `case-lambda` form only has one case. Use a regular lambda instead."
+                         #:literals (case-lambda)
+                         (case-lambda
+                           [args
+                            body ...])
+                         (λ args
+                           body ...))
 
 (define-refactoring-suite function-shortcuts
-  #:rules (apply-flattening
-           case-lambda-with-single-case-to-lambda))
+                          #:rules (apply-flattening case-lambda-with-single-case-to-lambda))

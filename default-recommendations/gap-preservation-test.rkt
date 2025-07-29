@@ -1,14 +1,15 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations/gap-preservation gap-preservation-rules
-
+require:
+resyntax/default-recommendations/gap-preservation
+gap-preservation-rules
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "comments preserved in splice when form inserted at front"
+test:
+"comments preserved in splice when form inserted at front"
 -----------------------------------
 (define (code insert-foo-first a b)
   (insert-foo-first a
@@ -21,8 +22,8 @@ test: "comments preserved in splice when form inserted at front"
          b))
 -----------------------------------
 
-
-test: "later comments preserved in splice when form inserted after first"
+test:
+"later comments preserved in splice when form inserted after first"
 -----------------------------------
 (define (code insert-foo-second a b c)
   (insert-foo-second a
@@ -37,8 +38,8 @@ test: "later comments preserved in splice when form inserted after first"
      c))
 -----------------------------------
 
-
-test: "not refactorable when comment dropped due to inserted form"
+test:
+"not refactorable when comment dropped due to inserted form"
 -----------------------------------
 (define (code insert-foo-second a b c)
   (insert-foo-second a
@@ -47,8 +48,8 @@ test: "not refactorable when comment dropped due to inserted form"
                      c))
 -----------------------------------
 
-
-test: "comments preserved in splice when form inserted at end"
+test:
+"comments preserved in splice when form inserted at end"
 -----------------------------------
 (define (code insert-foo-last a b c)
   (insert-foo-last a
@@ -63,8 +64,8 @@ test: "comments preserved in splice when form inserted at end"
      "foo"))
 -----------------------------------
 
-
-test: "comments preserved in splice when first form replaced"
+test:
+"comments preserved in splice when first form replaced"
 -----------------------------------
 (define (code replace-first-with-foo a b c)
   (replace-first-with-foo a
@@ -77,8 +78,8 @@ test: "comments preserved in splice when first form replaced"
   ("foo" b c))
 -----------------------------------
 
-
-test: "comments preserved in splice when second form replaced"
+test:
+"comments preserved in splice when second form replaced"
 -----------------------------------
 (define (code replace-second-with-foo a b c)
   (replace-second-with-foo a
@@ -94,8 +95,8 @@ test: "comments preserved in splice when second form replaced"
      c))
 -----------------------------------
 
-
-test: "comments preserved in splice when last form replaced"
+test:
+"comments preserved in splice when last form replaced"
 -----------------------------------
 (define (code replace-last-with-foo a b c)
   (replace-last-with-foo a
@@ -109,8 +110,8 @@ test: "comments preserved in splice when last form replaced"
      "foo"))
 -----------------------------------
 
-
-test: "comments preserved in splice when first and last forms replaced"
+test:
+"comments preserved in splice when first and last forms replaced"
 -----------------------------------
 (define (code replace-first-and-last-with-foo a b c)
   (replace-first-and-last-with-foo a

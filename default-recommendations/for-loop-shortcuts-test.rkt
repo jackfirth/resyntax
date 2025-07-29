@@ -1,42 +1,41 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations for-loop-shortcuts
-
+require:
+resyntax/default-recommendations
+for-loop-shortcuts
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "map with short single-form body not refactorable"
+test:
+"map with short single-form body not refactorable"
 ------------------------------
 (define some-list (list 1 2 3))
 (map (λ (x) (* x 2)) some-list)
 ------------------------------
 
-
-test: "map with long single-form body to for/list"
+test:
+"map with long single-form body to for/list"
 ------------------------------
 (define some-list (list 1 2 3))
-(map
- (λ (a-very-very-very-long-variable-name-thats-so-very-long)
-   (* a-very-very-very-long-variable-name-thats-so-very-long 2))
- some-list)
+(map (λ (a-very-very-very-long-variable-name-thats-so-very-long)
+       (* a-very-very-very-long-variable-name-thats-so-very-long 2))
+     some-list)
 ==============================
 (define some-list (list 1 2 3))
 (for/list ([a-very-very-very-long-variable-name-thats-so-very-long (in-list some-list)])
   (* a-very-very-very-long-variable-name-thats-so-very-long 2))
 ------------------------------
 
-
-test: "map with multiple body forms to for/list"
+test:
+"map with multiple body forms to for/list"
 ------------------------------
 (define some-list (list 1 2 3))
-(map
- (λ (x)
-   (define y (* x 2))
-   (+ x y))
- some-list)
+(map (λ (x)
+       (define y (* x 2))
+       (+ x y))
+     some-list)
 ==============================
 (define some-list (list 1 2 3))
 (for/list ([x (in-list some-list)])
@@ -44,8 +43,8 @@ test: "map with multiple body forms to for/list"
   (+ x y))
 ------------------------------
 
-
-test: "map with let expression to for/list with definitions"
+test:
+"map with let expression to for/list with definitions"
 ------------------------------
 (define some-list (list 1 2 3))
 (map (λ (x) (let ([y 1]) (+ x y))) some-list)
@@ -56,15 +55,14 @@ test: "map with let expression to for/list with definitions"
   (+ x y))
 ------------------------------
 
-
-test: "map range to for/list"
+test:
+"map range to for/list"
 ------------------------------
 (require racket/list)
-(map
- (λ (x)
-   (define y 1)
-   (+ x y))
- (range 0 10))
+(map (λ (x)
+       (define y 1)
+       (+ x y))
+     (range 0 10))
 ==============================
 (require racket/list)
 (for/list ([x (in-range 0 10)])
@@ -72,64 +70,60 @@ test: "map range to for/list"
   (+ x y))
 ------------------------------
 
-
-test: "map string->list to for/list in-string"
+test:
+"map string->list to for/list in-string"
 ------------------------------
-(map
- (λ (c)
-   (displayln c)
-   (char-upcase c))
- (string->list "hello"))
+(map (λ (c)
+       (displayln c)
+       (char-upcase c))
+     (string->list "hello"))
 ==============================
 (for/list ([c (in-string "hello")])
   (displayln c)
   (char-upcase c))
 ------------------------------
 
-
-test: "map bytes->list to for/list in-bytes"
+test:
+"map bytes->list to for/list in-bytes"
 ------------------------------
-(map
- (λ (b)
-   (displayln b)
-   (* b 2))
- (bytes->list #"hello"))
+(map (λ (b)
+       (displayln b)
+       (* b 2))
+     (bytes->list #"hello"))
 ==============================
 (for/list ([b (in-bytes #"hello")])
   (displayln b)
   (* b 2))
 ------------------------------
 
-
-test: "for-each with short single-form body not refactorable"
+test:
+"for-each with short single-form body not refactorable"
 ------------------------------
 (define some-list (list 1 2 3))
 (for-each (λ (x) (displayln x)) some-list)
 ------------------------------
 
-
-test: "for-each with long single-form body to for"
+test:
+"for-each with long single-form body to for"
 ------------------------------
 (define some-list (list 1 2 3))
-(for-each
- (λ (a-very-very-very-long-variable-name-thats-so-very-long)
-   (displayln a-very-very-very-long-variable-name-thats-so-very-long))
- some-list)
+(for-each (λ (a-very-very-very-long-variable-name-thats-so-very-long)
+            (displayln a-very-very-very-long-variable-name-thats-so-very-long))
+          some-list)
 ==============================
 (define some-list (list 1 2 3))
 (for ([a-very-very-very-long-variable-name-thats-so-very-long (in-list some-list)])
   (displayln a-very-very-very-long-variable-name-thats-so-very-long))
 ------------------------------
 
-
-test: "for-each with multiple body forms to for"
+test:
+"for-each with multiple body forms to for"
 ------------------------------
 (define some-list (list 1 2 3))
-(for-each
- (λ (x)
-   (displayln x)
-   (displayln x))
- some-list)
+(for-each (λ (x)
+            (displayln x)
+            (displayln x))
+          some-list)
 ==============================
 (define some-list (list 1 2 3))
 (for ([x (in-list some-list)])
@@ -137,8 +131,8 @@ test: "for-each with multiple body forms to for"
   (displayln x))
 ------------------------------
 
-
-test: "for-each with let expression to for with definitions"
+test:
+"for-each with let expression to for with definitions"
 ------------------------------
 (define some-list (list 1 2 3))
 (for-each (λ (x) (let ([y 1]) (displayln (+ x y)))) some-list)
@@ -149,15 +143,14 @@ test: "for-each with let expression to for with definitions"
   (displayln (+ x y)))
 ------------------------------
 
-
-test: "for-each range to for"
+test:
+"for-each range to for"
 ------------------------------
 (require racket/list)
-(for-each
- (λ (x)
-   (displayln x)
-   (displayln x))
- (range 0 10))
+(for-each (λ (x)
+            (displayln x)
+            (displayln x))
+          (range 0 10))
 ==============================
 (require racket/list)
 (for ([x (in-range 0 10)])
@@ -165,64 +158,60 @@ test: "for-each range to for"
   (displayln x))
 ------------------------------
 
-
-test: "for-each string->list to for in-string"
+test:
+"for-each string->list to for in-string"
 ------------------------------
-(for-each
- (λ (x)
-   (displayln x)
-   (displayln x))
- (string->list "hello"))
+(for-each (λ (x)
+            (displayln x)
+            (displayln x))
+          (string->list "hello"))
 ==============================
 (for ([x (in-string "hello")])
   (displayln x)
   (displayln x))
 ------------------------------
 
-
-test: "for-each bytes->list to for in-bytes"
+test:
+"for-each bytes->list to for in-bytes"
 ------------------------------
-(for-each
- (λ (x)
-   (displayln x)
-   (displayln x))
- (bytes->list #"hello"))
+(for-each (λ (x)
+            (displayln x)
+            (displayln x))
+          (bytes->list #"hello"))
 ==============================
 (for ([x (in-bytes #"hello")])
   (displayln x)
   (displayln x))
 ------------------------------
 
-
-test: "hash-for-each with short single-body form not refactorable"
+test:
+"hash-for-each with short single-body form not refactorable"
 ------------------------------
 (define some-hash (hash 'a 1 'b 2))
 (hash-for-each some-hash (λ (k v) (displayln v)))
 ------------------------------
 
-
-test: "hash-for-each with long single-body form refactorable to for"
+test:
+"hash-for-each with long single-body form refactorable to for"
 ------------------------------
 (define some-hash (hash 'a 1 'b 2))
-(hash-for-each
- some-hash
- (λ (k a-very-very-very-long-variable-name-thats-so-very-long)
-   (displayln a-very-very-very-long-variable-name-thats-so-very-long)))
+(hash-for-each some-hash
+               (λ (k a-very-very-very-long-variable-name-thats-so-very-long)
+                 (displayln a-very-very-very-long-variable-name-thats-so-very-long)))
 ==============================
 (define some-hash (hash 'a 1 'b 2))
 (for ([(k a-very-very-very-long-variable-name-thats-so-very-long) (in-hash some-hash)])
   (displayln a-very-very-very-long-variable-name-thats-so-very-long))
 ------------------------------
 
-
-test: "hash-for-each with multiple body forms refactorable to for"
+test:
+"hash-for-each with multiple body forms refactorable to for"
 ------------------------------
 (define some-hash (hash 'a 1 'b 2))
-(hash-for-each
- some-hash
- (λ (k v)
-   (displayln k)
-   (displayln v)))
+(hash-for-each some-hash
+               (λ (k v)
+                 (displayln k)
+                 (displayln v)))
 ==============================
 (define some-hash (hash 'a 1 'b 2))
 (for ([(k v) (in-hash some-hash)])
@@ -230,15 +219,11 @@ test: "hash-for-each with multiple body forms refactorable to for"
   (displayln v))
 ------------------------------
 
-
-test: "hash-for-each with let expression refactorable to for with definitions"
+test:
+"hash-for-each with let expression refactorable to for with definitions"
 ------------------------------
 (define some-hash (hash 1 10 2 20))
-(hash-for-each
- some-hash
- (λ (k v)
-   (let ([x (+ k v)])
-     (displayln x))))
+(hash-for-each some-hash (λ (k v) (let ([x (+ k v)]) (displayln x))))
 ==============================
 (define some-hash (hash 1 10 2 20))
 (for ([(k v) (in-hash some-hash)])
@@ -246,12 +231,13 @@ test: "hash-for-each with let expression refactorable to for with definitions"
   (displayln x))
 ------------------------------
 
+test:
+"build-list with short single-body form not refactorable"
+-
+(build-list 10 (λ (i) (* i 2)))
 
-test: "build-list with short single-body form not refactorable"
-- (build-list 10 (λ (i) (* i 2)))
-
-
-test: "build-list with long single-body form refactorable to for/list"
+test:
+"build-list with long single-body form refactorable to for/list"
 ------------------------------
 (build-list 10
             (λ (a-very-very-very-long-variable-name-thats-so-very-long)
@@ -261,18 +247,21 @@ test: "build-list with long single-body form refactorable to for/list"
   (* a-very-very-very-long-variable-name-thats-so-very-long 2))
 ------------------------------
 
-
-test: "build-list with multiple body forms refactorable to for/list"
+test:
+"build-list with multiple body forms refactorable to for/list"
 ------------------------------
-(build-list 10 (λ (i) (displayln i) (* i 2)))
+(build-list 10
+            (λ (i)
+              (displayln i)
+              (* i 2)))
 ==============================
 (for/list ([i (in-range 10)])
   (displayln i)
   (* i 2))
 ------------------------------
 
-
-test: "build-list with let expression refactorable to for/list"
+test:
+"build-list with let expression refactorable to for/list"
 ------------------------------
 (build-list 10 (λ (i) (let ([j (* i 2)]) (list i j))))
 ==============================
@@ -281,48 +270,34 @@ test: "build-list with let expression refactorable to for/list"
   (list i j))
 ------------------------------
 
-
-test: "ormap to for/or"
+test:
+"ormap to for/or"
 ------------------------------
 (define some-list (list 3 5 14 10 6 5 2))
-(ormap
- (λ (x)
-   (and (number? x)
-        (positive? x)
-        (even? x)
-        (< x 10)))
- some-list)
+(ormap (λ (x) (and (number? x) (positive? x) (even? x) (< x 10))) some-list)
 ==============================
 (define some-list (list 3 5 14 10 6 5 2))
 (for/or ([x (in-list some-list)])
   (and (number? x) (positive? x) (even? x) (< x 10)))
 ------------------------------
 
-
-test: "andmap to for/and"
+test:
+"andmap to for/and"
 ------------------------------
 (define some-list (list 3 5 14 10 6 5 2))
-(andmap
- (λ (x)
-   (and (number? x)
-        (positive? x)
-        (even? x)
-        (< x 10)))
- some-list)
+(andmap (λ (x) (and (number? x) (positive? x) (even? x) (< x 10))) some-list)
 ==============================
 (define some-list (list 3 5 14 10 6 5 2))
 (for/and ([x (in-list some-list)])
   (and (number? x) (positive? x) (even? x) (< x 10)))
 ------------------------------
 
-
-test: "for/and with or guarding complex expression to filter clause"
+test:
+"for/and with or guarding complex expression to filter clause"
 ------------------------------
 (define some-list (list 3 "foo" 5 14 "bar" 10 6 "baz" 5 2))
 (for/and ([x (in-list some-list)])
-  (or (number? x)
-      (let ([l (string-length x)])
-        (and (odd? l) (< l 10)))))
+  (or (number? x) (let ([l (string-length x)]) (and (odd? l) (< l 10)))))
 ==============================
 (define some-list (list 3 "foo" 5 14 "bar" 10 6 "baz" 5 2))
 (for/and ([x (in-list some-list)]
@@ -331,17 +306,16 @@ test: "for/and with or guarding complex expression to filter clause"
   (and (odd? l) (< l 10)))
 ------------------------------
 
-
-test: "for/and with or guarding simple expression not refactorable"
+test:
+"for/and with or guarding simple expression not refactorable"
 ------------------------------
 (define some-list (list 3 "foo" 5 14 "bar" 10 6 "baz" 5 2))
 (for/and ([x (in-list some-list)])
-  (or (number? x)
-      (string? x)))
+  (or (number? x) (string? x)))
 ------------------------------
 
-
-test: "for with set! refactorable to for/fold"
+test:
+"for with set! refactorable to for/fold"
 ------------------------------
 (define (f)
   (define xs '())
@@ -358,48 +332,44 @@ test: "for with set! refactorable to for/fold"
   (reverse xs))
 ------------------------------
 
-
-test: "for/fold building hash to for/hash"
+test:
+"for/fold building hash to for/hash"
 ------------------------------
-(for/fold ([h (hash)])
-          ([x (in-range 0 10)])
+(for/fold ([h (hash)]) ([x (in-range 0 10)])
   (hash-set h x 'foo))
 ==============================
 (for/hash ([x (in-range 0 10)])
   (values x 'foo))
 ------------------------------
 
-
-test: "for*/fold building hash to for*/hash"
+test:
+"for*/fold building hash to for*/hash"
 ------------------------------
-(for*/fold ([h (hash)])
-           ([x (in-range 0 10)])
+(for*/fold ([h (hash)]) ([x (in-range 0 10)])
   (hash-set h x 'foo))
 ==============================
 (for*/hash ([x (in-range 0 10)])
   (values x 'foo))
 ------------------------------
 
-
-test: "for/fold building hash can't be refactored when referring to hash"
+test:
+"for/fold building hash can't be refactored when referring to hash"
 ------------------------------
-(for/fold ([h (hash)])
-          ([x (in-range 0 10)])
+(for/fold ([h (hash)]) ([x (in-range 0 10)])
   (displayln (hash-has-key? h x))
   (hash-set h x 'foo))
 ------------------------------
 
-
-test: "for*/fold building hash can't be refactored when referring to hash"
+test:
+"for*/fold building hash can't be refactored when referring to hash"
 ------------------------------
-(for*/fold ([h (hash)])
-           ([x (in-range 0 10)])
+(for*/fold ([h (hash)]) ([x (in-range 0 10)])
   (displayln (hash-has-key? h x))
   (hash-set h x 'foo))
 ------------------------------
 
-
-test: "multi-accumulator for/fold with one used result refactorable to for/fold using #:result"
+test:
+"multi-accumulator for/fold with one used result refactorable to for/fold using #:result"
 ------------------------------
 (define (foo)
   (define-values (x y z)
@@ -421,11 +391,11 @@ test: "multi-accumulator for/fold with one used result refactorable to for/fold 
   (* x 2))
 ------------------------------
 
-
-test: "multi-accumulator for/fold with one used result refactorable without formatting surroundings"
+test:
+"multi-accumulator for/fold with one used result refactorable without formatting surroundings"
 ------------------------------
 (define (foo)
-  (  displayln   "foo"   )
+  (displayln "foo")
 
   (define-values (x y z)
     (for/fold ([accum1 0]
@@ -434,10 +404,10 @@ test: "multi-accumulator for/fold with one used result refactorable without form
               ([n (in-naturals)])
       (values 0 0 0)))
 
-  (*   x   2))
+  (* x 2))
 ==============================
 (define (foo)
-  (  displayln   "foo"   )
+  (displayln "foo")
 
   (define x
     (for/fold ([accum1 0]
@@ -447,43 +417,38 @@ test: "multi-accumulator for/fold with one used result refactorable without form
               ([n (in-naturals)])
       (values 0 0 0)))
 
-  (*   x   2))
+  (* x 2))
 ------------------------------
 
-
-test: "for/fold with conditional body refactorable to for/fold with #:when"
+test:
+"for/fold with conditional body refactorable to for/fold with #:when"
 ------------------------------
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (if (even? n)
         (+ accum n)
         accum)))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (if (not (even? n))
         accum
         (+ accum n))))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (cond
       [(even? n) (+ accum n)]
       [else accum])))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (cond
       [(not (even? n)) accum]
       [else (+ accum n)])))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (cond
       [(even? n) (+ accum n)]
       [accum])))
@@ -495,40 +460,35 @@ test: "for/fold with conditional body refactorable to for/fold with #:when"
     (+ accum n)))
 ------------------------------
 
-
-test: "for/fold with negated conditional body refactorable to for/fold with #:unless"
+test:
+"for/fold with negated conditional body refactorable to for/fold with #:unless"
 ------------------------------
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (if (even? n)
         accum
         (+ accum n))))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (if (not (even? n))
         (+ accum n)
         accum)))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (cond
       [(even? n) accum]
       [else (+ accum n)])))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (cond
       [(not (even? n)) (+ accum n)]
       [else accum])))
 ==============================
 (define (foo)
-  (for/fold ([accum 0])
-            ([n (in-naturals)])
+  (for/fold ([accum 0]) ([n (in-naturals)])
     (cond
       [(even? n) accum]
       [(+ accum n)])))
@@ -540,27 +500,25 @@ test: "for/fold with negated conditional body refactorable to for/fold with #:un
     (+ accum n)))
 ------------------------------
 
-
-test: "list->vector with for/list to for/vector"
+test:
+"list->vector with for/list to for/vector"
 ------------------------------
-(list->vector
- (for/list ([x (in-range 0 10)])
-   (displayln x)
-   (* x x)))
+(list->vector (for/list ([x (in-range 0 10)])
+                (displayln x)
+                (* x x)))
 ==============================
 (for/vector ([x (in-range 0 10)])
   (displayln x)
   (* x x))
 ------------------------------
 
-
-test: "list->set with for/list to for/set"
+test:
+"list->set with for/list to for/set"
 ------------------------------
 (require racket/set)
-(list->set
- (for/list ([x (in-range 0 10)])
-   (displayln x)
-   (* x x)))
+(list->set (for/list ([x (in-range 0 10)])
+             (displayln x)
+             (* x x)))
 ==============================
 (require racket/set)
 (for/set ([x (in-range 0 10)])
@@ -568,8 +526,8 @@ test: "list->set with for/list to for/set"
   (* x x))
 ------------------------------
 
-
-test: "nested for forms can be flattened to a for* form"
+test:
+"nested for forms can be flattened to a for* form"
 ------------------------------
 (for ([x (in-range 0 5)])
   (for ([y (in-range 0 5)])
@@ -586,8 +544,8 @@ test: "nested for forms can be flattened to a for* form"
   (displayln z))
 ------------------------------
 
-
-test: "non-nested for form isn't replaced by a for* form"
+test:
+"non-nested for form isn't replaced by a for* form"
 ------------------------------
 (for ([x (in-range 0 5)])
   (displayln x)
@@ -595,8 +553,8 @@ test: "non-nested for form isn't replaced by a for* form"
   (displayln x))
 ------------------------------
 
-
-test: "nested for/or forms can be flattened to a for*/or form"
+test:
+"nested for/or forms can be flattened to a for*/or form"
 ------------------------------
 (for/or ([x (in-range 0 5)])
   (for/or ([y (in-range 0 5)])
@@ -609,8 +567,8 @@ test: "nested for/or forms can be flattened to a for*/or form"
   (>= (+ x y z) 5))
 ------------------------------
 
-
-test: "nested for/and forms can be flattened to a for*/and form"
+test:
+"nested for/and forms can be flattened to a for*/and form"
 ------------------------------
 (for/and ([x (in-range 0 5)])
   (for/and ([y (in-range 0 5)])
@@ -623,8 +581,8 @@ test: "nested for/and forms can be flattened to a for*/and form"
   (<= (+ x y z) 5))
 ------------------------------
 
-
-test: "named let loop with conditional return over vector can be replaced by for/first"
+test:
+"named let loop with conditional return over vector can be replaced by for/first"
 ------------------------------------------------------------
 (define vec (vector 0 1 2 3 4 5))
 (let loop ([i 0])
@@ -650,8 +608,8 @@ test: "named let loop with conditional return over vector can be replaced by for
   (+ x 42))
 ------------------------------------------------------------
 
-
-test: "named let loop over list can be replaced by for/list"
+test:
+"named let loop over list can be replaced by for/list"
 ------------------------------------------------------------
 (require racket/list)
 (let loop ([xs (list 1 2 3)])
@@ -659,8 +617,7 @@ test: "named let loop over list can be replaced by for/list"
     [(null? xs) '()]
     [else
      (displayln (car xs))
-     (cons (* (car xs) 10)
-           (loop (cdr xs)))]))
+     (cons (* (car xs) 10) (loop (cdr xs)))]))
 ------------------------------------------------------------
 ------------------------------------------------------------
 (require racket/list)
@@ -669,8 +626,7 @@ test: "named let loop over list can be replaced by for/list"
     [(empty? xs) '()]
     [else
      (displayln (first xs))
-     (cons (* (first xs) 10)
-           (loop (rest xs)))]))
+     (cons (* (first xs) 10) (loop (rest xs)))]))
 ------------------------------------------------------------
 ------------------------------------------------------------
 (require racket/list)
@@ -679,16 +635,15 @@ test: "named let loop over list can be replaced by for/list"
   (* x 10))
 ------------------------------------------------------------
 
-
-test: "named let loop can be replaced with for/and when equivalent"
+test:
+"named let loop can be replaced with for/and when equivalent"
 ------------------------------------------------------------
 (require racket/list)
 (define (f xs big? red?)
   (let loop ([xs xs])
     (cond
       [(empty? xs) #true]
-      [(and (big? (first xs)) (not (red? (car xs))))
-       (loop (rest xs))]
+      [(and (big? (first xs)) (not (red? (car xs)))) (loop (rest xs))]
       [else #false])))
 ------------------------------------------------------------
 ------------------------------------------------------------
@@ -698,8 +653,8 @@ test: "named let loop can be replaced with for/and when equivalent"
     (and (big? x) (not (red? x)))))
 ------------------------------------------------------------
 
-
-test: "named let loop can be replaced with for/or when equivalent"
+test:
+"named let loop can be replaced with for/or when equivalent"
 ------------------------------------------------------------
 (require racket/list)
 (define (f xs big? red?)
@@ -716,8 +671,8 @@ test: "named let loop can be replaced with for/or when equivalent"
     (and (big? x) (not (red? x)))))
 ------------------------------------------------------------
 
-
-test: "append-map with for/list can be replaced by for*/list"
+test:
+"append-map with for/list can be replaced by for*/list"
 ------------------------------------------------------------
 (require racket/list)
 (append-map (λ (n)
@@ -732,8 +687,8 @@ test: "append-map with for/list can be replaced by for*/list"
   (list n m))
 ------------------------------------------------------------
 
-
-test: "append-map with multi-clause for/list can't be replaced by for*/list"
+test:
+"append-map with multi-clause for/list can't be replaced by for*/list"
 ------------------------------------------------------------
 (require racket/list)
 (append-map (λ (n)
@@ -743,8 +698,8 @@ test: "append-map with multi-clause for/list can't be replaced by for*/list"
             (list 3 4 5))
 ------------------------------------------------------------
 
-
-test: "append-map with multi-clause for*/list can be replaced by for*/list"
+test:
+"append-map with multi-clause for*/list can be replaced by for*/list"
 ------------------------------------------------------------
 (require racket/list)
 (append-map (λ (n)
@@ -761,16 +716,15 @@ test: "append-map with multi-clause for*/list can be replaced by for*/list"
   (list n m k))
 ------------------------------------------------------------
 
-
-test: "for-each and append-map can be replaced by for* with #:when"
+test:
+"for-each and append-map can be replaced by for* with #:when"
 ------------------------------------------------------------
 (require racket/list)
 (define words (list 'the 'quick 'brown 'fox))
 (for-each (λ (c)
             (printf "Letter: ~a\n" c)
             (printf "Letter code: ~a\n\n" (char->integer c)))
-          (append-map (λ (word) (string->list (symbol->string word)))
-                      words))
+          (append-map (λ (word) (string->list (symbol->string word))) words))
 ------------------------------------------------------------
 ------------------------------------------------------------
 (require racket/list)
@@ -781,44 +735,38 @@ test: "for-each and append-map can be replaced by for* with #:when"
   (printf "Letter code: ~a\n\n" (char->integer c)))
 ------------------------------------------------------------
 
-
-test: "(apply append ...) with a multi-clause for loop can't be removed"
+test:
+"(apply append ...) with a multi-clause for loop can't be removed"
 ------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
+(define formulas (hash 'water (list 'hydrogen 'oxygen) 'benzene (list 'hydrogen 'carbon)))
 (apply append
        (for/list ([k (in-hash-keys formulas)]
                   [i (in-naturals)])
          (hash-ref formulas k)))
 ------------------------------------------------------------
 
-
-test: "(apply append ...) with a multi-body for loop can't be removed"
+test:
+"(apply append ...) with a multi-body for loop can't be removed"
 ------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
+(define formulas (hash 'water (list 'hydrogen 'oxygen) 'benzene (list 'hydrogen 'carbon)))
 (apply append
        (for/list ([k (in-hash-keys formulas)])
          (displayln "formula time!")
          (hash-ref formulas k)))
 ------------------------------------------------------------
 
-
-test: "(apply append ...) with a multi-body for* loop can't be removed"
+test:
+"(apply append ...) with a multi-body for* loop can't be removed"
 ------------------------------------------------------------
-(define formulas
-  (hash 'water (list 'hydrogen 'oxygen)
-        'benzene (list 'hydrogen 'carbon)))
+(define formulas (hash 'water (list 'hydrogen 'oxygen) 'benzene (list 'hydrogen 'carbon)))
 (apply append
        (for*/list ([k (in-hash-keys formulas)])
          (displayln "formula time!")
          (hash-ref formulas k)))
 ------------------------------------------------------------
 
-
-test: "(when ...) in a for loop refactored to #:when clause"
+test:
+"(when ...) in a for loop refactored to #:when clause"
 ------------------------------------------------------------
 (for ([x (in-list (list 1 2 'a 3 'b 4))])
   (when (number? x)
@@ -830,8 +778,8 @@ test: "(when ...) in a for loop refactored to #:when clause"
   (displayln x))
 ------------------------------------------------------------
 
-
-test: "(when ...) in a for* loop refactored to #:when clause"
+test:
+"(when ...) in a for* loop refactored to #:when clause"
 ------------------------------------------------------------
 (for* ([x (in-list (list 1 2 'a 3 'b 4))])
   (when (number? x)
@@ -843,8 +791,8 @@ test: "(when ...) in a for* loop refactored to #:when clause"
   (displayln x))
 ------------------------------------------------------------
 
-
-test: "(unless ...) in a for loop refactored to #:when clause"
+test:
+"(unless ...) in a for loop refactored to #:when clause"
 ------------------------------------------------------------
 (for ([x (in-list (list 1 2 'a 3 'b 4))])
   (unless (number? x)
@@ -856,8 +804,8 @@ test: "(unless ...) in a for loop refactored to #:when clause"
   (displayln x))
 ------------------------------------------------------------
 
-
-test: "(unless ...) in a for* loop refactored to #:when clause"
+test:
+"(unless ...) in a for* loop refactored to #:when clause"
 ------------------------------------------------------------
 (for* ([x (in-list (list 1 2 'a 3 'b 4))])
   (unless (number? x)
@@ -869,11 +817,12 @@ test: "(unless ...) in a for* loop refactored to #:when clause"
   (displayln x))
 ------------------------------------------------------------
 
-
-test: "for/vector with in-range 0 n gets #:length n"
+test:
+"for/vector with in-range 0 n gets #:length n"
 ------------------------------------------------------------
 (define n 5)
-(for/vector ([i (in-range 0 n)]) i)
+(for/vector ([i (in-range 0 n)])
+  i)
 ------------------------------------------------------------
 ------------------------------------------------------------
 (define n 5)
@@ -882,11 +831,12 @@ test: "for/vector with in-range 0 n gets #:length n"
   i)
 ------------------------------------------------------------
 
-
-test: "for/vector with in-range n gets #:length n"
+test:
+"for/vector with in-range n gets #:length n"
 ------------------------------------------------------------
 (define n 5)
-(for/vector ([i (in-range n)]) i)
+(for/vector ([i (in-range n)])
+  i)
 ------------------------------------------------------------
 ------------------------------------------------------------
 (define n 5)
@@ -895,37 +845,41 @@ test: "for/vector with in-range n gets #:length n"
   i)
 ------------------------------------------------------------
 
+test:
+"for/vector with literal end won't have #:length added"
+-
+(for/vector ([i (in-range 0 10)])
+  i)
 
-test: "for/vector with literal end won't have #:length added"
-- (for/vector ([i (in-range 0 10)]) i)
-
-
-test: "for/vector with expression end won't have #:length added"
+test:
+"for/vector with expression end won't have #:length added"
 ------------------------------------------------------------
 (define n 5)
 (define m 3)
-(for/vector ([i (in-range 0 (+ n m))]) i)
+(for/vector ([i (in-range 0 (+ n m))])
+  i)
 ------------------------------------------------------------
 
-
-test: "for/vector with non-zero start won't have #:length added"
+test:
+"for/vector with non-zero start won't have #:length added"
 ------------------------------------------------------------
 (define n 5)
-(for/vector ([i (in-range 2 n)]) i)
+(for/vector ([i (in-range 2 n)])
+  i)
 ------------------------------------------------------------
 
-
-test: "for/vector with multiple clauses won't have #:length added"
+test:
+"for/vector with multiple clauses won't have #:length added"
 ------------------------------------------------------------
 (define n 5)
 (define m 3)
 (for/vector ([i (in-range 0 n)]
-             [j (in-range 0 m)]) 
+             [j (in-range 0 m)])
   (+ i j))
 ------------------------------------------------------------
 
-
-test: "in-hash refactorable to in-hash-keys when only the key is used"
+test:
+"in-hash refactorable to in-hash-keys when only the key is used"
 --------------------
 (for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
   (displayln k))
@@ -934,8 +888,8 @@ test: "in-hash refactorable to in-hash-keys when only the key is used"
   (displayln k))
 --------------------
 
-
-test: "in-hash refactorable to in-hash-values when only the value is used"
+test:
+"in-hash refactorable to in-hash-values when only the value is used"
 --------------------
 (for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
   (displayln v))
@@ -944,16 +898,16 @@ test: "in-hash refactorable to in-hash-values when only the value is used"
   (displayln v))
 --------------------
 
-
-test: "in-hash not refactorable to in-hash-keys when key and value both used"
+test:
+"in-hash not refactorable to in-hash-keys when key and value both used"
 --------------------
 (for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
   (displayln k)
   (displayln v))
 --------------------
 
-
-test: "in-hash between other clauses refactorable to in-hash-keys when only the key is used"
+test:
+"in-hash between other clauses refactorable to in-hash-keys when only the key is used"
 --------------------
 (for ([i (in-naturals)]
       [(k v) (in-hash (hash 'a 1 'b 2 'c 3))]
@@ -966,8 +920,8 @@ test: "in-hash between other clauses refactorable to in-hash-keys when only the 
   (displayln (list i j k)))
 --------------------
 
-
-test: "in-hash between other clauses refactorable to in-hash-values when only the value is used"
+test:
+"in-hash between other clauses refactorable to in-hash-values when only the value is used"
 --------------------
 (for ([i (in-naturals)]
       [(k v) (in-hash (hash 'a 1 'b 2 'c 3))]
@@ -980,8 +934,8 @@ test: "in-hash between other clauses refactorable to in-hash-values when only th
   (displayln (list i j v)))
 --------------------
 
-
-test: "in-hash in for* loop refactorable to in-hash-keys"
+test:
+"in-hash in for* loop refactorable to in-hash-keys"
 --------------------
 (for* ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
   (displayln k))
@@ -990,8 +944,8 @@ test: "in-hash in for* loop refactorable to in-hash-keys"
   (displayln k))
 --------------------
 
-
-test: "in-hash in for/list loop refactorable to in-hash-keys"
+test:
+"in-hash in for/list loop refactorable to in-hash-keys"
 --------------------
 (for/list ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
   k)
@@ -1000,8 +954,8 @@ test: "in-hash in for/list loop refactorable to in-hash-keys"
   k)
 --------------------
 
-
-test: "in-hash in for/list loop refactorable to in-hash-values"
+test:
+"in-hash in for/list loop refactorable to in-hash-values"
 --------------------
 (for/list ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
   v)

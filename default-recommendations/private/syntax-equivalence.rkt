@@ -1,26 +1,18 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [syntax-free-identifier=? (-> syntax? syntax? boolean?)]))
-
+(provide (contract-out [syntax-free-identifier=? (-> syntax? syntax? boolean?)]))
 
 (require guard
          racket/list
          racket/match)
 
-
 (module+ test
   (require rackunit
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (define (syntax-free-identifier=? stx other-stx)
   (define datum (syntax-e stx))
@@ -32,10 +24,10 @@
     [(? box?) (and (box? other-datum) (syntax-free-identifier=? (unbox datum) (unbox other-datum)))]
     [(? vector?)
      (and (equal? (vector-length datum) (vector-length other-datum))
-          (for/and ([substx (in-vector datum)] [other-substx (in-vector other-datum)])
+          (for/and ([substx (in-vector datum)]
+                    [other-substx (in-vector other-datum)])
             (syntax-free-identifier=? substx other-substx)))]
     [_ (error 'syntax-free-identifier=? "hash datum comparisons not implemented yet.")]))
-
 
 (define (syntax-pair-free-identifier=? pair other-pair)
   (match pair
@@ -43,8 +35,7 @@
     [(cons head (? syntax? tail))
      (match other-pair
        [(cons other-head (? syntax? other-tail))
-        (and (syntax-free-identifier=? head other-head)
-             (syntax-free-identifier=? tail other-tail))]
+        (and (syntax-free-identifier=? head other-head) (syntax-free-identifier=? tail other-tail))]
        [_ #false])]
     [(cons head tail)
      (match other-pair
@@ -52,7 +43,6 @@
         (and (syntax-free-identifier=? head other-head)
              (syntax-pair-free-identifier=? tail other-tail))]
        [_ #false])]))
-
 
 (module+ test
   (test-case "syntax-free-identifier=?"

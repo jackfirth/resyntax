@@ -1,14 +1,15 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations require-and-provide-suggestions-all-enabled-for-test
-
+require:
+resyntax/default-recommendations
+require-and-provide-suggestions-all-enabled-for-test
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "duplicate provided identifiers should be removed"
+test:
+"duplicate provided identifiers should be removed"
 ----------------------------------------
 (provide foo
          foo
@@ -19,8 +20,8 @@ test: "duplicate provided identifiers should be removed"
 (define foo 1)
 ----------------------------------------
 
-
-test: "removing duplicate provided identifiers leaves other exports unchanged"
+test:
+"removing duplicate provided identifiers leaves other exports unchanged"
 ----------------------------------------
 (provide a
          foo
@@ -42,8 +43,8 @@ test: "removing duplicate provided identifiers leaves other exports unchanged"
 (define foo 1)
 ----------------------------------------
 
-
-test: "provide deduplication doesn't affect exports at different phases"
+test:
+"provide deduplication doesn't affect exports at different phases"
 ----------------------------------------
 (provide foo
          (for-syntax foo))
@@ -53,8 +54,8 @@ test: "provide deduplication doesn't affect exports at different phases"
   (define foo 2))
 ----------------------------------------
 
-
-test: "require tidying sorts collection paths by name"
+test:
+"require tidying sorts collection paths by name"
 ----------------------------------------
 (require racket/string
          racket/hash
@@ -65,25 +66,25 @@ test: "require tidying sorts collection paths by name"
          racket/string)
 ----------------------------------------
 
-
-
-test: "require tidying does nothing when collection paths already sorted by name"
+test:
+"require tidying does nothing when collection paths already sorted by name"
 ----------------------------------------
 (require racket/hash
          racket/list
          racket/string)
 ----------------------------------------
 
-
-test: "require tidying removes duplicate imports"
+test:
+"require tidying removes duplicate imports"
 ----------------------------------------
 (require racket/list
          racket/list)
 ----------------------------------------
-- (require racket/list)
+-
+(require racket/list)
 
-
-test: "require tidying sorts for-syntax before plain"
+test:
+"require tidying sorts for-syntax before plain"
 ----------------------------------------
 (require racket/list
          (for-syntax racket/string))
@@ -92,8 +93,8 @@ test: "require tidying sorts for-syntax before plain"
          racket/list)
 ----------------------------------------
 
-
-test: "require tidying should move non-phase spec forms after collections"
+test:
+"require tidying should move non-phase spec forms after collections"
 ----------------------------------------
 (require (only-in racket/list first)
          (only-in racket/list second)
@@ -106,8 +107,8 @@ test: "require tidying should move non-phase spec forms after collections"
          (prefix-in s: racket/string))
 ----------------------------------------
 
-
-test: "require tidying should move non-phase spec forms before relative paths"
+test:
+"require tidying should move non-phase spec forms before relative paths"
 ----------------------------------------
 (require "require-and-provide-suggestions.rkt"
          (only-in racket/list first)
@@ -120,23 +121,23 @@ test: "require tidying should move non-phase spec forms before relative paths"
          "require-and-provide-suggestions.rkt")
 ----------------------------------------
 
-
-test: "require tidying of only non-phase spec forms should do nothing"
+test:
+"require tidying of only non-phase spec forms should do nothing"
 ----------------------------------------
 (require (only-in racket/list first)
          (only-in racket/hash hash-union))
 ----------------------------------------
 
-
-test: "require tidying shouldn't trigger when transformers are imported and used"
+test:
+"require tidying shouldn't trigger when transformers are imported and used"
 ----------------------------------------
 (require racket/require
          (multi-in racket (list set dict))
          racket/hash)
 ----------------------------------------
 
-
-test: "require tidying shouldn't trigger when transformers are imported and used in nested specs"
+test:
+"require tidying shouldn't trigger when transformers are imported and used in nested specs"
 ----------------------------------------
 (require racket/require
          (prefix-in racket: (multi-in racket (list set dict)))

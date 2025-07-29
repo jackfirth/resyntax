@@ -1,14 +1,9 @@
 #lang racket/base
 
-
 (require racket/contract)
 
-
-(provide
- (contract-out
-  [git-diff-modified-lines (-> string? (hash/c path? immutable-range-set?))]
-  [git-commit! (-> string? void?)]))
-
+(provide (contract-out [git-diff-modified-lines (-> string? (hash/c path? immutable-range-set?))]
+                       [git-commit! (-> string? void?)]))
 
 (require fancy-app
          racket/match
@@ -20,15 +15,12 @@
          rebellion/base/range
          rebellion/collection/range-set)
 
-
 ;@----------------------------------------------------------------------------------------------------
-
-
 
 (define (git-diff-modified-lines ref)
   (define cmd
-    (format
-     "git diff -U0 --inter-hunk-context=0 --diff-filter=AM ~a | grep -e '^+++ b/' -e '^@@'" ref))
+    (format "git diff -U0 --inter-hunk-context=0 --diff-filter=AM ~a | grep -e '^+++ b/' -e '^@@'"
+            ref))
   (define empty-lines (range-set #:comparator natural<=>))
   (for*/fold ([files (hash)]
               [current-file #false]
@@ -37,9 +29,7 @@
               [lexeme (in-option (lex-line line))])
     (if (path? lexeme)
         (values files lexeme)
-        (values (hash-update files current-file (range-set-add _ lexeme) empty-lines)
-                current-file))))
-
+        (values (hash-update files current-file (range-set-add _ lexeme) empty-lines) current-file))))
 
 (define (lex-line line)
   (define file-match (regexp-match #px"^\\+\\+\\+ b/(.*)$" line))
@@ -51,8 +41,7 @@
      (present (simplify-path f))]
     [single-line-match
      (match-define (list _ l) single-line-match)
-     (let ([l (string->number l)])
-       (present (closed-open-range l (add1 l) #:comparator natural<=>)))]
+     (let ([l (string->number l)]) (present (closed-open-range l (add1 l) #:comparator natural<=>)))]
     [range-match
      (match-define (list _ l s) range-match)
      (let ([l (string->number l)]
@@ -66,10 +55,7 @@
       "a git file name line (starting with '+++ b/') or a hunk range line (starting with '@@')"
       line)]))
 
-
 (define (git-commit! message)
   (define escaped-message (string-replace message "'" "'\"'\"'"))
   (unless (system (format "git commit --all --quiet --message='~a'" escaped-message))
-    (raise-arguments-error 'git-commit!
-                           "committing files to Git failed"
-                           "commit message" message)))
+    (raise-arguments-error 'git-commit! "committing files to Git failed" "commit message" message)))

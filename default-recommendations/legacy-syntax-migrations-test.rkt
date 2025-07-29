@@ -1,14 +1,15 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations legacy-syntax-migrations
-
+require:
+resyntax/default-recommendations
+legacy-syntax-migrations
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "the fifth argument to datum->syntax can be removed"
+test:
+"the fifth argument to datum->syntax can be removed"
 ------------------------------
 (define stx #'foo)
 (datum->syntax stx 'bar stx stx #'blah)
@@ -17,8 +18,8 @@ test: "the fifth argument to datum->syntax can be removed"
 (datum->syntax stx 'bar stx stx)
 ------------------------------
 
-
-test: "syntax-recertify can be removed"
+test:
+"syntax-recertify can be removed"
 ------------------------------
 (define stx #'foo)
 (define old-stx #'bar)
@@ -29,8 +30,8 @@ test: "syntax-recertify can be removed"
 stx
 ------------------------------
 
-
-test: "syntax-disarm can be removed"
+test:
+"syntax-disarm can be removed"
 ------------------------------
 (define stx #'foo)
 (syntax-disarm stx (current-inspector))
@@ -39,8 +40,8 @@ test: "syntax-disarm can be removed"
 stx
 ------------------------------
 
-
-test: "syntax-rearm can be removed"
+test:
+"syntax-rearm can be removed"
 ------------------------------
 (define stx #'foo)
 (syntax-rearm stx #'bar)
@@ -49,8 +50,8 @@ test: "syntax-rearm can be removed"
 stx
 ------------------------------
 
-
-test: "syntax-protect can be removed"
+test:
+"syntax-protect can be removed"
 ------------------------------
 (define stx #'foo)
 (syntax-protect stx)
@@ -59,8 +60,8 @@ test: "syntax-protect can be removed"
 stx
 ------------------------------
 
-
-test: "for-clause-syntax-protect can be removed"
+test:
+"for-clause-syntax-protect can be removed"
 ------------------------------
 (require (for-template racket/base))
 (define stx #'foo)
@@ -71,8 +72,8 @@ test: "for-clause-syntax-protect can be removed"
 stx
 ------------------------------
 
-
-test: "syntax-local-match-introduce replaced with syntax-local-introduce"
+test:
+"syntax-local-match-introduce replaced with syntax-local-introduce"
 ------------------------------
 (require (for-template racket/match))
 (define (f)
@@ -83,8 +84,8 @@ test: "syntax-local-match-introduce replaced with syntax-local-introduce"
   (syntax-local-introduce #'foo))
 ------------------------------
 
-
-test: "syntax-local-provide-introduce replaced with syntax-local-introduce"
+test:
+"syntax-local-provide-introduce replaced with syntax-local-introduce"
 ------------------------------
 (require (for-template racket/provide-syntax))
 (define (f)
@@ -95,8 +96,8 @@ test: "syntax-local-provide-introduce replaced with syntax-local-introduce"
   (syntax-local-introduce #'foo))
 ------------------------------
 
-
-test: "syntax-local-require-introduce replaced with syntax-local-introduce"
+test:
+"syntax-local-require-introduce replaced with syntax-local-introduce"
 ------------------------------
 (require (for-template racket/require-syntax))
 (define (f)
@@ -107,8 +108,8 @@ test: "syntax-local-require-introduce replaced with syntax-local-introduce"
   (syntax-local-introduce #'foo))
 ------------------------------
 
-
-test: "syntax-local-syntax-parse-pattern-introduce replaced with syntax-local-introduce"
+test:
+"syntax-local-syntax-parse-pattern-introduce replaced with syntax-local-introduce"
 ------------------------------
 (require (for-template syntax/parse))
 (define (f)

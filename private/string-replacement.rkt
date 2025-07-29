@@ -3,61 +3,57 @@
 ;; A string replacement is an operation that can be applied to a string which can insert, delete, and
 ;; move around the contents of the string.
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [string-replacement? (-> any/c boolean?)]
-  [string-replacement
-   (->i
-    #:chaperone
-    (#:start [start natural?]
-     #:end [end natural?]
-     #:contents [contents (sequence/c (or/c inserted-string? copied-string?))])
-    #:pre/name (start end) "end cannot be before start" (<= start end)
-    [_ string-replacement?])]
-  [replacement-string-span (-> (or/c inserted-string? copied-string?) exact-nonnegative-integer?)]
-  [string-replacement-start (-> string-replacement? natural?)]
-  [string-replacement-original-end (-> string-replacement? natural?)]
-  [string-replacement-original-span (-> string-replacement? natural?)]
-  [string-replacement-new-end (-> string-replacement? natural?)]
-  [string-replacement-new-span (-> string-replacement? natural?)]
-  [string-replacement-contents
-   (-> string-replacement? (listof (or/c inserted-string? copied-string?)))]
-  [string-replacement-preserved-locations (-> string-replacement? range-set?)]
-  [string-replacement-overlaps? (-> string-replacement? string-replacement? boolean?)]
-  [string-replacement-normalize
-   (->* (string-replacement? string?)
-        (#:preserve-start (or/c exact-nonnegative-integer? #false)
-         #:preserve-end (or/c exact-nonnegative-integer? #false))
-        string-replacement?)]
-  [string-replacement-union
-   (->i ([replacement1 string-replacement?]
-         [replacement2 string-replacement?])
-        #:pre/name (replacement1 replacement2)
-        "replacements must not overlap"
-        (not (string-replacement-overlaps? replacement1 replacement2))
-        [_ string-replacement?])]
-  [union-into-string-replacement (reducer/c string-replacement? string-replacement?)]
-  [string-replacement-render (-> string-replacement? string? immutable-string?)]
-  [string-apply-replacement (-> string? string-replacement? immutable-string?)]
-  [file-apply-string-replacement! (-> path-string? string-replacement? void?)]
-  [inserted-string? (-> any/c boolean?)]
-  [inserted-string (-> string? inserted-string?)]
-  [inserted-string-contents (-> inserted-string? immutable-string?)]
-  [copied-string? (-> any/c boolean?)]
-  [copied-string
-   (->i
-    #:chaperone
-    ([start natural?]
-     [end natural?])
-    #:pre/name (start end) "end cannot be before start" (<= start end)
-    [_ copied-string?])]
-  [copied-string-start (-> copied-string? natural?)]
-  [copied-string-end (-> copied-string? natural?)]))
-
+(provide (contract-out
+          [string-replacement? (-> any/c boolean?)]
+          [string-replacement
+           (->i #:chaperone
+                (#:start [start natural?]
+                         #:end [end natural?]
+                         #:contents [contents (sequence/c (or/c inserted-string? copied-string?))])
+                #:pre/name (start end)
+                "end cannot be before start"
+                (<= start end)
+                [_ string-replacement?])]
+          [replacement-string-span
+           (-> (or/c inserted-string? copied-string?) exact-nonnegative-integer?)]
+          [string-replacement-start (-> string-replacement? natural?)]
+          [string-replacement-original-end (-> string-replacement? natural?)]
+          [string-replacement-original-span (-> string-replacement? natural?)]
+          [string-replacement-new-end (-> string-replacement? natural?)]
+          [string-replacement-new-span (-> string-replacement? natural?)]
+          [string-replacement-contents
+           (-> string-replacement? (listof (or/c inserted-string? copied-string?)))]
+          [string-replacement-preserved-locations (-> string-replacement? range-set?)]
+          [string-replacement-overlaps? (-> string-replacement? string-replacement? boolean?)]
+          [string-replacement-normalize
+           (->* (string-replacement? string?)
+                (#:preserve-start (or/c exact-nonnegative-integer? #false)
+                                  #:preserve-end (or/c exact-nonnegative-integer? #false))
+                string-replacement?)]
+          [string-replacement-union
+           (->i ([replacement1 string-replacement?] [replacement2 string-replacement?])
+                #:pre/name (replacement1 replacement2)
+                "replacements must not overlap"
+                (not (string-replacement-overlaps? replacement1 replacement2))
+                [_ string-replacement?])]
+          [union-into-string-replacement (reducer/c string-replacement? string-replacement?)]
+          [string-replacement-render (-> string-replacement? string? immutable-string?)]
+          [string-apply-replacement (-> string? string-replacement? immutable-string?)]
+          [file-apply-string-replacement! (-> path-string? string-replacement? void?)]
+          [inserted-string? (-> any/c boolean?)]
+          [inserted-string (-> string? inserted-string?)]
+          [inserted-string-contents (-> inserted-string? immutable-string?)]
+          [copied-string? (-> any/c boolean?)]
+          [copied-string
+           (->i #:chaperone ([start natural?] [end natural?])
+                #:pre/name (start end)
+                "end cannot be before start"
+                (<= start end)
+                [_ copied-string?])]
+          [copied-string-start (-> copied-string? natural?)]
+          [copied-string-end (-> copied-string? natural?)]))
 
 (require guard
          racket/file
@@ -77,26 +73,24 @@
          rebellion/type/tuple
          resyntax/private/source)
 
-
 (module+ test
   (require rackunit
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
 
-
 (define-record-type string-replacement
-  (start original-end original-span new-end new-span required-length contents)
-  #:omit-root-binding)
-
+                    (start original-end original-span new-end new-span required-length contents)
+                    #:omit-root-binding)
 
 (define (string-replacement #:start start #:end end #:contents contents)
   (define content-list
     (for/fold ([accumulated '()]
                [previous #false]
-               #:result
-               (reverse (append (if previous (list previous) (list)) accumulated)))
+               #:result (reverse (append (if previous
+                                             (list previous)
+                                             (list))
+                                         accumulated)))
               ([piece contents]
                #:when (positive? (replacement-string-span piece)))
       (match (list previous piece)
@@ -109,19 +103,14 @@
         [(list _ _) (values (cons previous accumulated) piece)])))
   (define new-span (transduce content-list (mapping replacement-string-span) #:into into-sum))
   (define max-end
-    (transduce content-list
-               (filtering copied-string?)
-               (mapping copied-string-end)
-               #:into (into-max)))
-  (constructor:string-replacement
-   #:start start
-   #:original-end end
-   #:original-span (- end start)
-   #:new-end (+ start new-span)
-   #:new-span new-span
-   #:required-length (option-get max-end end)
-   #:contents content-list))
-
+    (transduce content-list (filtering copied-string?) (mapping copied-string-end) #:into (into-max)))
+  (constructor:string-replacement #:start start
+                                  #:original-end end
+                                  #:original-span (- end start)
+                                  #:new-end (+ start new-span)
+                                  #:new-span new-span
+                                  #:required-length (option-get max-end end)
+                                  #:contents content-list))
 
 (module+ test
   (test-case "string-replacement constructor"
@@ -130,103 +119,69 @@
       (define initial-pieces
         (list (inserted-string "aaa") (inserted-string "bbb") (inserted-string "ccc")))
       (define expected-pieces (list (inserted-string "aaabbbccc")))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
+      (define replacement (string-replacement #:start 0 #:end 10 #:contents initial-pieces))
       (check-equal? (string-replacement-contents replacement) expected-pieces))
 
     (test-case "should merge adjacent copied pieces"
-      (define initial-pieces
-        (list (copied-string 2 5) (copied-string 5 7) (copied-string 7 9)))
+      (define initial-pieces (list (copied-string 2 5) (copied-string 5 7) (copied-string 7 9)))
       (define expected-pieces (list (copied-string 2 9)))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
+      (define replacement (string-replacement #:start 0 #:end 10 #:contents initial-pieces))
       (check-equal? (string-replacement-contents replacement) expected-pieces))
 
     (test-case "should not merge non-adjacent copied pieces"
-      (define initial-pieces
-        (list (copied-string 2 5) (copied-string 6 8) (copied-string 10 12)))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
+      (define initial-pieces (list (copied-string 2 5) (copied-string 6 8) (copied-string 10 12)))
+      (define replacement (string-replacement #:start 0 #:end 10 #:contents initial-pieces))
       (check-equal? (string-replacement-contents replacement) initial-pieces))
 
     (test-case "should not merge inserted pieces with copied pieces"
       (define initial-pieces
         (list (inserted-string "aaa") (copied-string 5 7) (inserted-string "bbb")))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
+      (define replacement (string-replacement #:start 0 #:end 10 #:contents initial-pieces))
       (check-equal? (string-replacement-contents replacement) initial-pieces))
 
     (test-case "should merge inserted pieces when before copied piece"
       (define initial-pieces
         (list (inserted-string "aaa") (inserted-string "bbb") (copied-string 5 7)))
       (define expected-pieces (list (inserted-string "aaabbb") (copied-string 5 7)))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
+      (define replacement (string-replacement #:start 0 #:end 10 #:contents initial-pieces))
       (check-equal? (string-replacement-contents replacement) expected-pieces))
 
     (test-case "should merge inserted pieces when after copied piece"
       (define initial-pieces
         (list (copied-string 5 7) (inserted-string "ccc") (inserted-string "ddd")))
       (define expected-pieces (list (copied-string 5 7) (inserted-string "cccddd")))
-      (define replacement
-        (string-replacement
-         #:start 0
-         #:end 10
-         #:contents initial-pieces))
+      (define replacement (string-replacement #:start 0 #:end 10 #:contents initial-pieces))
       (check-equal? (string-replacement-contents replacement) expected-pieces))))
-
 
 (define (string-replacement-length-change replacement)
   (- (string-replacement-new-span replacement) (string-replacement-original-span replacement)))
 
-
 (define (string-replacement-range replacement)
-  (closed-open-range
-   (string-replacement-start replacement)
-   (string-replacement-original-end replacement)
-   #:comparator natural<=>))
-
+  (closed-open-range (string-replacement-start replacement)
+                     (string-replacement-original-end replacement)
+                     #:comparator natural<=>))
 
 (define (string-replacement-overlaps? replacement other-replacement)
-  (range-overlaps?
-   (string-replacement-range replacement) (string-replacement-range other-replacement)))
+  (range-overlaps? (string-replacement-range replacement)
+                   (string-replacement-range other-replacement)))
 
-
-(struct inserted-string (contents) #:transparent
+(struct inserted-string (contents)
+  #:transparent
   #:guard (λ (contents _) (string->immutable-string contents))
-  #:property prop:custom-print-quotable 'never)
-
+  #:property prop:custom-print-quotable
+  'never)
 
 (define-tuple-type copied-string (start end))
-
 
 (define (replacement-string-span piece)
   (match piece
     [(inserted-string inserted-string) (string-length inserted-string)]
     [(copied-string start end) (- end start)]))
 
-
 (define (replacement-string-drop-left piece amount)
   (match piece
-    [(inserted-string s)
-     (inserted-string (string->immutable-string (substring s amount)))]
+    [(inserted-string s) (inserted-string (string->immutable-string (substring s amount)))]
     [(copied-string start end) (copied-string (+ start amount) end)]))
-
 
 (define (replacement-string-drop-right piece amount)
   (match piece
@@ -235,21 +190,23 @@
      (inserted-string (string->immutable-string (substring s 0 new-length)))]
     [(copied-string start end) (copied-string start (- end amount))]))
 
-
 (define (string-replacement-render replacement original-string)
   (define immutable-original-string (string->immutable-string original-string))
   (define required-length (string-replacement-required-length replacement))
   (define original-length (string-length immutable-original-string))
   (unless (>= original-length required-length)
-    (raise-arguments-error
-     (name string-apply-replacement)
-     "string is not long enough"
-     "string" immutable-original-string
-     "string length" original-length
-     "required length" required-length))
+    (raise-arguments-error (name string-apply-replacement)
+                           "string is not long enough"
+                           "string"
+                           immutable-original-string
+                           "string length"
+                           original-length
+                           "required length"
+                           required-length))
   (define content-length (string-replacement-new-span replacement))
   (define edited (make-string content-length))
-  (for/fold ([start 0] #:result (void))
+  (for/fold ([start 0]
+             #:result (void))
             ([piece (in-list (string-replacement-contents replacement))])
     (match piece
       [(inserted-string inserted)
@@ -260,7 +217,6 @@
        (+ start (- copy-end copy-start))]))
   (string->immutable-string edited))
 
-
 (define (string-apply-replacement string replacement)
   (define immutable-string (string->immutable-string string))
   (define start (string-replacement-start replacement))
@@ -270,16 +226,19 @@
   (define required-length (string-replacement-required-length replacement))
   (define original-length (string-length immutable-string))
   (unless (>= original-length required-length)
-    (raise-arguments-error
-     (name string-apply-replacement)
-     "string is not long enough"
-     "string" immutable-string
-     "string length" original-length
-     "required length" required-length))
+    (raise-arguments-error (name string-apply-replacement)
+                           "string is not long enough"
+                           "string"
+                           immutable-string
+                           "string length"
+                           original-length
+                           "required length"
+                           required-length))
   (define new-length (+ original-length (string-replacement-length-change replacement)))
   (define edited (make-string new-length))
   (string-copy! edited 0 immutable-string 0 start)
-  (for/fold ([start start] #:result (void))
+  (for/fold ([start start]
+             #:result (void))
             ([piece (in-list contents)])
     (match piece
       [(inserted-string inserted)
@@ -291,22 +250,14 @@
   (string-copy! edited new-end immutable-string end)
   (string->immutable-string edited))
 
-
 (module+ test
   (test-case (name-string string-apply-replacement)
 
     (test-case "replace middle part"
       (define s "good morning and hello world")
       (define replacement-pieces
-        (list
-         (inserted-string "evening")
-         (copied-string 12 17)
-         (inserted-string "goodbye")))
-      (define replacement
-        (string-replacement
-         #:start 5
-         #:end 22
-         #:contents replacement-pieces))
+        (list (inserted-string "evening") (copied-string 12 17) (inserted-string "goodbye")))
+      (define replacement (string-replacement #:start 5 #:end 22 #:contents replacement-pieces))
       (check-equal? (string-replacement-original-span replacement) 17)
       (check-equal? (string-replacement-new-span replacement) 19)
       (check-equal? (string-replacement-length-change replacement) 2)
@@ -322,69 +273,65 @@
                             #:contents (list (inserted-string "hi there"))))
       (check-equal? (string-apply-replacement s replacement) "hi there"))))
 
-
 (define (file-apply-string-replacement! path replacement)
   (define replacement-text (string-apply-replacement (source->string (file-source path)) replacement))
   (display-to-file replacement-text path #:mode 'text #:exists 'replace))
 
+(define/guard
+ (string-replacement-normalize replacement
+                               original-string
+                               #:preserve-start [preserve-start #false]
+                               #:preserve-end [preserve-end #false])
+ (define left-normalized
+   (string-replacement-left-normalize replacement original-string #:preserve-start preserve-start))
+ (define left-reversed (string-replacement-reverse left-normalized original-string))
+ (define reversed-original-string (string-reverse original-string))
+ (define reversed
+   (string-replacement-left-normalize
+    left-reversed
+    reversed-original-string
+    #:preserve-start (and preserve-end (- (string-length original-string) preserve-end))))
+ (string-replacement-reverse reversed reversed-original-string))
 
-(define/guard (string-replacement-normalize replacement original-string
-                                            #:preserve-start [preserve-start #false]
-                                            #:preserve-end [preserve-end #false])
-  (define left-normalized
-    (string-replacement-left-normalize replacement original-string #:preserve-start preserve-start))
-  (define left-reversed (string-replacement-reverse left-normalized original-string))
-  (define reversed-original-string (string-reverse original-string))
-  (define reversed
-    (string-replacement-left-normalize
-     left-reversed
-     reversed-original-string
-     #:preserve-start (and preserve-end (- (string-length original-string) preserve-end))))
-  (string-replacement-reverse reversed reversed-original-string))
-
-
-(define/guard (string-replacement-left-normalize replacement original-string
+(define/guard (string-replacement-left-normalize replacement
+                                                 original-string
                                                  #:preserve-start [preserve-start #false])
-  (define replaced (string-apply-replacement original-string replacement))
-  (guard (not (equal? original-string replaced)) #:else replacement)
-  (define actual-start
-    (inexact->exact
-     (min (or preserve-start +inf.0)
-          (string-diff-start original-string replaced)
-          (string-replacement-original-end replacement))))
-  (define left-trimmed-pieces
-    (let loop ([pieces (string-replacement-contents replacement)]
-               [pos (string-replacement-start replacement)])
-      (guarded-block
-        (guard (< pos actual-start) #:else pieces)
-        (guard-match (cons next-piece remaining) pieces #:else (list))
-        (define piece-span (replacement-string-span next-piece))
-        (if (< (+ pos piece-span) actual-start)
-            (loop remaining (+ pos piece-span))
-            (cons (replacement-string-drop-left next-piece (- actual-start pos)) remaining)))))
-  (string-replacement #:start actual-start
-                      #:end (string-replacement-original-end replacement)
-                      #:contents left-trimmed-pieces))
-
+              (define replaced (string-apply-replacement original-string replacement))
+              (guard (not (equal? original-string replaced)) #:else replacement)
+              (define actual-start
+                (inexact->exact (min (or preserve-start +inf.0)
+                                     (string-diff-start original-string replaced)
+                                     (string-replacement-original-end replacement))))
+              (define left-trimmed-pieces
+                (let loop ([pieces (string-replacement-contents replacement)]
+                           [pos (string-replacement-start replacement)])
+                  (guarded-block (guard (< pos actual-start) #:else pieces)
+                                 (guard-match (cons next-piece remaining) pieces #:else (list))
+                                 (define piece-span (replacement-string-span next-piece))
+                                 (if (< (+ pos piece-span) actual-start)
+                                     (loop remaining (+ pos piece-span))
+                                     (cons (replacement-string-drop-left next-piece
+                                                                         (- actual-start pos))
+                                           remaining)))))
+              (string-replacement #:start actual-start
+                                  #:end (string-replacement-original-end replacement)
+                                  #:contents left-trimmed-pieces))
 
 (define (string-replacement-reverse replacement original-string)
   (define new-start (- (string-length original-string) (string-replacement-original-end replacement)))
   (define new-end (+ new-start (string-replacement-original-span replacement)))
   (define new-contents
-    (reverse
-     (for/list ([piece (in-list (string-replacement-contents replacement))])
-       (match piece
-         [(inserted-string s) (inserted-string (string-reverse s))]
-         [(copied-string start end)
-          (define new-start (- (string-length original-string) end))
-          (define new-end (+ new-start (- end start)))
-          (copied-string new-start new-end)]))))
+    (reverse (for/list ([piece (in-list (string-replacement-contents replacement))])
+               (match piece
+                 [(inserted-string s) (inserted-string (string-reverse s))]
+                 [(copied-string start end)
+                  (define new-start (- (string-length original-string) end))
+                  (define new-end (+ new-start (- end start)))
+                  (copied-string new-start new-end)]))))
   (string-replacement #:start new-start #:end new-end #:contents new-contents))
-
 
 (define (string-reverse s)
   (list->string (reverse (string->list s))))
-
 
 (define (string-diff-start original new)
   (let loop ([i 0])
@@ -393,17 +340,15 @@
       [(equal? (string-ref original i) (string-ref new i)) (loop (add1 i))]
       [else i])))
 
-
 (define (string-diff-end original new)
   (let loop ([i 0])
-    (guarded-block
-      (guard (and (< i (string-length original)) (< i (string-length new))) #:else #false)
-      (define orig-index (- (string-length original) i 1))
-      (define new-index (- (string-length new) i 1))
-      (if (equal? (string-ref original orig-index) (string-ref new new-index))
-          (loop (add1 i))
-          (+ orig-index 1)))))
-
+    (guarded-block (guard (and (< i (string-length original)) (< i (string-length new)))
+                          #:else #false)
+                   (define orig-index (- (string-length original) i 1))
+                   (define new-index (- (string-length new) i 1))
+                   (if (equal? (string-ref original orig-index) (string-ref new new-index))
+                       (loop (add1 i))
+                       (+ orig-index 1)))))
 
 (module+ test
 
@@ -450,74 +395,46 @@
     (test-case "empty replacement"
       (define s "good morning and hello world")
       (define replacement-pieces (list))
-      (define replacement
-        (string-replacement
-         #:start 5
-         #:end 5
-         #:contents replacement-pieces))
+      (define replacement (string-replacement #:start 5 #:end 5 #:contents replacement-pieces))
       (check-equal? (string-replacement-normalize replacement s) replacement))
 
     (test-case "insertion-only replacement"
       (define s "good morning and hello world")
       (define replacement-pieces (list (inserted-string "friend ")))
-      (define replacement
-        (string-replacement
-         #:start 13
-         #:end 13
-         #:contents replacement-pieces))
+      (define replacement (string-replacement #:start 13 #:end 13 #:contents replacement-pieces))
       (check-equal? (string-replacement-normalize replacement s) replacement))
 
     (test-case "redundant copied string before insertion"
       (define s "good morning and hello world")
       (define replacement-pieces (list (copied-string 5 13) (inserted-string "friend ")))
-      (define replacement
-        (string-replacement
-         #:start 5
-         #:end 13
-         #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
-                    (string-replacement #:start 13
-                                        #:end 13
-                                        #:contents (list (inserted-string "friend ")))))
+      (define replacement (string-replacement #:start 5 #:end 13 #:contents replacement-pieces))
+      (check-equal?
+       (string-replacement-normalize replacement s)
+       (string-replacement #:start 13 #:end 13 #:contents (list (inserted-string "friend ")))))
 
     (test-case "redundant inserted string before insertion"
       (define s "good morning and hello world")
       (define replacement-pieces (list (inserted-string "morning ") (inserted-string "friend ")))
-      (define replacement
-        (string-replacement
-         #:start 5
-         #:end 13
-         #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
-                    (string-replacement #:start 13
-                                        #:end 13
-                                        #:contents (list (inserted-string "friend ")))))
+      (define replacement (string-replacement #:start 5 #:end 13 #:contents replacement-pieces))
+      (check-equal?
+       (string-replacement-normalize replacement s)
+       (string-replacement #:start 13 #:end 13 #:contents (list (inserted-string "friend ")))))
 
     (test-case "redundant copied string after insertion"
       (define s "good morning and hello world")
       (define replacement-pieces (list (inserted-string "friend ") (copied-string 13 16)))
-      (define replacement
-        (string-replacement
-         #:start 13
-         #:end 16
-         #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
-                    (string-replacement #:start 13
-                                        #:end 13
-                                        #:contents (list (inserted-string "friend ")))))
+      (define replacement (string-replacement #:start 13 #:end 16 #:contents replacement-pieces))
+      (check-equal?
+       (string-replacement-normalize replacement s)
+       (string-replacement #:start 13 #:end 13 #:contents (list (inserted-string "friend ")))))
 
     (test-case "redundant inserted string after insertion"
       (define s "good morning and hello world")
       (define replacement-pieces (list (inserted-string "friend ") (inserted-string "and")))
-      (define replacement
-        (string-replacement
-         #:start 13
-         #:end 16
-         #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
-                    (string-replacement #:start 13
-                                        #:end 13
-                                        #:contents (list (inserted-string "friend ")))))
+      (define replacement (string-replacement #:start 13 #:end 16 #:contents replacement-pieces))
+      (check-equal?
+       (string-replacement-normalize replacement s)
+       (string-replacement #:start 13 #:end 13 #:contents (list (inserted-string "friend ")))))
 
     (test-case "normalizing by left-trimming a single size-increasing insertion"
       (define s "hello my big friend")
@@ -575,29 +492,23 @@
       (check-equal? (string-apply-replacement s expected) s2)
       (check-equal? normalized expected))))
 
-
 (define/guard (string-replacement-union replacement1 replacement2)
-  (guard (<= (string-replacement-start replacement1) (string-replacement-start replacement2)) #:else
-    (string-replacement-union replacement2 replacement1))
-  (define piece-between
-    (copied-string
-     (string-replacement-original-end replacement1) (string-replacement-start replacement2)))
-  (string-replacement
-   #:start (string-replacement-start replacement1)
-   #:end (string-replacement-original-end replacement2)
-   #:contents
-   (append
-    (string-replacement-contents replacement1)
-    (list piece-between)
-    (string-replacement-contents replacement2))))
-
+              (guard (<= (string-replacement-start replacement1)
+                         (string-replacement-start replacement2))
+                     #:else (string-replacement-union replacement2 replacement1))
+              (define piece-between
+                (copied-string (string-replacement-original-end replacement1)
+                               (string-replacement-start replacement2)))
+              (string-replacement #:start (string-replacement-start replacement1)
+                                  #:end (string-replacement-original-end replacement2)
+                                  #:contents (append (string-replacement-contents replacement1)
+                                                     (list piece-between)
+                                                     (string-replacement-contents replacement2))))
 
 (define union-into-string-replacement
-  (make-fold-reducer
-   string-replacement-union
-   (string-replacement #:start 0 #:end 0 #:contents (list))
-   #:name (name union-into-string-replacement)))
-
+  (make-fold-reducer string-replacement-union
+                     (string-replacement #:start 0 #:end 0 #:contents (list))
+                     #:name (name union-into-string-replacement)))
 
 (module+ test
   (test-case (name-string string-replacement-union)
@@ -613,7 +524,6 @@
        #:contents (list (inserted-string "goodbye") (copied-string 5 6) (inserted-string "friend"))))
     (check-equal? union expected)
     (check-equal? (transduce (list r1 r2) #:into union-into-string-replacement) expected)))
-
 
 (define (string-replacement-preserved-locations replacement)
   (define before-replacement

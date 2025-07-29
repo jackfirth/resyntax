@@ -1,17 +1,11 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [limiting (-> (>=/c 0) #:by (-> any/c (>=/c 0)) transducer?)]))
-
+(provide (contract-out [limiting (-> (>=/c 0) #:by (-> any/c (>=/c 0)) transducer?)]))
 
 (require rebellion/base/variant
          rebellion/streaming/transducer)
-
 
 (module+ test
   (require racket/match
@@ -19,12 +13,9 @@
            rebellion/collection/list
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
 
-
 (struct limiting-emit-state (weight-so-far element) #:transparent)
-
 
 (define (limiting max-weight #:by weight-function)
 
@@ -40,7 +31,7 @@
 
   (define (emit s)
     (define weight-so-far (limiting-emit-state-weight-so-far s))
-    
+
     (emission (variant #:consume weight-so-far) (limiting-emit-state-element s)))
 
   (define (half-closed-emit v)
@@ -53,7 +44,6 @@
                    #:half-closed-emitter half-closed-emit
                    #:finisher void
                    #:name 'limiting))
-
 
 (module+ test
   (test-case "limiting"

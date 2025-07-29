@@ -1,6 +1,5 @@
 #lang racket/base
 
-
 (provide (struct-out code-block)
          current-suite-under-test
          current-header
@@ -9,7 +8,6 @@
          add-suite-under-test!
          check-suite-refactors
          check-suite-does-not-refactor)
-
 
 (require racket/logging
          racket/match
@@ -38,15 +36,13 @@
          syntax/parse
          (except-in racket/list range))
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (define (string-block-info s)
   (string-info (string-hanging-indent s #:amount 2)))
 
-
-(struct code-block (raw-string) #:transparent
+(struct code-block (raw-string)
+  #:transparent
   #:guard (λ (raw-string _) (string->immutable-string raw-string))
 
   #:methods gen:custom-write
@@ -72,42 +68,34 @@
             (newline out))
           (write-string line out))]))])
 
-
 (define (code-block-append block1 block2)
   (code-block (string-append (code-block-raw-string block1) (code-block-raw-string block2))))
 
-
 (define current-suite-under-test (make-parameter (refactoring-suite #:rules '())))
-
 
 (define (add-suite-under-test! suite)
   (define current-rules (refactoring-suite-rules (current-suite-under-test)))
   (define new-rules (append current-rules (refactoring-suite-rules suite)))
   (current-suite-under-test (refactoring-suite #:rules new-rules)))
 
-
 (define current-header (make-parameter (code-block "")))
-
 
 (define (set-header! header-code)
   (unless (equal? (current-header) (code-block ""))
     (raise-arguments-error 'header: "the header has already been set"))
   (current-header header-code))
 
-
 (define current-line-mask (make-parameter (range-set (unbounded-range #:comparator natural<=>))))
-
 
 (define (range-bound-add bound amount)
   (if (unbounded? bound)
       unbounded
       (range-bound (+ (range-bound-endpoint bound) amount) (range-bound-type bound))))
 
-
 ;; Helper function to create logging utilities
 (define (make-log-capture-utilities)
   (define logged-messages-builder (make-vector-builder))
-  
+
   (define (save-log log-entry)
     (vector-builder-add logged-messages-builder (vector-ref log-entry 1)))
 
@@ -116,16 +104,16 @@
 
   (define (build-logs-info)
     (string-block-info (string-join (vector->list (build-vector logged-messages-builder)) "\n")))
-  
+
   (values call-with-logs-captured build-logs-info))
 
 ;; Helper function to compute the modified line mask based on header
 (define (compute-modified-line-mask header-line-count)
   (for/range-set #:comparator natural<=>
-    ([r (in-range-set (current-line-mask))])
-    (range (range-bound-add (range-lower-bound r) header-line-count)
-           (range-bound-add (range-upper-bound r) header-line-count)
-           #:comparator natural<=>)))
+                 ([r (in-range-set (current-line-mask))])
+                 (range (range-bound-add (range-lower-bound r) header-line-count)
+                        (range-bound-add (range-upper-bound r) header-line-count)
+                        #:comparator natural<=>)))
 
 ;; Helper function to create check-info list for matched rules
 (define (make-matched-rules-check-info result-set)
@@ -133,101 +121,94 @@
       '()
       (list (check-info 'matched-rules (refactoring-result-set-matched-rules-info result-set)))))
 
-
-(define-check (check-suite-refactors original-program expected-program)
-  (define suite (current-suite-under-test))
-  (set! original-program (code-block-append (current-header) original-program))
-  (set! expected-program (code-block-append (current-header) expected-program))
-  (define header-line-count
-    (count (λ (ch) (equal? ch #\newline)) (string->list (code-block-raw-string (current-header)))))
-  (define modified-line-mask (compute-modified-line-mask header-line-count))
-  (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
-
-  (define result-set
-    (call-with-logs-captured
-     (λ ()
-       (resyntax-analyze (string-source (code-block-raw-string original-program))
-                         #:suite suite
-                         #:lines modified-line-mask))))
-  
-  (with-check-info* (make-matched-rules-check-info result-set)
+(define-check
+ (check-suite-refactors original-program expected-program)
+ (define suite (current-suite-under-test))
+ (set! original-program (code-block-append (current-header) original-program))
+ (set! expected-program (code-block-append (current-header) expected-program))
+ (define header-line-count
+   (count (λ (ch) (equal? ch #\newline)) (string->list (code-block-raw-string (current-header)))))
+ (define modified-line-mask (compute-modified-line-mask header-line-count))
+ (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
+ (define result-set
+   (call-with-logs-captured
     (λ ()
-      (define refactored-program
-        (with-handlers
-            ([exn:fail?
-              (λ (e)
-                (with-check-info (['logs (build-logs-info)]
-                                  ['original (string-block-info (code-block-raw-string original-program))]
-                                  ['expected (string-block-info expected-program)]
-                                  ['exception e])
-                  (fail-check "an error occurred while processing refactoring results")))])
-          (call-with-logs-captured
-           (λ () (modified-source-contents (refactoring-result-set-updated-source result-set))))))
-      (with-check-info (['logs (build-logs-info)]
-                        ['actual (string-block-info refactored-program)]
-                        ['expected (string-block-info (code-block-raw-string expected-program))])
-        (when (empty? (refactoring-result-set-results result-set))
-          (fail-check "no changes were made"))
-        (when (equal? refactored-program (code-block-raw-string original-program))
-          (fail-check "fixes were made, but they left the program unchanged"))
-        (unless (equal? refactored-program (code-block-raw-string expected-program))
-          (with-check-info (['original (string-block-info (code-block-raw-string original-program))])
-            (fail-check "incorrect changes were made"))))
-      (match-define (program-output original-stdout original-stderr)
-        (eval-program (code-block-raw-string original-program)))
-      (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
-      (unless (equal? original-stdout actual-stdout)
-        (with-check-info (['logs (build-logs-info)]
-                          ['actual (string-block-info actual-stdout)]
-                          ['original (string-block-info original-stdout)])
-          (fail-check "output to stdout changed")))
-      (unless (equal? original-stderr actual-stderr)
-        (with-check-info (['logs (build-logs-info)]
-                          ['actual (string-block-info actual-stderr)]
-                          ['original (string-block-info original-stderr)])
-          (fail-check "output to stderr changed"))))))
+      (resyntax-analyze (string-source (code-block-raw-string original-program))
+                        #:suite suite
+                        #:lines modified-line-mask))))
+ (with-check-info*
+  (make-matched-rules-check-info result-set)
+  (λ ()
+    (define refactored-program
+      (with-handlers ([exn:fail?
+                       (λ (e)
+                         (with-check-info
+                          (['logs (build-logs-info)]
+                           ['original (string-block-info (code-block-raw-string original-program))]
+                           ['expected (string-block-info expected-program)]
+                           ['exception e])
+                          (fail-check "an error occurred while processing refactoring results")))])
+        (call-with-logs-captured
+         (λ () (modified-source-contents (refactoring-result-set-updated-source result-set))))))
+    (with-check-info
+     (['logs (build-logs-info)] ['actual (string-block-info refactored-program)]
+                                ['expected
+                                 (string-block-info (code-block-raw-string expected-program))])
+     (when (empty? (refactoring-result-set-results result-set))
+       (fail-check "no changes were made"))
+     (when (equal? refactored-program (code-block-raw-string original-program))
+       (fail-check "fixes were made, but they left the program unchanged"))
+     (unless (equal? refactored-program (code-block-raw-string expected-program))
+       (with-check-info (['original (string-block-info (code-block-raw-string original-program))])
+                        (fail-check "incorrect changes were made"))))
+    (match-define (program-output original-stdout original-stderr)
+      (eval-program (code-block-raw-string original-program)))
+    (match-define (program-output actual-stdout actual-stderr) (eval-program refactored-program))
+    (unless (equal? original-stdout actual-stdout)
+      (with-check-info (['logs (build-logs-info)] ['actual (string-block-info actual-stdout)]
+                                                  ['original (string-block-info original-stdout)])
+                       (fail-check "output to stdout changed")))
+    (unless (equal? original-stderr actual-stderr)
+      (with-check-info (['logs (build-logs-info)] ['actual (string-block-info actual-stderr)]
+                                                  ['original (string-block-info original-stderr)])
+                       (fail-check "output to stderr changed"))))))
 
-
-(define-check (check-suite-does-not-refactor original-program)
-  (define suite (current-suite-under-test))
-  (set! original-program (code-block-append (current-header) original-program))
-  (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
-
-  (define result-set
-    (call-with-logs-captured
-     (λ ()
-       (resyntax-analyze (string-source (code-block-raw-string original-program)) #:suite suite))))
-  (define refactored-program
-    (modified-source-contents (refactoring-result-set-updated-source result-set)))
-  (with-check-info* (make-matched-rules-check-info result-set)
-    (λ ()
-      (with-check-info (['logs (build-logs-info)]
-                        ['actual (string-block-info refactored-program)]
-                        ['original (string-block-info (code-block-raw-string original-program))])
-        (unless (equal? refactored-program (code-block-raw-string original-program))
-          (fail-check "expected no changes, but changes were made")))
-      (with-check-info (['logs (build-logs-info)]
-                        ['actual (string-block-info refactored-program)])
-        (unless (empty? (refactoring-result-set-results result-set))
-          (fail-check "the program was not changed, but no-op fixes were suggested"))))))
-
+(define-check
+ (check-suite-does-not-refactor original-program)
+ (define suite (current-suite-under-test))
+ (set! original-program (code-block-append (current-header) original-program))
+ (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
+ (define result-set
+   (call-with-logs-captured
+    (λ () (resyntax-analyze (string-source (code-block-raw-string original-program)) #:suite suite))))
+ (define refactored-program
+   (modified-source-contents (refactoring-result-set-updated-source result-set)))
+ (with-check-info*
+  (make-matched-rules-check-info result-set)
+  (λ ()
+    (with-check-info (['logs (build-logs-info)]
+                      ['actual (string-block-info refactored-program)]
+                      ['original (string-block-info (code-block-raw-string original-program))])
+                     (unless (equal? refactored-program (code-block-raw-string original-program))
+                       (fail-check "expected no changes, but changes were made")))
+    (with-check-info (['logs (build-logs-info)] ['actual (string-block-info refactored-program)])
+                     (unless (empty? (refactoring-result-set-results result-set))
+                       (fail-check "the program was not changed, but no-op fixes were suggested"))))))
 
 (define (refactoring-result-set-matched-rules-info result-set)
   (define matches
     (transduce (refactoring-result-set-results result-set)
                (mapping refactoring-result-rule-name)
                #:into into-multiset))
-  (nested-info
-   (transduce (in-hash-entries (multiset-frequencies matches))
-              (mapping-values
-               (λ (match-count)
-                 (string-info (format "~a match~a" match-count (if (= match-count 1) "" "es")))))
-              (mapping (λ (e) (check-info (entry-key e) (entry-value e))))
-              #:into into-list)))
-
+  (nested-info (transduce (in-hash-entries (multiset-frequencies matches))
+                          (mapping-values (λ (match-count)
+                                            (string-info (format "~a match~a"
+                                                                 match-count
+                                                                 (if (= match-count 1) "" "es")))))
+                          (mapping (λ (e) (check-info (entry-key e) (entry-value e))))
+                          #:into into-list)))
 
 (define-tuple-type program-output (stdout stderr))
-
 
 (define (eval-program program)
   (define stdout (open-output-string))
@@ -238,15 +219,17 @@
       (with-module-reading-parameterization read-syntax))
     (define stx (with-input-from-string program read-from-input))
     (define module-name
-      (syntax-parse stx #:datum-literals (module) [(module name:id _ ...) (syntax-e #'name)]))
+      (syntax-parse stx
+        #:datum-literals (module)
+        [(module name:id _
+           ...)
+         (syntax-e #'name)]))
     (parameterize ([current-output-port stdout]
                    [current-error-port stderr])
       (eval stx)
       (dynamic-require `',module-name #false)))
-  (program-output
-   (string->immutable-string (get-output-string stdout))
-   (string->immutable-string (get-output-string stderr))))
-
+  (program-output (string->immutable-string (get-output-string stdout))
+                  (string->immutable-string (get-output-string stderr))))
 
 (module+ test
   (test-case "eval-program"

@@ -1,24 +1,31 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations legacy-struct-migrations
-
+require:
+resyntax/default-recommendations
+legacy-struct-migrations
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
+test:
+"define-struct without options"
+-
+(define-struct point (x y))
+-
+(struct point (x y) #:extra-constructor-name make-point)
 
-test: "define-struct without options"
-- (define-struct point (x y))
-- (struct point (x y) #:extra-constructor-name make-point)
+test:
+"define-struct with simple options"
+-
+(define-struct point (x y)
+  #:transparent
+  #:mutable)
+-
+(struct point (x y) #:transparent #:mutable #:extra-constructor-name make-point)
 
-
-test: "define-struct with simple options"
-- (define-struct point (x y) #:transparent #:mutable)
-- (struct point (x y) #:transparent #:mutable #:extra-constructor-name make-point)
-
-
-test: "define-struct with supertype"
+test:
+"define-struct with supertype"
 ----------------------------------------
 (struct point ())
 (define-struct (2d-point point) (x y))
@@ -27,8 +34,8 @@ test: "define-struct with supertype"
 (struct 2d-point point (x y) #:extra-constructor-name make-2d-point)
 ----------------------------------------
 
-
-test: "define-struct with multi-form single-line options"
+test:
+"define-struct with multi-form single-line options"
 ----------------------------------------
 (define-struct point (x y)
   #:guard (λ (x y _) (values x y))
@@ -44,8 +51,8 @@ test: "define-struct with multi-form single-line options"
   #:extra-constructor-name make-point)
 ----------------------------------------
 
-
-test: "define-struct with multi-line options"
+test:
+"define-struct with multi-line options"
 ----------------------------------------
 (define-struct point (x y)
   #:property prop:custom-write
@@ -57,8 +64,8 @@ test: "define-struct with multi-line options"
   #:extra-constructor-name make-point)
 ----------------------------------------
 
-
-test: "define-struct with options with separating whitespace"
+test:
+"define-struct with options with separating whitespace"
 ----------------------------------------
 (define-struct point (x y)
 
@@ -76,8 +83,8 @@ test: "define-struct with options with separating whitespace"
   #:extra-constructor-name make-point)
 ----------------------------------------
 
-
-test: "define-struct with field comments"
+test:
+"define-struct with field comments"
 ----------------------------------------
 (define-struct point
                (x ;; The X coordinate of the point
@@ -91,8 +98,8 @@ test: "define-struct with field comments"
   #:extra-constructor-name make-point)
 ----------------------------------------
 
-
-test: "define-struct with comments between options"
+test:
+"define-struct with comments between options"
 ----------------------------------------
 (define-struct point (x y)
 

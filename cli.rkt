@@ -1,6 +1,5 @@
 #lang racket/base
 
-
 (require fancy-app
          json
          racket/cmdline
@@ -29,28 +28,22 @@
          resyntax/private/string-indent
          resyntax/private/syntax-replacement)
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message))
 (define-enum-type resyntax-fix-method (modify-files create-multiple-git-commits))
 (define-record-type resyntax-analyze-options (targets suite output-format output-destination))
 
-
 (define-record-type resyntax-fix-options
-  (targets
-   suite
-   fix-method
-   output-format
-   max-fixes
-   max-modified-files
-   max-modified-lines
-   max-pass-count))
-
+                    (targets suite
+                             fix-method
+                             output-format
+                             max-fixes
+                             max-modified-files
+                             max-modified-lines
+                             max-pass-count))
 
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
-
 
 (define (resyntax-analyze-parse-command-line)
   (define targets (make-vector-builder))
@@ -60,58 +53,41 @@
 
   (command-line
    #:program "resyntax analyze"
-
-   #:multi
-
-   ("--file"
-    filepath
-    "A file to analyze."
-    (vector-builder-add targets (single-file-group filepath all-lines)))
-
-   ("--directory"
-    dirpath
-    "A directory to anaylze, including subdirectories."
-    (vector-builder-add targets (directory-file-group dirpath)))
-
-   ("--package"
-    pkgname
-    "An installed package to analyze."
-    (vector-builder-add targets (package-file-group pkgname)))
-
+   #:multi ("--file" filepath
+                     "A file to analyze."
+                     (vector-builder-add targets (single-file-group filepath all-lines)))
+   ("--directory" dirpath
+                  "A directory to anaylze, including subdirectories."
+                  (vector-builder-add targets (directory-file-group dirpath)))
+   ("--package" pkgname
+                "An installed package to analyze."
+                (vector-builder-add targets (package-file-group pkgname)))
    ("--local-git-repository"
-    repopath baseref
+    repopath
+    baseref
     "A Git repository to search for modified files to analyze. The repopath argument is a directory
 path to the root of a Git repository, and the baseref argument is a Git reference (in the form \
 \"remotename/branchname\") to use as the base state of the repository. Any files that have been \
 changed relative to baseref are analyzed."
     (vector-builder-add targets (git-repository-file-group repopath baseref)))
-
-   #:once-each
-
-   ("--refactoring-suite"
-    modpath
-    suite-name
-    "The refactoring suite to analyze code with."
-    (define parsed-modpath (read (open-input-string modpath)))
-    (define parsed-suite-name (read (open-input-string suite-name)))
-    (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
-
-   ("--output-to-file"
-    outputpath
-    "Store results in a file instead of printing them to the console."
-    (set! output-destination (simple-form-path outputpath)))
-
+   #:once-each ("--refactoring-suite" modpath
+                                      suite-name
+                                      "The refactoring suite to analyze code with."
+                                      (define parsed-modpath (read (open-input-string modpath)))
+                                      (define parsed-suite-name (read (open-input-string suite-name)))
+                                      (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
+   ("--output-to-file" outputpath
+                       "Store results in a file instead of printing them to the console."
+                       (set! output-destination (simple-form-path outputpath)))
    ("--output-as-github-review"
     "Report results by leaving a GitHub review on the pull request currently being analyzed, as \
 determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
     (set! output-format github-pull-request-review)))
-  
-  (resyntax-analyze-options
-   #:targets (build-vector targets)
-   #:suite suite
-   #:output-format output-format
-   #:output-destination output-destination))
 
+  (resyntax-analyze-options #:targets (build-vector targets)
+                            #:suite suite
+                            #:output-format output-format
+                            #:output-destination output-destination))
 
 (define (resyntax-fix-parse-command-line)
   (define targets (make-vector-builder))
@@ -127,64 +103,45 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
 
   (command-line
    #:program "resyntax fix"
-
-   #:multi
-
-   ("--file" filepath "A file to fix." (add-target! (single-file-group filepath all-lines)))
-
-   ("--directory"
-    dirpath
-    "A directory to fix, including subdirectories."
-    (add-target! (directory-file-group dirpath)))
-   
-   ("--package"
-    pkgname
-    "An installed package to fix."
-    (add-target! (package-file-group pkgname)))
-   
+   #:multi ("--file" filepath "A file to fix." (add-target! (single-file-group filepath all-lines)))
+   ("--directory" dirpath
+                  "A directory to fix, including subdirectories."
+                  (add-target! (directory-file-group dirpath)))
+   ("--package" pkgname "An installed package to fix." (add-target! (package-file-group pkgname)))
    ("--local-git-repository"
-    repopath baseref
+    repopath
+    baseref
     "A Git repository to search for modified files to fix. The repopath argument is a directory
 path to the root of a Git repository, and the baseref argument is a Git reference (in the form \
 \"remotename/branchname\") to use as the base state of the repository. Any files that have been \
 changed relative to baseref are analyzed and fixed."
     (add-target! (git-repository-file-group repopath baseref)))
-
    #:once-each
-
-   ("--create-multiple-commits"
-    "Modify files by creating a series of individual Git commits."
-    (set! fix-method create-multiple-git-commits))
-
+   ("--create-multiple-commits" "Modify files by creating a series of individual Git commits."
+                                (set! fix-method create-multiple-git-commits))
    ("--output-as-commit-message"
     "Report results in the form of a Git commit message printed to stdout."
     (set! output-format git-commit-message))
-
-   ("--refactoring-suite"
-    modpath
-    suite-name
-    "The refactoring suite to analyze code with."
-    (define parsed-modpath (read (open-input-string modpath)))
-    (define parsed-suite-name (read (open-input-string suite-name)))
-    (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
-
+   ("--refactoring-suite" modpath
+                          suite-name
+                          "The refactoring suite to analyze code with."
+                          (define parsed-modpath (read (open-input-string modpath)))
+                          (define parsed-suite-name (read (open-input-string suite-name)))
+                          (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
    ("--max-pass-count"
     passcount
     "The maximum number of times Resyntax will fix each file. By default, Resyntax runs at most 10 \
 passes over each file (or fewer, if no fixes would be made by additional passes). Multiple passes \
 are needed when applying a fix unlocks further fixes."
     (set! max-pass-count (string->number passcount)))
-
    ("--max-fixes"
     fixlimit
     "The maximum number of fixes to apply. If not specified, all fixes found will be applied."
     (set! max-fixes (string->number fixlimit)))
-
    ("--max-modified-files"
     modifiedlimit
     "The maximum number of files to modify. If not specified, fixes will be applied to all files."
     (set! max-modified-files (string->number modifiedlimit)))
-
    ("--max-modified-lines"
     modifiedlines
     "The maximum number of lines to modify. If not specified, no line limit is applied."
@@ -199,11 +156,9 @@ are needed when applying a fix unlocks further fixes."
                         #:max-modified-lines max-modified-lines
                         #:max-pass-count max-pass-count))
 
-
 (define (resyntax-run)
   (command-line
    #:program "resyntax"
-
    #:usage-help
    "\n<command> is one of
 
@@ -211,31 +166,26 @@ are needed when applying a fix unlocks further fixes."
 \tfix
 
 For help on these, use 'analyze --help' or 'fix --help'."
-
    #:ps "\nSee https://docs.racket-lang.org/resyntax/index.html for details."
    #:args (command . leftover-args)
    (define leftover-arg-vector (vector->immutable-vector (list->vector leftover-args)))
-
    (define (call-command command-thunk)
      (parameterize ([current-command-line-arguments leftover-arg-vector])
        (with-logging-to-port (current-error-port)
-         command-thunk
-         #:logger (current-logger)
-         'info 'resyntax
-         'error)))
-
+                             command-thunk
+                             #:logger (current-logger)
+                             'info
+                             'resyntax
+                             'error)))
    (match command
      ["analyze" (call-command resyntax-analyze-run)]
      ["fix" (call-command resyntax-fix-run)])))
-
 
 (define (resyntax-analyze-run)
   (define options (resyntax-analyze-parse-command-line))
   (define sources (file-groups-resolve (resyntax-analyze-options-targets options)))
   (define analysis
-    (resyntax-analyze-all sources
-                          #:suite (resyntax-analyze-options-suite options)
-                          #:max-passes 1))
+    (resyntax-analyze-all sources #:suite (resyntax-analyze-options-suite options) #:max-passes 1))
   (define results
     (transduce (resyntax-analysis-all-results analysis)
                (append-mapping in-hash-values)
@@ -247,8 +197,8 @@ For help on these, use 'analyze --help' or 'fix --help'."
       [(== plain-text)
        (for ([result (in-list results)])
          (define path
-           (file-source-path
-            (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+           (file-source-path (syntax-replacement-source (refactoring-result-syntax-replacement
+                                                         result))))
          (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
          (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
          (define old-code (refactoring-result-original-code result))
@@ -268,7 +218,6 @@ For help on these, use 'analyze --help' or 'fix --help'."
      (printf "resyntax: --- writing results to file ---\n")
      (with-output-to-file output-path display-results #:mode 'text)]))
 
-
 (define (resyntax-fix-run)
   (define options (resyntax-fix-parse-command-line))
   (define fix-method (resyntax-fix-options-fix-method options))
@@ -284,16 +233,11 @@ For help on these, use 'analyze --help' or 'fix --help'."
                           #:max-modified-sources max-modified-files
                           #:max-modified-lines max-modified-lines))
   (match fix-method
-    [(== modify-files)
-     (resyntax-analysis-write-file-changes! analysis)]
-    [(== create-multiple-git-commits)
-     (resyntax-analysis-commit-fixes! analysis)])
+    [(== modify-files) (resyntax-analysis-write-file-changes! analysis)]
+    [(== create-multiple-git-commits) (resyntax-analysis-commit-fixes! analysis)])
   (match output-format
-    [(== git-commit-message)
-     (resyntax-fix-print-git-commit-message analysis)]
-    [(== plain-text)
-     (resyntax-fix-print-plain-text-summary analysis)]))
-
+    [(== git-commit-message) (resyntax-fix-print-git-commit-message analysis)]
+    [(== plain-text) (resyntax-fix-print-plain-text-summary analysis)]))
 
 (define (resyntax-fix-print-git-commit-message analysis)
   (define total-fixes (resyntax-analysis-total-fixes analysis))
@@ -314,7 +258,6 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (unless (zero? total-fixes)
     (newline)))
 
-
 (define (resyntax-fix-print-plain-text-summary analysis)
   (printf "resyntax: --- summary ---\n\n")
   (define total-fixes (resyntax-analysis-total-fixes analysis))
@@ -329,18 +272,16 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (define rules-applied (resyntax-analysis-rules-applied analysis))
   (transduce (in-hash-entries (multiset-frequencies rules-applied))
              (sorting #:key entry-value #:descending? #true)
-             (mapping
-              (λ (e)
-                (match-define (entry rule-name rule-fixes) e)
-                (define message
-                  (if (equal? rule-fixes 1)
-                      (format "Fixed 1 occurrence of ~a" rule-name)
-                      (format "Fixed ~a occurrences of ~a" rule-fixes rule-name)))
-                (format "  * ~a\n" message)))
+             (mapping (λ (e)
+                        (match-define (entry rule-name rule-fixes) e)
+                        (define message
+                          (if (equal? rule-fixes 1)
+                              (format "Fixed 1 occurrence of ~a" rule-name)
+                              (format "Fixed ~a occurrences of ~a" rule-fixes rule-name)))
+                        (format "  * ~a\n" message)))
              #:into (into-for-each display))
   (when (positive? total-fixes)
     (newline)))
-
 
 (module+ main
   (resyntax-run))

@@ -1,27 +1,25 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [line-replacement
-   (-> #:start-line exact-positive-integer?
-       #:original-lines (sequence/c string?)
-       #:new-lines (sequence/c string?)
-       line-replacement?)]
-  [line-replacement? (-> any/c boolean?)]
-  [line-replacement-start-line (-> line-replacement? exact-positive-integer?)]
-  [line-replacement-original-end-line (-> line-replacement? exact-positive-integer?)]
-  [line-replacement-original-lines
-   (-> line-replacement? (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
-  [line-replacement-new-end-line (-> line-replacement? exact-positive-integer?)]
-  [line-replacement-new-lines
-   (-> line-replacement? (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
-  [line-replacement-new-text (-> line-replacement? (and/c string? immutable?))]
-  [string-replacement->line-replacement (-> string-replacement? string? line-replacement?)]))
-
+(provide (contract-out
+          [line-replacement
+           (-> #:start-line exact-positive-integer?
+               #:original-lines (sequence/c string?)
+               #:new-lines (sequence/c string?)
+               line-replacement?)]
+          [line-replacement? (-> any/c boolean?)]
+          [line-replacement-start-line (-> line-replacement? exact-positive-integer?)]
+          [line-replacement-original-end-line (-> line-replacement? exact-positive-integer?)]
+          [line-replacement-original-lines
+           (-> line-replacement?
+               (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
+          [line-replacement-new-end-line (-> line-replacement? exact-positive-integer?)]
+          [line-replacement-new-lines
+           (-> line-replacement?
+               (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
+          [line-replacement-new-text (-> line-replacement? (and/c string? immutable?))]
+          [string-replacement->line-replacement (-> string-replacement? string? line-replacement?)]))
 
 (require racket/sequence
          rebellion/streaming/reducer
@@ -30,18 +28,13 @@
          resyntax/private/linemap
          resyntax/private/string-replacement)
 
-
 (module+ test
   (require rackunit
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
 
-
-(define-record-type line-replacement (start-line original-lines new-lines)
-  #:omit-root-binding)
-
+(define-record-type line-replacement (start-line original-lines new-lines) #:omit-root-binding)
 
 (define (line-replacement #:start-line start-line
                           #:original-lines original-lines
@@ -56,35 +49,30 @@
                                 #:original-lines immutable-original-lines
                                 #:new-lines immutable-new-lines))
 
-
 (define (line-replacement-original-end-line replacement)
   (+ (line-replacement-start-line replacement)
      (sub1 (vector-length (line-replacement-original-lines replacement)))))
-
 
 (define (line-replacement-new-end-line replacement)
   (+ (line-replacement-start-line replacement)
      (sub1 (vector-length (line-replacement-new-lines replacement)))))
 
-
 (define (line-replacement-new-text replacement)
   (transduce (line-replacement-new-lines replacement) #:into (join-into-string "\n")))
-
 
 (define (string-replacement->line-replacement replacement original-string)
   (define new-string (string-apply-replacement original-string replacement))
   (define orig-lmap (string-linemap original-string))
   (define new-lmap (string-linemap new-string))
-  
+
   (define start-line
     (linemap-position-to-line orig-lmap (add1 (string-replacement-start replacement))))
   (define start-pos
-    (sub1
-     (linemap-position-to-start-of-line orig-lmap (add1 (string-replacement-start replacement)))))
+    (sub1 (linemap-position-to-start-of-line orig-lmap
+                                             (add1 (string-replacement-start replacement)))))
   (define original-end-pos
-    (sub1
-     (linemap-position-to-end-of-line orig-lmap
-                                      (add1 (string-replacement-original-end replacement)))))
+    (sub1 (linemap-position-to-end-of-line orig-lmap
+                                           (add1 (string-replacement-original-end replacement)))))
   (define new-end-pos
     (sub1 (linemap-position-to-end-of-line new-lmap (add1 (string-replacement-new-end replacement)))))
 
@@ -93,7 +81,6 @@
   (line-replacement #:start-line start-line
                     #:original-lines (in-lines (open-input-string original-substr))
                     #:new-lines (in-lines (open-input-string new-substr))))
-
 
 (module+ test
   (test-case "string-replacement->line-replacement"

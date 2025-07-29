@@ -1,36 +1,15 @@
 #lang resyntax/test
 
-
-require: resyntax/default-recommendations function-definition-shortcuts
-
+require:
+resyntax/default-recommendations
+function-definition-shortcuts
 
 header:
-- #lang racket/base
+-
+#lang racket/base
 
-
-test: "lambda variable definition to function definition"
-------------------------------
-(define f
-  (λ (a b c)
-    1))
-==============================
-(define (f a b c)
-  1)
-------------------------------
-
-
-test: "lambda variable definition with no arguments to function definition"
-------------------------------
-(define f
-  (λ ()
-    1))
-==============================
-(define (f)
-  1)
-------------------------------
-
-
-test: "one-line lambda variable definition to function definition"
+test:
+"lambda variable definition to function definition"
 ------------------------------
 (define f (λ (a b c) 1))
 ==============================
@@ -38,68 +17,77 @@ test: "one-line lambda variable definition to function definition"
   1)
 ------------------------------
 
-
-test: "lambda variable definition with only rest argument to function definition"
+test:
+"lambda variable definition with no arguments to function definition"
 ------------------------------
-(define f
-  (λ xs
-    1))
+(define f (λ () 1))
+==============================
+(define (f)
+  1)
+------------------------------
+
+test:
+"one-line lambda variable definition to function definition"
+------------------------------
+(define f (λ (a b c) 1))
+==============================
+(define (f a b c)
+  1)
+------------------------------
+
+test:
+"lambda variable definition with only rest argument to function definition"
+------------------------------
+(define f (λ xs 1))
 ==============================
 (define (f . xs)
   1)
 ------------------------------
 
-
-test: "lambda variable definition with rest argument to function definition"
+test:
+"lambda variable definition with rest argument to function definition"
 ------------------------------
-(define f
-  (λ (a b c . xs)
-    1))
+(define f (λ (a b c . xs) 1))
 ==============================
 (define (f a b c . xs)
   1)
 ------------------------------
 
-
-test: "class lambda variable definition not refactorable"
+test:
+"class lambda variable definition not refactorable"
 ------------------------------
 (require racket/class)
 (class object%
-  (define f
-    (λ (a b c)
-      1)))
+  (define f (λ (a b c) 1)))
 ------------------------------
 
-
-test: "lambda function definition to function definition"
+test:
+"lambda function definition to function definition"
 ------------------------------
 (define (f a b c)
-  (λ (x y z)
-    1))
+  (λ (x y z) 1))
 ==============================
 (define ((f a b c) x y z)
   1)
 ------------------------------
 
-
-test: "lambda function definition with closed-over expressions not refactorable"
+test:
+"lambda function definition with closed-over expressions not refactorable"
 ------------------------------
 (define (f a b c)
   (displayln a)
-  (λ (x y z)
-    1))
+  (λ (x y z) 1))
 ------------------------------
 
-
-test: "thunk function definition not refactorable (it's too terse)"
+test:
+"thunk function definition not refactorable (it's too terse)"
 ------------------------------
 (define (f a b c)
-  (λ ()
-    1))
+  (λ () 1))
 ------------------------------
 
-
-test: "lambda variable definition with commented first body not refactorable (yet)"
+test:
+"lambda variable definition with commented first body not refactorable (yet)"
 ------------------------------
 (define f
   (λ (a)
@@ -108,8 +96,8 @@ test: "lambda variable definition with commented first body not refactorable (ye
     1))
 ------------------------------
 
-
-test: "lambda variable definition with commented second body refactorable to definition"
+test:
+"lambda variable definition with commented second body refactorable to definition"
 ------------------------------
 (define f
   (λ (a)
@@ -123,115 +111,89 @@ test: "lambda variable definition with commented second body refactorable to def
   1)
 ------------------------------
 
-
-test: "nested lambda variable definition to function definition"
+test:
+"nested lambda variable definition to function definition"
 ------------------------------
-(define f
-  (λ (a)
-    (λ (b)
-      1)))
+(define f (λ (a) (λ (b) 1)))
 ==============================
 (define ((f a) b)
   1)
 ------------------------------
 
-
-test: "nested lambda variable definition with thunk to function definition returning thunk"
+test:
+"nested lambda variable definition with thunk to function definition returning thunk"
 ------------------------------
-(define f
-  (λ (a)
-    (λ () 1)))
+(define f (λ (a) (λ () 1)))
 ==============================
 (define (f a)
   (λ () 1))
 ------------------------------
 
-
-test: "nested lambda function definition to function definition"
+test:
+"nested lambda function definition to function definition"
 ------------------------------
 (define (f a)
-  (λ (b)
-    (λ (c)
-      1)))
+  (λ (b) (λ (c) 1)))
 ==============================
 (define (((f a) b) c)
   1)
 ------------------------------
 
-
-test: "nested lambda variable with multiple multiline headers not refactorable"
+test:
+"nested lambda variable with multiple multiline headers not refactorable"
 ------------------------------
-(define f
-  (λ (a
-      b
-      c)
-    (λ (x
-        y
-        z)
-      1)))
+(define f (λ (a b c) (λ (x y z) 1)))
 ------------------------------
 
-
-test: "function with multiline header returning lambda not refactorable"
+test:
+"function with multiline header returning lambda not refactorable"
 ------------------------------
-(define (f a
-           b
-           c)
-  (λ (x)
-    1))
+(define (f a b c)
+  (λ (x) 1))
 ------------------------------
 
-
-test: "function returning lambda with multiline header not refactorable"
+test:
+"function returning lambda with multiline header not refactorable"
 ------------------------------
 (define (f a)
-  (λ (x
-      y
-      z)
-    1))
+  (λ (x y z) 1))
 ------------------------------
 
-
-test: "case-lambda with default arg"
+test:
+"case-lambda with default arg"
 ------------------------------
 (define f
   (case-lambda
-    [()
-     (f 1)]
-    [(x)
-     1]))
+    [() (f 1)]
+    [(x) 1]))
 ==============================
 (define (f [x 1])
   1)
 ------------------------------
 
-
-test: "case-lambda with default arg and required args"
+test:
+"case-lambda with default arg and required args"
 ------------------------------
 (define f
   (case-lambda
-    [(a b c)
-     (f a b c 1)]
-    [(a b c x)
-     1]))
+    [(a b c) (f a b c 1)]
+    [(a b c x) 1]))
 ==============================
 (define (f a b c [x 1])
   1)
 ------------------------------
 
-
-test: "case-lambda with default arg not refactorable when required args out of order"
+test:
+"case-lambda with default arg not refactorable when required args out of order"
 ------------------------------
 (define f
   (case-lambda
-    [(a b c)
-     (f c b a 1)]
-    [(a b c x)
-     1]))
+    [(a b c) (f c b a 1)]
+    [(a b c x) 1]))
 ------------------------------
 
-
-test: "case-lambda with default arg not refactorable when default is a multiline expression"
+test:
+"case-lambda with default arg not refactorable when default is a multiline expression"
 ------------------------------
 (define f
   (case-lambda
@@ -242,17 +204,15 @@ test: "case-lambda with default arg not refactorable when default is a multiline
         (let ([x 42])
           (displayln x)
           x))]
-    [(a b c x)
-     1]))
+    [(a b c x) 1]))
 ------------------------------
 
-
-test: "case-lambda with default arg and multiple body forms"
+test:
+"case-lambda with default arg and multiple body forms"
 ------------------------------
 (define f
   (case-lambda
-    [()
-     (f 1)]
+    [() (f 1)]
     [(x)
      (void)
      1]))
@@ -262,13 +222,12 @@ test: "case-lambda with default arg and multiple body forms"
   1)
 ------------------------------
 
-
-test: "case-lambda with default arg and body form with interior comments"
+test:
+"case-lambda with default arg and body form with interior comments"
 ------------------------------
 (define f
   (case-lambda
-    [()
-     (f 1)]
+    [() (f 1)]
     [(x)
      (begin
        ;;comment
@@ -280,27 +239,39 @@ test: "case-lambda with default arg and body form with interior comments"
     1))
 ------------------------------
 
-
-test: "empty-checked rest args to optional arg"
+test:
+"empty-checked rest args to optional arg"
 ------------------------------
 (require racket/list)
 (define (foo a b . x*)
-  (define x (if (null? x*) "default" (car x*)))
+  (define x
+    (if (null? x*)
+        "default"
+        (car x*)))
   (+ a b (string-length x)))
 ==============================
 (require racket/list)
 (define (foo a b . x*)
-  (define x (if (empty? x*) "default" (car x*)))
+  (define x
+    (if (empty? x*)
+        "default"
+        (car x*)))
   (+ a b (string-length x)))
 ==============================
 (require racket/list)
 (define (foo a b . x*)
-  (define x (if (null? x*) "default" (first x*)))
+  (define x
+    (if (null? x*)
+        "default"
+        (first x*)))
   (+ a b (string-length x)))
 ==============================
 (require racket/list)
 (define (foo a b . x*)
-  (define x (if (empty? x*) "default" (first x*)))
+  (define x
+    (if (empty? x*)
+        "default"
+        (first x*)))
   (+ a b (string-length x)))
 ==============================
 (require racket/list)
@@ -308,12 +279,12 @@ test: "empty-checked rest args to optional arg"
   (+ a b (string-length x)))
 ------------------------------
 
-
-test: "empty-checked rest args not refactorable to optional arg when default expression is multiline"
+test:
+"empty-checked rest args not refactorable to optional arg when default expression is multiline"
 ------------------------------
 (define (foo a b . x*)
   (define x
-    (if (null? x*) 
+    (if (null? x*)
         (λ ()
           (displayln "foo")
           "default")
@@ -321,11 +292,14 @@ test: "empty-checked rest args not refactorable to optional arg when default exp
   (+ a b (string-length (x))))
 ------------------------------
 
-
-test: "empty-checked rest args not refactorable to optional arg when rest args used elsewhere"
+test:
+"empty-checked rest args not refactorable to optional arg when rest args used elsewhere"
 ------------------------------
 (define (foo a b . x*)
-  (define x (if (null? x*) "default" (car x*)))
+  (define x
+    (if (null? x*)
+        "default"
+        (car x*)))
   (displayln x*)
   (+ a b (string-length x)))
 ------------------------------

@@ -1,19 +1,14 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [code-snippet? (-> any/c boolean?)]
-  [code-snippet
-   (-> string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
-  [code-snippet-raw-text (-> code-snippet? immutable-string?)]
-  [code-snippet-start-column (-> code-snippet? exact-nonnegative-integer?)]
-  [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]
-  [code-snippet-end-line (-> code-snippet? exact-positive-integer?)]))
-
+(provide (contract-out [code-snippet? (-> any/c boolean?)]
+                       [code-snippet
+                        (-> string? exact-nonnegative-integer? exact-positive-integer? code-snippet?)]
+                       [code-snippet-raw-text (-> code-snippet? immutable-string?)]
+                       [code-snippet-start-column (-> code-snippet? exact-nonnegative-integer?)]
+                       [code-snippet-start-line (-> code-snippet? exact-positive-integer?)]
+                       [code-snippet-end-line (-> code-snippet? exact-positive-integer?)]))
 
 (require racket/format
          racket/math
@@ -21,23 +16,18 @@
          racket/string
          rebellion/base/immutable-string)
 
-
 (module+ test
   (require rackunit
            rebellion/private/static-name
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (struct code-snippet (raw-text start-column start-line)
   #:transparent
+  #:guard (λ (raw-text start-column start-line _)
+            (values (string->immutable-string raw-text) start-column start-line))
 
-  #:guard
-  (λ (raw-text start-column start-line _)
-    (values (string->immutable-string raw-text) start-column start-line))
-  
   #:methods gen:custom-write
   [(define (write-proc this out mode)
      (define end-line (code-snippet-end-line this))
@@ -59,7 +49,6 @@
 (define (code-snippet-end-line snippet)
   (define line-count (sequence-length (in-lines (open-input-string (code-snippet-raw-text snippet)))))
   (+ (code-snippet-start-line snippet) line-count))
-
 
 (module+ test
   (test-case (name-string code-snippet-end-line)
@@ -88,10 +77,8 @@
       (define snippet (code-snippet "(+ 1 2 3)\n(+ 4 5 6)" 0 99))
       (check-equal? (~a snippet) "99  (+ 1 2 3)\n100 (+ 4 5 6)\n"))))
 
-
 (define (digit-count n)
   (add1 (exact-floor (log n 10))))
-
 
 (module+ test
   (test-case (name-string digit-count)

@@ -1,36 +1,32 @@
 #lang racket/base
 
-
 (require racket/contract/base)
 
-
-(provide
- (contract-out
-  [source? (-> any/c boolean?)]
-  [unmodified-source? (-> any/c boolean?)]
-  [source->string (-> source? immutable-string?)]
-  [source-path (-> source? (or/c path? #false))]
-  [source-directory (-> source? (or/c path? #false))]
-  [source-original (-> source? unmodified-source?)]
-  [source-read-syntax (-> source? syntax?)]
-  [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
-  [file-source? (-> any/c boolean?)]
-  [file-source (-> path-string? file-source?)]
-  [file-source-path (-> file-source? path?)]
-  [string-source? (-> any/c boolean?)]
-  [string-source (-> string? string-source?)]
-  [string-source-contents (-> string-source? immutable-string?)]
-  [modified-source? (-> any/c boolean?)]
-  [modified-source (-> unmodified-source? string? modified-source?)]
-  [modified-source-contents (-> modified-source? immutable-string?)]
-  [modified-source-original (-> modified-source? unmodified-source?)]
-  [source-code-analysis? (-> any/c boolean?)]
-  [source-code-analysis-code (-> source-code-analysis? source?)]
-  [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
-  [source-code-analysis-expansion-time-output (-> source-code-analysis? immutable-string?)]
-  [source-code-analysis-namespace (-> source-code-analysis? namespace?)]
-  [with-input-from-source (-> source? (-> any) any)]))
-
+(provide (contract-out
+          [source? (-> any/c boolean?)]
+          [unmodified-source? (-> any/c boolean?)]
+          [source->string (-> source? immutable-string?)]
+          [source-path (-> source? (or/c path? #false))]
+          [source-directory (-> source? (or/c path? #false))]
+          [source-original (-> source? unmodified-source?)]
+          [source-read-syntax (-> source? syntax?)]
+          [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
+          [file-source? (-> any/c boolean?)]
+          [file-source (-> path-string? file-source?)]
+          [file-source-path (-> file-source? path?)]
+          [string-source? (-> any/c boolean?)]
+          [string-source (-> string? string-source?)]
+          [string-source-contents (-> string-source? immutable-string?)]
+          [modified-source? (-> any/c boolean?)]
+          [modified-source (-> unmodified-source? string? modified-source?)]
+          [modified-source-contents (-> modified-source? immutable-string?)]
+          [modified-source-original (-> modified-source? unmodified-source?)]
+          [source-code-analysis? (-> any/c boolean?)]
+          [source-code-analysis-code (-> source-code-analysis? source?)]
+          [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
+          [source-code-analysis-expansion-time-output (-> source-code-analysis? immutable-string?)]
+          [source-code-analysis-namespace (-> source-code-analysis? namespace?)]
+          [with-input-from-source (-> source? (-> any) any)]))
 
 (require guard
          racket/match
@@ -59,33 +55,25 @@
          syntax/modread
          syntax/parse)
 
-
 ;@----------------------------------------------------------------------------------------------------
-
 
 (struct source () #:transparent)
 
-
 (struct unmodified-source source () #:transparent)
-
 
 (struct file-source unmodified-source (path)
   #:transparent
   #:guard (λ (path _) (simple-form-path path)))
 
-
 (struct string-source unmodified-source (contents)
   #:transparent
   #:guard (λ (contents _) (string->immutable-string contents)))
-
 
 (struct modified-source source (original contents)
   #:transparent
   #:guard (λ (original contents _) (values original (string->immutable-string contents))))
 
-
 (define-record-type source-code-analysis (code visited-forms expansion-time-output namespace))
-
 
 (define (with-input-from-source code proc)
 
@@ -102,10 +90,8 @@
     [(modified-source (? string-source?) contents)
      (call-proc-with-reencoded-input (open-input-string contents))]))
 
-
 (define (source->string code)
   (string->immutable-string (with-input-from-source code port->string)))
-
 
 (define (source-read-syntax code)
   (define (read-from-input)
@@ -113,22 +99,17 @@
     (with-module-reading-parameterization read-syntax))
   (syntax-label-original-paths (with-input-from-source code read-from-input)))
 
+(define/guard
+ (source-path code)
+ (guard-match (or (file-source path) (modified-source (file-source path) _)) code #:else #false)
+ path)
 
-(define/guard (source-path code)
-  (guard-match (or (file-source path) (modified-source (file-source path) _)) code #:else #false)
-  path)
-
-
-(define/guard (source-directory code)
-  (define path (source-path code))
-  (and path (path-only path)))
-
+(define/guard (source-directory code) (define path (source-path code)) (and path (path-only path)))
 
 (define (source-original code)
   (if (unmodified-source? code)
       code
       (modified-source-original code)))
-
 
 (define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (define ns (make-base-namespace))
@@ -142,22 +123,23 @@
     (define original-visits (make-vector-builder))
     (define most-recent-visits-by-original-path (make-hash))
 
-    (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
-      (guard (syntax-original-and-from-source? stx program-source-name) #:else #false)
-      (guard as-visit? #:else #true)
-      (define stx-lines (syntax-line-range stx #:linemap code-linemap))
-      (define overlaps? (range-set-overlaps? lines stx-lines))
-      (unless overlaps?
-        (log-resyntax-debug
-         (string-append "ignoring visited syntax object because it's outside analyzed lines\n"
-                        "  analyzed lines: ~a\n"
-                        "  syntax lines: ~a\n"
-                        "  syntax: ~a")
-         lines
-         stx-lines
-         stx))
-      overlaps?)
-    
+    (define/guard
+     (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
+     (guard (syntax-original-and-from-source? stx program-source-name) #:else #false)
+     (guard as-visit? #:else #true)
+     (define stx-lines (syntax-line-range stx #:linemap code-linemap))
+     (define overlaps? (range-set-overlaps? lines stx-lines))
+     (unless overlaps?
+       (log-resyntax-debug
+        (string-append "ignoring visited syntax object because it's outside analyzed lines\n"
+                       "  analyzed lines: ~a\n"
+                       "  syntax lines: ~a\n"
+                       "  syntax: ~a")
+        lines
+        stx-lines
+        stx))
+     overlaps?)
+
     (define/match (observe-event! sig val)
       [('visit (? syntax? visited))
        (when (resyntax-should-analyze-syntax? visited)
@@ -194,59 +176,60 @@
 
     (define expanded-with-properties
       (syntax-traverse expanded
-        [id:id
-         #:do [(define path (syntax-original-path (attribute id)))]
-         #:when path
-         (define usages (hash-ref original-binding-table-by-path path '()))
-         (syntax-property this-syntax 'identifier-usages usages)]
-        #:parent-context-modifier values
-        #:parent-srcloc-modifier values
-        #:parent-props-modifier values))
-    
+                       [id:id
+                        #:do [(define path (syntax-original-path (attribute id)))]
+                        #:when path
+                        (define usages (hash-ref original-binding-table-by-path path '()))
+                        (syntax-property this-syntax 'identifier-usages usages)]
+                       #:parent-context-modifier values
+                       #:parent-srcloc-modifier values
+                       #:parent-props-modifier values))
+
     (define (enrich stx #:skip-root? [skip-root? #false])
-      (syntax-traverse stx
-        #:skip-root? skip-root?
-        [child
-         #:do [(define child-stx (attribute child))
-               (define orig-path (syntax-original-path child-stx))]
-         #:when (and orig-path (sorted-map-contains-key? movement-table orig-path))
-         #:do [(define expansions
-                 (transduce (sorted-map-get movement-table orig-path)
-                            (mapping (λ (p) (syntax-ref expanded-with-properties p)))
-                            (filtering syntax-original?)
-                            #:into into-list))]
-         #:when (equal? (length expansions) 1)
-         (match-define (list expanded-child) expansions)
-         (log-resyntax-debug "enriching ~a with scopes and properties from expansion" child-stx)
-         (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx expanded-child)
-                 #:skip-root? #true)]
-        [child
-         #:do [(define child-stx (attribute child))
-               (define orig-path (syntax-original-path child-stx))]
-         #:when (and orig-path (hash-has-key? most-recent-visits-by-original-path orig-path))
-         #:do [(define visit (hash-ref most-recent-visits-by-original-path orig-path))]
-         (log-resyntax-debug "enriching ~a with scopes from visit" child-stx)
-         (enrich (datum->syntax visit (syntax-e child-stx) child-stx child-stx) #:skip-root? #true)]
-        #:parent-context-modifier values
-        #:parent-srcloc-modifier values
-        #:parent-props-modifier values))
-    
+      (syntax-traverse
+       stx
+       #:skip-root? skip-root?
+       [child
+        #:do [(define child-stx (attribute child))
+              (define orig-path (syntax-original-path child-stx))]
+        #:when (and orig-path (sorted-map-contains-key? movement-table orig-path))
+        #:do [(define expansions
+                (transduce (sorted-map-get movement-table orig-path)
+                           (mapping (λ (p) (syntax-ref expanded-with-properties p)))
+                           (filtering syntax-original?)
+                           #:into into-list))]
+        #:when (equal? (length expansions) 1)
+        (match-define (list expanded-child) expansions)
+        (log-resyntax-debug "enriching ~a with scopes and properties from expansion" child-stx)
+        (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx expanded-child)
+                #:skip-root? #true)]
+       [child
+        #:do [(define child-stx (attribute child))
+              (define orig-path (syntax-original-path child-stx))]
+        #:when (and orig-path (hash-has-key? most-recent-visits-by-original-path orig-path))
+        #:do [(define visit (hash-ref most-recent-visits-by-original-path orig-path))]
+        (log-resyntax-debug "enriching ~a with scopes from visit" child-stx)
+        (enrich (datum->syntax visit (syntax-e child-stx) child-stx child-stx) #:skip-root? #true)]
+       #:parent-context-modifier values
+       #:parent-srcloc-modifier values
+       #:parent-props-modifier values))
+
     (define visited
       (transduce (build-vector original-visits)
-                 (peeking
-                  (λ (visit)
-                    (unless (syntax-original-path visit)
-                      (raise-arguments-error
-                       'source-analyze "pre-enriched visit is missing original path"
-                       "visited syntax" visit))))
+                 (peeking (λ (visit)
+                            (unless (syntax-original-path visit)
+                              (raise-arguments-error 'source-analyze
+                                                     "pre-enriched visit is missing original path"
+                                                     "visited syntax"
+                                                     visit))))
                  (deduplicating #:key syntax-original-path)
                  (mapping enrich)
-                 (peeking
-                  (λ (visit)
-                    (unless (syntax-original-path visit)
-                      (raise-arguments-error
-                       'source-analyze "post-enriched visit is missing original path"
-                       "visited syntax" visit))))
+                 (peeking (λ (visit)
+                            (unless (syntax-original-path visit)
+                              (raise-arguments-error 'source-analyze
+                                                     "post-enriched visit is missing original path"
+                                                     "visited syntax"
+                                                     visit))))
                  (sorting syntax-path<=> #:key syntax-original-path)
                  #:into into-list))
 
@@ -254,7 +237,6 @@
                           #:visited-forms visited
                           #:expansion-time-output output
                           #:namespace ns)))
-
 
 (define (syntax-original-and-from-source? stx source-name)
   (and (syntax-original? stx)
@@ -265,7 +247,6 @@
        ;; syntax object. The (open ...) clause of the define-signature macro bends hygiene
        ;; in this way, and is what originally motivated the addition of this check.
        (equal? (syntax-source stx) source-name)))
-
 
 (define (extract-module-require-spec mod-stx)
   (syntax-parse mod-stx

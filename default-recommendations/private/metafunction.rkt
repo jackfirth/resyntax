@@ -1,12 +1,9 @@
 #lang racket/base
 
-
 (provide ~if)
-
 
 (require syntax/parse
          syntax/parse/experimental/template)
-
 
 (module+ test
   (require racket/syntax
@@ -14,16 +11,13 @@
            rebellion/private/static-name
            (submod "..")))
 
-
 ;@----------------------------------------------------------------------------------------------------
 
-
-(define-template-metafunction (~if stx)
-  (syntax-parse stx
-    #:track-literals
-    [(_ condition true false)
-     (if (syntax-e #'condition) #'true #'false)]))
-
+(define-template-metafunction
+ (~if stx)
+ (syntax-parse stx
+   #:track-literals
+   [(_ condition true false) (if (syntax-e #'condition) #'true #'false)]))
 
 (module+ test
   (test-case (name-string ~if)
