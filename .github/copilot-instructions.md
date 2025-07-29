@@ -24,9 +24,6 @@ doing so by cloning the [DrRacket][6], [Herbie][7], or [Typed Racket][8]
 repositories and running Resyntax on them. These repositories contain a lot
 of Racket code and are good candidates for testing new refactoring rules.
 
-To format your code, use the `raco fmt` command. This will ensure that your
-code adheres to Racket's formatting standards.
-
 [1]: https://docs.racket-lang.org/resyntax/
 [2]: https://racket-lang.org/
 [3]: https://docs.racket-lang.org/resyntax/Refactoring_Rules_and_Suites.html#%28part._.What_.Makes_a_.Good_.Refactoring_.Rule_%29
