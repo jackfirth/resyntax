@@ -41,19 +41,24 @@
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/base/range
+         rebellion/collection/entry
          rebellion/collection/list
          rebellion/collection/range-set
          rebellion/collection/sorted-map
+         rebellion/collection/sorted-set
+         rebellion/collection/vector
          rebellion/collection/vector/builder
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/private/analyzer
          resyntax/private/fully-expanded-syntax
          resyntax/private/linemap
          resyntax/private/logger
          resyntax/private/syntax-movement
          resyntax/private/syntax-neighbors
          resyntax/private/syntax-path
+         resyntax/private/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/id-table
          syntax/modread
@@ -183,26 +188,31 @@
 
     (define output (get-output-string output-port))
     (define movement-table (syntax-movement-table expanded))
-    (define binding-table (fully-expanded-syntax-binding-table expanded))
-    (define original-binding-table-by-path
-      (for*/fold ([table (hash)])
-                 ([phase-table (in-hash-values binding-table)]
-                  [(id uses) (in-free-id-table phase-table)]
-                  #:when (syntax-original-and-from-source? id program-source-name)
-                  [use (in-list uses)])
-        (hash-update table (syntax-original-path id) (λ (previous) (cons use previous)) '())))
 
-    (define expanded-with-properties
-      (syntax-traverse expanded
-        [id:id
-         #:do [(define path (syntax-original-path (attribute id)))]
-         #:when path
-         (define usages (hash-ref original-binding-table-by-path path '()))
-         (syntax-property this-syntax 'identifier-usages usages)]
-        #:parent-context-modifier values
-        #:parent-srcloc-modifier values
-        #:parent-props-modifier values))
-    
+    (define property-selection-table
+      (transduce movement-table
+                 (mapping-values
+                  (λ (exp-paths)
+                    (transduce exp-paths
+                               (filtering
+                                (λ (path)
+                                  (syntax-original-and-from-source?
+                                   (syntax-ref expanded path) program-source-name)))
+                               #:into (into-vector))))
+                 (filtering-values (λ (exp-paths) (equal? (vector-length exp-paths) 1)))
+                 (mapping-values (λ (exp-paths) (vector-ref exp-paths 0)))
+                 #:into (into-sorted-map syntax-path<=>)))
+
+    (define expansion-analyzer-props (expansion-analyze identifier-usage-analyzer expanded))
+
+    (define expansion-analyzer-props-adjusted-for-visits
+      (transduce property-selection-table
+                 (mapping-values
+                  (λ (exp-path)
+                    (syntax-property-bundle-get-immediate-properties expansion-analyzer-props
+                                                                     exp-path)))
+                 #:into property-hashes-into-syntax-property-bundle))
+
     (define (enrich stx #:skip-root? [skip-root? #false])
       (syntax-traverse stx
         #:skip-root? skip-root?
@@ -212,13 +222,13 @@
          #:when (and orig-path (sorted-map-contains-key? movement-table orig-path))
          #:do [(define expansions
                  (transduce (sorted-map-get movement-table orig-path)
-                            (mapping (λ (p) (syntax-ref expanded-with-properties p)))
+                            (mapping (λ (p) (syntax-ref expanded p)))
                             (filtering syntax-original?)
                             #:into into-list))]
          #:when (equal? (length expansions) 1)
          (match-define (list expanded-child) expansions)
-         (log-resyntax-debug "enriching ~a with scopes and properties from expansion" child-stx)
-         (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx expanded-child)
+         (log-resyntax-debug "enriching ~a with scopes from expansion" child-stx)
+         (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx child-stx)
                  #:skip-root? #true)]
         [child
          #:do [(define child-stx (attribute child))
@@ -240,6 +250,13 @@
                        'source-analyze "pre-enriched visit is missing original path"
                        "visited syntax" visit))))
                  (deduplicating #:key syntax-original-path)
+                 (mapping
+                  (λ (visit)
+                    (define path (syntax-original-path visit))
+                    (define visit-props
+                      (syntax-property-bundle-get-all-properties
+                       expansion-analyzer-props-adjusted-for-visits path))
+                    (syntax-add-all-properties visit visit-props)))
                  (mapping enrich)
                  (peeking
                   (λ (visit)

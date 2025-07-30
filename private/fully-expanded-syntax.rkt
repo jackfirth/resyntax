@@ -6,20 +6,28 @@
 
 (provide
  (contract-out
-  [fully-expanded-syntax-binding-table
-   (-> syntax?
-       (hash/c (or/c exact-integer? #false)
-               (free-id-table/c identifier? (listof identifier?) #:immutable #true)
-               #:immutable #true))]))
+  [identifier-usage-analyzer expansion-analyzer?]))
 
 
 (require racket/hash
          racket/list
          racket/set
+         racket/stream
          racket/treelist
          rebellion/collection/hash
+         rebellion/streaming/transducer
+         resyntax/private/analyzer
+         resyntax/private/syntax-path
+         resyntax/private/syntax-property-bundle
          syntax/id-table
          syntax/parse)
+
+
+(module+ test
+  (require (submod "..")
+           rackunit
+           rebellion/collection/sorted-map
+           rebellion/collection/sorted-set))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -306,3 +314,49 @@
   (syntax-parse stx
     [:fully-expanded-top-level-form
      (identifier-binding-table (attribute bound-ids-by-phase) (attribute used-ids-by-phase))]))
+
+
+(define identifier-usage-analyzer
+  (make-expansion-analyzer
+   #:name 'identifier-usage-analyzer
+   (λ (expanded-stx)
+     (define table
+       (fully-expanded-syntax-binding-table (syntax-label-paths expanded-stx 'expanded-path)))
+     (transduce (in-hash-values table)
+                (append-mapping
+                 (λ (id-table)
+                   (for/stream ([(bound-id usages) (in-free-id-table id-table)])
+                     (define exp-path (syntax-property bound-id 'expanded-path))
+                     (syntax-property-entry exp-path 'identifier-usages usages))))
+                #:into into-syntax-property-bundle))))
+
+
+(module+ test
+  (test-case "identifier-usage-analyzer"
+    ;; Arrange
+    (define stx
+      #'(module foo racket/base
+          (let ([x 42] [y 42])
+            (+ x y))))
+    (define expanded
+      (parameterize ([current-namespace (make-base-namespace)])
+        (expand stx)))
+    (define expanded-x-path (syntax-path (treelist 3 2 2 2 1 0 0 0)))
+    (define expanded-y-path (syntax-path (treelist 3 2 2 2 1 1 0 0)))
+    (check-equal? (syntax->datum (syntax-ref expanded expanded-x-path)) 'x)
+    (check-equal? (syntax->datum (syntax-ref expanded expanded-y-path)) 'y)
+    (define x-binding-clause-path (syntax-path-parent (syntax-path-parent expanded-x-path)))
+    (define y-binding-clause-path (syntax-path-parent (syntax-path-parent expanded-y-path)))
+    (check-equal? (syntax->datum (syntax-ref expanded x-binding-clause-path)) '[(x) '42])
+    (check-equal? (syntax->datum (syntax-ref expanded y-binding-clause-path)) '[(y) '42])
+
+    ;; Act
+    (define props (expansion-analyze identifier-usage-analyzer expanded))
+    (define prop-map (syntax-property-bundle-as-map props))
+
+    ;; Assert
+    (define expected-keys (sorted-set expanded-x-path expanded-y-path #:comparator syntax-path<=>))
+    (check-equal? (sorted-map-keys prop-map) expected-keys)
+    (check-equal? (length (hash-ref (sorted-map-get prop-map expanded-x-path) 'identifier-usages)) 1)
+    (check-equal? (length (hash-ref (sorted-map-get prop-map expanded-y-path) 'identifier-usages))
+                  1)))
