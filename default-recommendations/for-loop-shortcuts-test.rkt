@@ -1009,3 +1009,73 @@ test: "in-hash in for/list loop refactorable to in-hash-values"
 (for/list ([v (in-hash-values (hash 'a 1 'b 2 'c 3))])
   v)
 --------------------
+
+
+test: "in-value with used variable refactorable to #:do define"
+--------------------
+(for* ([a (in-range 0 3)]
+       [b (in-value (* a 2))]
+       [c (in-range 0 b)])
+  (displayln (list a b c)))
+====================
+(for* ([a (in-range 0 3)]
+       #:do [(define b (* a 2))]
+       [c (in-range 0 b)])
+  (displayln (list a b c)))
+--------------------
+
+
+test: "in-value with unused variable refactorable to #:do without define"
+--------------------
+(for* ([a (in-range 0 3)]
+       [b (in-value (displayln a))])
+  (displayln a))
+====================
+(for* ([a (in-range 0 3)]
+       #:do [(displayln a)])
+  (displayln a))
+--------------------
+
+
+test: "in-value in for* loop refactorable to #:do"
+--------------------
+(for* ([a (in-range 0 3)]
+       [b (in-value (* a 2))])
+  (displayln (list a b)))
+====================
+(for* ([a (in-range 0 3)]
+       #:do [(define b (* a 2))])
+  (displayln (list a b)))
+--------------------
+
+
+test: "in-value in for/list loop refactorable to #:do"
+--------------------
+(for*/list ([a (in-range 0 3)]
+            [b (in-value (* a 2))])
+  (list a b))
+====================
+(for*/list ([a (in-range 0 3)]
+            #:do [(define b (* a 2))])
+  (list a b))
+--------------------
+
+
+test: "in-value with complex expression refactorable to #:do"
+--------------------
+(for* ([a (in-range 0 3)]
+       [b (in-value (let ([x (* a 2)]) (+ x 1)))])
+  (displayln (list a b)))
+====================
+(for* ([a (in-range 0 3)]
+       #:do [(define b (let ([x (* a 2)]) (+ x 1)))])
+  (displayln (list a b)))
+--------------------
+
+
+test: "in-value in non-nested for loop not refactorable"
+--------------------
+(for ([a (in-range 0 3)]
+      [b (in-value (* a 2))])
+  (displayln (list a b)))
+--------------------
