@@ -175,6 +175,18 @@ test: "used map expression not refactorable to for-each"
 ------------------------------
 
 
+test: "ignored map in begin0 refactorable to for-each"
+------------------------------
+(define (f xs)
+  (begin0 42
+    (map add1 xs)))
+==============================
+(define (f xs)
+  (begin0 42
+    (for-each add1 xs)))
+------------------------------
+
+
 test: "build-list with const refactorable to make-list"
 ------------------------------
 (require racket/function
