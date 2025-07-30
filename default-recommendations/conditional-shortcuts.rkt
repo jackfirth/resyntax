@@ -259,6 +259,15 @@
   (when (and outer-condition inner-condition) body ...))
 
 
+(define-refactoring-rule ignored-and-to-when
+  #:description "This `and` expression's result is ignored. Using `when` makes this clearer."
+  #:literals (and)
+  (and condition:expr body:expr)
+  #:when (syntax-property this-syntax 'expression-result)
+  #:when (equal? (syntax-property this-syntax 'expression-result) 'ignored)
+  (when condition body))
+
+
 (define-refactoring-suite conditional-shortcuts
   #:rules (always-throwing-cond-to-when
            always-throwing-if-to-when
@@ -271,6 +280,7 @@
            if-let-to-cond
            if-void-to-when-or-unless
            if-x-else-x-to-and
+           ignored-and-to-when
            nested-if-to-cond
            nested-when-to-compound-when
            throw-unless-truthy-to-or))

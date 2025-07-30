@@ -36,15 +36,18 @@
          racket/match
          racket/path
          racket/port
+         racket/pretty
          racket/sequence
          racket/stream
          rebellion/base/comparator
          rebellion/base/immutable-string
+         rebellion/base/option
          rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/list
          rebellion/collection/range-set
          rebellion/collection/sorted-map
+         rebellion/collection/sorted-set
          rebellion/collection/vector
          rebellion/collection/vector/builder
          rebellion/streaming/transducer
@@ -54,6 +57,7 @@
          resyntax/private/fully-expanded-syntax
          resyntax/private/linemap
          resyntax/private/logger
+         resyntax/private/string-indent
          resyntax/private/syntax-movement
          resyntax/private/syntax-neighbors
          resyntax/private/syntax-path
@@ -189,16 +193,8 @@
 
     (define property-selection-table
       (transduce movement-table
-                 (mapping-values
-                  (λ (exp-paths)
-                    (transduce exp-paths
-                               (filtering
-                                (λ (path)
-                                  (syntax-original-and-from-source?
-                                   (syntax-ref expanded path) program-source-name)))
-                               #:into (into-vector))))
-                 (filtering-values (λ (exp-paths) (equal? (vector-length exp-paths) 1)))
-                 (mapping-values (λ (exp-paths) (vector-ref exp-paths 0)))
+                 (filtering-values (λ (exp-paths) (equal? (sorted-set-size exp-paths) 1)))
+                 (mapping-values (λ (exp-paths) (present-value (sorted-set-least-element exp-paths))))
                  #:into (into-sorted-map syntax-path<=>)))
 
     (define expansion-analyzer-props
@@ -216,6 +212,11 @@
                     (syntax-property-bundle-get-immediate-properties expansion-analyzer-props
                                                                      exp-path)))
                  #:into property-hashes-into-syntax-property-bundle))
+
+    (when (log-level? resyntax-logger 'debug)
+      (define props-str
+        (string-indent (pretty-format expansion-analyzer-props-adjusted-for-visits) #:amount 2))
+      (log-resyntax-debug "syntax properties from expansion analyzers:\n~a" props-str))
 
     (define (enrich stx #:skip-root? [skip-root? #false])
       (syntax-traverse stx
