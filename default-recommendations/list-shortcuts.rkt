@@ -128,11 +128,13 @@
   (append arg ...))
 
 
-(define-definition-context-refactoring-rule ignored-map-to-for-each
+(define-refactoring-rule ignored-map-to-for-each
   #:description "The result of this `map` expression is unused. Consider using `for-each` instead."
   #:literals (map)
-  (~seq body-before ... (~and map-expr (map proc list ...)) body-after ...+)
-  (body-before ... (~replacement (for-each proc list ...) #:original map-expr) body-after ...))
+  (map proc list ...)
+  #:when (syntax-property this-syntax 'expression-result)
+  #:when (equal? (syntax-property this-syntax 'expression-result) 'ignored)
+  (for-each proc list ...))
 
 
 (define-refactoring-rule build-list-const-to-make-list

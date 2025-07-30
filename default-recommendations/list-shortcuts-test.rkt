@@ -168,6 +168,18 @@ test: "ignored map expression refactorable to for-each"
 ------------------------------
 
 
+test: "ignored map at end of function body refactorable to for-each"
+------------------------------
+(define (f xs)
+  (map add1 xs)
+  42)
+==============================
+(define (f xs)
+  (for-each add1 xs)
+  42)
+------------------------------
+
+
 test: "used map expression not refactorable to for-each"
 ------------------------------
 (define (f func xs ys zs)
