@@ -18,8 +18,10 @@
   [syntax-path-elements (-> syntax-path? (treelist/c syntax-path-element?))]
   [syntax-path-element? (-> any/c boolean?)]
   [syntax-path-parent (-> nonempty-syntax-path? syntax-path?)]
+  [syntax-path-next-neighbor (-> syntax-path? (or/c syntax-path? #false))]
   [syntax-path-last-element (-> nonempty-syntax-path? syntax-path-element?)]
   [syntax-path-add (-> syntax-path? syntax-path-element? syntax-path?)]
+  [syntax-path-remove-prefix (-> syntax-path? syntax-path? syntax-path?)]
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
@@ -132,6 +134,74 @@
                   (syntax-path (list 0)))
     (check-exn exn:fail:contract? (λ () (syntax-path-parent empty-syntax-path)))
     (check-exn #rx"expected: nonempty-syntax-path?" (λ () (syntax-path-parent empty-syntax-path)))))
+
+
+(define/guard (syntax-path-next-neighbor path)
+  (define elements (syntax-path-elements path))
+  (guard (not (treelist-empty? elements)) #:else #false)
+  (define parent-elems (treelist-drop-right elements 1))
+  (match (treelist-last elements)
+    [(? exact-nonnegative-integer? i)
+     (syntax-path (treelist-add parent-elems (add1 i)))]
+    [_ #false]))
+
+
+(module+ test
+  (test-case "syntax-path-next-neighbor"
+
+    (test-case "empty path"
+      (check-false (syntax-path-next-neighbor empty-syntax-path)))
+
+    (test-case "first child"
+      (define path (syntax-path (list 0)))
+      (define expected (syntax-path (list 1)))
+      (check-equal? (syntax-path-next-neighbor path) expected))
+
+    (test-case "nth child"
+      (define path (syntax-path (list 42)))
+      (define expected (syntax-path (list 43)))
+      (check-equal? (syntax-path-next-neighbor path) expected))
+
+    (test-case "nested list child"
+      (define path (syntax-path (list 1 2 3 42)))
+      (define expected (syntax-path (list 1 2 3 43)))
+      (check-equal? (syntax-path-next-neighbor path) expected))
+
+    ; TODO: handle non-list element children
+    (void)))
+
+
+(define (syntax-path-remove-prefix path prefix)
+  (define elems (syntax-path-elements path))
+  (define prefix-elems (syntax-path-elements prefix))
+  (unless (>= (treelist-length elems) (treelist-length prefix-elems))
+    (raise-arguments-error
+     'syntax-path-remove-prefix "path is shorter than prefix" "path" path "prefix" prefix))
+  (define elems-up-to (treelist-take elems (treelist-length prefix-elems)))
+  (unless (equal? elems-up-to prefix-elems)
+    (raise-arguments-error
+     'syntax-path-remove-prefix "path does not start with given prefix" "path" path "prefix" prefix))
+  (syntax-path (treelist-drop elems (treelist-length prefix-elems))))
+
+
+(module+ test
+  (test-case "syntax-path-remove-prefix"
+
+    (test-case "remove empty"
+      (define path (syntax-path (list 1 2 3)))
+      (check-equal? (syntax-path-remove-prefix path empty-syntax-path) path))
+
+    (test-case "remove one elem"
+      (define path (syntax-path (list 1 2 3)))
+      (define prefix (syntax-path (list 1)))
+      (define expected (syntax-path (list 2 3)))
+      (check-equal? (syntax-path-remove-prefix path prefix) expected))
+
+    (test-case "remove multiple elems"
+      (define path (syntax-path (list 1 2 3 4 5)))
+      (define prefix (syntax-path (list 1 2 3)))
+      (define expected (syntax-path (list 4 5)))
+      (check-equal? (syntax-path-remove-prefix path prefix) expected))))
 
 
 (define (syntax-path-last-element path)
@@ -285,7 +355,7 @@
       (match next-element
         [(? exact-nonnegative-integer? i)
          (define updated-child (loop (list-ref unwrapped i) remaining-elements))
-         (define updated-datum (list-set unwrapped i updated-child))
+         (define updated-datum (improper-list-set unwrapped i updated-child))
          (if (syntax? stx)
              (datum->syntax stx updated-datum stx stx)
              updated-datum)]
@@ -509,3 +579,18 @@
     (check-false (possibly-improper-list-of-minimum-size? '(a b c d . e) 8))
     (check-true (possibly-improper-list-of-minimum-size? 'a 0))
     (check-false (possibly-improper-list-of-minimum-size? 'a 1))))
+
+
+(define (improper-list-set lst i v)
+  (cond
+    [(positive? i) (cons (car lst) (improper-list-set (cdr lst) (sub1 i) v))]
+    [(pair? lst) (cons v (cdr lst))]
+    [else v]))
+
+
+(module+ test
+  (test-case "improper-list-set"
+    (check-equal? (improper-list-set '(a b c) 0 'FOO) '(FOO b c))
+    (check-equal? (improper-list-set '(a b . c) 0 'FOO) '(FOO b . c))
+    (check-equal? (improper-list-set '(a b c) 2 'FOO) '(a b FOO))
+    (check-equal? (improper-list-set '(a b . c) 2 'FOO) '(a b . FOO))))
