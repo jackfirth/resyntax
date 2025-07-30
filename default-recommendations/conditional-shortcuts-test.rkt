@@ -1022,3 +1022,16 @@ test: "when with multiple forms in outer body should not be merged"
     (when c2
       (displayln "nested"))))
 --------------------
+
+
+test: "ignored and expression refactorable to when expression"
+--------------------
+(define (f c1)
+  (and c1 (displayln "foo"))
+  42)
+====================
+(define (f c1)
+  (when c1
+    (displayln "foo"))
+  42)
+--------------------
