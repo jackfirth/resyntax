@@ -5,10 +5,11 @@ Racket's macro system. Resyntax then uses these rules to suggest ways people
 can improve their Racket code. See the [Resyntax documentation][1] and
 [Racket website][2] for more information.
 
-When trying to add a new refactoring rule to Resyntax's default
-recommendations, pay special attention to the sections in the Resyntax
-documentation on [what makes a good refactoring rule][3] and on
-[how to test refactoring rules][4]. Additionally, consider running Resyntax
+If you've been assigned an issue with the label "new lint", your task is to
+create a new refactoring rule and add it to Resyntax's default recommendations.
+When trying to add a new refactoring rule, pay special attention to the
+sections in the Resyntax documentation on [what makes a good refactoring rule][3]
+and on [how to test refactoring rules][4]. Additionally, consider running Resyntax
 itself on the files you touch before opening a pull request: this can help you
 improve your code and ensure it follows Racket's best practices. Check the
 [documentation on the Resyntax command line tool][5] for more information on
