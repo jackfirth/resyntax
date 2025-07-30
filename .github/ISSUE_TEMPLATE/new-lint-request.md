@@ -12,8 +12,7 @@ _Describe the lint you'd like to see added to Resyntax. Include example code in 
 ```scheme
 #lang resyntax/test
 require: resyntax/default-recommendations default-recommendations
-header:
-- #lang racket
+header: - #lang racket
 
 test: "original code should be refactorable to new code"
 --------------------
