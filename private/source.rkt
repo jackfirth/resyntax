@@ -36,21 +36,20 @@
          racket/match
          racket/path
          racket/port
+         racket/sequence
          racket/stream
          rebellion/base/comparator
          rebellion/base/immutable-string
-         rebellion/base/option
          rebellion/base/range
          rebellion/collection/entry
          rebellion/collection/list
          rebellion/collection/range-set
          rebellion/collection/sorted-map
-         rebellion/collection/sorted-set
          rebellion/collection/vector
          rebellion/collection/vector/builder
-         rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/default-recommendations/analyzers/ignored-result-values
          resyntax/private/analyzer
          resyntax/private/fully-expanded-syntax
          resyntax/private/linemap
@@ -60,7 +59,6 @@
          resyntax/private/syntax-path
          resyntax/private/syntax-property-bundle
          resyntax/private/syntax-traversal
-         syntax/id-table
          syntax/modread
          syntax/parse)
 
@@ -203,7 +201,13 @@
                  (mapping-values (λ (exp-paths) (vector-ref exp-paths 0)))
                  #:into (into-sorted-map syntax-path<=>)))
 
-    (define expansion-analyzer-props (expansion-analyze identifier-usage-analyzer expanded))
+    (define expansion-analyzer-props
+      (transduce (sequence-append
+                  (syntax-property-bundle-entries
+                   (expansion-analyze identifier-usage-analyzer expanded))
+                  (syntax-property-bundle-entries
+                   (expansion-analyze ignored-result-values-analyzer expanded)))
+                 #:into into-syntax-property-bundle))
 
     (define expansion-analyzer-props-adjusted-for-visits
       (transduce property-selection-table
