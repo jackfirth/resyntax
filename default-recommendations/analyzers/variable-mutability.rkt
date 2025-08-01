@@ -35,9 +35,22 @@
     (syntax-traverse expanded-stx
       #:skip-root? skip?
       #:literal-sets ([kernel-literals #:phase phase])
+
       [:id (syntax-property this-syntax 'phase phase)]
       [(begin-for-syntax _ ...) (loop this-syntax (add1 phase) #true)]
-      [((~or module module*) _ ...) (loop this-syntax 0 #true)])))
+
+      [(define-syntaxes-id:define-syntaxes ids expr)
+       (define new-define-syntaxes (loop (attribute define-syntaxes-id) phase #false))
+       (define new-ids (loop (attribute ids) phase #true))
+       (define new-expr (loop (attribute expr) (add1 phase) #false))
+       (define new-datum (list new-define-syntaxes new-ids new-expr))
+       (datum->syntax this-syntax new-datum this-syntax this-syntax)]
+
+      [((~or module module*) _ ...) (loop this-syntax 0 #true)]
+
+      #:parent-context-modifier (λ (stx) stx)
+      #:parent-srcloc-modifier (λ (stx) stx)
+      #:parent-props-modifier (λ (stx) stx))))
 
 
 (define (binding-site-variables expanded-stx)
@@ -52,8 +65,13 @@
        #:when (not (equal? id-phase phase))
        (loop this-syntax id-phase)]
 
+      [(quote-syntax _ ...) (stream)]
+
       [(define-values (id ...) body)
        (stream-append (attribute id) (recur (attribute body)))]
+
+      [(define-syntaxes (id ...) body)
+       (stream-append (attribute id) (loop (attribute body) (add1 phase)))]
 
       [((~or let-values letrec-values) ([(id ...) rhs] ...) body ...)
        (define inner-exprs (append (attribute rhs) (attribute body)))
@@ -79,6 +97,7 @@
        #:do [(define id-phase (syntax-property (attribute id) 'phase))]
        #:when (not (equal? id-phase phase))
        (loop this-syntax id-phase)]
+      [(quote-syntax _ ...) (stream)]
       [(set! id:id expr)
        (stream-cons (attribute id) (mutated-variables (attribute expr)))])))
 
@@ -110,11 +129,12 @@
 
 (module+ test
   (test-case "variable-mutability-analyzer"
-    
+
     (test-case "empty module"
         (define stx #'(module foo racket/base))
         (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
         (check-equal? props (syntax-property-bundle)))
+
 
     (test-case "one immutable binding"
         (define stx
@@ -127,6 +147,7 @@
           (syntax-property-bundle
            (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'immutable)))
         (check-equal? props expected-props))
+
 
     (test-case "one mutable binding"
         (define stx
@@ -141,6 +162,7 @@
            (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'mutable)))
         (check-equal? props expected-props))
 
+
     (test-case "one immutable phase 1 binding"
       (define stx
         #'(module foo racket
@@ -153,6 +175,7 @@
         (syntax-property-bundle
          (syntax-property-entry (syntax-path (list 3 2 1 1 0)) 'variable-mutability 'immutable)))
       (check-equal? props expected-props))
+
 
     (test-case "one mutable phase 1 binding"
       (define stx
@@ -167,6 +190,7 @@
         (syntax-property-bundle
          (syntax-property-entry (syntax-path (list 3 2 1 1 0)) 'variable-mutability 'mutable)))
       (check-equal? props expected-props))
+
 
     (test-case "one immutable phase 2 binding"
       (define stx
@@ -183,6 +207,7 @@
          (syntax-property-entry (syntax-path (list 3 3 1 1 1 0)) 'variable-mutability 'immutable)))
       (check-equal? props expected-props))
 
+
     (test-case "one mutable phase 2 binding"
       (define stx
         #'(module foo racket
@@ -197,4 +222,114 @@
       (define expected-props
         (syntax-property-bundle
          (syntax-property-entry (syntax-path (list 3 3 1 1 1 0)) 'variable-mutability 'mutable)))
+      (check-equal? props expected-props))
+
+
+    (test-case "immutable function definition"
+      (define stx
+        #'(module foo racket
+            (define (f)
+              (void))))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'immutable)))
+      (check-equal? props expected-props))
+
+
+    (test-case "mutable function definition"
+      (define stx
+        #'(module foo racket
+            (define (f)
+              (void))
+            (set! f (λ () (displayln "hi")))))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'mutable)))
+      (check-equal? props expected-props))
+
+
+    (test-case "immutable function arguments"
+      (define stx
+        #'(module foo racket
+            (define (f x)
+              (void))))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'immutable)
+         (syntax-property-entry (syntax-path (list 3 2 2 1 0)) 'variable-mutability 'immutable)))
+      (check-equal? props expected-props))
+
+
+    (test-case "mutable function arguments"
+      (define stx
+        #'(module foo racket
+            (define (f x)
+              (set! x 1)
+              (void))))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'immutable)
+         (syntax-property-entry (syntax-path (list 3 2 2 1 0)) 'variable-mutability 'mutable)))
+      (check-equal? props expected-props))
+
+
+    (test-case "macro definition and argument"
+      (define stx
+        #'(module foo racket
+            (define-syntax (m stx)
+              #'(void))))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'immutable)
+         (syntax-property-entry (syntax-path (list 3 2 2 1 0)) 'variable-mutability 'immutable)))
+      (check-equal? props expected-props))
+
+
+    (test-case "mutated via macro"
+      (define stx
+        #'(module foo racket
+            (define a 1)
+            (define-syntax (set-a! stx)
+              #'(set! a 2))
+            (set-a!)))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'mutable)
+         (syntax-property-entry (syntax-path (list 3 3 1 0)) 'variable-mutability 'immutable)
+         (syntax-property-entry (syntax-path (list 3 3 2 1 0)) 'variable-mutability 'immutable)))
+      (check-equal? props expected-props))
+
+    
+    (test-case "mutated via unused macro"
+      (define stx
+        #'(module foo racket
+            (define a 1)
+            (define-syntax (set-a! stx)
+              #'(set! a 2))))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'immutable)
+         (syntax-property-entry (syntax-path (list 3 3 1 0)) 'variable-mutability 'immutable)
+         (syntax-property-entry (syntax-path (list 3 3 2 1 0)) 'variable-mutability 'immutable)))
       (check-equal? props expected-props))))
