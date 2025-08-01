@@ -9,27 +9,35 @@
   [variable-mutability-analyzer expansion-analyzer?]))
 
 
-(require racket/list
+(require racket/dict
+         racket/list
+         racket/match
          racket/stream
+         rebellion/streaming/transducer
          resyntax/private/analyzer
          resyntax/private/syntax-path
+         resyntax/private/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/id-table
          syntax/parse)
+
+
+(module+ test
+  (require (submod "..")
+           rackunit))
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
 (define (syntax-label-id-phases expanded-stx)
-  (let loop ([stx expanded-stx] [phase 0] [skip? #false])
-  (syntax-traverse stx
-    #:skip-root? skip?
-    #:literal-sets (kernel-literals)
-    [:id (syntax-property stx 'phase phase)]
-    [(begin-for-syntax _ ...) (loop stx (add1 phase) #true)]
-    [((~or module module*) _ ...) (loop stx 0 #true)])))
-
+  (let loop ([expanded-stx expanded-stx] [phase 0] [skip? #false])
+    (syntax-traverse expanded-stx
+      #:skip-root? skip?
+      #:literal-sets (kernel-literals)
+      [:id (syntax-property this-syntax 'phase phase)]
+      [(begin-for-syntax _ ...) (loop this-syntax (add1 phase) #true)]
+      [((~or module module*) _ ...) (loop this-syntax 0 #true)])))
 
 (define (binding-site-variables expanded-stx)
   (syntax-search expanded-stx
@@ -70,8 +78,50 @@
     (free-id-table-set! phase-specific-table id 'immutable))
   (for ([id (in-stream (mutated-variables labeled-stx))])
     (define phase-specific-table (hash-ref variable-table (syntax-property id 'phase)))
-    (free-id-table-set! phase-specific-table id 'mutable)))
+    (free-id-table-set! phase-specific-table id 'mutable))
+  (transduce (in-hash-values variable-table)
+             (append-mapping in-dict-pairs)
+             (mapping
+              (λ (e)
+                (match-define (cons id mode) e)
+                (define path (syntax-property id 'expanded-path))
+                (syntax-property-entry path 'variable-mutability mode)))
+             #:into into-syntax-property-bundle))
 
 
 (define variable-mutability-analyzer
   (make-expansion-analyzer variable-mutability #:name 'variable-mutability-analyzer))
+
+
+(module+ test
+  (test-case "variable-mutability-analyzer"
+    
+    (test-case "empty module"
+      (define stx #'(module foo racket/base))
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+      (check-equal? props (syntax-property-bundle)))
+
+    (test-case "module with one immutable binding"
+      (define stx
+        #'(module foo racket/base
+            (define a 1)))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'immutable)))
+      (check-equal? props expected-props))
+
+    (test-case "module with one mutable binding"
+      (define stx
+        #'(module foo racket/base
+            (define a 1)
+            (set! a 2)))
+
+      (define props (expansion-analyze variable-mutability-analyzer (expand stx)))
+
+      (define expected-props
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 3 2 1 0)) 'variable-mutability 'mutable)))
+      (check-equal? props expected-props))))
