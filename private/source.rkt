@@ -13,6 +13,7 @@
   [source-directory (-> source? (or/c path? #false))]
   [source-original (-> source? unmodified-source?)]
   [source-read-syntax (-> source? syntax?)]
+  [source-read-language (-> source? (or/c module-path? #false))]
   [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
@@ -67,6 +68,11 @@
          syntax/parse)
 
 
+(module+ test
+  (require (submod "..")
+           rackunit))
+
+
 ;@----------------------------------------------------------------------------------------------------
 
 
@@ -119,6 +125,32 @@
     (port-count-lines! (current-input-port))
     (with-module-reading-parameterization read-syntax))
   (syntax-label-original-paths (with-input-from-source code read-from-input)))
+
+
+(define (source-read-language code)
+  (define (read-lang-from-input)
+    (port-count-lines! (current-input-port))
+    (with-module-reading-parameterization
+      (λ ()
+        (call/ec
+         (λ (escape)
+           (parameterize ([current-reader-guard escape])
+             (read-syntax))
+           #false)))))
+  (define detected-lang (with-input-from-source code read-lang-from-input))
+  (match detected-lang
+    [(list 'submod path 'reader) path]
+    [#false #false]))
+
+
+(module+ test
+  (test-case "source-read-language"
+    (check-equal? (source-read-language (string-source "#lang racket")) 'racket)
+    (check-equal? (source-read-language (string-source "#lang at-exp racket")) 'at-exp)
+    (check-equal? (source-read-language (string-source "#lang scribble/manual")) 'scribble/manual)
+    (check-equal? (source-read-language (string-source "#lang info")) 'info)
+    (check-equal? (source-read-language (string-source "#lang setup/infotab")) 'setup/infotab)
+    (check-equal? (source-read-language (string-source "(void)")) #false)))
 
 
 (define/guard (source-path code)
