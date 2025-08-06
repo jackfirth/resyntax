@@ -34,6 +34,7 @@
          racket/file
          racket/match
          racket/sequence
+         racket/set
          racket/string
          rebellion/base/comparator
          rebellion/base/option
@@ -143,10 +144,22 @@
     (git-commit! message)))
 
 
+(define allowed-langs (set 'racket 'racket/base 'racket/gui))
+
+
 (define/guard (resyntax-analyze source
                           #:suite [suite default-recommendations]
                           #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (define comments (with-input-from-source source read-comment-locations))
+  (define source-lang (source-read-language source))
+  (guard source-lang #:else
+    (log-resyntax-warning "skipping ~a because its #lang could not be determined"
+                          (or (source-path source) "string source"))
+    (refactoring-result-set #:base-source source #:results '()))
+  (guard (set-member? allowed-langs source-lang) #:else
+    (log-resyntax-warning "skipping ~a because it's written in #lang ~a, which is unsupported"
+                          (or (source-path source) "string source") source-lang)
+    (refactoring-result-set #:base-source source #:results '()))
   (define full-source (source->string source))
   (guard (string-prefix? full-source "#lang racket") #:else
     (log-resyntax-warning "skipping ~a because it does not start with #lang racket"
