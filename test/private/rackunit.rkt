@@ -246,6 +246,7 @@
     (with-check-info (['logs (build-logs-info)]
                       ['program (string-block-info (string-source-contents program-src))]
                       ['target (string-block-info (string-source-contents target-src))]
+                      ['target-path target-path]
                       ['target-properties target-properties]
                       ['property-key property-key])
       (fail-check "analysis did not assign a value for the given syntax property key")))
@@ -257,6 +258,7 @@
     (with-check-info (['logs (build-logs-info)]
                       ['program (string-block-info (string-source-contents program-src))]
                       ['target (string-block-info (string-source-contents target-src))]
+                      ['target-path target-path]
                       ['property-key property-key]
                       ['actual actual-value]
                       ['expected expected-value])
