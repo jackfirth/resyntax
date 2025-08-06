@@ -11,7 +11,8 @@
          range-set
          require:
          statement
-         test:)
+         test:
+         analysis-test:)
 
 
 (require (for-syntax racket/base
@@ -130,6 +131,33 @@
               args.check ...))]))))
 
 
+(begin-for-syntax
+  (define-syntax-class property-value
+    #:description "a literal syntax property value (an unquoted symbol, boolean, number, or string)"
+    (pattern (~or :id :boolean :number :str))))
+
+
+(define-syntax analysis-test:
+  (statement-transformer
+   (λ (stx)
+     (syntax-parse stx
+       #:track-literals
+       #:datum-literals (option @within @inspect @property @assert)
+       [(_ _ name:str
+           code:literal-code-block
+           (~seq (option @within context-block:literal-code-block) ...
+                 (option @inspect target-block:literal-code-block)
+                 (option @property property-key:id)
+                 (~and assert-option (option @assert expected-value:property-value))))
+        #`(test-case name
+            #,(syntax/loc this-syntax
+                (check-suite-analysis code
+                                      (list context-block ...)
+                                      target-block
+                                      'property-key
+                                      'expected-value)))]))))
+
+
 (define (line-range first-line last-line)
   (closed-range first-line last-line #:comparator natural<=>))
 
@@ -185,7 +213,10 @@
                     (syntax-e line-stx))))
          (define joined-srcloc (srcloc-spanning (first (attribute line)) (last (attribute line))))
          (define joined-lines-stx (datum->syntax #false joined-lines joined-srcloc #false))
-         (datum->syntax #false (list normalized-id joined-lines-stx) this-syntax this-syntax)]))
+         (datum->syntax #false (list normalized-id joined-lines-stx) this-syntax this-syntax)]
+        #:parent-context-modifier (λ (stx) stx)
+        #:parent-srcloc-modifier (λ (stx) stx)
+        #:parent-props-modifier (λ (stx) stx)))
     (define module-datum
       `(module refactoring-test racket/base
          (module test resyntax/test

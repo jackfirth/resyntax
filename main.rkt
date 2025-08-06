@@ -26,6 +26,8 @@
          #:max-modified-sources (or/c exact-nonnegative-integer? +inf.0)
          #:max-modified-lines (or/c exact-nonnegative-integer? +inf.0))
         resyntax-analysis?)]
+  [reysntax-analyze-for-properties-only
+   (->* (source?) (#:suite refactoring-suite?) syntax-property-bundle?)]
   [refactor! (-> (sequence/c refactoring-result?) void?)]))
 
 
@@ -59,6 +61,7 @@
          resyntax/private/source
          resyntax/private/string-indent
          resyntax/private/string-replacement
+         resyntax/private/syntax-property-bundle
          resyntax/private/syntax-range
          resyntax/private/syntax-replacement
          (except-in racket/list range)
@@ -148,8 +151,8 @@
 
 
 (define/guard (resyntax-analyze source
-                          #:suite [suite default-recommendations]
-                          #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
+                                #:suite [suite default-recommendations]
+                                #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
   (define comments (with-input-from-source source read-comment-locations))
   (define source-lang (source-read-language source))
   (guard source-lang #:else
@@ -184,6 +187,31 @@
       (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)))
   
   (refactoring-result-set #:base-source source #:results results))
+
+
+(define/guard (reysntax-analyze-for-properties-only source #:suite [suite default-recommendations])
+  (define comments (with-input-from-source source read-comment-locations))
+  (define full-source (source->string source))
+  (guard (string-prefix? full-source "#lang racket") #:else
+    (log-resyntax-warning "skipping ~a because it does not start with #lang racket"
+                          (or (source-path source) "string source"))
+    (syntax-property-bundle))
+  (log-resyntax-info "analyzing ~a" (or (source-path source) "string source"))
+  (for ([comment (in-range-set comments)])
+    (log-resyntax-debug "parsed comment: ~a: ~v" comment (substring-by-range full-source comment)))
+
+  (define (skip e)
+    (log-resyntax-error
+     "skipping ~a\n encountered an error during macro expansion\n  error:\n~a"
+     (or (source-path source) "string source")
+     (string-indent (exn-message e) #:amount 3))
+    (syntax-property-bundle))
+
+  (with-handlers ([exn:fail:syntax? skip]
+                  [exn:fail:filesystem:missing-module? skip]
+                  [exn:fail:contract:variable? skip])
+    (define analysis (source-analyze source))
+    (source-code-analysis-added-syntax-properties analysis)))
 
 
 (define (resyntax-analyze-all sources

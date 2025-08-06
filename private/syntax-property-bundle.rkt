@@ -11,7 +11,8 @@
   [syntax-property-bundle? (-> any/c boolean?)]
   [syntax-property-bundle-as-map (-> syntax-property-bundle? immutable-sorted-map?)]
   [syntax-property-bundle-entries (-> syntax-property-bundle? (sequence/c syntax-property-entry?))]
-  [syntax-property-bundle-get-property (-> syntax-property-bundle? syntax-path? any/c any/c)]
+  [syntax-property-bundle-get-property
+   (->* (syntax-property-bundle? syntax-path? any/c) (failure-result/c) any/c)]
   [syntax-property-bundle-get-immediate-properties
    (-> syntax-property-bundle? syntax-path? immutable-hash?)]
   [syntax-property-bundle-get-all-properties
@@ -127,7 +128,7 @@
     (check-equal? actual expected)))
 
 
-(define (syntax-property-bundle-get-property prop-bundle path key)
+(define (syntax-property-bundle-get-property prop-bundle path key [failure-result #false])
   (define props-at-path (sorted-map-get (syntax-property-bundle-as-map prop-bundle) path (hash)))
 
   (define (fail)
@@ -138,7 +139,7 @@
      "property key" key
      "properties at path" props-at-path))
 
-  (hash-ref props-at-path key fail))
+  (hash-ref props-at-path key (or failure-result fail)))
 
 
 (module+ test
@@ -161,7 +162,18 @@
       (check-regexp-match #rx"syntax-property-bundle-get-property:" (exn-message thrown))
       (check-regexp-match #rx"path:" (exn-message thrown))
       (check-regexp-match #rx"property key: 'foo" (exn-message thrown))
-      (check-regexp-match #rx"properties at path: '#hash()" (exn-message thrown)))))
+      (check-regexp-match #rx"properties at path: '#hash()" (exn-message thrown)))
+
+    (test-case "empty bundle with failure value provided"
+      (define path (syntax-path (list 1 2 3)))
+      (define actual (syntax-property-bundle-get-property (syntax-property-bundle) path 'foo 42))
+      (check-equal? actual 42))
+
+    (test-case "empty bundle with failure thunk provided"
+      (define path (syntax-path (list 1 2 3)))
+      (define actual
+        (syntax-property-bundle-get-property (syntax-property-bundle) path 'foo (λ () 42)))
+      (check-equal? actual 42))))
 
 
 (define (syntax-property-bundle-get-immediate-properties prop-bundle path)
