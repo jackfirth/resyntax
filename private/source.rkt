@@ -237,7 +237,19 @@
 
     (define property-selection-table
       (transduce movement-table
-                 (filtering-values (λ (exp-paths) (equal? (sorted-set-size exp-paths) 1)))
+                 (filtering
+                  (λ (e)
+                    (match-define (entry orig-path exp-paths) e)
+                    (match (sorted-set-size exp-paths)
+                      [1 #true]
+                      [0 #false]
+                      [_
+                       (log-resyntax-debug
+                        (string-append
+                         "ignoring expansion analyzer properties for original path ~a because"
+                         " multiple expanded forms claim to originate from that path")
+                        orig-path)
+                       #false])))
                  (mapping-values (λ (exp-paths) (present-value (sorted-set-least-element exp-paths))))
                  #:into (into-sorted-map syntax-path<=>)))
 

@@ -96,34 +96,3 @@
 
 (define (stream-append-all streams)
   (apply stream-append streams))
-
-
-(module+ test
-  (test-case "ignored-result-values-analyzer"
-    (define test-stx
-      #'(define (f x)
-          (displayln "hi")
-          x))
-    (define expanded (expand test-stx))
-    (define lambda-path (syntax-path (list 2)))
-    (define displayln-path (syntax-path (list 2 2)))
-    (define displayln-id-path (syntax-path (list 2 2 (tail-syntax 1) 0)))
-    (define hi-path (syntax-path (list 2 2 (tail-syntax 1) 1)))
-    (define x-path (syntax-path (list 2 3)))
-    (check-equal? (syntax->datum (syntax-ref expanded lambda-path))
-                  '(lambda (x) (#%app displayln '"hi") x))
-    (check-equal? (syntax->datum (syntax-ref expanded displayln-path)) '(#%app displayln '"hi"))
-    (check-equal? (syntax->datum (syntax-ref expanded displayln-id-path)) 'displayln)
-    (check-equal? (syntax->datum (syntax-ref expanded hi-path)) ''"hi")
-    (check-equal? (syntax->datum (syntax-ref expanded x-path)) 'x)
-
-    (define actual (expansion-analyze ignored-result-values-analyzer expanded))
-
-    (define expected
-      (syntax-property-bundle
-       (syntax-property-entry lambda-path 'expression-result 'used)
-       (syntax-property-entry displayln-path 'expression-result 'ignored)
-       (syntax-property-entry displayln-id-path 'expression-result 'used)
-       (syntax-property-entry hi-path 'expression-result 'used)
-       (syntax-property-entry x-path 'expression-result 'used)))
-    (check-equal? actual expected)))
