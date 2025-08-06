@@ -8,7 +8,8 @@
          set-header!
          add-suite-under-test!
          check-suite-refactors
-         check-suite-does-not-refactor)
+         check-suite-does-not-refactor
+         check-suite-analysis)
 
 
 (require racket/logging
@@ -34,6 +35,9 @@
          resyntax/private/source
          resyntax/private/string-indent
          resyntax/private/string-replacement
+         resyntax/private/syntax-path
+         resyntax/private/syntax-property-bundle
+         resyntax/private/syntax-traversal
          syntax/modread
          syntax/parse
          (except-in racket/list range))
@@ -156,10 +160,11 @@
         (with-handlers
             ([exn:fail?
               (λ (e)
-                (with-check-info (['logs (build-logs-info)]
-                                  ['original (string-block-info (code-block-raw-string original-program))]
-                                  ['expected (string-block-info expected-program)]
-                                  ['exception e])
+                (with-check-info
+                    (['logs (build-logs-info)]
+                     ['original (string-block-info (code-block-raw-string original-program))]
+                     ['expected (string-block-info expected-program)]
+                     ['exception e])
                   (fail-check "an error occurred while processing refactoring results")))])
           (call-with-logs-captured
            (λ () (modified-source-contents (refactoring-result-set-updated-source result-set))))))
@@ -210,6 +215,104 @@
                         ['actual (string-block-info refactored-program)])
         (unless (empty? (refactoring-result-set-results result-set))
           (fail-check "the program was not changed, but no-op fixes were suggested"))))))
+
+
+(define-check (check-suite-analysis program context-list target property-key expected-value)
+  (define suite (current-suite-under-test))
+  (set! program (code-block-append (current-header) program))
+  (define program-src (string-source (code-block-raw-string program)))
+  (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
+
+  (define actual-props
+    (call-with-logs-captured
+     (λ () (reysntax-analyze-for-properties-only program-src))))
+
+  (define target-src (string-source (string-trim (code-block-raw-string target))))
+  (define context-src-list
+    (for/list ([ctx (in-list context-list)])
+      (string-source (string-trim (code-block-raw-string ctx)))))
+
+  (define target-path (source-find-path-of program-src target-src #:contexts context-src-list))
+
+  (unless target-path
+    (with-check-info (['logs (build-logs-info)]
+                      ['program (string-block-info (string-source-contents program-src))]
+                      ['target (string-block-info (string-source-contents target-src))])
+      (fail-check "could not locate target subform within the given program")))
+
+  (define (fail-property-lookup)
+    (define target-properties
+      (syntax-property-bundle-get-immediate-properties actual-props target-path))
+    (with-check-info (['logs (build-logs-info)]
+                      ['program (string-block-info (string-source-contents program-src))]
+                      ['target (string-block-info (string-source-contents target-src))]
+                      ['target-properties target-properties]
+                      ['property-key property-key])
+      (fail-check "analysis did not assign a value for the given syntax property key")))
+
+  (define actual-value
+    (syntax-property-bundle-get-property actual-props target-path property-key fail-property-lookup))
+
+  (unless (equal? actual-value expected-value)
+    (with-check-info (['logs (build-logs-info)]
+                      ['program (string-block-info (string-source-contents program-src))]
+                      ['target (string-block-info (string-source-contents target-src))]
+                      ['property-key property-key]
+                      ['actual actual-value]
+                      ['expected expected-value])
+      (fail-check "analysis assigned an incorrect value for the given syntax property key"))))
+
+
+(define (source-find-path-of src target-src #:contexts [context-srcs '()])
+  (define stx (syntax-label-paths (source-read-syntax src) 'source-path))
+  (define target-as-string (string-source-contents target-src))
+
+  (define target-stx
+    (let loop ([stx stx] [context-srcs context-srcs])
+      (match context-srcs
+        ['()
+         (syntax-find-first stx subform
+            #:when (equal? (source-text-of src (attribute subform)) target-as-string))]
+        [(cons next-context remaining-contexts)
+         (define next-as-string (string-source-contents next-context))
+         (define substx
+           (syntax-find-first stx subform
+             #:when (equal? (source-text-of src (attribute subform)) next-as-string)))
+         (and substx (loop substx remaining-contexts))])))
+                  
+  (and target-stx (syntax-property target-stx 'source-path)))
+
+
+(module+ test
+  (test-case "source-find-path-of"
+
+    (test-case "no #lang"
+      (define src (string-source "(+ a b c)"))
+      (define target (string-source "b"))
+      (check-equal? (source-find-path-of src target) (syntax-path (list 2))))
+
+    (test-case "simple #lang"
+      (define src (string-source "#lang racket (define a 1)"))
+      (define target (string-source "a"))
+      (check-equal? (source-find-path-of src target) (syntax-path (list 3 1 1))))
+
+    (test-case "single context"
+      (define src (string-source "(list (+ a) (* a))"))
+      (define target (string-source "a"))
+      (define contexts (list (string-source "(* a)")))
+      (check-equal? (source-find-path-of src target #:contexts contexts) (syntax-path (list 2 1))))
+
+    (test-case "multiple contexts"
+      (define src (string-source "(+ a (+ a (+ a (+ a))))"))
+      (define target (string-source "a"))
+      (define contexts
+        (list (string-source "(+ a (+ a (+ a)))")
+              (string-source "(+ a (+ a))")
+              (string-source "(+ a)")))
+
+      (define actual-path (source-find-path-of src target #:contexts contexts))
+
+      (check-equal? actual-path (syntax-path (list 2 2 2 1))))))
 
 
 (define (refactoring-result-set-matched-rules-info result-set)

@@ -14,6 +14,7 @@
   [source-original (-> source? unmodified-source?)]
   [source-read-syntax (-> source? syntax?)]
   [source-read-language (-> source? (or/c module-path? #false))]
+  [source-text-of (-> source? syntax? immutable-string?)]
   [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
@@ -30,6 +31,7 @@
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [source-code-analysis-expansion-time-output (-> source-code-analysis? immutable-string?)]
   [source-code-analysis-namespace (-> source-code-analysis? namespace?)]
+  [source-code-analysis-added-syntax-properties (-> source-code-analysis? syntax-property-bundle?)]
   [with-input-from-source (-> source? (-> any) any)]))
 
 
@@ -97,7 +99,8 @@
   #:guard (λ (original contents _) (values original (string->immutable-string contents))))
 
 
-(define-record-type source-code-analysis (code visited-forms expansion-time-output namespace))
+(define-record-type source-code-analysis
+  (code visited-forms expansion-time-output namespace added-syntax-properties))
 
 
 (define (with-input-from-source code proc)
@@ -167,6 +170,15 @@
   (if (unmodified-source? code)
       code
       (modified-source-original code)))
+
+
+(define (source-text-of code stx)
+  (unless (and (syntax-position stx) (syntax-span stx))
+    (raise-arguments-error 'source-text-of "syntax object does not have source location information"
+                           "syntax" stx))
+  (define start (sub1 (syntax-position stx)))
+  (define end (+ start (syntax-span stx)))
+  (string->immutable-string (substring (source->string code) start end)))
 
 
 (define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
@@ -307,7 +319,8 @@
     (source-code-analysis #:code code
                           #:visited-forms visited
                           #:expansion-time-output output
-                          #:namespace ns)))
+                          #:namespace ns
+                          #:added-syntax-properties expansion-analyzer-props-adjusted-for-visits)))
 
 
 (define (syntax-original-and-from-source? stx source-name)
