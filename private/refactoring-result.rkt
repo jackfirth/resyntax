@@ -21,6 +21,7 @@
   [refactoring-result-string-replacement (-> refactoring-result? string-replacement?)]
   [refactoring-result-line-replacement (-> refactoring-result? line-replacement?)]
   [refactoring-result-original-line (-> refactoring-result? exact-positive-integer?)]
+  [refactoring-result-original-column (-> refactoring-result? exact-nonnegative-integer?)]
   [refactoring-result-original-code (-> refactoring-result? code-snippet?)]
   [refactoring-result-new-code (-> refactoring-result? code-snippet?)]
   [refactoring-result-set? (-> any/c boolean?)]
@@ -95,6 +96,10 @@
 
 (define (refactoring-result-original-line result)
   (line-replacement-start-line (refactoring-result-line-replacement result)))
+
+
+(define (refactoring-result-original-column result)
+  (code-snippet-start-column (refactoring-result-original-code result)))
 
 
 (define-record-type refactoring-result-set (base-source results)
