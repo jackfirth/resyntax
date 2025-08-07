@@ -55,9 +55,9 @@
          rebellion/collection/vector/builder
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/analyzers/ignored-result-values
          resyntax/private/analyzer
-         resyntax/private/fully-expanded-syntax
          resyntax/private/linemap
          resyntax/private/logger
          resyntax/private/string-indent

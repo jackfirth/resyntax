@@ -579,7 +579,7 @@ return just that result."
   #:literals (in-hash)
   (for-id:id (clause-before ... [(key:id value:id) (in-hash hash-expr)] clause-after ...) body ...)
   #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
-  #:when (empty? (or (syntax-property #'value 'identifier-usages) '()))
+  #:when (equal? (syntax-property #'value 'usage-count) 0)
   (for-id (clause-before ... [key (in-hash-keys hash-expr)] clause-after ...) body ...))
 
 
@@ -588,7 +588,7 @@ return just that result."
   #:literals (in-hash)
   (for-id:id (clause-before ... [(key:id value:id) (in-hash hash-expr)] clause-after ...) body ...)
   #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
-  #:when (empty? (or (syntax-property #'key 'identifier-usages) '()))
+  #:when (equal? (syntax-property #'key 'usage-count) 0)
   (for-id (clause-before ... [value (in-hash-values hash-expr)] clause-after ...) body ...))
 
 

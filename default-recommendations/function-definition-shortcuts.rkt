@@ -156,7 +156,7 @@
   #:when (oneline-syntax? (attribute default-expr))
   #:when (free-identifier=? (attribute rest-args) (attribute rest-args2))
   #:when (free-identifier=? (attribute rest-args) (attribute rest-args3))
-  #:when (equal? (length (syntax-property (attribute rest-args) 'identifier-usages)) 2)
+  #:when (equal? (syntax-property (attribute rest-args) 'usage-count) 2)
 
   (define (f arg ... [optional-arg default-expr])
     body ...))
