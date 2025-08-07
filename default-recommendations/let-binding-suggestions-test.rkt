@@ -684,3 +684,37 @@ test: "redundant let bindings can be removed"
 (define x 1)
 (* x 2)
 ------------------------------
+
+
+test: "single-line cond clause with let should be reformatted when refactoring to define"
+------------------------------
+(define (f x)
+  (cond
+    [(number? x) (let ([y 42]) (+ x y))]
+    [else 'else]))
+==============================
+(define (f x)
+  (cond
+    [(number? x)
+     (define y 42)
+     (+ x y)]
+    [else 'else]))
+------------------------------
+
+
+test: "single-line match clause with let should be reformatted when refactoring to define"
+------------------------------
+(require racket/match)
+(define (f x)
+  (match x
+    [(? number? x) (let ([y 42]) (+ x y))]
+    [_ 'else]))
+==============================
+(require racket/match)
+(define (f x)
+  (match x
+    [(? number? x)
+     (define y 42)
+     (+ x y)]
+    [_ 'else]))
+------------------------------
