@@ -67,9 +67,7 @@ analysis-test: "thrice-used let-bound variable"
 
 
 analysis-test: "unused module-level function definition"
---------------------
-(define (f x) x)
---------------------
+- (define (f x) x)
 @inspect - f
 @property usage-count
 @assert 0
@@ -80,7 +78,7 @@ analysis-test: "once-used module-level function definition"
 (define (f x) x)
 (f 1)
 --------------------
-@within - (define (f x) x)
+@within - (f x)
 @inspect - f
 @property usage-count
 @assert 1
@@ -91,7 +89,7 @@ analysis-test: "twice-used module-level function definition"
 (define (f x) x)
 (void (f 1) (f 2))
 --------------------
-@within - (define (f x) x)
+@within - (f x)
 @inspect - f
 @property usage-count
 @assert 2
@@ -175,9 +173,7 @@ analysis-test: "once-used rest argument in module-level function"
 
 
 analysis-test: "unused positional argument in lambda"
---------------------
-((lambda (x y) x) 1 2)
---------------------
+- ((lambda (x y) x) 1 2)
 @within - (lambda (x y) x)
 @inspect - y
 @property usage-count
@@ -185,9 +181,7 @@ analysis-test: "unused positional argument in lambda"
 
 
 analysis-test: "once-used positional argument in lambda"
---------------------
-((lambda (x y) y) 1 2)
---------------------
+- ((lambda (x y) y) 1 2)
 @within - (lambda (x y) y)
 @inspect - y
 @property usage-count
@@ -195,9 +189,7 @@ analysis-test: "once-used positional argument in lambda"
 
 
 analysis-test: "twice-used positional argument in lambda"
---------------------
-((lambda (x y) (void y y)) 1 2)
---------------------
+- ((lambda (x y) (void y y)) 1 2)
 @within - (lambda (x y) (void y y))
 @inspect - y
 @property usage-count
@@ -205,9 +197,7 @@ analysis-test: "twice-used positional argument in lambda"
 
 
 analysis-test: "unused keyword argument in lambda"
---------------------
-((lambda (x #:key key) x) 1 #:key 2)
---------------------
+- ((lambda (x #:key key) x) 1 #:key 2)
 @within - (lambda (x #:key key) x)
 @inspect - key
 @property usage-count
@@ -215,9 +205,7 @@ analysis-test: "unused keyword argument in lambda"
 
 
 analysis-test: "once-used keyword argument in lambda"
---------------------
-((lambda (x #:key key) key) 1 #:key 2)
---------------------
+- ((lambda (x #:key key) key) 1 #:key 2)
 @within - (lambda (x #:key key) key)
 @inspect - key
 @property usage-count
@@ -225,9 +213,7 @@ analysis-test: "once-used keyword argument in lambda"
 
 
 analysis-test: "unused rest argument in lambda"
---------------------
-((lambda (x . rest) x) 1 2 3)
---------------------
+- ((lambda (x . rest) x) 1 2 3)
 @within - (lambda (x . rest) x)
 @inspect - rest
 @property usage-count
@@ -235,9 +221,7 @@ analysis-test: "unused rest argument in lambda"
 
 
 analysis-test: "once-used rest argument in lambda"
---------------------
-((lambda (x . rest) rest) 1 2 3)
---------------------
+- ((lambda (x . rest) rest) 1 2 3)
 @within - (lambda (x . rest) rest)
 @inspect - rest
 @property usage-count
