@@ -132,7 +132,7 @@
 
 
 (define (unused-id? id)
-  (empty? (or (syntax-property id 'identifier-usages) '())))
+  (equal? (syntax-property id 'usage-count) 0))
 
 
 (define (identifier-would-self-shadow? id rhs-id #:full-right-hand-side rhs)

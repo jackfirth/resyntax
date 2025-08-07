@@ -28,7 +28,7 @@
 (define-definition-context-refactoring-rule unused-definition
   #:description "This definition is not used."
   (~seq before ... definition:side-effect-free-definition first-after remaining-after ...)
-  #:when (empty? (or (syntax-property (attribute definition.id) 'identifier-usages) '()))
+  #:when (equal? (syntax-property (attribute definition.id) 'usage-count) 0)
   (before ...
    (~focus-replacement-on (~replacement first-after #:original-splice (definition first-after)))
    remaining-after ...))

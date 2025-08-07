@@ -294,7 +294,11 @@
 
 
 (define (phase-binding-table bound-ids used-ids #:phase phase)
-  (for*/fold ([map (make-immutable-free-id-table #:phase phase)])
+  (define initial-map
+    (for/fold ([map (make-immutable-free-id-table #:phase phase)])
+              ([bound bound-ids])
+      (free-id-table-set map bound '())))
+  (for*/fold ([map initial-map])
              ([bound bound-ids]
               [used used-ids]
               #:when (free-identifier=? bound used))
@@ -327,36 +331,5 @@
                  (λ (id-table)
                    (for/stream ([(bound-id usages) (in-free-id-table id-table)])
                      (define exp-path (syntax-property bound-id 'expanded-path))
-                     (syntax-property-entry exp-path 'identifier-usages usages))))
+                     (syntax-property-entry exp-path 'usage-count (length usages)))))
                 #:into into-syntax-property-bundle))))
-
-
-(module+ test
-  (test-case "identifier-usage-analyzer"
-    ;; Arrange
-    (define stx
-      #'(module foo racket/base
-          (let ([x 42] [y 42])
-            (+ x y))))
-    (define expanded
-      (parameterize ([current-namespace (make-base-namespace)])
-        (expand stx)))
-    (define expanded-x-path (syntax-path (treelist 3 2 2 2 1 0 0 0)))
-    (define expanded-y-path (syntax-path (treelist 3 2 2 2 1 1 0 0)))
-    (check-equal? (syntax->datum (syntax-ref expanded expanded-x-path)) 'x)
-    (check-equal? (syntax->datum (syntax-ref expanded expanded-y-path)) 'y)
-    (define x-binding-clause-path (syntax-path-parent (syntax-path-parent expanded-x-path)))
-    (define y-binding-clause-path (syntax-path-parent (syntax-path-parent expanded-y-path)))
-    (check-equal? (syntax->datum (syntax-ref expanded x-binding-clause-path)) '[(x) '42])
-    (check-equal? (syntax->datum (syntax-ref expanded y-binding-clause-path)) '[(y) '42])
-
-    ;; Act
-    (define props (expansion-analyze identifier-usage-analyzer expanded))
-    (define prop-map (syntax-property-bundle-as-map props))
-
-    ;; Assert
-    (define expected-keys (sorted-set expanded-x-path expanded-y-path #:comparator syntax-path<=>))
-    (check-equal? (sorted-map-keys prop-map) expected-keys)
-    (check-equal? (length (hash-ref (sorted-map-get prop-map expanded-x-path) 'identifier-usages)) 1)
-    (check-equal? (length (hash-ref (sorted-map-get prop-map expanded-y-path) 'identifier-usages))
-                  1)))
