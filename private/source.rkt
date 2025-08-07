@@ -57,6 +57,7 @@
          rebellion/type/record
          resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/analyzers/ignored-result-values
+         resyntax/default-recommendations/analyzers/variable-mutability
          resyntax/private/analyzer
          resyntax/private/linemap
          resyntax/private/logger
@@ -258,7 +259,9 @@
                   (syntax-property-bundle-entries
                    (expansion-analyze identifier-usage-analyzer expanded))
                   (syntax-property-bundle-entries
-                   (expansion-analyze ignored-result-values-analyzer expanded)))
+                   (expansion-analyze ignored-result-values-analyzer expanded))
+                  (syntax-property-bundle-entries
+                   (expansion-analyze variable-mutability-analyzer expanded)))
                  #:into into-syntax-property-bundle))
 
     (define expansion-analyzer-props-adjusted-for-visits
