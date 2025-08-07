@@ -10,6 +10,7 @@
 
 
 (require (for-syntax racket/base)
+         racket/list
          racket/set
          rebellion/private/static-name
          resyntax/base
@@ -42,7 +43,10 @@
   #:description
   "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
   (~seq leading-body ... let-expression:refactorable-let-expression)
-  #:with (replacement ...) #'(~focus-replacement-on (let-expression.refactored ...))
+  #:with (replacement ...)
+  (if (empty? (attribute leading-body))
+      (attribute let-expression.refactored)
+      #'(~focus-replacement-on (let-expression.refactored ...)))
   (leading-body ... replacement ...))
 
 
