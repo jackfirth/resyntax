@@ -337,3 +337,43 @@ analysis-test: "twice-used internal function definition in function"
 @inspect - g
 @property usage-count
 @assert 2
+
+
+analysis-test: "unused local variable in macro definition"
+--------------------
+(require (for-syntax racket/base))
+(define-syntax (m stx)
+  (define a 1)
+  stx)
+--------------------
+@inspect - a
+@property usage-count
+@assert 0
+
+
+analysis-test: "once-used local variable in macro definition"
+--------------------
+(require (for-syntax racket/base))
+(define-syntax (m stx)
+  (define a 1)
+  (void a)
+  stx)
+--------------------
+@within - (define a 1)
+@inspect - a
+@property usage-count
+@assert 1
+
+
+analysis-test: "twice-used local variable in macro definition"
+--------------------
+(require (for-syntax racket/base))
+(define-syntax (m stx)
+  (define a 1)
+  (void a a)
+  stx)
+--------------------
+@within - (define a 1)
+@inspect - a
+@property usage-count
+@assert 2
