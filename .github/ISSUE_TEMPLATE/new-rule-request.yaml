@@ -16,7 +16,6 @@ body:
     description: Write a [Resyntax test case](https://docs.racket-lang.org/resyntax/Testing_Refactoring_Rules.html) demonstrating how this rule should transform code.
     value: |
       #lang resyntax/test
-      require: resyntax/default-recommendations default-recommendations
 
       test: "original code should be refactorable to new code"
       --------------------

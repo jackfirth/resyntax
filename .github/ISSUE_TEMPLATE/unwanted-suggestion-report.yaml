@@ -18,7 +18,6 @@ body:
     description: What code did Resyntax make an unwanted suggestion about? Put the code inside this test case.
     value: |
       #lang resyntax/test
-      require: resyntax/default-recommendations default-recommendations
 
       test: "this code should not be refactored"
       --------------------
