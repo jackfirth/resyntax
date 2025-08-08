@@ -1009,3 +1009,40 @@ test: "in-hash in for/list loop refactorable to in-hash-values"
 (for/list ([v (in-hash-values (hash 'a 1 'b 2 'c 3))])
   v)
 --------------------
+
+
+test: "unused in-value clause refactorable to #:do clause"
+--------------------
+(for* ([a (in-range 0 3)]
+       [b (in-value (* a 2))]
+       [c (in-range 0 a)])
+  (displayln (list a c)))
+====================
+(for* ([a (in-range 0 3)]
+       #:do [(* a 2)]
+       [c (in-range 0 a)])
+  (displayln (list a c)))
+--------------------
+
+
+test: "used in-value clause not refactorable to #:do clause"
+--------------------
+(for* ([a (in-range 0 3)]
+       [b (in-value (* a 2))]
+       [c (in-range 0 a)])
+  (displayln (list a b c)))
+--------------------
+
+
+test: "shadowed and unused in-value clause refactorable to #:do clause"
+--------------------
+(for* ([a (in-range 0 3)]
+       [b (in-value (* a 2))]
+       [b (in-range 0 a)])
+  (displayln (list a b)))
+====================
+(for* ([a (in-range 0 3)]
+       #:do [(* a 2)]
+       [b (in-range 0 a)])
+  (displayln (list a b)))
+--------------------

@@ -592,6 +592,15 @@ return just that result."
   (for-id (clause-before ... [value (in-hash-values hash-expr)] clause-after ...) body ...))
 
 
+(define-refactoring-rule in-value-to-do
+  #:description "This `in-value` clause can be replaced with a `#:do` clause since the variable is not used."
+  #:literals (in-value)
+  (for-id:id (clause-before ... [var:id (in-value expr)] clause-after ...) body ...)
+  #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
+  #:when (equal? (syntax-property #'var 'usage-count) 0)
+  (for-id (clause-before ... #:do [expr] clause-after ...) body ...))
+
+
 (define-refactoring-suite for-loop-shortcuts
   #:rules (andmap-to-for/and
            append-map-for/list-to-for*/list
@@ -607,6 +616,7 @@ return just that result."
            hash-for-each-to-for
            in-hash-to-in-hash-keys
            in-hash-to-in-hash-values
+           in-value-to-do
            list->set-to-for/set
            list->vector-to-for/vector
            map-to-for
