@@ -249,7 +249,9 @@ For help on these, use 'analyze --help' or 'fix --help'."
          (define path
            (file-source-path
             (syntax-replacement-source (refactoring-result-syntax-replacement result))))
-         (printf "resyntax: ~a [~a]\n" path (refactoring-result-rule-name result))
+         (define line (refactoring-result-original-line result))
+         (define column (refactoring-result-original-column result))
+         (printf "resyntax: ~a:~a:~a [~a]\n" path line column (refactoring-result-rule-name result))
          (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
          (define old-code (refactoring-result-original-code result))
          (define new-code (refactoring-result-new-code result))
