@@ -4,7 +4,7 @@
 @(require (for-label racket/base
                      resyntax/base
                      resyntax/default-recommendations
-                     resyntax/test
+                     (except-in resyntax/test #%module-begin)
                      syntax/parse
                      syntax/parse/define)
           scribble/bnf

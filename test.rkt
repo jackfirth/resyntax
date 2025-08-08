@@ -175,7 +175,8 @@
 ;; when no explicit require: statements are present
 (define-syntax (#%module-begin stx)
   (syntax-parse stx
-    [(_ . body)
+    #:literals (begin)
+    [(_ (begin . body)) ; The brag grammar adds a (begin ...) around everything in the module
      (define has-require? (has-require-statements? #'body))
      (if has-require?
          #`(racket-module-begin . body)
