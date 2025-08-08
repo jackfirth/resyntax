@@ -14,8 +14,8 @@ body:
     required: true
 - type: textarea
   attributes:
-    label: Original code
-    description: What code did Resyntax make an unwanted suggestion about?
+    label: Test case for code that shouldn't be refactored
+    description: What code did Resyntax make an unwanted suggestion about? Put the code inside this test case.
     value: |
       #lang resyntax/test
       require: resyntax/default-recommendations default-recommendations
