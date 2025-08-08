@@ -1,0 +1,38 @@
+name: New rule request
+description: Suggest adding a new refactoring rule to Resyntax's default recommendations
+title: "New rule: `rule-name-here`"
+labels: new lint
+body:
+- type: textarea
+  attributes:
+    label: Rule summary
+    description: Describe the rule you'd like to see added to Resyntax, keeping in mind [what makes a good refactoring rule](https://docs.racket-lang.org/resyntax/Refactoring_Rules_and_Suites.html#%28part._.What_.Makes_a_.Good_.Refactoring_.Rule_%29).
+    placeholder: The expression `(foo (list a b c))` can be written more simply as `(foo a b c)`. Resyntax should suggest rewriting the first form to the second.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Test case
+    description: Write a [Resyntax test case](https://docs.racket-lang.org/resyntax/Testing_Refactoring_Rules.html) demonstrating how this rule should transform code.
+    value: |
+      #lang resyntax/test
+      require: resyntax/default-recommendations default-recommendations
+
+      test: "original code should be refactorable to new code"
+      --------------------
+      #lang racket
+      ;; Put the original code here
+      ====================
+      #lang racket
+      ;; Put the code you'd like Resyntax to generate here
+      --------------------
+    render: scheme
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Additional context
+    description: If applicable, include links to publicly viewable code where this rule would help.
+    placeholder: The code in octocat/neat-project#123 would be improved by this, especially [this file](https://example.com).
+  validations:
+    required: false
