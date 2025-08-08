@@ -149,6 +149,53 @@ If two suggestions try to fix the same code, one of them will be rejected. At pr
 handle overlapping fixes is to run Resyntax multiple times until no fixes are rejected.
 
 
+@section[#:tag "github"]{GitHub Integration}
+
+
+Resyntax integrates with GitHub through GitHub Actions to provide automated code analysis and
+refactoring. There are two main ways to use Resyntax with GitHub repositories:
+
+@itemlist[
+
+ @item{@bold{Analyzer} --- A GitHub Action that reviews pull requests and adds comments suggesting
+  improvements. The analyzer runs @exec{resyntax analyze} on the changed files in a pull request and
+  posts the suggestions as review comments.}
+
+ @item{@bold{Autofixer} --- A GitHub Action that periodically runs @exec{resyntax fix} on an entire
+  repository and creates pull requests with the fixes. The autofixer can automatically clean up code
+  across a repository without manual intervention.}]
+
+The analyzer is useful for catching potential improvements during code review, while the autofixer
+provides ongoing maintenance by automatically applying safe refactoring rules to keep codebases
+clean and up-to-date with best practices.
+
+To see examples of Resyntax in action on GitHub, you can search for
+@hyperlink["https://github.com/search?q=%22Resyntax%20analyzed%22%20%22added%20suggestions%22%20in%3Acomments%20is%3Apr%20sort%3Aupdated%20&type=pullrequests"]{pull request reviews by the analyzer}
+or @hyperlink["https://github.com/search?q=author%3Aapp%2Fresyntax-ci&type=pullrequests"]{pull requests created by the autofixer}.
+
+@subsection{Setting Up the Autofixer}
+
+The Resyntax autofixer is implemented as a reusable GitHub Action in the
+@hyperlink["https://github.com/jackfirth/resyntax-autofixer"]{resyntax-autofixer} repository. The
+autofixer periodically runs Resyntax on a repository and creates pull requests when fixes are found.
+
+To enable the autofixer for your Racket repository, you need to install the Resyntax CI GitHub App
+and configure a workflow. The autofixer creates pull requests authored by @tt{resyntax-ci[bot]} with
+titles like "Automated Resyntax fixes" that include a summary of all the refactoring rules that were
+applied.
+
+The autofixer includes several safeguards to prevent overwhelming repositories with changes:
+
+@itemlist[
+ @item{Limits on the number of fixes applied per run}
+ @item{Limits on the number of files and lines modified}
+ @item{Multiple passes to handle overlapping suggestions}
+ @item{Automatic commit message generation with explanations}]
+
+For more information on setting up the autofixer, see the
+@hyperlink["https://github.com/jackfirth/resyntax-autofixer"]{resyntax-autofixer repository}.
+
+
 @section{Refactoring Rules and Suites}
 @defmodule[resyntax/base]
 
