@@ -1,0 +1,40 @@
+name: Unwanted suggestion report
+title: Unwanted suggestion from `rule-name-here`
+description: Report a bug where Resyntax suggested an unwanted refactoring
+labels:
+- bug
+- existing lint
+body:
+- type: textarea
+  attributes:
+    label: Problem summary
+    description: Give a brief summary of the unwanted suggestion Resyntax made and why it's undesirable. If possible, include links to publicly viewable code where Resyntax tried to apply this suggestion.
+    placeholder: Resyntax suggested changing `foo` to `bar` in octocat/neat-project#123, but this breaks the code.
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Original code
+    description: What code did Resyntax make an unwanted suggestion about?
+    value: |
+      #lang resyntax/test
+      require: resyntax/default-recommendations default-recommendations
+
+      test: "this code should not be refactored"
+      --------------------
+      #lang racket
+      ;; Put the original code here
+      --------------------
+    render: scheme
+  validations:
+    required: true
+- type: textarea
+  attributes:
+    label: Unwanted suggestion
+    description: What code did Resyntax suggest that you don't want?
+    value: |
+      #lang racket
+      ;; Put Resyntax's unwanted suggestion here
+    render: scheme
+  validations:
+    required: true
