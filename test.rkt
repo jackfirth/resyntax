@@ -17,14 +17,17 @@
 
 (require (for-syntax racket/base
                      racket/sequence
-                     resyntax/test/private/statement)
+                     resyntax/test/private/statement
+                     syntax/parse)
          racket/stxparam
          rackunit
          rebellion/base/comparator
          rebellion/base/range
          rebellion/collection/range-set
          resyntax/test/private/rackunit
-         syntax/parse/define)
+         resyntax/default-recommendations
+         syntax/parse/define
+         (only-in racket/base [#%module-begin racket-module-begin]))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -156,6 +159,29 @@
                                       target-block
                                       'property-key
                                       'expected-value)))]))))
+
+
+;; Helper function to check if any require: statements are present
+(begin-for-syntax
+  (define (has-require-statements? body-stx)
+    (for/or ([stmt (in-list (syntax->list body-stx))])
+      (syntax-parse stmt
+        #:literals (statement require:)
+        [(statement require: . _) #true]
+        [_ #false]))))
+
+
+;; Custom #%module-begin that automatically includes default-recommendations
+;; when no explicit require: statements are present
+(define-syntax (#%module-begin stx)
+  (syntax-parse stx
+    [(_ . body)
+     (define has-require? (has-require-statements? #'body))
+     (if has-require?
+         #`(racket-module-begin . body)
+         #`(racket-module-begin 
+            (add-suite-under-test! default-recommendations)
+            . body))]))
 
 
 (define (line-range first-line last-line)
