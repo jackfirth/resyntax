@@ -8,7 +8,7 @@ header:
 - #lang racket/base
 
 
-test: "car reverse of list not refactorable to last of list, due to imports (see issue #11)"
+no-change-test: "car reverse of list not refactorable to last of list, due to imports (see issue #11)"
 - (car (reverse (list 1 2 3)))
 
 
@@ -131,7 +131,7 @@ test: "unnecessary quasiquotation with constants refactorable to list"
 ------------------------------
 
 
-test: "quasiquotation with only constants not refactorable to list"
+no-change-test: "quasiquotation with only constants not refactorable to list"
 - `(1 2 3)
 
 
@@ -145,7 +145,7 @@ test: "unnecessary splicing quasiquotation refactorable to append"
 ------------------------------
 
 
-test: "splicing quasiquotation with other subterms not refactorable to append"
+no-change-test: "splicing quasiquotation with other subterms not refactorable to append"
 ------------------------------
 (define (f xs ys zs)
   `(a ,@xs b ,@ys c ,@zs d))
@@ -168,7 +168,7 @@ test: "ignored map expression refactorable to for-each"
 ------------------------------
 
 
-test: "used map expression not refactorable to for-each"
+no-change-test: "used map expression not refactorable to for-each"
 ------------------------------
 (define (f func xs ys zs)
   (map func xs ys zs))
@@ -239,7 +239,7 @@ test: "list of contiguous selections starting at first element to take"
 ------------------------------
 
 
-test: "list of only two contiguous selections not refactorable to take and drop"
+no-change-test: "list of only two contiguous selections not refactorable to take and drop"
 ------------------------------
 (require racket/list)
 (define vs (list 'foo 'bar 'baz 'blah 'zorp 'zoog 'karp))

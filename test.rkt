@@ -12,6 +12,7 @@
          require:
          statement
          test:
+         no-change-test:
          analysis-test:)
 
 
@@ -106,10 +107,6 @@
   (define-splicing-syntax-class code-block-test-args
     #:attributes ([check 1])
 
-    (pattern code:literal-code-block
-      #:with (check ...)
-      (list (syntax/loc #'code (check-suite-does-not-refactor code))))
-
     (pattern (~seq input-code:literal-code-block expected-code:literal-code-block)
       #:with (check ...)
       (list (syntax/loc #'input-code (check-suite-refactors input-code expected-code))))
@@ -132,6 +129,17 @@
         #`(test-case name
             (parameterize ([params.id params.value] ...)
               args.check ...))]))))
+
+
+(define-syntax no-change-test:
+  (statement-transformer
+   (λ (stx)
+     (syntax-parse stx
+       #:track-literals
+       [(_ _ name:str params:test-parameters code:literal-code-block)
+        #`(test-case name
+            (parameterize ([params.id params.value] ...)
+              #,(syntax/loc #'code (check-suite-does-not-refactor code))))]))))
 
 
 (begin-for-syntax

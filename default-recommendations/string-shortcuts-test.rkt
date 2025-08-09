@@ -84,7 +84,8 @@ test: "format with only one argument can be removed"
 - "hello"
 
 
-test: "format with only one argument can't be removed when formatting directives are present"
+no-change-test:
+"format with only one argument can't be removed when formatting directives are present"
 - (format "hello ~a")
 
 

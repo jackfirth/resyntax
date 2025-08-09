@@ -13,7 +13,7 @@ test: "nested ors can be flattened"
 - (or 1 2 3 4)
 
 
-test: "flat ors can't be flattened"
+no-change-test: "flat ors can't be flattened"
 - (or 1 2 3)
 
 
@@ -27,7 +27,7 @@ test: "deeply nested ors can be flattened in one pass"
 - (or 1 2 3 4 5 6)
 
 
-test: "multiline nested ors can't be flattened"
+no-change-test: "multiline nested ors can't be flattened"
 ------------------------------
 (or 1
     (or 2 3))
@@ -39,7 +39,7 @@ test: "nested ands can be flattened"
 - (and 1 2 3 4)
 
 
-test: "flat ands can't be flattened"
+no-change-test: "flat ands can't be flattened"
 - (and 1 2 3)
 
 
@@ -53,7 +53,7 @@ test: "deeply nested ands can be flattened in one pass"
 - (and 1 2 3 4 5 6)
 
 
-test: "multiline nested ands can't be flattened"
+no-change-test: "multiline nested ands can't be flattened"
 ------------------------------
 (and 1
      (and 2 3))
@@ -75,7 +75,8 @@ test: "using if to convert a boolean expression to a boolean can be removed"
 - (string? "foo")
 
 
-test: "using if to convert a boolean expression to a boolean can't be removed when if is rebound"
+no-change-test:
+"using if to convert a boolean expression to a boolean can't be removed when if is rebound"
 ------------------------------
 (define (if a b c)
   (displayln "You thought I was an if expression? Fool!"))

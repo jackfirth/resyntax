@@ -8,7 +8,7 @@ header:
 - #lang racket/base
 
 
-test: "if without nested ifs not refactorable"
+no-change-test: "if without nested ifs not refactorable"
 - (if 'cond 'then 'else)
 
 
@@ -326,7 +326,8 @@ test: "cond expressions with an always-throwing negated first branch can be refa
 ------------------------------
 
 
-test: "cond expressions with an always-throwing first branch (of multiple) can't be refactored"
+no-change-test:
+"cond expressions with an always-throwing first branch (of multiple) can't be refactored"
 ------------------------------
 (define (f condition1 condition2 condition3)
   (cond
@@ -509,7 +510,7 @@ test: "cond with nested else-cond with commented second clause can be flattened"
 ------------------------------
 
 
-test: "cond with nested cond in last clause without else can't be flattened"
+no-change-test: "cond with nested cond in last clause without else can't be flattened"
 ------------------------------
 (define (f a b last-condition)
   (cond
@@ -524,7 +525,7 @@ test: "cond with nested cond in last clause without else can't be flattened"
 ------------------------------
 
 
-test: "`if-else-false-to-and` is not refactorable when `and` is shadowed"
+no-change-test: "`if-else-false-to-and` is not refactorable when `and` is shadowed"
 ------------------------------
 (define (and x y) (list x y))
 (if 'a (println "true branch") #f)
@@ -968,19 +969,19 @@ test: "and with let can be refactored to cond with define"
 ------------------------------
 
 
-test: "and without let should not be refactored"
+no-change-test: "and without let should not be refactored"
 ------------------------------
 (and 'some-condition (* 42 2))
 ------------------------------
 
 
-test: "and with empty let should not be refactored"
+no-change-test: "and with empty let should not be refactored"
 ------------------------------
 (and 'some-condition (let () (* 42 2)))
 ------------------------------
 
 
-test: "and with more than two arguments should not be refactored"
+no-change-test: "and with more than two arguments should not be refactored"
 ------------------------------
 (and 'some-condition 'another-condition (let ([x 42]) (* x 2)))
 ------------------------------
@@ -1014,7 +1015,7 @@ test: "nested when with multiple body expressions can be merged"
 --------------------
 
 
-test: "when with multiple forms in outer body should not be merged"
+no-change-test: "when with multiple forms in outer body should not be merged"
 --------------------
 (define (f c1 c2)
   (when c1
@@ -1054,7 +1055,7 @@ test: "implicit else in ignored cond refactorable to explicit else void"
 --------------------
 
 
-test: "implicit else in used cond not refactorable to explicit else void"
+no-change-test: "implicit else in used cond not refactorable to explicit else void"
 ------------------------------
 (define (f c1 c2)
   (cond
@@ -1063,7 +1064,7 @@ test: "implicit else in used cond not refactorable to explicit else void"
 ------------------------------
 
 
-test: "cond with existing else clause not refactorable"
+no-change-test: "cond with existing else clause not refactorable"
 ------------------------------
 (define (f c1 c2)
   (cond

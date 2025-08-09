@@ -8,7 +8,7 @@ header:
 - #lang racket/base
 
 
-test: "map with short single-form body not refactorable"
+no-change-test: "map with short single-form body not refactorable"
 ------------------------------
 (define some-list (list 1 2 3))
 (map (λ (x) (* x 2)) some-list)
@@ -101,7 +101,7 @@ test: "map bytes->list to for/list in-bytes"
 ------------------------------
 
 
-test: "for-each with short single-form body not refactorable"
+no-change-test: "for-each with short single-form body not refactorable"
 ------------------------------
 (define some-list (list 1 2 3))
 (for-each (λ (x) (displayln x)) some-list)
@@ -194,7 +194,7 @@ test: "for-each bytes->list to for in-bytes"
 ------------------------------
 
 
-test: "hash-for-each with short single-body form not refactorable"
+no-change-test: "hash-for-each with short single-body form not refactorable"
 ------------------------------
 (define some-hash (hash 'a 1 'b 2))
 (hash-for-each some-hash (λ (k v) (displayln v)))
@@ -247,7 +247,7 @@ test: "hash-for-each with let expression refactorable to for with definitions"
 ------------------------------
 
 
-test: "build-list with short single-body form not refactorable"
+no-change-test: "build-list with short single-body form not refactorable"
 - (build-list 10 (λ (i) (* i 2)))
 
 
@@ -332,7 +332,7 @@ test: "for/and with or guarding complex expression to filter clause"
 ------------------------------
 
 
-test: "for/and with or guarding simple expression not refactorable"
+no-change-test: "for/and with or guarding simple expression not refactorable"
 ------------------------------
 (define some-list (list 3 "foo" 5 14 "bar" 10 6 "baz" 5 2))
 (for/and ([x (in-list some-list)])
@@ -381,7 +381,7 @@ test: "for*/fold building hash to for*/hash"
 ------------------------------
 
 
-test: "for/fold building hash can't be refactored when referring to hash"
+no-change-test: "for/fold building hash can't be refactored when referring to hash"
 ------------------------------
 (for/fold ([h (hash)])
           ([x (in-range 0 10)])
@@ -390,7 +390,7 @@ test: "for/fold building hash can't be refactored when referring to hash"
 ------------------------------
 
 
-test: "for*/fold building hash can't be refactored when referring to hash"
+no-change-test: "for*/fold building hash can't be refactored when referring to hash"
 ------------------------------
 (for*/fold ([h (hash)])
            ([x (in-range 0 10)])
@@ -587,7 +587,7 @@ test: "nested for forms can be flattened to a for* form"
 ------------------------------
 
 
-test: "non-nested for form isn't replaced by a for* form"
+no-change-test: "non-nested for form isn't replaced by a for* form"
 ------------------------------
 (for ([x (in-range 0 5)])
   (displayln x)
@@ -733,7 +733,7 @@ test: "append-map with for/list can be replaced by for*/list"
 ------------------------------------------------------------
 
 
-test: "append-map with multi-clause for/list can't be replaced by for*/list"
+no-change-test: "append-map with multi-clause for/list can't be replaced by for*/list"
 ------------------------------------------------------------
 (require racket/list)
 (append-map (λ (n)
@@ -782,7 +782,7 @@ test: "for-each and append-map can be replaced by for* with #:when"
 ------------------------------------------------------------
 
 
-test: "(apply append ...) with a multi-clause for loop can't be removed"
+no-change-test: "(apply append ...) with a multi-clause for loop can't be removed"
 ------------------------------------------------------------
 (define formulas
   (hash 'water (list 'hydrogen 'oxygen)
@@ -794,7 +794,7 @@ test: "(apply append ...) with a multi-clause for loop can't be removed"
 ------------------------------------------------------------
 
 
-test: "(apply append ...) with a multi-body for loop can't be removed"
+no-change-test: "(apply append ...) with a multi-body for loop can't be removed"
 ------------------------------------------------------------
 (define formulas
   (hash 'water (list 'hydrogen 'oxygen)
@@ -806,7 +806,7 @@ test: "(apply append ...) with a multi-body for loop can't be removed"
 ------------------------------------------------------------
 
 
-test: "(apply append ...) with a multi-body for* loop can't be removed"
+no-change-test: "(apply append ...) with a multi-body for* loop can't be removed"
 ------------------------------------------------------------
 (define formulas
   (hash 'water (list 'hydrogen 'oxygen)
@@ -896,11 +896,11 @@ test: "for/vector with in-range n gets #:length n"
 ------------------------------------------------------------
 
 
-test: "for/vector with literal end won't have #:length added"
+no-change-test: "for/vector with literal end won't have #:length added"
 - (for/vector ([i (in-range 0 10)]) i)
 
 
-test: "for/vector with expression end won't have #:length added"
+no-change-test: "for/vector with expression end won't have #:length added"
 ------------------------------------------------------------
 (define n 5)
 (define m 3)
@@ -908,14 +908,14 @@ test: "for/vector with expression end won't have #:length added"
 ------------------------------------------------------------
 
 
-test: "for/vector with non-zero start won't have #:length added"
+no-change-test: "for/vector with non-zero start won't have #:length added"
 ------------------------------------------------------------
 (define n 5)
 (for/vector ([i (in-range 2 n)]) i)
 ------------------------------------------------------------
 
 
-test: "for/vector with multiple clauses won't have #:length added"
+no-change-test: "for/vector with multiple clauses won't have #:length added"
 ------------------------------------------------------------
 (define n 5)
 (define m 3)
@@ -945,7 +945,7 @@ test: "in-hash refactorable to in-hash-values when only the value is used"
 --------------------
 
 
-test: "in-hash not refactorable to in-hash-keys when key and value both used"
+no-change-test: "in-hash not refactorable to in-hash-keys when key and value both used"
 --------------------
 (for ([(k v) (in-hash (hash 'a 1 'b 2 'c 3))])
   (displayln k)
@@ -1025,7 +1025,7 @@ test: "unused in-value clause refactorable to #:do clause"
 --------------------
 
 
-test: "used in-value clause not refactorable to #:do clause"
+no-change-test: "used in-value clause not refactorable to #:do clause"
 --------------------
 (for* ([a (in-range 0 3)]
        [b (in-value (* a 2))]

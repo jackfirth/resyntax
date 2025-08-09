@@ -21,7 +21,7 @@ test: "nested send expressions refactorable to flat send+ expression"
 --------------------
 
 
-test: "two-method nested send expression not refactorable to send+"
+no-change-test: "two-method nested send expression not refactorable to send+"
 --------------------
 (define (f obj x y)
   (send (send obj m1 x) m2 y))
@@ -48,7 +48,7 @@ test: "instantiate without by-position arguments refactorable to new"
 --------------------
 
 
-test: "instantiate without any arguments not refactorable"
+no-change-test: "instantiate without any arguments not refactorable"
 --------------------
 (define (f cls)
   (instantiate cls ()))
