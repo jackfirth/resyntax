@@ -1035,3 +1035,55 @@ test: "ignored and expression refactorable to when expression"
     (displayln "foo"))
   42)
 --------------------
+
+
+test: "implicit else in ignored cond refactorable to explicit else void"
+--------------------
+(define (f c1 c2 result)
+  (cond
+   [c1 (displayln "condition 1")]
+   [c2 (displayln "condition 2")])
+  result)
+====================
+(define (f c1 c2 result)
+  (cond
+    [c1 (displayln "condition 1")]
+    [c2 (displayln "condition 2")]
+    [else (void)])
+  result)
+--------------------
+
+
+test: "implicit else in used cond not refactorable to explicit else void"
+------------------------------
+(define (f c1 c2)
+  (cond
+   [c1 (displayln "condition 1")]
+   [c2 (displayln "condition 2")]))
+------------------------------
+
+
+test: "cond with existing else clause not refactorable"
+------------------------------
+(define (f c1 c2)
+  (cond
+   [c1 (displayln "condition 1")]
+   [c2 (displayln "condition 2")]
+   [else #f])
+  42)
+------------------------------
+
+
+test: "cond in ignored context with single clause refactorable"
+--------------------
+(define (f c1)
+  (cond
+   [c1 (displayln "condition 1")])
+  42)
+====================
+(define (f c1)
+  (cond
+    [c1 (displayln "condition 1")]
+    [else (void)])
+  42)
+--------------------
