@@ -30,6 +30,21 @@ body:
     required: true
 - type: textarea
   attributes:
+    label: No-change test case
+    description: If there's an important case where this rule should *not* be applied, write a [no-change test case](https://docs.racket-lang.org/resyntax/Testing_Refactoring_Rules.html#%28form._%28%28lib._resyntax%2Ftest..rkt%29._no-change-test~3a%29%29) for it.
+    value: |
+      #lang resyntax/test
+
+      no-change-test: "code not refactorable"
+      --------------------
+      #lang racket
+      ;; Put the code which Resyntax shouldn't refactor here
+      --------------------
+    render: scheme
+  validations:
+    required: false
+- type: textarea
+  attributes:
     label: Additional context
     description: If applicable, include links to publicly viewable code where this rule would help.
     placeholder: The code in octocat/neat-project#123 would be improved by this, especially [this file](https://example.com).
