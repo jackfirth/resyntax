@@ -39,7 +39,7 @@ test: "let binding with commented second clause"
 ------------------------------
 
 
-test: "let binding with commented first clause not refactorable (yet)"
+no-change-test: "let binding with commented first clause not refactorable (yet)"
 ------------------------------
 (define (f)
   (let (;; The number one

@@ -16,7 +16,7 @@ test: "nested or/c contracts can be flattened"
 - (void (or/c 1 2 3 4))
 
 
-test: "flat or/c contracts can't be flattened"
+no-change-test: "flat or/c contracts can't be flattened"
 - (or/c 1 2 3)
 
 
@@ -30,7 +30,7 @@ test: "deeply nested or/c contracts can be flattened in one pass"
 - (void (or/c 1 2 3 4 5 6))
 
 
-test: "multiline nested or/c contracts can't be flattened"
+no-change-test: "multiline nested or/c contracts can't be flattened"
 ------------------------------
 (or/c 1
       (or/c 2 3))
@@ -42,7 +42,7 @@ test: "nested and/c contracts can be flattened"
 - (void (and/c 1 2 3 4))
 
 
-test: "flat and/c contracts can't be flattened"
+no-change-test: "flat and/c contracts can't be flattened"
 - (and/c 1 2 3)
 
 
@@ -56,7 +56,7 @@ test: "deeply nested and/c contracts can be flattened in one pass"
 - (void (and/c 1 2 3 4 5 6))
 
 
-test: "multiline nested and/c contracts can't be flattened"
+no-change-test: "multiline nested and/c contracts can't be flattened"
 ------------------------------
 (and/c 1
        (and/c 2 3))
@@ -90,7 +90,8 @@ test: "infix ->* contracts using #:rest (listof arg) can be replaced with -> and
 - (void (-> string? number? symbol? ... list?))
 
 
-test: "->* contracts using #:rest and optional arguments not refactorable to -> and ellipses"
+no-change-test:
+"->* contracts using #:rest and optional arguments not refactorable to -> and ellipses"
 - (void (->* () (string?) #:rest (listof symbol?) list?))
 
 

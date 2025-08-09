@@ -205,7 +205,7 @@ test: "multiple let*-values bindings"
 ------------------------------
 
 
-test: "self-shadowing let binding isn't refactorable"
+no-change-test: "self-shadowing let binding isn't refactorable"
 ------------------------------
 (define (f x)
   (let ([x (+ x 1)])
@@ -213,7 +213,7 @@ test: "self-shadowing let binding isn't refactorable"
 ------------------------------
 
 
-test: "self-shadowing let* binding isn't refactorable"
+no-change-test: "self-shadowing let* binding isn't refactorable"
 ------------------------------
 (define (f x)
   (let* ([x (+ x 1)])
@@ -221,7 +221,7 @@ test: "self-shadowing let* binding isn't refactorable"
 ------------------------------
 
 
-test: "self-shadowing let-values binding clause isn't refactorable"
+no-change-test: "self-shadowing let-values binding clause isn't refactorable"
 ------------------------------
 (define (f x)
   (let-values ([(x y) (values x 1)])
@@ -229,7 +229,7 @@ test: "self-shadowing let-values binding clause isn't refactorable"
 ------------------------------
 
 
-test: "self-shadowing let*-values binding clause isn't refactorable"
+no-change-test: "self-shadowing let*-values binding clause isn't refactorable"
 ------------------------------
 (define (f x)
   (let*-values ([(x y) (values x 1)])
@@ -265,7 +265,7 @@ test: "let* with later right-hand-sides referring to earlier bindings is refacto
 ------------------------------
 
 
-test: "let* with later bindings shadowing earlier right-hand-sides not refactorable"
+no-change-test: "let* with later bindings shadowing earlier right-hand-sides not refactorable"
 ------------------------------
 (define y 1)
 (define (f)
@@ -345,7 +345,7 @@ test: "partially used let-values binding at phase 1 refactorable to define-value
 ------------------------------
 
 
-test: "let forms with conflicting outer definitions not refactorable"
+no-change-test: "let forms with conflicting outer definitions not refactorable"
 ------------------------------
 (define (f)
   (define x 1)
@@ -354,7 +354,7 @@ test: "let forms with conflicting outer definitions not refactorable"
 ------------------------------
 
 
-test: "let forms with conflicting outer definitions at phase 1 not refactorable"
+no-change-test: "let forms with conflicting outer definitions at phase 1 not refactorable"
 ------------------------------
 (require (for-syntax racket/base))
 (begin-for-syntax
@@ -509,14 +509,14 @@ test: "let forms inside for loop bodies"
 ------------------------------
 
 
-test: "let forms at module level not refactorable to define"
+no-change-test: "let forms at module level not refactorable to define"
 ------------------------------
 (let ([x 1])
   (* x 2))
 ------------------------------
 
 
-test: "let forms at submodule level not refactorable to define"
+no-change-test: "let forms at submodule level not refactorable to define"
 ------------------------------
 (module+ test
   (let ([x 1])
@@ -532,7 +532,7 @@ test: "named lets which don't refer to the name are refactorable to unnamed lets
 ------------------------------
 
 
-test: "named lets which do refer to the name aren't refactorable to unnamed lets"
+no-change-test: "named lets which do refer to the name aren't refactorable to unnamed lets"
 ------------------------------
 (let loop ([x 1])
   (if (zero? x)
@@ -546,11 +546,12 @@ test: "let-values expressions with an immediate call are refactorable to call-wi
 - (call-with-values (λ () (values 1 2 3)) list)
 
 
-test: "let-values expressions with an immediate call with different order aren't refactorable"
+no-change-test:
+"let-values expressions with an immediate call with different order aren't refactorable"
 - (let-values ([(x y z) (values 1 2 3)]) (list z y x))
 
 
-test: "let binding with conflicting define inside"
+no-change-test: "let binding with conflicting define inside"
 ------------------------------
 (define (g)
   (let* ([x 1]
@@ -560,7 +561,7 @@ test: "let binding with conflicting define inside"
 ------------------------------
 
 
-test: "let binding with obfuscated conflicting define inside"
+no-change-test: "let binding with obfuscated conflicting define inside"
 ------------------------------
 (define (g)
   (let* ([x 'outer]
@@ -611,7 +612,7 @@ test:
 ------------------------------
 
 
-test: "variable definition with nested let binding of same name not refactorable"
+no-change-test: "variable definition with nested let binding of same name not refactorable"
 ------------------------------
 (define (f)
   (define y (let ([y 1]) (* y 2)))
@@ -619,7 +620,7 @@ test: "variable definition with nested let binding of same name not refactorable
 ------------------------------
 
 
-test: "variable definition with nested let binding of name bound later not refactorable"
+no-change-test: "variable definition with nested let binding of name bound later not refactorable"
 ------------------------------
 (define (f)
   (define y (let ([x 1]) (* x 2)))
@@ -628,7 +629,7 @@ test: "variable definition with nested let binding of name bound later not refac
 ------------------------------
 
 
-test: "variable definition with nested let binding of name bound earlier not refactorable"
+no-change-test: "variable definition with nested let binding of name bound earlier not refactorable"
 ------------------------------
 (define (f)
   (define x 5)
@@ -637,7 +638,8 @@ test: "variable definition with nested let binding of name bound earlier not ref
 ------------------------------
 
 
-test: "variable definition with nested let binding shadowing name used later not refactorable"
+no-change-test:
+"variable definition with nested let binding shadowing name used later not refactorable"
 ------------------------------
 (define x 5)
 (define (f)

@@ -61,7 +61,7 @@ test: "lambda variable definition with rest argument to function definition"
 ------------------------------
 
 
-test: "class lambda variable definition not refactorable"
+no-change-test: "class lambda variable definition not refactorable"
 ------------------------------
 (require racket/class)
 (class object%
@@ -82,7 +82,7 @@ test: "lambda function definition to function definition"
 ------------------------------
 
 
-test: "lambda function definition with closed-over expressions not refactorable"
+no-change-test: "lambda function definition with closed-over expressions not refactorable"
 ------------------------------
 (define (f a b c)
   (displayln a)
@@ -91,7 +91,7 @@ test: "lambda function definition with closed-over expressions not refactorable"
 ------------------------------
 
 
-test: "thunk function definition not refactorable (it's too terse)"
+no-change-test: "thunk function definition not refactorable (it's too terse)"
 ------------------------------
 (define (f a b c)
   (λ ()
@@ -99,7 +99,7 @@ test: "thunk function definition not refactorable (it's too terse)"
 ------------------------------
 
 
-test: "lambda variable definition with commented first body not refactorable (yet)"
+no-change-test: "lambda variable definition with commented first body not refactorable (yet)"
 ------------------------------
 (define f
   (λ (a)
@@ -159,7 +159,7 @@ test: "nested lambda function definition to function definition"
 ------------------------------
 
 
-test: "nested lambda variable with multiple multiline headers not refactorable"
+no-change-test: "nested lambda variable with multiple multiline headers not refactorable"
 ------------------------------
 (define f
   (λ (a
@@ -172,7 +172,7 @@ test: "nested lambda variable with multiple multiline headers not refactorable"
 ------------------------------
 
 
-test: "function with multiline header returning lambda not refactorable"
+no-change-test: "function with multiline header returning lambda not refactorable"
 ------------------------------
 (define (f a
            b
@@ -182,7 +182,7 @@ test: "function with multiline header returning lambda not refactorable"
 ------------------------------
 
 
-test: "function returning lambda with multiline header not refactorable"
+no-change-test: "function returning lambda with multiline header not refactorable"
 ------------------------------
 (define (f a)
   (λ (x
@@ -220,7 +220,7 @@ test: "case-lambda with default arg and required args"
 ------------------------------
 
 
-test: "case-lambda with default arg not refactorable when required args out of order"
+no-change-test: "case-lambda with default arg not refactorable when required args out of order"
 ------------------------------
 (define f
   (case-lambda
@@ -231,7 +231,7 @@ test: "case-lambda with default arg not refactorable when required args out of o
 ------------------------------
 
 
-test: "case-lambda with default arg not refactorable when default is a multiline expression"
+no-change-test: "case-lambda with default arg not refactorable when default is a multiline expression"
 ------------------------------
 (define f
   (case-lambda
@@ -309,7 +309,8 @@ test: "empty-checked rest args to optional arg"
 ------------------------------
 
 
-test: "empty-checked rest args not refactorable to optional arg when default expression is multiline"
+no-change-test:
+"empty-checked rest args not refactorable to optional arg when default expression is multiline"
 ------------------------------
 (define (foo a b . x*)
   (define x
@@ -322,7 +323,8 @@ test: "empty-checked rest args not refactorable to optional arg when default exp
 ------------------------------
 
 
-test: "empty-checked rest args not refactorable to optional arg when rest args used elsewhere"
+no-change-test:
+"empty-checked rest args not refactorable to optional arg when rest args used elsewhere"
 ------------------------------
 (define (foo a b . x*)
   (define x (if (null? x*) "default" (car x*)))

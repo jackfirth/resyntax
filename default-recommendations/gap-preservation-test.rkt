@@ -38,7 +38,7 @@ test: "later comments preserved in splice when form inserted after first"
 -----------------------------------
 
 
-test: "not refactorable when comment dropped due to inserted form"
+no-change-test: "not refactorable when comment dropped due to inserted form"
 -----------------------------------
 (define (code insert-foo-second a b c)
   (insert-foo-second a

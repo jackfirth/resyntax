@@ -541,12 +541,12 @@ what @hash-lang[] each code block in that file is written in.
 
 @subsection{Test Statements}
 
-The @racketmodname[resyntax/test] language supports three types of @tech{test statements}:
+The @racketmodname[resyntax/test] language supports four types of @tech{test statements}:
 
 @itemlist[
  @item{@racket[require:] statements for loading @tech{refactoring suites}}
  @item{@racket[header:] statements for defining common code used in all tests}
- @item{@racket[test:] statements for defining individual test cases}]
+ @item{@racket[test:] and @racket[no-change-test:] statements for defining individual test cases}]
 
 
 @defform[#:kind "test statement" (require: module-path suite-name)]{
@@ -576,11 +576,11 @@ The @racketmodname[resyntax/test] language supports three types of @tech{test st
   --------------------
 }}
 
-@defform[#:kind "test statement" (test: description-string test-body ...)]{
- Defines a test case with the given @racket[description-string]. The @racket[test-body] consists of
- one or more @tech{code blocks}. The number of code blocks determines what the test checks. If two
- code blocks are provided, the test case checks that Resyntax refactors the first block into the
- second:
+
+@defform[#:kind "test statement"
+         (test: description-string input-code-block ...+ expected-code-block)]{
+ Defines a test case named with the given @racket[description-string]. The test case checks that
+ Resyntax refactors each @racket[input-code-block] block into the final @racket[expected-code-block]:
 
  @verbatim{
   #lang resyntax/test
@@ -593,28 +593,22 @@ The @racketmodname[resyntax/test] language supports three types of @tech{test st
   #lang racket
   (new-function 1 2 3)
   --------------------
- }
-
- If more than two code blocks are provided, the last code block is the desired code and the test case
- checks that Resyntax refactors @emph{each} of the preceding code blocks into the desired code:
-
- @verbatim{
-  #lang resyntax/test
 
   test: "should remove old-condition from and expressions"
   - (and old-condition x)
   - (and x old-condition)
   - (and old-condition x old-condition)
   - x
- }
+ }}
 
- When only a single code block is provided, the resulting test checks that Resyntax does @emph{not}
- make any changes to the code block:
+@defform[#:kind "test statement" (no-change-test: description-string input-code-block)]{
+ Defines a test case named with the given @racket[description-string]. The test checks that Resyntax
+ does @emph{not} make any changes to the @racket[input-code-block]:
 
  @verbatim{
   #lang resyntax/test
 
-  test: "should not rewrite old function to new function in higher-order uses"
+  no-change-test: "should not rewrite old function to new function in higher-order uses"
   --------------------
   #lang racket
   (map old-function (list 1 2 3))

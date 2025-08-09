@@ -84,7 +84,8 @@ test: "single-clause match expressions inside cond can be replaced with match-de
 ------------------------------
 
 
-test: "single-clause match not migratable when pattern bindings conflict with surrounding context"
+no-change-test:
+"single-clause match not migratable when pattern bindings conflict with surrounding context"
 ------------------------------
 (define (foo x)
   (define a 42)
@@ -93,7 +94,7 @@ test: "single-clause match not migratable when pattern bindings conflict with su
 ------------------------------
 
 
-test: "single-clause match not migratable when pattern would bind subject expression"
+no-change-test: "single-clause match not migratable when pattern would bind subject expression"
 ------------------------------
 (define (foo x)
   (match x
@@ -155,7 +156,7 @@ test: "nested match patterns using ? with a lambda can be simplified with #:when
 ------------------------------
 
 
-test: "match patterns using ? with a lambda cannot be simplified when under ellipses"
+no-change-test: "match patterns using ? with a lambda cannot be simplified when under ellipses"
 ------------------------------
 (define (foo xs)
   (match xs
@@ -220,7 +221,7 @@ test: "root-level and pattern can be removed when it binds unused variable"
 ------------------------------
 
 
-test: "root-level and pattern not removed when not matching on a simple variable"
+no-change-test: "root-level and pattern not removed when not matching on a simple variable"
 ------------------------------
 (define (f lst)
   (match (car lst)
@@ -313,7 +314,7 @@ test: "single-clause match with if conditional should be refactored to match-def
 ------------------------------
 
 
-test: "match with if conditional and long pattern should not be refactored to use #:when"
+no-change-test: "match with if conditional and long pattern should not be refactored to use #:when"
 ------------------------------
 (define (f data)
   (match data

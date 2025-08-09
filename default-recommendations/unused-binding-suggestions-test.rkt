@@ -20,7 +20,7 @@ test: "should remove unused function definitions from internal definition contex
 ------------------------------
 
 
-test: "should not remove used function definitions from internal definition contexts"
+no-change-test: "should not remove used function definitions from internal definition contexts"
 ------------------------------
 (define (foo)
   (define (bar)

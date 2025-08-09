@@ -115,7 +115,7 @@ test: "immediately returned variable definition can be inlined"
 ------------------------------
 
 
-test: "immediately returned function definition cannot be inlined"
+no-change-test: "immediately returned function definition cannot be inlined"
 ------------------------------
 (define (foo)
   (define (x)
@@ -124,7 +124,7 @@ test: "immediately returned function definition cannot be inlined"
 ------------------------------
 
 
-test: "immediately used variable definition cannot be inlined"
+no-change-test: "immediately used variable definition cannot be inlined"
 ------------------------------
 (define (foo)
   (define x 1)
@@ -132,7 +132,7 @@ test: "immediately used variable definition cannot be inlined"
 ------------------------------
 
 
-test: "immediately returned recursive definition cannot be inlined"
+no-change-test: "immediately returned recursive definition cannot be inlined"
 ------------------------------
 (define (foo)
   (define x (list (lambda () x)))
@@ -233,7 +233,7 @@ test: "begin0 in right hand side of variable definition can be removed"
 --------------------
 
 
-test: "begin0 in right hand side of function definition can't be removed"
+no-change-test: "begin0 in right hand side of function definition can't be removed"
 --------------------
 (define (foo)
   (define (x) (begin0 42 (displayln "foo")))

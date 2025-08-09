@@ -13,14 +13,14 @@ header:
 ------------------------------
 
 
-test: "shadowed `or`: single-line de morgan's law"
+no-change-test: "shadowed `or`: single-line de morgan's law"
 ------------------------------
 (define (or x y z) (append x y z))
 (and (not 1) (not 2) (not 3))
 ------------------------------
 
 
-test: "shadowed `or`: multi-line de morgan's law"
+no-change-test: "shadowed `or`: multi-line de morgan's law"
 ------------------------------
 (define (or x y z) (append x y z))
 (and (not 1)
@@ -29,14 +29,14 @@ test: "shadowed `or`: multi-line de morgan's law"
 ------------------------------
 
 
-test: "shadowed `and`: single-line de morgan's law"
+no-change-test: "shadowed `and`: single-line de morgan's law"
 ------------------------------
 (define (and x y z) (list x y z))
 (or (not 1) (not 2) (not 3))
 ------------------------------
 
 
-test: "shadowed `and`: multi-line de morgan's law"
+no-change-test: "shadowed `and`: multi-line de morgan's law"
 ------------------------------
 (define (and x y z) (list x y z))
 (or (not 1)
@@ -45,14 +45,14 @@ test: "shadowed `and`: multi-line de morgan's law"
 ------------------------------
 
 
-test: "shadowed `not`: if then false else true"
+no-change-test: "shadowed `not`: if then false else true"
 ------------------------------
 (define (not b) (list 'not b))
 (if 4 #false #true)
 ------------------------------
 
 
-test: "shadowed `unless`: when not"
+no-change-test: "shadowed `unless`: when not"
 ------------------------------
 (define (unless c b) b)
 (when (not 'foo)
@@ -74,7 +74,7 @@ test: "shadowed `displayln`: when not -> unless is fine"
 ------------------------------
 
 
-test: "shadowed `when`: unless not"
+no-change-test: "shadowed `when`: unless not"
 ------------------------------
 (define (when c b) b)
 (unless (not 'foo)
@@ -96,14 +96,14 @@ test: "shadowed `displayln`: unless not -> when is fine"
 ------------------------------
 
 
-test: "shadowed `and`: single-line if-else-false-to-and"
+no-change-test: "shadowed `and`: single-line if-else-false-to-and"
 ------------------------------
 (define (and x y) (list x y))
 (if 'a (println "true branch") #f)
 ------------------------------
 
 
-test: "shadowed `and`: multi-line if-else-false-to-and"
+no-change-test: "shadowed `and`: multi-line if-else-false-to-and"
 ------------------------------
 (define (and x y) (list x y))
 (if 'a
@@ -139,7 +139,7 @@ test: "shadowed `println`: multi-line if-else-false-to-and is fine"
 ------------------------------
 
 
-test: "shadowed `for`: for-each with long single-form body"
+no-change-test: "shadowed `for`: for-each with long single-form body"
 ------------------------------
 (define (for lst f)
   (for-each f lst))
@@ -151,7 +151,7 @@ test: "shadowed `for`: for-each with long single-form body"
 ------------------------------
 
 
-test: "shadowed `for`: for-each with multiple body forms"
+no-change-test: "shadowed `for`: for-each with multiple body forms"
 ------------------------------
 (define (for lst f)
   (for-each f lst))
@@ -164,7 +164,7 @@ test: "shadowed `for`: for-each with multiple body forms"
 ------------------------------
 
 
-test: "shadowed `for/vector`: list->vector with for/list"
+no-change-test: "shadowed `for/vector`: list->vector with for/list"
 ------------------------------
 (define (for/vector f v)
   (list->vector (map f (vector->list v))))
@@ -175,7 +175,7 @@ test: "shadowed `for/vector`: list->vector with for/list"
 ------------------------------
 
 
-test: "shadowed `for*`: nested for forms"
+no-change-test: "shadowed `for*`: nested for forms"
 ------------------------------
 (define (for* lsts f)
   (for-each (λ (args) (apply f args)) (apply cartesian-product lsts)))
@@ -188,7 +188,7 @@ test: "shadowed `for*`: nested for forms"
 ------------------------------
 
 
-test: "shadowed `for*`: for-each and append-map"
+no-change-test: "shadowed `for*`: for-each and append-map"
 ------------------------------------------------------------
 (define (for* lsts f)
   (for-each (λ (args) (apply f args)) (apply cartesian-product lsts)))
@@ -201,7 +201,7 @@ test: "shadowed `for*`: for-each and append-map"
 ------------------------------------------------------------
 
 
-test: "shadowed `struct`: define-struct without options"
+no-change-test: "shadowed `struct`: define-struct without options"
 ----------------------------------------
 (define (struct name n)
   (define-values (struct:name _1 _2 _3 _4) (make-struct-type name #f n 0))
@@ -210,7 +210,7 @@ test: "shadowed `struct`: define-struct without options"
 ----------------------------------------
 
 
-test: "shadowed `define`: let forms inside for loop bodies"
+no-change-test: "shadowed `define`: let forms inside for loop bodies"
 ------------------------------
 (define-values (definitions) (make-hasheq))
 (define-values (define)
@@ -221,7 +221,7 @@ test: "shadowed `define`: let forms inside for loop bodies"
 ------------------------------
 
 
-test: "shadowed `call-with-values`: let-values expressions with an immediate call"
+no-change-test: "shadowed `call-with-values`: let-values expressions with an immediate call"
 ------------------------------
 (define (call-with-values generator receiver)
   ((compose receiver generator)))
@@ -229,14 +229,14 @@ test: "shadowed `call-with-values`: let-values expressions with an immediate cal
 ------------------------------
 
 
-test: "shadowed `last`: first reverse of list"
+no-change-test: "shadowed `last`: first reverse of list"
 ------------------------------
 (define (last l) (apply max l))
 (first (reverse (list 1 2 3)))
 ------------------------------
 
 
-test: "shadowed `append-map`: (append* (map ...))"
+no-change-test: "shadowed `append-map`: (append* (map ...))"
 ------------------------------
 (define ((append-map f) lst) (append* (map f lst)))
 (define (f x) (list x x x))
@@ -244,7 +244,7 @@ test: "shadowed `append-map`: (append* (map ...))"
 ------------------------------
 
 
-test: "shadowed `match-define`: single-clause match expressions"
+no-change-test: "shadowed `match-define`: single-clause match expressions"
 ------------------------------
 (define-syntax-rule (match-define head clause ...)
   (define/match head clause ...))
@@ -256,35 +256,35 @@ test: "shadowed `match-define`: single-clause match expressions"
 ------------------------------
 
 
-test: "shadowed `add1`: lambda equivalent to add1"
+no-change-test: "shadowed `add1`: lambda equivalent to add1"
 ------------------------------
 (define (add1 v) (cons 1 v))
 (map (λ (x) (+ x 1)) (list 1 2 3))
 ------------------------------
 
 
-test: "shadowed `sub1`: lambda equivalent to sub1"
+no-change-test: "shadowed `sub1`: lambda equivalent to sub1"
 ------------------------------
 (define (sub1 v) (rest v))
 (map (λ (x) (- x 1)) (list 1 2 3))
 ------------------------------
 
 
-test: "shadowed `positive?`: lambda equivalent to positive?"
+no-change-test: "shadowed `positive?`: lambda equivalent to positive?"
 ------------------------------
 (define (positive? v) (and (cons? v) (= 1 (first v))))
 (filter (λ (x) (< 0 x)) (list -2 -1 0 1 2))
 ------------------------------
 
 
-test: "shadowed `negative?`: lambda equivalent to negative?"
+no-change-test: "shadowed `negative?`: lambda equivalent to negative?"
 ------------------------------
 (define (negative? v) (and (cons? v) (= -1 (first v))))
 (filter (λ (x) (< x 0)) (list -2 -1 0 1 2))
 ------------------------------
 
 
-test: "shadowed `define-syntax-parse-rule`: define-simple-macro"
+no-change-test: "shadowed `define-syntax-parse-rule`: define-simple-macro"
 ------------------------------
 (define-syntax-rule (define-syntax-parse-rule new old)
   (define-simple-macro (new . args) (old . args)))
@@ -294,7 +294,7 @@ test: "shadowed `define-syntax-parse-rule`: define-simple-macro"
 ------------------------------
 
 
-test: "shadowed `define-syntax-rule`: single-clause syntax-rules macro"
+no-change-test: "shadowed `define-syntax-rule`: single-clause syntax-rules macro"
 ------------------------------
 (define-syntax define-syntax-rule
   (syntax-rules ()
@@ -310,7 +310,7 @@ test: "shadowed `define-syntax-rule`: single-clause syntax-rules macro"
 ------------------------------
 
 
-test: "shadowed `define-syntax-rule` using `define-syntax-parse-rule` after"
+no-change-test: "shadowed `define-syntax-rule` using `define-syntax-parse-rule` after"
 ------------------------------
 (define-syntax my-or
   (syntax-rules ()

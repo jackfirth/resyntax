@@ -60,9 +60,10 @@ test: "two double comparisons with same subject refactorable to triple <= compar
 - (<= -10 x 10)
 
 
-test: "or-comparisons not refactorable (see https://github.com/jackfirth/resyntax/issues/144)"
+no-change-test:
+"or-comparisons not refactorable (see https://github.com/jackfirth/resyntax/issues/144)"
 - (or (< x 2) (> x 36))
 
 
-test: "mixed inclusive and exclusive comparisons not refactorable"
+no-change-test: "mixed inclusive and exclusive comparisons not refactorable"
 - (and (< x 10) (>= x -10))

@@ -43,7 +43,7 @@ test: "removing duplicate provided identifiers leaves other exports unchanged"
 ----------------------------------------
 
 
-test: "provide deduplication doesn't affect exports at different phases"
+no-change-test: "provide deduplication doesn't affect exports at different phases"
 ----------------------------------------
 (provide foo
          (for-syntax foo))
@@ -67,7 +67,7 @@ test: "require tidying sorts collection paths by name"
 
 
 
-test: "require tidying does nothing when collection paths already sorted by name"
+no-change-test: "require tidying does nothing when collection paths already sorted by name"
 ----------------------------------------
 (require racket/hash
          racket/list
@@ -121,14 +121,14 @@ test: "require tidying should move non-phase spec forms before relative paths"
 ----------------------------------------
 
 
-test: "require tidying of only non-phase spec forms should do nothing"
+no-change-test: "require tidying of only non-phase spec forms should do nothing"
 ----------------------------------------
 (require (only-in racket/list first)
          (only-in racket/hash hash-union))
 ----------------------------------------
 
 
-test: "require tidying shouldn't trigger when transformers are imported and used"
+no-change-test: "require tidying shouldn't trigger when transformers are imported and used"
 ----------------------------------------
 (require racket/require
          (multi-in racket (list set dict))
@@ -136,7 +136,8 @@ test: "require tidying shouldn't trigger when transformers are imported and used
 ----------------------------------------
 
 
-test: "require tidying shouldn't trigger when transformers are imported and used in nested specs"
+no-change-test:
+"require tidying shouldn't trigger when transformers are imported and used in nested specs"
 ----------------------------------------
 (require racket/require
          (prefix-in racket: (multi-in racket (list set dict)))

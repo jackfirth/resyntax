@@ -26,7 +26,7 @@ test: "syntax-e on a single format-id argument is removable"
 - (format-id #'foo "~a.~a.~a" #'bar #'baz #'blah)
 
 
-test: "format-id call without any syntax-e unwrapped arguments not refactorable"
+no-change-test: "format-id call without any syntax-e unwrapped arguments not refactorable"
 - (format-id #'foo "~a.~a.~a" #'bar #'baz #'blah)
 
 

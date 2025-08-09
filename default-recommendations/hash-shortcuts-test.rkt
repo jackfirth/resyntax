@@ -20,7 +20,7 @@ test: "hash-ref with constant lambda can be simplified to hash-ref without lambd
 ------------------------------
 
 
-test: "hash-ref with non-constant lambda cannot be simplified to hash-ref without lambda"
+no-change-test: "hash-ref with non-constant lambda cannot be simplified to hash-ref without lambda"
 ------------------------------
 (define h (make-hash))
 (define k 'a)
@@ -42,7 +42,7 @@ test: "hash-ref! with constant lambda can be simplified to hash-ref! without lam
 ------------------------------
 
 
-test: "hash-ref! with non-constant lambda cannot be simplified to hash-ref! without lambda"
+no-change-test: "hash-ref! with non-constant lambda cannot be simplified to hash-ref! without lambda"
 ------------------------------
 (define h (make-hash))
 (define k 'a)
@@ -163,7 +163,7 @@ test: "hash-set! with hash-ref can be simplified to hash-update! without lambda"
 ------------------------------
 
 
-test: "hash-set! with hash-ref cannot be simplified when v would shadow"
+no-change-test: "hash-set! with hash-ref cannot be simplified when v would shadow"
 ------------------------------
 (define h (make-hash))
 (define k 'a)
@@ -261,7 +261,8 @@ test: "hash-ref and hash-set! with variable to hash-update! works with literal k
 ------------------------------
 
 
-test: "hash-ref and hash-set! with let cannot be simplified when key expressions are different"
+no-change-test:
+"hash-ref and hash-set! with let cannot be simplified when key expressions are different"
 ------------------------------
 (define (f h term other)
   (let ([sum (hash-ref! h (cadr term) 0)])
@@ -269,7 +270,8 @@ test: "hash-ref and hash-set! with let cannot be simplified when key expressions
 ------------------------------
 
 
-test: "hash-ref and hash-set! with define cannot be simplified when key expressions are different"
+no-change-test:
+"hash-ref and hash-set! with define cannot be simplified when key expressions are different"
 ------------------------------
 (define (f h term other)
   (define sum (hash-ref! h (cadr term) 0))
@@ -277,7 +279,8 @@ test: "hash-ref and hash-set! with define cannot be simplified when key expressi
 ------------------------------
 
 
-test: "hash-ref and hash-set! with let cannot be simplified when hash expressions are different"
+no-change-test:
+"hash-ref and hash-set! with let cannot be simplified when hash expressions are different"
 ------------------------------
 (define (f h1 h2 term)
   (let ([sum (hash-ref! h1 (cadr term) 0)])
@@ -285,7 +288,8 @@ test: "hash-ref and hash-set! with let cannot be simplified when hash expression
 ------------------------------
 
 
-test: "hash-ref and hash-set! with define cannot be simplified when hash expressions are different"
+no-change-test:
+"hash-ref and hash-set! with define cannot be simplified when hash expressions are different"
 ------------------------------
 (define (f h1 h2 term)
   (define sum (hash-ref! h1 (cadr term) 0))

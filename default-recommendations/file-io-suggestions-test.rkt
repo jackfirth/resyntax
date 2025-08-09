@@ -27,5 +27,6 @@ test: "should migrate make-temporary-file with base-dir and 'directory to make-t
 - (void (make-temporary-directory #:base-dir #false))
 
 
-test: "should not migrate make-temporary-file without 'directory to make-temporary-directory"
+no-change-test:
+"should not migrate make-temporary-file without 'directory to make-temporary-directory"
 - (make-temporary-file #:copy-from #false)
