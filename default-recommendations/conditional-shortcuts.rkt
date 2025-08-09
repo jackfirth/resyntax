@@ -271,14 +271,8 @@
 (define-refactoring-rule explicit-cond-else-void
   #:description "Add an explicit `[else (void)]` clause to make the default behavior clear."
   #:literals (cond else void)
-  (cond-id:cond clause ...)
-  #:when (syntax-property this-syntax 'expression-result)
+  (cond-id:cond (~and clause (~not [else . _])) ...)
   #:when (equal? (syntax-property this-syntax 'expression-result) 'ignored)
-  #:when (not (for/or ([c (in-list (attribute clause))])
-                (syntax-parse c
-                  #:literals (else)
-                  [(else _) #true]
-                  [_ #false])))
   (cond-id clause ... [else (void)]))
 
 
