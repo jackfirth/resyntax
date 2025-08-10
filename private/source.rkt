@@ -144,7 +144,7 @@
   (define detected-lang (with-input-from-source code read-lang-from-input))
   (match detected-lang
     [(list 'submod path 'reader) path]
-    [#false #false]))
+    [_ #false]))
 
 
 (module+ test
