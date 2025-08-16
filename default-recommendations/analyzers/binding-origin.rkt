@@ -14,6 +14,7 @@
          rebellion/streaming/reducer
          resyntax/default-recommendations/analyzers/private/expansion-identifier
          resyntax/private/analyzer
+         resyntax/private/logger
          resyntax/private/syntax-property-bundle)
 
 
@@ -30,9 +31,20 @@
 
 
 (define (expansion-identifier-binding-origin exp-id)
-  (match (identifier-binding (expansion-identifier-syntax exp-id) (expansion-identifier-phase exp-id))
+  (define id-stx (expansion-identifier-syntax exp-id))
+  (define phase (expansion-identifier-phase exp-id))
+  (define mod (expansion-identifier-enclosing-module exp-id))
+  (define binding (identifier-binding id-stx phase #false #false))
+  (match binding
     ['lexical 'lexical]
-    [_ #false]))
+    [(list defining-mod _ ...)
+     (define-values (path base) (module-path-index-split defining-mod))
+     (cond
+       [(and (not base) (not path)) 'local-module]
+       [else 'required-module])]
+    [_
+     (log-resyntax-debug "binding for ~a: ~a" id-stx binding)
+     #false]))
 
 
 (define binding-origin-analyzer

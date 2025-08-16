@@ -11,7 +11,6 @@
 
 
 (require racket/list
-         racket/sequence
          racket/stream
          racket/treelist
          resyntax/private/syntax-path
@@ -22,25 +21,26 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(struct expansion-identifier (syntax path phase enclosing-modules kind)
+(struct expansion-identifier (syntax path phase enclosing-module kind)
   #:transparent
   #:guard (struct-guard/c identifier?
                           syntax-path?
                           exact-nonnegative-integer?
-                          (listof (and/c symbol? symbol-interned?))
+                          module-path-index?
                           (or/c 'binding 'usage)))
 
 
 (define (in-expanded-syntax-identifiers orig-expanded-stx)
   (define labeled-stx (syntax-label-paths orig-expanded-stx 'expanded-path))
-  (let loop ([expanded-stx labeled-stx] [phase 0] [skip? #false])
+  (let loop ([expanded-stx labeled-stx] [phase 0] [skip? #false] [parents '()])
 
-    (define (recur stx #:phase [phase phase] #:skip-root? [skip? #false])
-      (loop stx phase skip?))
+    (define (recur stx #:phase [phase phase] #:skip-root? [skip? #false] #:parents [parents parents])
+      (loop stx phase skip? parents))
 
     (define (make-expanded-identifier id-stx kind)
       (define path (syntax-property id-stx 'expanded-path))
-      (expansion-identifier (syntax-ref orig-expanded-stx path) path phase '() kind))
+      (define mod (module-path-index-join #false #false (and (not (empty? parents)) parents)))
+      (expansion-identifier (syntax-ref orig-expanded-stx path) path phase mod kind))
 
     (syntax-search expanded-stx
       #:skip-root? skip?
@@ -50,7 +50,10 @@
 
       [(begin-for-syntax _ ...) (recur this-syntax #:phase (add1 phase) #:skip-root? #true)]
 
-      [((~or module module*) _ ...) (recur this-syntax #:phase 0 #:skip-root? #true)]
+      [((~or module-id:module module-id:module*) name _ body)
+       (define name-sym (syntax->datum (attribute name)))
+       (stream-append (recur (attribute module-id))
+                      (recur (attribute body) #:phase 0 #:parents (append parents (list name-sym))))]
 
       [(quote-syntax _ ...) (stream)]
       
