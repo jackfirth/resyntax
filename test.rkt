@@ -6,6 +6,7 @@
          #%module-begin
          begin
          code-block
+         code-line
          header:
          line-range
          range-set
@@ -32,6 +33,10 @@
 
 
 ;@----------------------------------------------------------------------------------------------------
+
+
+(define (code-line str)
+  (code-block str))
 
 
 (define-syntax (statement stx)
@@ -72,11 +77,11 @@
 
 
 (begin-for-syntax
-  (define-syntax-class literal-code-block
+  (define-syntax-class literal-code
     #:description "a code block"
     #:opaque
-    #:literals (code-block)
-    (pattern (code-block str:str))))
+    #:literals (code-line code-block)
+    (pattern ((~or code-line code-block) str:str))))
 
 
 (define-syntax header:
@@ -84,7 +89,7 @@
    (λ (stx)
      (syntax-parse stx
        #:track-literals
-       [(_ _ header-code:literal-code-block)
+       [(_ _ header-code:literal-code)
         ; Using syntax/loc so that errors thrown by set-header! point to the header:
         ; statement.
         (syntax/loc stx (set-header! header-code))]))))
@@ -107,12 +112,12 @@
   (define-splicing-syntax-class code-block-test-args
     #:attributes ([check 1])
 
-    (pattern (~seq input-code:literal-code-block expected-code:literal-code-block)
+    (pattern (~seq input-code:literal-code expected-code:literal-code)
       #:with (check ...)
       (list (syntax/loc #'input-code (check-suite-refactors input-code expected-code))))
 
-    (pattern (~seq input-code:literal-code-block ...+
-                   expected-code:literal-code-block)
+    (pattern (~seq input-code:literal-code ...+
+                   expected-code:literal-code)
       #:when (>= (length (attribute input-code)) 2)
       #:with (check ...)
       (for/list ([input-stx (in-list (attribute input-code))])
@@ -136,7 +141,7 @@
    (λ (stx)
      (syntax-parse stx
        #:track-literals
-       [(_ _ name:str params:test-parameters code:literal-code-block)
+       [(_ _ name:str params:test-parameters code:literal-code)
         #`(test-case name
             (parameterize ([params.id params.value] ...)
               #,(syntax/loc #'code (check-suite-does-not-refactor code))))]))))
@@ -155,9 +160,9 @@
        #:track-literals
        #:datum-literals (option @within @inspect @property @assert)
        [(_ _ name:str
-           code:literal-code-block
-           (~seq (option @within context-block:literal-code-block) ...
-                 (option @inspect target-block:literal-code-block)
+           code:literal-code
+           (~seq (option @within context-block:literal-code) ...
+                 (option @inspect target-block:literal-code)
                  (option @property property-key:id)
                  (~and assert-option (option @assert expected-value:property-value))))
         #`(test-case name

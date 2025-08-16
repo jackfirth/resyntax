@@ -3,12 +3,22 @@
 
 begin: statement*
 statement: COLON-IDENTIFIER (option | expression | code-block-sequence)+
-@expression: standalone-code-block | range-set | IDENTIFIER | LITERAL-STRING | LITERAL-INTEGER
 option: AT-SIGN-IDENTIFIER expression
 
 
+@expression: code-line
+           | standalone-code-block
+           | range-set
+           | IDENTIFIER
+           | LITERAL-STRING
+           | LITERAL-INTEGER
+
+
+code-line: /SINGLE-DASH CODE-LINE
+standalone-code-block: /DASH-LINE CODE-LINE* /DASH-LINE
+
+
 @code-block-sequence: starting-code-block middle-code-block* ending-code-block+
-standalone-code-block: (/SINGLE-DASH CODE-LINE) | (/DASH-LINE CODE-LINE* /DASH-LINE)
 starting-code-block: /DASH-LINE CODE-LINE* /EQUALS-LINE
 middle-code-block: CODE-LINE* /EQUALS-LINE
 ending-code-block: CODE-LINE* /DASH-LINE
