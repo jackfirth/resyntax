@@ -147,6 +147,13 @@
     (git-commit! message)))
 
 
+;; Try to dynamically load a refactoring suite from a language module's resyntax submodule
+(define (try-load-lang-refactoring-suite lang-name)
+  (with-handlers ([exn:fail? (λ (e) #false)])
+    (define lang-resyntax-submod `(submod ,lang-name resyntax))
+    (parameterize ([current-namespace (make-base-namespace)])
+      (dynamic-require lang-resyntax-submod 'refactoring-suite #false))))
+
 (define allowed-langs (set 'racket 'racket/base 'racket/gui))
 
 
@@ -159,15 +166,25 @@
     (log-resyntax-warning "skipping ~a because its #lang could not be determined"
                           (or (source-path source) "string source"))
     (refactoring-result-set #:base-source source #:results '()))
-  (guard (set-member? allowed-langs source-lang) #:else
-    (log-resyntax-warning "skipping ~a because it's written in #lang ~a, which is unsupported"
-                          (or (source-path source) "string source") source-lang)
+  ;; Handle supported languages and try dynamic loading for unsupported ones
+  (define effective-suite
+    (cond
+      [(set-member? allowed-langs source-lang) suite]
+      [else
+       (define lang-suite (try-load-lang-refactoring-suite source-lang))
+       (cond
+         [lang-suite
+          (log-resyntax-info "using refactoring suite from #lang ~a resyntax submodule for ~a"
+                             source-lang (or (source-path source) "string source"))
+          lang-suite]
+         [else
+          (log-resyntax-warning "skipping ~a because it's written in #lang ~a, which is unsupported and has no resyntax submodule"
+                                (or (source-path source) "string source") source-lang)
+          #false])]))
+  
+  (guard effective-suite #:else
     (refactoring-result-set #:base-source source #:results '()))
   (define full-source (source->string source))
-  (guard (string-prefix? full-source "#lang racket") #:else
-    (log-resyntax-warning "skipping ~a because it does not start with #lang racket"
-                          (or (source-path source) "string source"))
-    (refactoring-result-set #:base-source source #:results '()))
   (log-resyntax-info "analyzing ~a" (or (source-path source) "string source"))
   (for ([comment (in-range-set comments)])
     (log-resyntax-debug "parsed comment: ~a: ~v" comment (substring-by-range full-source comment)))
@@ -184,7 +201,7 @@
                     [exn:fail:filesystem:missing-module? skip]
                     [exn:fail:contract:variable? skip])
       (define analysis (source-analyze source #:lines lines))
-      (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)))
+      (refactor-visited-forms #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
   
   (refactoring-result-set #:base-source source #:results results))
 
