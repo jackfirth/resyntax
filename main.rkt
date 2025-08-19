@@ -28,8 +28,7 @@
         resyntax-analysis?)]
   [reysntax-analyze-for-properties-only
    (->* (source?) (#:suite refactoring-suite?) syntax-property-bundle?)]
-  [refactor! (-> (sequence/c refactoring-result?) void?)]
-  [try-load-lang-refactoring-suite (-> module-path? (or/c refactoring-suite? #false))]))
+  [refactor! (-> (sequence/c refactoring-result?) void?)]))
 
 
 (require fancy-app
@@ -186,12 +185,6 @@
   (guard effective-suite #:else
     (refactoring-result-set #:base-source source #:results '()))
   (define full-source (source->string source))
-  ;; Only check for "#lang racket" prefix for built-in supported languages
-  (guard (or (not (set-member? allowed-langs source-lang))
-             (string-prefix? full-source "#lang racket")) #:else
-    (log-resyntax-warning "skipping ~a because it does not start with #lang racket"
-                          (or (source-path source) "string source"))
-    (refactoring-result-set #:base-source source #:results '()))
   (log-resyntax-info "analyzing ~a" (or (source-path source) "string source"))
   (for ([comment (in-range-set comments)])
     (log-resyntax-debug "parsed comment: ~a: ~v" comment (substring-by-range full-source comment)))
