@@ -98,7 +98,7 @@
     [(_ new-stx) (syntax-property #'new-stx 'focus-replacement-on #true)]))
 
 
-(define-object-type refactoring-rule (transformer description)
+(define-object-type refactoring-rule (transformer description uses-universal-tagged-syntax?)
   #:omit-root-binding
   #:constructor-name constructor:refactoring-rule)
 
@@ -121,12 +121,14 @@
       #:source source
       #:original-syntax syntax
       #:new-syntax (rule-introduction-scope new-syntax)
-      #:introduction-scope rule-introduction-scope))))
+      #:introduction-scope rule-introduction-scope
+      #:uses-universal-tagged-syntax? (refactoring-rule-uses-universal-tagged-syntax? rule)))))
 
 
 (define-syntax-parse-rule
   (define-refactoring-rule id:id
     #:description description
+    (~optional (~seq #:uses-universal-tagged-syntax? uses-universal-tagged-syntax?))
     parse-option:syntax-parse-option ...
     pattern
     pattern-directive:syntax-parse-pattern-directive ...
@@ -146,6 +148,7 @@
     (constructor:refactoring-rule
      #:name 'id
      #:description (string->immutable-string description.c)
+     #:uses-universal-tagged-syntax? (~? uses-universal-tagged-syntax? #false)
      #:transformer
      (λ (stx)
        (syntax-parse stx
