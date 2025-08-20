@@ -179,8 +179,8 @@
        (define lang-suite (try-load-lang-refactoring-suite source-lang))
        (cond
          [lang-suite
-          (log-resyntax-info "using refactoring suite from #lang ~a resyntax submodule for ~a"
-                             source-lang (or (source-path source) "string source"))
+          (log-resyntax-debug "using refactoring suite from #lang ~a resyntax submodule for ~a"
+                              source-lang (or (source-path source) "string source"))
           lang-suite]
          [else
           (log-resyntax-warning
