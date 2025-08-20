@@ -218,6 +218,7 @@
 
 
   (require racket/list
+           racket/syntax-srcloc
            resyntax/private/syntax-traversal
            resyntax/test/private/grammar
            resyntax/test/private/tokenizer
@@ -261,7 +262,8 @@
       `(module refactoring-test racket/base
          (module test resyntax/test
            ,cleaned-parse-tree)))
-    (datum->syntax #f module-datum))
+    (define whole-program-srcloc (syntax-srcloc cleaned-parse-tree))
+    (datum->syntax #f module-datum whole-program-srcloc))
 
 
   (define (read-using-syntax-reader syntax-reader in)
@@ -275,3 +277,55 @@
             (syntax-column first-stx)
             (syntax-position first-stx)
             total-span)))
+
+
+;@----------------------------------------------------------------------------------------------------
+
+
+(module* resyntax racket/base
+
+
+  (require racket/contract/base)
+  
+
+  (provide
+   (contract-out
+    [rename default-resyntax-test-recommendations refactoring-suite refactoring-suite?]))
+
+
+  (require (submod "..")
+           racket/list
+           racket/string
+           resyntax/base
+           syntax/parse)
+
+
+  ;@--------------------------------------------------------------------------------------------------
+
+
+  (define-refactoring-rule unnecessary-multi-line-code-block
+    #:description
+    "Multi-line code blocks with a single line of code can be written in a more succinct form."
+    #:uses-universal-tagged-syntax? #true
+    #:literals (statement test: code-block)
+    (statement-id:statement (~and test-id (~literal test:)) test-name:str (code-block code:str) ...+)
+    #:do [(define code-strings (map syntax-e (attribute code)))]
+    #:when (for/and ([s (in-list code-strings)])
+             (string-with-one-newline-at-end? s))
+    #:with tagged-statement-id
+    (syntax-property (attribute statement-id)
+                     'uts-separators
+                     (list* "" " " "\n" (make-list (length (attribute code)) "")))
+    #:with code-line-id (syntax-property #'code-line 'uts-separators (list "- " ""))
+    #:with (replacement-code ...)
+    (for/list ([code-stx (in-list (attribute code))])
+      (syntax-property code-stx 'uts-atom-content (syntax-e code-stx)))
+    (tagged-statement-id test-id test-name (code-line-id replacement-code) ...))
+  
+
+  (define (string-with-one-newline-at-end? s)
+    (equal? (string-find s "\n") (sub1 (string-length s))))
+
+  
+  (define-refactoring-suite default-resyntax-test-recommendations
+    #:rules (unnecessary-multi-line-code-block)))
