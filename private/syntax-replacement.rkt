@@ -12,6 +12,7 @@
        #:new-syntax syntax?
        #:source source?
        #:introduction-scope (->* (syntax?) ((or/c 'flip 'add 'remove)) syntax?)
+       #:uses-universal-tagged-syntax? boolean?
        syntax-replacement?)]
   [syntax-replacement-render (-> syntax-replacement? string-replacement?)]
   [syntax-replacement-original-syntax
@@ -64,13 +65,26 @@
 
 
 (define-record-type syntax-replacement
-  (original-syntax new-syntax source introduction-scope))
+  (original-syntax new-syntax source introduction-scope uses-universal-tagged-syntax?))
 
 
 (struct focus (contents) #:transparent)
 
 
 (define (syntax-replacement-render replacement #:format? [format? #true])
+  (if (syntax-replacement-uses-universal-tagged-syntax? replacement)
+      (syntax-replacement-render-using-uts replacement)
+      (syntax-replacement-render-using-s-expressions replacement #:format? format?)))
+
+
+(define (syntax-replacement-render-using-uts replacement)
+  (raise-arguments-error
+   'syntax-replacement-render
+   "cannot render UTS replacement, universal tagged syntax rendering is not yet implemented"
+   "replacement" replacement))
+
+
+(define (syntax-replacement-render-using-s-expressions replacement #:format? [format? #true])
 
   (define/guard (pieces stx #:focused? [focused? #false])
     (guard (or focused? (not (syntax-property stx 'focus-replacement-on))) #:else
@@ -255,7 +269,8 @@
       (syntax-replacement #:original-syntax orig-stx
                           #:new-syntax new-stx
                           #:source (string-source orig-code)
-                          #:introduction-scope flip))
+                          #:introduction-scope flip
+                          #:uses-universal-tagged-syntax? #false))
     (define expected
       (string-replacement #:start 0 #:end 13 #:contents (list (inserted-string "(+ 1 2 3)"))))
     (check-equal? (syntax-replacement-render replacement) expected)))
