@@ -149,10 +149,15 @@
 
 ;; Try to dynamically load a refactoring suite from a language module's resyntax submodule
 (define (try-load-lang-refactoring-suite lang-name)
-  (with-handlers ([exn:fail? (λ (e) #false)])
+  (with-handlers
+      ([exn:fail?
+        (λ (e)
+          (log-resyntax-error
+           "could not load language refactoring suite due to error\n  language: ~a\n  error: ~a"
+           lang-name e)
+          #false)])
     (define lang-resyntax-submod `(submod ,lang-name resyntax))
-    (parameterize ([current-namespace (make-base-namespace)])
-      (dynamic-require lang-resyntax-submod 'refactoring-suite #false))))
+    (dynamic-require lang-resyntax-submod 'refactoring-suite (λ () #false))))
 
 (define allowed-langs (set 'racket 'racket/base 'racket/gui))
 
@@ -178,8 +183,10 @@
                              source-lang (or (source-path source) "string source"))
           lang-suite]
          [else
-          (log-resyntax-warning "skipping ~a because it's written in #lang ~a, which is unsupported and has no resyntax submodule"
-                                (or (source-path source) "string source") source-lang)
+          (log-resyntax-warning
+           (string-append "skipping ~a because it's written in #lang ~a, which is unsupported and"
+                          " has no resyntax submodule")
+           (or (source-path source) "string source") source-lang)
           #false])]))
   
   (guard effective-suite #:else
@@ -201,7 +208,8 @@
                     [exn:fail:filesystem:missing-module? skip]
                     [exn:fail:contract:variable? skip])
       (define analysis (source-analyze source #:lines lines))
-      (refactor-visited-forms #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
+      (refactor-visited-forms
+       #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
   
   (refactoring-result-set #:base-source source #:results results))
 

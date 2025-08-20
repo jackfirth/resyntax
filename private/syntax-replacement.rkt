@@ -78,10 +78,52 @@
 
 
 (define (syntax-replacement-render-using-uts replacement)
-  (raise-arguments-error
-   'syntax-replacement-render
-   "cannot render UTS replacement, universal tagged syntax rendering is not yet implemented"
-   "replacement" replacement))
+
+  (define/guard (pieces stx)
+    (guard (not (syntax-completely-original? stx)) #:else
+      (log-resyntax-debug "copying original syntax ~a" stx)
+      (define start (sub1 (syntax-position stx)))
+      (define end (+ start (syntax-span stx)))
+      (list (copied-string start end)))
+    (syntax-parse stx
+      [(tag:id subform ...)
+       (define separators (syntax-property (attribute tag) 'uts-separators))
+       (unless separators
+         (raise-arguments-error
+          'syntax-replacement-render-using-uts
+          (string-append "cannot render as universal taggged syntax, tag node does not contain"
+                         " 'uts-separators syntax property")
+          "subform" this-syntax
+          "tag" (attribute tag)
+          "replacement" replacement))
+       (define child-piece-lists
+         (map pieces (attribute subform)))
+       (for/fold ([piece-lists (list (list (inserted-string (first separators))))]
+                  #:result (append* (reverse piece-lists)))
+                 ([child-list (in-list child-piece-lists)]
+                  [separator-after (in-list (rest separators))])
+         (list* (list (inserted-string separator-after)) child-list piece-lists))]
+      [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
+       (define content (syntax-property (attribute v) 'uts-atom-content))
+       (unless content
+         (raise-arguments-error
+          'syntax-replacement-render-using-uts
+          (string-append "cannot render as universal tagged syntax, atom does not contain"
+                         " 'uts-atom-content syntax property")
+          "atom" this-syntax
+          "replacement" replacement))
+       (list (inserted-string content))]))
+
+  (match-define (syntax-replacement #:original-syntax orig-stx #:new-syntax new-stx #:source source)
+    replacement)
+  (define start (sub1 (syntax-position orig-stx)))
+  (define end (+ start (syntax-span orig-stx)))
+  (define contents (pieces new-stx))
+  (define rendered (string-replacement #:start start #:end end #:contents contents))
+  (when (log-level? resyntax-logger 'debug)
+    (define message (string-indent (pretty-format rendered) #:amount 2))
+    (log-resyntax-debug "string replacement contents:\n~a" message))
+  rendered)
 
 
 (define (syntax-replacement-render-using-s-expressions replacement #:format? [format? #true])

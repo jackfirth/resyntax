@@ -188,8 +188,15 @@
                  [current-namespace ns])
     (define code-linemap (string-linemap (source->string code)))
     (define program-stx (source-read-syntax code))
-    (log-resyntax-debug "original syntax:\n  ~a" program-stx)
     (define program-source-name (syntax-source program-stx))
+    (unless program-source-name
+      (raise-arguments-error
+       'source-analyze
+       "cannot refactor given source code, the reader returned a syntax object without a source name"
+       "source" code
+       "reader-produced syntax object" program-stx))
+    (log-resyntax-debug "original source name: ~a" program-source-name)
+    (log-resyntax-debug "original syntax:\n  ~a" program-stx)
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
     (define original-visits (make-vector-builder))
     (define most-recent-visits-by-original-path (make-hash))
@@ -331,6 +338,7 @@
                  (sorting syntax-path<=> #:key syntax-original-path)
                  #:into into-list))
 
+    (log-resyntax-debug "visited ~a forms" (length visited))
     (source-code-analysis #:code code
                           #:visited-forms visited
                           #:expansion-time-output output
