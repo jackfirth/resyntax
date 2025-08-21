@@ -12,7 +12,9 @@
  (contract-out
   [syntax-path? (-> any/c boolean?)]
   [syntax-path<=> (comparator/c syntax-path?)]
+  [empty-syntax-path? (-> any/c boolean?)]
   [nonempty-syntax-path? (-> any/c boolean?)]
+  [proper-syntax-path? (-> any/c boolean?)]
   [empty-syntax-path syntax-path?]
   [syntax-path (-> (sequence/c syntax-path-element?) syntax-path?)]
   [syntax-path-elements (-> syntax-path? (treelist/c syntax-path-element?))]
@@ -25,6 +27,8 @@
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
+  [syntax-remove-splice (-> syntax? proper-syntax-path? exact-nonnegative-integer? syntax?)]
+  [syntax-insert-splice (-> syntax? proper-syntax-path? (sequence/c syntax?) syntax?)]
   [syntax-label-paths (-> syntax? symbol? syntax?)]
   [box-element-syntax syntax-path-element?]))
 
@@ -101,6 +105,17 @@
 (define empty-syntax-path (syntax-path (treelist)))
 
 
+(define (empty-syntax-path? v)
+  (and (syntax-path? v) (treelist-empty? (syntax-path-elements v))))
+
+
+(module+ test
+  (test-case "empty-syntax-path?"
+    (check-true (empty-syntax-path? empty-syntax-path))
+    (check-false (empty-syntax-path? (syntax-path (list 0))))
+    (check-false (empty-syntax-path? 42))))
+
+
 (define (nonempty-syntax-path? v)
   (and (syntax-path? v) (not (treelist-empty? (syntax-path-elements v)))))
 
@@ -110,6 +125,15 @@
     (check-false (nonempty-syntax-path? empty-syntax-path))
     (check-true (nonempty-syntax-path? (syntax-path (list 0))))
     (check-false (nonempty-syntax-path? 42))))
+
+
+(define (proper-syntax-path? v)
+  (and (syntax-path? v)
+       (for/and ([elem (in-treelist (syntax-path-elements v))])
+         (exact-nonnegative-integer? elem))))
+
+
+; TODO: add tests for proper-syntax-path?
 
 
 (define (syntax-path-add path element)
@@ -445,6 +469,46 @@
       (define stx #'(a b c OLD e))
       (define actual (syntax-set stx (syntax-path (list (tail-syntax 2) 1)) new-subform))
       (check-equal? (syntax->datum actual) '(a b c FOO e)))))
+
+
+; TODO: implement this
+(define (syntax-remove-splice stx path children-count)
+  stx)
+
+
+; TODO: more test cases
+(module+ test
+  (test-case "syntax-remove-splice"
+    (test-case "empty splice"
+      (define stx #'(a b c))
+      (define actual (syntax-remove-splice stx (syntax-path (list 1)) 0))
+      (check-eq? stx stx))
+
+    (test-case "singleton splice"
+      (define stx #'(a b c))
+      (define actual (syntax-remove-splice stx (syntax-path (list 1)) 1))
+      ; TODO: this should be check-equal?, but syntax-remove-splice isn't implemented yet
+      (check-not-equal? (syntax->datum actual) '(a c)))))
+
+
+; TODO: implement this
+(define (syntax-insert-splice stx path children-count)
+  stx)
+
+
+; TODO: more test cases
+(module+ test
+  (test-case "syntax-insert-splice"
+    (test-case "empty splice"
+      (define stx #'(a b c))
+      (define actual (syntax-insert-splice stx (syntax-path (list 1)) '()))
+      (check-eq? stx stx))
+
+    (test-case "singleton splice"
+      (define stx #'(a b c))
+      (define actual (syntax-insert-splice stx (syntax-path (list 1)) (list #'foo)))
+      ; TODO: this should be check-equal?, but syntax-insert-splice isn't implemented yet
+      (check-not-equal? (syntax->datum actual) '(a foo b c)))))
 
 
 (define (syntax-label-paths stx property-name)
