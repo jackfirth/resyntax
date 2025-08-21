@@ -104,9 +104,9 @@
     (syntax-insert-splice (syntax-remove-splice stx start children-count) start new-stxs)))
 
 
-; TODO: more test cases
+
 (module+ test
-  (test-case "test"
+  (test-case "syntax-apply-delta basic functionality"
     (define stx
       #'(module foo racket
           (begin
@@ -124,7 +124,35 @@
       #'(module foo racket
           (define x 1)
           (define y 2)))
-    ; TODO: this currently fails because syntax-insert-splice and syntax-remove-splice aren't yet
-    ; implemented. This should be changed from check-not-equal? to check-equal? once those operations
-    ; are implemented, and then this test should pass.
-    (check-not-equal? (syntax->datum actual) (syntax->datum expected))))
+
+    (check-equal? (syntax->datum actual) (syntax->datum expected)))
+
+  (test-case "multiple splice replacements"
+    (define stx #'(a b c d e f))
+    (define splice1 (splice-replacement (syntax-path (list 1)) 2 (treelist (new-syntax #'x))))
+    (define splice2 (splice-replacement (syntax-path (list 4)) 1 (treelist (new-syntax #'y) (new-syntax #'z))))
+    (define delta (syntax-delta (list splice1 splice2)))
+
+    (define actual (syntax-apply-delta stx delta))
+    (define expected #'(a x d y z f))
+    (check-equal? (syntax->datum actual) (syntax->datum expected)))
+
+  (test-case "empty splice replacement"
+    (define stx #'(a b c))
+    (define splice (splice-replacement (syntax-path (list 1)) 1 (treelist)))
+    (define delta (syntax-delta (list splice)))
+
+    (define actual (syntax-apply-delta stx delta))
+    (define expected #'(a c))
+    (check-equal? (syntax->datum actual) (syntax->datum expected)))
+
+  (test-case "copying from different parts of syntax"
+    (define stx #'((foo 1) (bar 2) (baz 3)))
+    (define copied-foo (copied-syntax (syntax-path (list 0 0))))
+    (define copied-bar-val (copied-syntax (syntax-path (list 1 1))))
+    (define splice (splice-replacement (syntax-path (list 1)) 1 (treelist copied-foo copied-bar-val)))
+    (define delta (syntax-delta (list splice)))
+
+    (define actual (syntax-apply-delta stx delta))
+    (define expected #'((foo 1) foo 2 (baz 3)))
+    (check-equal? (syntax->datum actual) (syntax->datum expected))))
