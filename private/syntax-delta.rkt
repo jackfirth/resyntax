@@ -104,7 +104,7 @@
     (syntax-insert-splice (syntax-remove-splice stx start children-count) start new-stxs)))
 
 
-; TODO: more test cases
+
 (module+ test
   (test-case "syntax-apply-delta basic functionality"
     (define stx
@@ -124,7 +124,7 @@
       #'(module foo racket
           (define x 1)
           (define y 2)))
-    ; Test should now pass since syntax-insert-splice and syntax-remove-splice are implemented
+
     (check-equal? (syntax->datum actual) (syntax->datum expected)))
 
   (test-case "multiple splice replacements"

@@ -545,9 +545,15 @@
 (define (remove-consecutive-elements lst start-index count)
   (cond
     [(equal? count 0) lst]
-    [(>= start-index (length lst)) lst]
+    [(and (equal? (length lst) 0) (> count 0))
+     (error 'syntax-remove-splice "cannot remove elements from empty list")]
+    [(>= start-index (length lst))
+     (error 'syntax-remove-splice "start index ~a is beyond list length ~a" start-index (length lst))]
+    [(> (+ start-index count) (length lst))
+     (error 'syntax-remove-splice "cannot remove ~a elements starting at index ~a from list of length ~a" 
+            count start-index (length lst))]
     [else
-     (define end-index (min (+ start-index count) (length lst)))
+     (define end-index (+ start-index count))
      (append (take lst start-index) (drop lst end-index))]))
 
 
@@ -579,20 +585,20 @@
       (define actual (syntax-remove-splice stx (syntax-path (list 2)) 2))
       (check-equal? (syntax->datum actual) '(a b)))
 
-    (test-case "remove more than available"
+    (test-case "remove more than available - should error"
       (define stx #'(a b c))
-      (define actual (syntax-remove-splice stx (syntax-path (list 1)) 10))
-      (check-equal? (syntax->datum actual) '(a)))
+      (check-exn exn:fail?
+                 (λ () (syntax-remove-splice stx (syntax-path (list 1)) 10))))
 
     (test-case "nested list removal"
       (define stx #'(a (x y z) b))
       (define actual (syntax-remove-splice stx (syntax-path (list 1 1)) 1))
       (check-equal? (syntax->datum actual) '(a (x z) b)))
 
-    (test-case "remove from empty list"
+    (test-case "remove from empty list - should error"
       (define stx #'())
-      (define actual (syntax-remove-splice stx (syntax-path (list 0)) 1))
-      (check-equal? (syntax->datum actual) '()))
+      (check-exn exn:fail?
+                 (λ () (syntax-remove-splice stx (syntax-path (list 0)) 1))))
 
     (test-case "error on empty path with non-zero count"
       (define stx #'(a b c))
