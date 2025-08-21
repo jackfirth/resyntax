@@ -27,8 +27,10 @@
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
-  [syntax-remove-splice (-> syntax? proper-syntax-path? exact-nonnegative-integer? syntax?)]
-  [syntax-insert-splice (-> syntax? proper-syntax-path? (sequence/c syntax?) syntax?)]
+  [syntax-remove-splice
+   (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) exact-nonnegative-integer? syntax?)]
+  [syntax-insert-splice
+   (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) (sequence/c syntax?) syntax?)]
   [syntax-label-paths (-> syntax? symbol? syntax?)]
   [box-element-syntax syntax-path-element?]))
 
@@ -471,93 +473,15 @@
       (check-equal? (syntax->datum actual) '(a b c FOO e)))))
 
 
-(define (syntax-remove-splice stx path children-count)
-  (cond
-    [(equal? children-count 0) stx]
-    [(empty-syntax-path? path)
-     (raise-arguments-error 'syntax-remove-splice
-                            "cannot remove splice from empty path"
-                            "syntax" stx
-                            "path" path
-                            "children-count" children-count)]
-    [else
-     (let loop ([stx stx] [elements (syntax-path-elements path)])
-       (guarded-block
-         (guard (not (treelist-empty? elements)) 
-                #:else 
-                (let ([unwrapped (if (syntax? stx) (syntax-e stx) stx)])
-                  (unless (list? unwrapped)
-                    (raise-arguments-error 'syntax-remove-splice
-                                           "cannot remove splice from non-list"
-                                           "syntax" stx
-                                           "path" path
-                                           "children-count" children-count))
-                  (define updated-datum (remove-consecutive-elements unwrapped 0 children-count))
-                  (if (syntax? stx)
-                      (datum->syntax stx updated-datum stx stx)
-                      updated-datum)))
-         (define next-element (treelist-first elements))
-         (define remaining-elements (treelist-rest elements))
-         (define unwrapped
-           (if (syntax? stx)
-               (syntax-e stx)
-               stx))
-         (match next-element
-           [(? exact-nonnegative-integer? i)
-            (unless (list? unwrapped)
-              (raise-arguments-error 'syntax-remove-splice
-                                     "path element refers to non-list"
-                                     "syntax" stx
-                                     "path" path
-                                     "element" next-element))
-            (cond
-              [(treelist-empty? remaining-elements)
-               ; We're at the target position - remove children-count elements starting at i
-               (define updated-datum (remove-consecutive-elements unwrapped i children-count))
-               (if (syntax? stx)
-                   (datum->syntax stx updated-datum stx stx)
-                   updated-datum)]
-              [else
-               ; Continue traversing
-               (define updated-child (loop (list-ref unwrapped i) remaining-elements))
-               (define updated-datum (improper-list-set unwrapped i updated-child))
-               (if (syntax? stx)
-                   (datum->syntax stx updated-datum stx stx)
-                   updated-datum)])]
-           [(tail-syntax tail-i)
-            (unless (list? unwrapped)
-              (raise-arguments-error 'syntax-remove-splice
-                                     "tail-syntax refers to non-list"
-                                     "syntax" stx
-                                     "path" path
-                                     "element" next-element))
-            (define tail-part (drop unwrapped tail-i))
-            (define updated-tail (loop tail-part remaining-elements))
-            (define updated-datum (append (take unwrapped tail-i) updated-tail))
-            (datum->syntax stx updated-datum stx stx)]
-           [else
-            (raise-arguments-error 'syntax-remove-splice
-                                   "splice removal only supported for list paths"
-                                   "syntax" stx
-                                   "path" path
-                                   "element" next-element)])))]))
-
-(define (remove-consecutive-elements lst start-index count)
-  (cond
-    [(equal? count 0) lst]
-    [(and (equal? (length lst) 0) (> count 0))
-     (error 'syntax-remove-splice "cannot remove elements from empty list")]
-    [(>= start-index (length lst))
-     (error 'syntax-remove-splice "start index ~a is beyond list length ~a" start-index (length lst))]
-    [(> (+ start-index count) (length lst))
-     (error 'syntax-remove-splice "cannot remove ~a elements starting at index ~a from list of length ~a" 
-            count start-index (length lst))]
-    [else
-     (define end-index (+ start-index count))
-     (append (take lst start-index) (drop lst end-index))]))
+(define/guard (syntax-remove-splice stx path children-count)
+  (guard (positive? children-count) #:else stx)
+  (define parent (syntax-ref stx (syntax-path-parent path)))
+  (define updated
+    (list-remove-splice (syntax->list parent) (syntax-path-last-element path) children-count))
+  (define new-parent (datum->syntax parent updated parent parent))
+  (syntax-set stx (syntax-path-parent path) new-parent))
 
 
-; TODO: more test cases
 (module+ test
   (test-case "syntax-remove-splice"
     (test-case "empty splice"
@@ -611,87 +535,15 @@
                  (λ () (syntax-remove-splice stx (syntax-path (list 0)) 1))))))
 
 
-(define (syntax-insert-splice stx path new-children)
-  (define new-children-list (sequence->list new-children))
-  (cond
-    [(empty? new-children-list) stx]
-    [(empty-syntax-path? path)
-     (raise-arguments-error 'syntax-insert-splice
-                            "cannot insert splice at empty path"
-                            "syntax" stx
-                            "path" path
-                            "new-children" new-children)]
-    [else
-     (let loop ([stx stx] [elements (syntax-path-elements path)])
-       (guarded-block
-         (guard (not (treelist-empty? elements)) 
-                #:else 
-                (let ([unwrapped (if (syntax? stx) (syntax-e stx) stx)])
-                  (unless (list? unwrapped)
-                    (raise-arguments-error 'syntax-insert-splice
-                                           "cannot insert splice into non-list"
-                                           "syntax" stx
-                                           "path" path
-                                           "new-children" new-children))
-                  (define updated-datum (insert-elements unwrapped 0 new-children-list))
-                  (if (syntax? stx)
-                      (datum->syntax stx updated-datum stx stx)
-                      updated-datum)))
-         (define next-element (treelist-first elements))
-         (define remaining-elements (treelist-rest elements))
-         (define unwrapped
-           (if (syntax? stx)
-               (syntax-e stx)
-               stx))
-         (match next-element
-           [(? exact-nonnegative-integer? i)
-            (unless (list? unwrapped)
-              (raise-arguments-error 'syntax-insert-splice
-                                     "path element refers to non-list"
-                                     "syntax" stx
-                                     "path" path
-                                     "element" next-element))
-            (cond
-              [(treelist-empty? remaining-elements)
-               ; We're at the target position - insert new-children at position i
-               (define updated-datum (insert-elements unwrapped i new-children-list))
-               (if (syntax? stx)
-                   (datum->syntax stx updated-datum stx stx)
-                   updated-datum)]
-              [else
-               ; Continue traversing
-               (define updated-child (loop (list-ref unwrapped i) remaining-elements))
-               (define updated-datum (improper-list-set unwrapped i updated-child))
-               (if (syntax? stx)
-                   (datum->syntax stx updated-datum stx stx)
-                   updated-datum)])]
-           [(tail-syntax tail-i)
-            (unless (list? unwrapped)
-              (raise-arguments-error 'syntax-insert-splice
-                                     "tail-syntax refers to non-list"
-                                     "syntax" stx
-                                     "path" path
-                                     "element" next-element))
-            (define tail-part (drop unwrapped tail-i))
-            (define updated-tail (loop tail-part remaining-elements))
-            (define updated-datum (append (take unwrapped tail-i) updated-tail))
-            (datum->syntax stx updated-datum stx stx)]
-           [else
-            (raise-arguments-error 'syntax-insert-splice
-                                   "splice insertion only supported for list paths"
-                                   "syntax" stx
-                                   "path" path
-                                   "element" next-element)])))]))
-
-(define (insert-elements lst index new-elements)
-  (cond
-    [(empty? new-elements) lst]
-    [(>= index (length lst)) (append lst new-elements)]
-    [else
-     (append (take lst index) new-elements (drop lst index))]))
+(define/guard (syntax-insert-splice stx path new-children)
+  (guard (not (empty? new-children)) #:else stx)
+  (define parent (syntax-ref stx (syntax-path-parent path)))
+  (define updated
+    (list-insert-splice (syntax->list parent) (syntax-path-last-element path) new-children))
+  (define new-parent (datum->syntax parent updated parent parent))
+  (syntax-set stx (syntax-path-parent path) new-parent))
 
 
-; TODO: more test cases
 (module+ test
   (test-case "syntax-insert-splice"
     (test-case "empty splice"
@@ -721,8 +573,8 @@
 
     (test-case "insert beyond end"
       (define stx #'(a b c))
-      (define actual (syntax-insert-splice stx (syntax-path (list 10)) (list #'x #'y)))
-      (check-equal? (syntax->datum actual) '(a b c x y)))
+      (check-exn exn:fail:contract?
+                 (λ () (syntax-insert-splice stx (syntax-path (list 10)) (list #'x #'y)))))
 
     (test-case "nested list insertion"
       (define stx #'(a (x z) b))
@@ -743,6 +595,20 @@
       (define stx #'#(a b c))
       (check-exn exn:fail:contract?
                  (λ () (syntax-insert-splice stx (syntax-path (list 0)) (list #'x)))))))
+
+
+(define (list-remove-splice lst i splice-length)
+  (append (take lst i) (drop lst (+ i splice-length))))
+
+
+; TODO: write tests for list-remove-splice
+
+
+(define (list-insert-splice lst i splice)
+  (append (take lst i) splice (drop lst i)))
+
+
+; TODO: write tests for list-insert-splice
 
 
 (define (syntax-label-paths stx property-name)

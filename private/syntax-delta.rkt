@@ -130,10 +130,12 @@
   (test-case "multiple splice replacements"
     (define stx #'(a b c d e f))
     (define splice1 (splice-replacement (syntax-path (list 1)) 2 (treelist (new-syntax #'x))))
-    (define splice2 (splice-replacement (syntax-path (list 4)) 1 (treelist (new-syntax #'y) (new-syntax #'z))))
+    (define splice2
+      (splice-replacement (syntax-path (list 4)) 1 (treelist (new-syntax #'y) (new-syntax #'z))))
     (define delta (syntax-delta (list splice1 splice2)))
 
     (define actual (syntax-apply-delta stx delta))
+
     (define expected #'(a x d y z f))
     (check-equal? (syntax->datum actual) (syntax->datum expected)))
 
@@ -143,6 +145,7 @@
     (define delta (syntax-delta (list splice)))
 
     (define actual (syntax-apply-delta stx delta))
+
     (define expected #'(a c))
     (check-equal? (syntax->datum actual) (syntax->datum expected)))
 
@@ -154,5 +157,6 @@
     (define delta (syntax-delta (list splice)))
 
     (define actual (syntax-apply-delta stx delta))
+
     (define expected #'((foo 1) foo 2 (baz 3)))
     (check-equal? (syntax->datum actual) (syntax->datum expected))))
