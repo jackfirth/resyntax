@@ -601,14 +601,109 @@
   (append (take lst i) (drop lst (+ i splice-length))))
 
 
-; TODO: write tests for list-remove-splice
+(module+ test
+  (test-case "list-remove-splice"
+    (test-case "remove from middle"
+      (define lst '(a b c d e))
+      (define actual (list-remove-splice lst 2 2))
+      (check-equal? actual '(a b e)))
+    
+    (test-case "remove from beginning"
+      (define lst '(a b c d))
+      (define actual (list-remove-splice lst 0 2))
+      (check-equal? actual '(c d)))
+    
+    (test-case "remove from end"
+      (define lst '(a b c d))
+      (define actual (list-remove-splice lst 2 2))
+      (check-equal? actual '(a b)))
+    
+    (test-case "remove single element"
+      (define lst '(a b c))
+      (define actual (list-remove-splice lst 1 1))
+      (check-equal? actual '(a c)))
+    
+    (test-case "remove zero elements"
+      (define lst '(a b c))
+      (define actual (list-remove-splice lst 1 0))
+      (check-equal? actual '(a b c)))
+    
+    (test-case "remove all elements"
+      (define lst '(a b c))
+      (define actual (list-remove-splice lst 0 3))
+      (check-equal? actual '()))
+    
+    (test-case "remove from single-element list"
+      (define lst '(a))
+      (define actual (list-remove-splice lst 0 1))
+      (check-equal? actual '()))
+    
+    (test-case "remove from empty list"
+      (define lst '())
+      (define actual (list-remove-splice lst 0 0))
+      (check-equal? actual '()))
+    
+    (test-case "error on index out of bounds"
+      (define lst '(a b c))
+      (check-exn exn:fail:contract?
+                 (λ () (list-remove-splice lst 5 1))))
+    
+    (test-case "error on splice length too large"
+      (define lst '(a b c))
+      (check-exn exn:fail:contract?
+                 (λ () (list-remove-splice lst 1 5))))))
 
 
 (define (list-insert-splice lst i splice)
   (append (take lst i) splice (drop lst i)))
 
 
-; TODO: write tests for list-insert-splice
+(module+ test
+  (test-case "list-insert-splice"
+    (test-case "insert in middle"
+      (define lst '(a b c))
+      (define actual (list-insert-splice lst 1 '(x y)))
+      (check-equal? actual '(a x y b c)))
+    
+    (test-case "insert at beginning"
+      (define lst '(a b c))
+      (define actual (list-insert-splice lst 0 '(x y)))
+      (check-equal? actual '(x y a b c)))
+    
+    (test-case "insert at end"
+      (define lst '(a b c))
+      (define actual (list-insert-splice lst 3 '(x y)))
+      (check-equal? actual '(a b c x y)))
+    
+    (test-case "insert single element"
+      (define lst '(a b c))
+      (define actual (list-insert-splice lst 1 '(x)))
+      (check-equal? actual '(a x b c)))
+    
+    (test-case "insert empty splice"
+      (define lst '(a b c))
+      (define actual (list-insert-splice lst 1 '()))
+      (check-equal? actual '(a b c)))
+    
+    (test-case "insert into empty list"
+      (define lst '())
+      (define actual (list-insert-splice lst 0 '(x y)))
+      (check-equal? actual '(x y)))
+    
+    (test-case "insert into single-element list"
+      (define lst '(a))
+      (define actual (list-insert-splice lst 0 '(x y)))
+      (check-equal? actual '(x y a)))
+    
+    (test-case "insert after single element"
+      (define lst '(a))
+      (define actual (list-insert-splice lst 1 '(x y)))
+      (check-equal? actual '(a x y)))
+    
+    (test-case "error on index out of bounds"
+      (define lst '(a b c))
+      (check-exn exn:fail:contract?
+                 (λ () (list-insert-splice lst 5 '(x y)))))))
 
 
 (define (syntax-label-paths stx property-name)
