@@ -1,10 +1,10 @@
 #lang scribble/manual
 
 
-@(require (for-label racket/base
+@(require (for-label (except-in racket/base require)
                      resyntax/base
                      resyntax/default-recommendations
-                     (except-in resyntax/test #%module-begin)
+                     (except-in resyntax/test #%app #%module-begin)
                      syntax/parse
                      syntax/parse/define)
           scribble/bnf
@@ -535,7 +535,7 @@ There are two types of code blocks:
   line of equals signs (@litchar{===}) instead of two lines of dashes.}]
 
 Code blocks are essentially string literals, and can contain code written in any language. For this
-reason, it's common for Resyntax tests to include a @racket[header:] test statement which specifies
+reason, it's common for Resyntax tests to include a @racket[header] test statement which specifies
 what @hash-lang[] each code block in that file is written in.
 
 
@@ -544,15 +544,15 @@ what @hash-lang[] each code block in that file is written in.
 The @racketmodname[resyntax/test] language supports four types of @tech{test statements}:
 
 @itemlist[
- @item{@racket[require:] statements for loading @tech{refactoring suites}}
- @item{@racket[header:] statements for defining common code used in all tests}
- @item{@racket[test:] and @racket[no-change-test:] statements for defining individual test cases}]
+ @item{@racket[require] statements for loading @tech{refactoring suites}}
+ @item{@racket[header] statements for defining common code used in all tests}
+ @item{@racket[test] and @racket[no-change-test] statements for defining individual test cases}]
 
 
-@defform[#:kind "test statement" (require: module-path suite-name)]{
+@defform[#:kind "test statement" (require module-path suite-name)]{
  Loads the @tech{refactoring suite} named @racket[suite-name] from the module at
  @racket[module-path]. The refactoring suite will be used in all tests defined in the surrounding
- file. Multiple @racket[require:] statements can be used to test rules from multiple different suites.
+ file. Multiple @racket[require] statements can be used to test rules from multiple different suites.
 
  @verbatim{
   #lang resyntax/test
@@ -562,9 +562,9 @@ The @racketmodname[resyntax/test] language supports four types of @tech{test sta
 }}
 
 
-@defform[#:kind "test statement" (header: code-block)]{
- Defines a @tech{code block} that will be prepended to every test case in the file. This is
- useful for @racket[require] statements and other common setup code that all tests need.
+@defform[#:kind "test statement" (header code-block)]{
+ Defines a @tech{code block} that will be prepended to every test case code block in the file. This is
+ useful for common setup code that all tests need, such as a @hash-lang[] line or library imports.
 
  @verbatim{
   #lang resyntax/test
@@ -578,7 +578,9 @@ The @racketmodname[resyntax/test] language supports four types of @tech{test sta
 
 
 @defform[#:kind "test statement"
-         (test: description-string input-code-block ...+ expected-code-block)]{
+         (test description-string
+               input-code-block ...+
+               expected-code-block)]{
  Defines a test case named with the given @racket[description-string]. The test case checks that
  Resyntax refactors each @racket[input-code-block] block into the final @racket[expected-code-block]:
 
@@ -601,7 +603,7 @@ The @racketmodname[resyntax/test] language supports four types of @tech{test sta
   - x
  }}
 
-@defform[#:kind "test statement" (no-change-test: description-string input-code-block)]{
+@defform[#:kind "test statement" (no-change-test description-string input-code-block)]{
  Defines a test case named with the given @racket[description-string]. The test checks that Resyntax
  does @emph{not} make any changes to the @racket[input-code-block]:
 
@@ -627,7 +629,7 @@ the standard @exec{raco test} command:
  5 tests passed
 }
 
-Each @racket[test:] statement becomes a RackUnit test case, and the entire test file becomes a module
+Each @racket[test] statement becomes a RackUnit test case, and the entire test file becomes a module
 with a single submodule named @racket[test]. Clicking the Run button in DrRacket will execute each
 test in the file. Just like in RackUnit, failing tests are highlighted by DrRacket and print failure
 messages.

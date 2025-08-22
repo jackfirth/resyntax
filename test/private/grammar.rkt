@@ -1,9 +1,9 @@
 #lang brag
 
 
-begin: statement*
-statement: COLON-IDENTIFIER (option | expression | code-block-sequence)+
-option: AT-SIGN-IDENTIFIER expression
+program: statement*
+statement: IDENTIFIER /COLON (option | expression | code-block-sequence)+
+option: /AT-SIGN IDENTIFIER expression
 
 
 @expression: code-line

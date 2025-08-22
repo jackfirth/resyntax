@@ -56,11 +56,11 @@
 
 
 (define-tokens refactoring-test-tokens
-  (IDENTIFIER COLON-IDENTIFIER AT-SIGN-IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-LINE))
+  (IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-LINE))
 
 
 (define-empty-tokens empty-refactoring-test-tokens
-  (DOUBLE-DOT COMMA SINGLE-DASH DASH-LINE EQUALS-LINE))
+  (COLON AT-SIGN DOUBLE-DOT COMMA SINGLE-DASH DASH-LINE EQUALS-LINE))
 
 
 (define (string-lines str)
@@ -68,14 +68,13 @@
     (string->immutable-string line)))
 
 
-
-
-
 (define (make-refactoring-test-tokenizer port)
 
   (define initial-lexer
     (lexer-src-pos
      [whitespace (return-without-pos (initial-lexer input-port))]
+     [":" (token-COLON)]
+     ["@" (token-AT-SIGN)]
      [".." (token-DOUBLE-DOT)]
      ["," (token-COMMA)]
      ["- "
@@ -90,10 +89,6 @@
       (token-LITERAL-STRING
        (string->immutable-string (substring lexeme 1 (sub1 (string-length lexeme)))))]
      [refactoring-test-literal-integer (token-LITERAL-INTEGER (string->number lexeme))]
-     [(concatenation refactoring-test-identifier ":")
-      (token-COLON-IDENTIFIER (string->symbol lexeme))]
-     [(concatenation "@" refactoring-test-identifier)
-      (token-AT-SIGN-IDENTIFIER (string->symbol lexeme))]
      [refactoring-test-identifier (token-IDENTIFIER (string->symbol lexeme))]))
 
   (define single-code-line-lexer
@@ -132,7 +127,8 @@
       (define tokenizer (make-refactoring-test-tokenizer input))
       (define expected-tokens
         (list
-         (position-token (token-COLON-IDENTIFIER 'header:) (position 1 1 0) (position 8 1 7))
+         (position-token (token-IDENTIFIER 'header) (position 1 1 0) (position 7 1 6))
+         (position-token (token-COLON) (position 7 1 6) (position 8 1 7))
          (position-token (token-SINGLE-DASH) (position 9 2 0) (position 11 2 2))
          (position-token (token-CODE-LINE "#lang racket\n") (position 11 2 2) (position 24 3 0))))
       (check-equal? (tokenize-until-eof tokenizer) expected-tokens))
