@@ -287,9 +287,9 @@
       [(tag:id subform ...)
        (define tag-stx (attribute tag))
        (define as-kw (string->keyword (symbol->string (syntax-e tag-stx))))
-       (define as-kw-stx (datum->syntax #false as-kw tag-stx #false))
+       (define as-kw-stx (datum->syntax #false as-kw tag-stx tag-stx))
        (replace-grammar-tags-with-shape-tags
-        (datum->syntax #false (cons as-kw-stx (attribute subform)) this-syntax #false))]
+        (datum->syntax #false (cons as-kw-stx (attribute subform)) this-syntax this-syntax))]
       #:parent-context-modifier (λ (stx) stx)
       #:parent-srcloc-modifier (λ (stx) stx)
       #:parent-props-modifier (λ (stx) stx)))
@@ -310,7 +310,7 @@
                   (syntax-e line-stx))))
        (define joined-srcloc (srcloc-spanning (first (attribute line)) (last (attribute line))))
        (define joined-lines-stx (datum->syntax #false joined-lines joined-srcloc #false))
-       (datum->syntax #false (list normalized-id joined-lines-stx) this-syntax #false)]
+       (datum->syntax #false (list normalized-id joined-lines-stx) this-syntax this-syntax)]
       #:parent-context-modifier (λ (stx) stx)
       #:parent-srcloc-modifier (λ (stx) stx)
       #:parent-props-modifier (λ (stx) stx)))
@@ -321,9 +321,9 @@
       [((~and option-tag #:option) name:id expr)
        (define name-stx (attribute name))
        (define as-kw (string->keyword (symbol->string (syntax-e name-stx))))
-       (define as-kw-stx (datum->syntax #false as-kw name-stx #false))
+       (define as-kw-stx (datum->syntax #false as-kw name-stx name-stx))
        (define new-datum (list (attribute option-tag) as-kw-stx (attribute expr)))
-       (datum->syntax #false new-datum this-syntax #false)]
+       (datum->syntax #false new-datum this-syntax this-syntax)]
       #:parent-context-modifier (λ (stx) stx)
       #:parent-srcloc-modifier (λ (stx) stx)
       #:parent-props-modifier (λ (stx) stx)))
@@ -367,20 +367,20 @@
     #:description
     "Multi-line code blocks with a single line of code can be written in a more succinct form."
     #:uses-universal-tagged-syntax? #true
-    #:literals (statement test: code-block)
-    (statement-id:statement (~and test-id (~literal test:)) test-name:str (code-block code:str) ...+)
+    #:literals (test)
+    ((~and statement-tag #:statement) (~and test-id:test) test-name:str (#:code-block code:str) ...+)
     #:do [(define code-strings (map syntax-e (attribute code)))]
     #:when (for/and ([s (in-list code-strings)])
              (string-with-one-newline-at-end? s))
-    #:with tagged-statement-id
-    (syntax-property (attribute statement-id)
+    #:with statement-tag-with-seps
+    (syntax-property (attribute statement-tag)
                      'uts-separators
-                     (list* "" " " "\n" (make-list (length (attribute code)) "")))
-    #:with code-line-id (syntax-property #'code-line 'uts-separators (list "- " ""))
+                     (list* "" ": " "\n" (make-list (length (attribute code)) "")))
+    #:with code-line-with-seps (syntax-property #'#:code-line 'uts-separators (list "- " ""))
     #:with (replacement-code ...)
     (for/list ([code-stx (in-list (attribute code))])
       (syntax-property code-stx 'uts-atom-content (syntax-e code-stx)))
-    (tagged-statement-id test-id test-name (code-line-id replacement-code) ...))
+    (statement-tag-with-seps test-id test-name (code-line-with-seps replacement-code) ...))
   
 
   (define (string-with-one-newline-at-end? s)
