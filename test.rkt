@@ -1,23 +1,18 @@
 #lang racket/base
 
 
-(provide #%app
-         #%datum
-         #%module-begin
-         begin
-         code-block
-         code-line
-         header:
-         line-range
-         range-set
-         require:
-         statement
-         test:
-         no-change-test:
-         analysis-test:)
+(provide (rename-out [resyntax-test-app #%app])
+         (rename-out [resyntax-test-module-begin #%module-begin])
+         (rename-out [resyntax-test-require require])
+         #%top-interaction
+         header
+         test
+         no-change-test
+         analysis-test)
 
 
 (require (for-syntax racket/base
+                     racket/match
                      racket/sequence
                      resyntax/test/private/statement
                      syntax/parse)
@@ -35,8 +30,57 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define (code-line str)
-  (code-block str))
+(begin-for-syntax
+  (define (resyntax-test-shape-tag-expander kw)
+    (match kw
+      ['#:statement #'expand-statement]
+      ['#:code-block #'expand-code-block]
+      ['#:code-line #'expand-code-line]
+      ['#:range-set #'expand-range-set])))
+
+
+(define-syntax-parse-rule (resyntax-test-app . tail)
+  #:with (shape-tag:keyword _ ...) (attribute tail)
+  #:with expander (resyntax-test-shape-tag-expander (syntax-e (attribute shape-tag)))
+  (expander tail))
+
+
+(define-syntax-parse-rule (expand-statement statement)
+  #:do [(define statement-stx (attribute statement))]
+  #:with (#:statement statement-id:id _ ...) statement-stx
+  #:do [(define statement-id-stx (attribute statement-id))
+        (syntax-parse-state-cons! 'literals statement-id-stx)
+        (define transformer (syntax-local-value statement-id-stx (λ () #false)))
+        (unless transformer
+          (raise-syntax-error #false
+                              "unbound statement"
+                              statement-stx
+                              statement-id-stx))
+        (unless (statement-transformer? transformer)
+          (raise-syntax-error #false
+                              "not defined as a statement"
+                              statement-stx
+                              statement-id-stx))
+        (define transformer-proc (statement-transformer-procedure transformer))]
+  #:with result
+  (syntax-local-apply-transformer transformer-proc statement-id-stx 'module #false statement-stx)
+  result)
+
+
+(define-syntax-parse-rule (expand-code-block (#:code-block str))
+  (code-block 'str))
+
+
+(define-syntax-parse-rule (expand-code-line (#:code-line str))
+  (code-block 'str))
+
+
+(define-syntax-parse-rule (expand-range-set (#:range-set (#:line-range first-line last-line) ...))
+  (range-set (line-range 'first-line 'last-line) ...))
+
+
+(define (line-range first-line last-line)
+  (closed-range first-line last-line #:comparator natural<=>))
 
 
 (define-syntax (statement stx)
@@ -62,7 +106,7 @@
                                      stx)]))
 
 
-(define-syntax require:
+(define-syntax resyntax-test-require
   (statement-transformer
    (λ (stx)
      (syntax-parse stx
@@ -80,11 +124,10 @@
   (define-syntax-class literal-code
     #:description "a code block"
     #:opaque
-    #:literals (code-line code-block)
-    (pattern ((~or code-line code-block) str:str))))
+    (pattern ((~or #:code-line #:code-block) str:str))))
 
 
-(define-syntax header:
+(define-syntax header
   (statement-transformer
    (λ (stx)
      (syntax-parse stx
@@ -98,14 +141,12 @@
 (begin-for-syntax
   (define-splicing-syntax-class test-parameters
     #:attributes ([id 1] [value 1])
-    #:literals (range-set)
-    #:datum-literals (option @lines)
 
     (pattern (~seq)
       #:with (id ...) '()
       #:with (value ...) '())
 
-    (pattern (~seq (option @lines (~and line-set (range-set . _))))
+    (pattern (~seq (#:option #:lines (~and line-set (#:range-set _ ...))))
       #:with (id ...) (list #'current-line-mask)
       #:with (value ...) (list #'line-set)))
   
@@ -125,24 +166,24 @@
           (check-suite-refactors #,input-stx expected-code))))))
 
 
-(define-syntax test:
+(define-syntax test
   (statement-transformer
    (λ (stx)
      (syntax-parse stx
        #:track-literals
-       [(_ _ name:str params:test-parameters args:code-block-test-args)
-        #`(test-case name
+       [(#:statement _ name:str params:test-parameters args:code-block-test-args)
+        #`(test-case 'name
             (parameterize ([params.id params.value] ...)
               args.check ...))]))))
 
 
-(define-syntax no-change-test:
+(define-syntax no-change-test
   (statement-transformer
    (λ (stx)
      (syntax-parse stx
        #:track-literals
-       [(_ _ name:str params:test-parameters code:literal-code)
-        #`(test-case name
+       [(#:statement _ name:str params:test-parameters code:literal-code)
+        #`(test-case 'name
             (parameterize ([params.id params.value] ...)
               #,(syntax/loc #'code (check-suite-does-not-refactor code))))]))))
 
@@ -153,19 +194,19 @@
     (pattern (~or :id :boolean :number :str))))
 
 
-(define-syntax analysis-test:
+(define-syntax analysis-test
   (statement-transformer
    (λ (stx)
      (syntax-parse stx
        #:track-literals
        #:datum-literals (option @within @inspect @property @assert)
-       [(_ _ name:str
-           code:literal-code
-           (~seq (option @within context-block:literal-code) ...
-                 (option @inspect target-block:literal-code)
-                 (option @property property-key:id)
-                 (~and assert-option (option @assert expected-value:property-value))))
-        #`(test-case name
+       [(#:statement _ name:str
+         code:literal-code
+         (~seq (#:option #:within context-block:literal-code) ...
+               (#:option #:inspect target-block:literal-code)
+               (#:option #:property property-key:id)
+               (~and assert-option (#:option #:assert expected-value:property-value))))
+        #`(test-case 'name
             #,(syntax/loc this-syntax
                 (check-suite-analysis code
                                       (list context-block ...)
@@ -176,30 +217,26 @@
 
 ;; Helper function to check if any require: statements are present
 (begin-for-syntax
-  (define (has-require-statements? body-stx)
-    (for/or ([stmt (in-list (syntax->list body-stx))])
+  (define (has-require-statements? body-stxs)
+    (for/or ([stmt (in-list body-stxs)])
       (syntax-parse stmt
-        #:literals (statement require:)
-        [(statement require: . _) #true]
+        #:literals (resyntax-test-require)
+        [(#:statement resyntax-test-require . _) #true]
         [_ #false]))))
 
 
 ;; Custom #%module-begin that automatically includes default-recommendations
 ;; when no explicit require: statements are present
-(define-syntax (#%module-begin stx)
+(define-syntax (resyntax-test-module-begin stx)
   (syntax-parse stx
-    #:literals (begin)
-    [(_ (begin . body)) ; The brag grammar adds a (begin ...) around everything in the module
-     (define has-require? (has-require-statements? #'body))
+    [(_ body ...)
+     (define has-require? (has-require-statements? (attribute body)))
      (if has-require?
-         #`(racket-module-begin . body)
-         #`(racket-module-begin 
-            (add-suite-under-test! default-recommendations)
-            . body))]))
-
-
-(define (line-range first-line last-line)
-  (closed-range first-line last-line #:comparator natural<=>))
+         #`(racket-module-begin (module+ test body ...))
+         #`(racket-module-begin
+            (module+ test
+              (add-suite-under-test! default-recommendations)
+              body ...)))]))
 
 
 ;@----------------------------------------------------------------------------------------------------
@@ -225,9 +262,6 @@
            syntax/parse)
   
 
-  ;@--------------------------------------------------------------------------------------------------
-
-
   (define (read in)
     (read-using-syntax-reader read-syntax in))
 
@@ -235,35 +269,64 @@
   (define (read-syntax source-name in)
     (define parse-tree (parse source-name (make-refactoring-test-tokenizer in)))
     (define cleaned-parse-tree
-      (syntax-traverse parse-tree
-        #:datum-literals (standalone-code-block
-                          starting-code-block
-                          middle-code-block
-                          ending-code-block)
-        [((~or id:standalone-code-block
-               id:starting-code-block
-               id:middle-code-block
-               id:ending-code-block)
-          line:str
-          ...)
-         (define id-stx (attribute id))
-         (define normalized-id (datum->syntax #false 'code-block id-stx id-stx))
-         (define joined-lines
-           (apply string-append
-                  (for/list ([line-stx (in-list (attribute line))])
-                    (syntax-e line-stx))))
-         (define joined-srcloc (srcloc-spanning (first (attribute line)) (last (attribute line))))
-         (define joined-lines-stx (datum->syntax #false joined-lines joined-srcloc #false))
-         (datum->syntax #false (list normalized-id joined-lines-stx) this-syntax this-syntax)]
-        #:parent-context-modifier (λ (stx) stx)
-        #:parent-srcloc-modifier (λ (stx) stx)
-        #:parent-props-modifier (λ (stx) stx)))
+      (replace-option-identifiers-with-keywords
+       (join-multiline-code-blocks
+        (replace-grammar-tags-with-shape-tags parse-tree))))
+    (define statements
+      (syntax-parse cleaned-parse-tree
+        [(#:program statement ...) (attribute statement)]))
     (define module-datum
-      `(module refactoring-test racket/base
-         (module test resyntax/test
-           ,cleaned-parse-tree)))
+      `(module refactoring-test resyntax/test
+         ,@statements))
     (define whole-program-srcloc (syntax-srcloc cleaned-parse-tree))
     (datum->syntax #f module-datum whole-program-srcloc))
+
+
+  (define (replace-grammar-tags-with-shape-tags grammar-stx)
+    (syntax-traverse grammar-stx
+      [(tag:id subform ...)
+       (define tag-stx (attribute tag))
+       (define as-kw (string->keyword (symbol->string (syntax-e tag-stx))))
+       (define as-kw-stx (datum->syntax #false as-kw tag-stx #false))
+       (replace-grammar-tags-with-shape-tags
+        (datum->syntax #false (cons as-kw-stx (attribute subform)) this-syntax #false))]
+      #:parent-context-modifier (λ (stx) stx)
+      #:parent-srcloc-modifier (λ (stx) stx)
+      #:parent-props-modifier (λ (stx) stx)))
+
+
+  (define-syntax-class multi-line-code-block-tag
+    (pattern
+      (~or #:standalone-code-block #:starting-code-block #:middle-code-block #:ending-code-block)))
+
+
+  (define (join-multiline-code-blocks stx)
+    (syntax-traverse stx
+      [(tag:multi-line-code-block-tag line:str ...)
+       (define normalized-id (datum->syntax #false '#:code-block #false (attribute tag)))
+       (define joined-lines
+         (apply string-append
+                (for/list ([line-stx (in-list (attribute line))])
+                  (syntax-e line-stx))))
+       (define joined-srcloc (srcloc-spanning (first (attribute line)) (last (attribute line))))
+       (define joined-lines-stx (datum->syntax #false joined-lines joined-srcloc #false))
+       (datum->syntax #false (list normalized-id joined-lines-stx) this-syntax #false)]
+      #:parent-context-modifier (λ (stx) stx)
+      #:parent-srcloc-modifier (λ (stx) stx)
+      #:parent-props-modifier (λ (stx) stx)))
+
+
+  (define (replace-option-identifiers-with-keywords stx)
+    (syntax-traverse stx
+      [((~and option-tag #:option) name:id expr)
+       (define name-stx (attribute name))
+       (define as-kw (string->keyword (symbol->string (syntax-e name-stx))))
+       (define as-kw-stx (datum->syntax #false as-kw name-stx #false))
+       (define new-datum (list (attribute option-tag) as-kw-stx (attribute expr)))
+       (datum->syntax #false new-datum this-syntax #false)]
+      #:parent-context-modifier (λ (stx) stx)
+      #:parent-srcloc-modifier (λ (stx) stx)
+      #:parent-props-modifier (λ (stx) stx)))
 
 
   (define (read-using-syntax-reader syntax-reader in)
@@ -293,14 +356,11 @@
     [rename default-resyntax-test-recommendations refactoring-suite refactoring-suite?]))
 
 
-  (require (submod "..")
+  (require (except-in (submod "..") #%app)
            racket/list
            racket/string
            resyntax/base
            syntax/parse)
-
-
-  ;@--------------------------------------------------------------------------------------------------
 
 
   (define-refactoring-rule unnecessary-multi-line-code-block
