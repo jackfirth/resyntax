@@ -18,6 +18,7 @@
   [empty-syntax-path syntax-path?]
   [syntax-path (-> (sequence/c syntax-path-element?) syntax-path?)]
   [syntax-path-elements (-> syntax-path? (treelist/c syntax-path-element?))]
+  [syntax-path-proper? (-> syntax-path? boolean?)]
   [syntax-path-element? (-> any/c boolean?)]
   [syntax-path-parent (-> nonempty-syntax-path? syntax-path?)]
   [syntax-path-next-neighbor (-> syntax-path? (or/c syntax-path? #false))]
