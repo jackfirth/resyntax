@@ -98,10 +98,21 @@
   #:guard (struct-guard/c exact-nonnegative-integer?))
 
 
-(struct syntax-path (elements)
+(struct syntax-path-struct (elements proper?)
   #:transparent
-  #:sealed
-  #:guard (λ (elements _) (sequence->treelist elements)))
+  #:sealed)
+
+;; Public constructor that computes the proper? field
+(define (syntax-path elements)
+  (define elem-treelist (sequence->treelist elements))
+  (define is-proper? (for/and ([elem (in-treelist elem-treelist)])
+                       (exact-nonnegative-integer? elem)))
+  (syntax-path-struct elem-treelist is-proper?))
+
+;; Compatibility aliases
+(define syntax-path? syntax-path-struct?)
+(define syntax-path-elements syntax-path-struct-elements)
+(define syntax-path-proper? syntax-path-struct-proper?)
 
 
 (define empty-syntax-path (syntax-path (treelist)))
@@ -130,12 +141,20 @@
 
 
 (define (proper-syntax-path? v)
-  (and (syntax-path? v)
-       (for/and ([elem (in-treelist (syntax-path-elements v))])
-         (exact-nonnegative-integer? elem))))
+  (and (syntax-path? v) (syntax-path-proper? v)))
 
 
-; TODO: add tests for proper-syntax-path?
+(module+ test
+  (test-case "proper-syntax-path?"
+    (check-true (proper-syntax-path? empty-syntax-path))
+    (check-true (proper-syntax-path? (syntax-path (list 0))))
+    (check-true (proper-syntax-path? (syntax-path (list 0 1 2))))
+    (check-false (proper-syntax-path? (syntax-path (list 0 box-element-syntax))))
+    (check-false (proper-syntax-path? (syntax-path (list (tail-syntax 1)))))
+    (check-false (proper-syntax-path? (syntax-path (list 0 (vector-element-syntax 1)))))
+    (check-false (proper-syntax-path? (syntax-path (list (hash-value-syntax 'key)))))
+    (check-false (proper-syntax-path? (syntax-path (list (prefab-field-syntax 0)))))
+    (check-false (proper-syntax-path? 42))))
 
 
 (define (syntax-path-add path element)
