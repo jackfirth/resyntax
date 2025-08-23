@@ -104,12 +104,12 @@
                   [separator-after (in-list (rest separators))])
          (list* (list (inserted-string separator-after)) child-list piece-lists))]
       [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
-       (define content (syntax-property (attribute v) 'uts-atom-content))
+       (define content (syntax-property (attribute v) 'uts-content))
        (unless content
          (raise-arguments-error
           'syntax-replacement-render-using-uts
           (string-append "cannot render as universal tagged syntax, atom does not contain"
-                         " 'uts-atom-content syntax property")
+                         " 'uts-content syntax property")
           "atom" this-syntax
           "replacement" replacement))
        (list (inserted-string content))]))
