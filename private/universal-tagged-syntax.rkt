@@ -12,22 +12,19 @@
 (require racket/list
          racket/match
          racket/mutability
-         racket/port)
+         racket/port
+         resyntax/private/source)
 
 
 (module+ test
   (require (submod "..")
            racket/string
-           rackunit
-           resyntax/private/source))
+           rackunit))
 
 
 ;@----------------------------------------------------------------------------------------------------
 
 
-; TODO: check source locations
-; TODO: add a variant that checks for original reader UTS, i.e. check originality, check uts property
-; strings match contents in sourceloc, check source names all match, check source locations
 (define (check-universal-tagged-syntax stx)
   (let loop ([stx stx] [top? #true])
     (match (syntax-e stx)
@@ -66,6 +63,39 @@
                               "every form must be either an atom or a proper list"
                               "form" stx)]))
   stx)
+
+
+; TODO: check source locations more thoroughly, check uts property strings match contents in
+; sourceloc, check source location relationships between adjacent nodes and parent-child nodes
+(define (check-source-universal-tagged-syntax source)
+  (define stx (source-read-syntax source))
+  (define expected-source-name (source-name source))
+  (check-universal-tagged-syntax stx)
+  (let loop ([stx stx])
+    (unless (syntax-original? stx)
+      (raise-arguments-error 'check-source-universal-tagged-syntax
+                             "source produced a syntax object that is not syntax-original?"
+                             "syntax object" stx
+                             "source" source))
+    (unless (syntax-source stx)
+      (raise-arguments-error
+       'check-source-universal-tagged-syntax
+       "source produced a syntax object with no source name in its source location information"
+       "syntax object" stx
+       "source" source))
+    (unless (equal? (syntax-source stx) expected-source-name)
+      (raise-arguments-error
+       'check-source-universal-tagged-syntax
+       "source produced a syntax object with an incorrect source name"
+       "syntax object" stx
+       "incorrect source name" (syntax-source stx)
+       "expected source name" expected-source-name))
+    (match (syntax-e stx)
+      [(? atom?)
+       (void)]
+      [(list shape-tag children ...)
+       (for ([child (in-list children)])
+         (loop child))])))
 
 
 (define (atom? v)
@@ -117,9 +147,9 @@
          "- (and a b c)")
         "\n"
         #:after-last "\n")))
-    (define stx (source-read-syntax src))
+    (check-source-universal-tagged-syntax src)
 
-    (check-universal-tagged-syntax stx)
+    (define stx (source-read-syntax src))
     (define written-form (universal-tagged-syntax->string stx))
 
     (check-equal? written-form (string-source-contents src))))
