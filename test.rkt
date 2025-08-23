@@ -252,6 +252,7 @@
 
 
   (require racket/list
+           racket/path
            racket/syntax-srcloc
            resyntax/private/syntax-traversal
            resyntax/private/universal-tagged-syntax
@@ -289,8 +290,11 @@
 
 
   (define (derive-module-name-from-source source-name)
-    ; TODO: actually pick a symbol based on the source name instead of ignoring it.
-    'refactoring-test)
+    (cond
+      [(symbol? source-name) source-name]
+      [(path? source-name)
+       (string->symbol (path->string (path-replace-extension (file-name-from-path source-name) #"")))]
+      [else 'anonymous-resyntax-test]))
 
 
   (define (replace-grammar-tags-with-shape-tags grammar-stx)
