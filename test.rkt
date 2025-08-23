@@ -13,10 +13,7 @@
 
 (require (for-syntax racket/base
                      racket/match
-                     racket/sequence
-                     resyntax/test/private/statement
-                     syntax/parse)
-         racket/stxparam
+                     resyntax/test/private/statement)
          rackunit
          rebellion/base/comparator
          rebellion/base/range
@@ -257,6 +254,7 @@
   (require racket/list
            racket/syntax-srcloc
            resyntax/private/syntax-traversal
+           resyntax/private/universal-tagged-syntax
            resyntax/test/private/grammar
            resyntax/test/private/tokenizer
            syntax/parse)
@@ -269,17 +267,30 @@
   (define (read-syntax source-name in)
     (define parse-tree (parse source-name (make-refactoring-test-tokenizer in)))
     (define cleaned-parse-tree
-      (replace-option-identifiers-with-keywords
-       (join-multiline-code-blocks
-        (replace-grammar-tags-with-shape-tags parse-tree))))
+      (add-uts-properties
+       (replace-option-identifiers-with-keywords
+        (join-multiline-code-blocks
+         (replace-grammar-tags-with-shape-tags parse-tree)))))
     (define statements
       (syntax-parse cleaned-parse-tree
         [(#:program statement ...) (attribute statement)]))
-    (define module-datum
-      `(module refactoring-test resyntax/test
-         ,@statements))
+    (define raw-module-id (datum->syntax #false 'module #false parse-tree))
+    (define module-level-separators
+      (append (list "" "#lang ") (make-list (length statements) "\n") (list "")))
+    (define module-id (syntax-property raw-module-id 'uts-separators module-level-separators))
+    (define raw-modname
+      (datum->syntax #false (derive-module-name-from-source source-name) #false parse-tree))
+    (define modname (syntax-property raw-modname 'uts-content ""))
+    (define raw-prelude (datum->syntax #false 'resyntax/test #false parse-tree))
+    (define prelude (syntax-property raw-prelude 'uts-content "resyntax/test"))
+    (define module-datum (list* module-id modname prelude statements))
     (define whole-program-srcloc (syntax-srcloc cleaned-parse-tree))
-    (datum->syntax #f module-datum whole-program-srcloc))
+    (check-universal-tagged-syntax (datum->syntax #false module-datum whole-program-srcloc)))
+
+
+  (define (derive-module-name-from-source source-name)
+    ; TODO: actually pick a symbol based on the source name instead of ignoring it.
+    'refactoring-test)
 
 
   (define (replace-grammar-tags-with-shape-tags grammar-stx)
@@ -329,6 +340,99 @@
       #:parent-props-modifier (λ (stx) stx)))
 
 
+  (define (add-uts-properties stx)
+    (syntax-traverse stx
+      #:datum-literals (require header test no-change-test analysis-test)
+
+      [:id
+       (define as-string (symbol->string (syntax-e this-syntax)))
+       (syntax-property this-syntax 'uts-content as-string)]
+
+      [((~and tag #:statement) require-id:require mod suite)
+       (define tag-with-prop
+         (syntax-property (attribute tag) 'uts-separators (list "" ": " " " "\n")))
+       (define new-datum
+         (list tag-with-prop
+               (add-uts-properties (attribute require-id))
+               (add-uts-properties (attribute mod))
+               (add-uts-properties (attribute suite))))
+       (datum->syntax #false new-datum this-syntax this-syntax)]
+
+      [((~and tag #:statement) header-id:header code)
+       (define tag-with-prop
+         (syntax-property (attribute tag) 'uts-separators (list "" ":\n" "")))
+       (define new-datum
+         (list tag-with-prop
+               (add-uts-properties (attribute header-id))
+               (add-uts-properties (attribute code))))
+       (datum->syntax #false new-datum this-syntax this-syntax)]
+
+      [((~and tag #:statement) (~and test-id (~or test no-change-test analysis-test)) arg ...)
+       (define separators (append (list "" ": " "\n") (make-list (length (attribute arg)) "")))
+       (define tag-with-prop (syntax-property (attribute tag) 'uts-separators separators))
+       (define new-datum
+         (list* tag-with-prop
+                (add-uts-properties (attribute test-id))
+                (for/list ([arg-stx (in-list (attribute arg))])
+                  (add-uts-properties arg-stx))))
+       (datum->syntax #false new-datum this-syntax this-syntax)]
+
+      [((~and tag #:code-line) code:str)
+       (define tag-with-prop (syntax-property (attribute tag) 'uts-separators (list "- " "")))
+       (define code-with-prop
+         (syntax-property (attribute code) 'uts-content (syntax-e (attribute code))))
+       (datum->syntax #false (list tag-with-prop code-with-prop) this-syntax this-syntax)]
+
+      [((~and tag #:code-block) code:str)
+       (define dash-line "--------------------\n")
+       (define tag-with-prop
+         (syntax-property (attribute tag) 'uts-separators (list dash-line dash-line)))
+       (define code-with-prop
+         (syntax-property (attribute code) 'uts-content (syntax-e (attribute code))))
+       (datum->syntax #false (list tag-with-prop code-with-prop) this-syntax this-syntax)]
+
+      [((~and tag #:option) option:keyword expr)
+       (define expr-ends-in-newline?
+         (syntax-parse (attribute expr)
+           [((~or #:code-line #:code-block) _ ...) #true]
+           [_ #false]))
+       (define separators (list "@" "" (if expr-ends-in-newline? "" "\n")))
+       (define tag-with-prop (syntax-property (attribute tag) 'uts-separators separators))
+       (define option-stx (attribute option))
+       (define option-as-string (keyword->string (syntax-e option-stx)))
+       (define option-with-prop (syntax-property option-stx 'uts-content option-as-string))
+       (define new-datum (list tag-with-prop option-with-prop (add-uts-properties (attribute expr))))
+       (datum->syntax #false new-datum this-syntax this-syntax)]
+
+      [((~and tag #:range-set) line-range ...)
+       (define separators
+         (append (list "")
+                 (make-list (sub1 (length (attribute line-range))) ", ")
+                 (list "")))
+       (define tag-with-prop (syntax-property (attribute tag) 'uts-separators separators))
+       (define new-datum
+         (cons tag-with-prop
+               (for/list ([line-range-stx (in-list (attribute line-range))])
+                 (add-uts-properties line-range-stx))))
+       (datum->syntax #false new-datum this-syntax this-syntax)]
+
+      [((~and tag #:line-range) first last)
+       (define tag-with-prop (syntax-property (attribute tag) 'uts-separators (list "" ".." "")))
+       (define new-datum
+         (list tag-with-prop
+               (add-uts-properties (attribute first))
+               (add-uts-properties (attribute last))))
+       (datum->syntax #false new-datum this-syntax this-syntax)]
+
+      [(~or :str :number)
+       (define as-string (format "~v" (syntax-e this-syntax)))
+       (syntax-property this-syntax 'uts-content as-string)]
+
+      #:parent-context-modifier (λ (stx) stx)
+      #:parent-srcloc-modifier (λ (stx) stx)
+      #:parent-props-modifier (λ (stx) stx)))
+
+
   (define (read-using-syntax-reader syntax-reader in)
     (syntax->datum (syntax-reader #false in)))
 
@@ -372,15 +476,8 @@
     #:do [(define code-strings (map syntax-e (attribute code)))]
     #:when (for/and ([s (in-list code-strings)])
              (string-with-one-newline-at-end? s))
-    #:with statement-tag-with-seps
-    (syntax-property (attribute statement-tag)
-                     'uts-separators
-                     (list* "" ": " "\n" (make-list (length (attribute code)) "")))
     #:with code-line-with-seps (syntax-property #'#:code-line 'uts-separators (list "- " ""))
-    #:with (replacement-code ...)
-    (for/list ([code-stx (in-list (attribute code))])
-      (syntax-property code-stx 'uts-atom-content (syntax-e code-stx)))
-    (statement-tag-with-seps test-id test-name (code-line-with-seps replacement-code) ...))
+    (statement-tag test-id test-name (code-line-with-seps code) ...))
   
 
   (define (string-with-one-newline-at-end? s)
