@@ -251,8 +251,10 @@
     [read-syntax procedure?]))
 
 
-  (require racket/list
+  (require (only-in racket/base [read-syntax racket:read-syntax])
+           racket/list
            racket/path
+           racket/port
            racket/syntax-srcloc
            resyntax/private/syntax-traversal
            resyntax/private/universal-tagged-syntax
@@ -265,7 +267,12 @@
     (read-using-syntax-reader read-syntax in))
 
 
-  (define (read-syntax source-name in)
+  (define (read-syntax source-name in source-mod-path-stx start-line start-column start-pos)
+    (define start-srcloc (srcloc source-name start-line start-column start-pos 0))
+    (define definitely-original-syntax (with-input-from-string "foo" racket:read-syntax))
+    (unless (syntax-original? definitely-original-syntax)
+      (raise-arguments-error 'read-syntax
+                             "fundamental assumptions about syntax originality violated"))
     (define parse-tree (parse source-name (make-refactoring-test-tokenizer in)))
     (define cleaned-parse-tree
       (add-uts-properties
@@ -275,18 +282,26 @@
     (define statements
       (syntax-parse cleaned-parse-tree
         [(#:program statement ...) (attribute statement)]))
-    (define raw-module-id (datum->syntax #false 'module #false parse-tree))
+    (define raw-module-id (datum->syntax #false 'module start-srcloc definitely-original-syntax))
     (define module-level-separators
       (append (list "" "#lang ") (make-list (length statements) "\n") (list "")))
     (define module-id (syntax-property raw-module-id 'uts-separators module-level-separators))
+    (define derived-modname-symbol (derive-module-name-from-source source-name))
     (define raw-modname
-      (datum->syntax #false (derive-module-name-from-source source-name) #false parse-tree))
+      (datum->syntax #false derived-modname-symbol start-srcloc definitely-original-syntax))
     (define modname (syntax-property raw-modname 'uts-content ""))
-    (define raw-prelude (datum->syntax #false 'resyntax/test #false parse-tree))
+    (define prelude-srcloc (srcloc-extend-right start-srcloc (string-length "#lang ")))
+    (define raw-prelude
+      (datum->syntax #false 'resyntax/test prelude-srcloc definitely-original-syntax))
     (define prelude (syntax-property raw-prelude 'uts-content "resyntax/test"))
     (define module-datum (list* module-id modname prelude statements))
     (define whole-program-srcloc (syntax-srcloc cleaned-parse-tree))
-    (check-universal-tagged-syntax (datum->syntax #false module-datum whole-program-srcloc)))
+    (check-universal-tagged-syntax
+     (datum->syntax #false module-datum whole-program-srcloc definitely-original-syntax)))
+
+
+  (define (srcloc-extend-right loc amount)
+    (struct-copy srcloc loc [span (+ (srcloc-span loc) amount)]))
 
 
   (define (derive-module-name-from-source source-name)

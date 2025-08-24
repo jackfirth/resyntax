@@ -9,6 +9,7 @@
   [source? (-> any/c boolean?)]
   [unmodified-source? (-> any/c boolean?)]
   [source->string (-> source? immutable-string?)]
+  [source-name (-> source? (or/c path? symbol?))]
   [source-path (-> source? (or/c path? #false))]
   [source-directory (-> source? (or/c path? #false))]
   [source-original (-> source? unmodified-source?)]
@@ -98,6 +99,12 @@
 (struct modified-source source (original contents)
   #:transparent
   #:guard (λ (original contents _) (values original (string->immutable-string contents))))
+
+
+(define (source-name src)
+  (match src
+    [(or (file-source path) (modified-source (file-source path) _)) path]
+    [(or (string-source _) (modified-source (string-source _) _)) 'string]))
 
 
 (define-record-type source-code-analysis
