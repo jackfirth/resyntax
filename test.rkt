@@ -290,7 +290,7 @@
     (define raw-modname
       (datum->syntax #false derived-modname-symbol start-srcloc definitely-original-syntax))
     (define modname (syntax-property raw-modname 'uts-content ""))
-    (define prelude-srcloc (srcloc-extend-right start-srcloc (string-length "#lang ")))
+    (define prelude-srcloc (srcloc-extend-right start-srcloc (string-length "resyntax/test")))
     (define raw-prelude
       (datum->syntax #false 'resyntax/test prelude-srcloc definitely-original-syntax))
     (define prelude (syntax-property raw-prelude 'uts-content "resyntax/test"))

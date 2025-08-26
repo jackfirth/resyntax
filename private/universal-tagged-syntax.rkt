@@ -13,6 +13,7 @@
          racket/match
          racket/mutability
          racket/port
+         racket/syntax-srcloc
          resyntax/private/source)
 
 
@@ -83,19 +84,44 @@
        "source produced a syntax object with no source name in its source location information"
        "syntax object" stx
        "source" source))
-    (unless (equal? (syntax-source stx) expected-source-name)
+    (match-define (srcloc source-name line column position span) (syntax-srcloc stx))
+    (unless (equal? source-name expected-source-name)
       (raise-arguments-error
        'check-source-universal-tagged-syntax
        "source produced a syntax object with an incorrect source name"
        "syntax object" stx
        "incorrect source name" (syntax-source stx)
        "expected source name" expected-source-name))
+    (unless (and line column position span)
+      (raise-arguments-error
+       'check-source-universal-tagged-syntax
+       "source produced a syntax object with an incomplete source location"
+       "syntax object" stx
+       "line" line
+       "column" column
+       "position" position
+       "span" span))
     (match (syntax-e stx)
       [(? atom?)
+       #:when (syntax-property stx 'uts-content)
+       (define property-content (syntax-property stx 'uts-content))
+       (define start (sub1 position))
+       (define end (+ start span))
+       (define source-content (substring (source->string source) start end))
+       (unless (equal? property-content source-content)
+         (raise-arguments-error
+          'check-source-universal-tagged-syntax
+          (string-append "source produced an atom whose 'uts-content property does not match the text"
+                         " at its source location")
+          "atom" stx
+          "UTS content" property-content
+          "source content" source-content))]
+      [(? atom?)
+       #:when (syntax-property stx 'uts-separators)
        (void)]
-      [(list shape-tag children ...)
-       (for ([child (in-list children)])
-         (loop child))])))
+      [(? list? subforms)
+       (for ([subform (in-list subforms)])
+         (loop subform))])))
 
 
 (define (atom? v)
