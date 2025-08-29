@@ -29,6 +29,8 @@
 
 (define-lex-abbrev dash-line (concatenation (repetition 3 +inf.0 #\-) #\newline))
 (define-lex-abbrev equals-line (concatenation (repetition 3 +inf.0 #\=) #\newline))
+(define-lex-abbrev pipe-dash-line (concatenation "|" dash-line))
+(define-lex-abbrev pipe-equals-line (concatenation "|" equals-line))
 
 
 (define-lex-abbrev refactoring-test-code-block
@@ -55,12 +57,20 @@
                  (repetition 0 +inf.0 (union alphabetic numeric (char-set "-/")))))
 
 
-(define-tokens refactoring-test-tokens
-  (IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-LINE))
+(define-tokens refactoring-test-tokens (IDENTIFIER LITERAL-STRING LITERAL-INTEGER CODE-LINE))
 
 
 (define-empty-tokens empty-refactoring-test-tokens
-  (COLON AT-SIGN DOUBLE-DOT COMMA SINGLE-DASH DASH-LINE EQUALS-LINE))
+  (COLON
+   AT-SIGN
+   DOUBLE-DOT
+   COMMA
+   SINGLE-DASH
+   DASH-LINE
+   EQUALS-LINE
+   PIPE-DASH-LINE
+   PIPE-EQUALS-LINE
+   PIPE-SPACE))
 
 
 (define (string-lines str)
@@ -85,6 +95,10 @@
       (let ()
         (set! active-lexer multi-code-line-lexer)
         (token-DASH-LINE))]
+     [pipe-dash-line
+      (let ()
+        (set! active-lexer pipe-prefix-lexer)
+        (token-PIPE-DASH-LINE))]
      [refactoring-test-literal-string
       (token-LITERAL-STRING
        (string->immutable-string (substring lexeme 1 (sub1 (string-length lexeme)))))]
@@ -107,6 +121,25 @@
         (set! active-lexer initial-lexer)
         (token-DASH-LINE))]
      [equals-line (token-EQUALS-LINE)]))
+
+  (define pipe-prefix-lexer
+    (lexer-src-pos
+     ["| "
+      (let ()
+        (set! active-lexer pipe-code-line-lexer)
+        (token-PIPE-SPACE))]
+     [pipe-dash-line
+      (let ()
+        (set! active-lexer initial-lexer)
+        (token-PIPE-DASH-LINE))]
+     [pipe-equals-line (token-PIPE-EQUALS-LINE)]))
+
+  (define pipe-code-line-lexer
+    (lexer-src-pos
+     [rest-of-line
+      (let ()
+        (set! active-lexer pipe-prefix-lexer)
+        (token-CODE-LINE lexeme))]))
 
   (define active-lexer initial-lexer)
 
