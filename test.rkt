@@ -327,7 +327,14 @@
 
   (define-syntax-class multi-line-code-block-tag
     (pattern
-      (~or #:standalone-code-block #:starting-code-block #:middle-code-block #:ending-code-block)))
+      (~or #:standalone-code-block
+           #:prefixed-standalone-code-block
+           #:first-code-block
+           #:middle-code-block
+           #:last-code-block
+           #:prefixed-first-code-block
+           #:prefixed-middle-code-block
+           #:prefixed-last-code-block)))
 
 
   (define (join-multiline-code-blocks stx)
