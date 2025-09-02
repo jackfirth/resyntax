@@ -142,7 +142,12 @@
   (for/list ([directive (in-list (attribute pattern-directive))])
     (syntax-parse directive
       [(#:when condition:expr) #'(#:when (log-resyntax-rule-condition condition))]
+      [(#:with pattern-expr stx-expr:expr) 
+       #'(#:with pattern-expr (log-resyntax-rule-with-expr stx-expr))]
       [_ directive]))
+
+  #:attr undo-log-statement
+  #'(log-resyntax-rule-undo id)
 
   (define id
     (constructor:refactoring-rule
@@ -155,7 +160,9 @@
          (~@ . parse-option) ...
          [pattern
            (~? (~@ #:do [partial-match-log-statement]))
-           (~@ . wrapped-pattern-directive) ... (present #'replacement)]
+           (~@ . wrapped-pattern-directive) ... 
+           #:undo [undo-log-statement]
+           (present #'replacement)]
          [_ absent])))))
 
 
@@ -177,6 +184,9 @@
   (and (not (empty? (attribute pattern-directive)))
        #'(log-resyntax-debug "~a: partial match" 'id))
 
+  #:attr undo-log-statement
+  #'(log-resyntax-rule-undo id)
+
   (begin
 
     (define-splicing-syntax-class body-matching-id
@@ -185,6 +195,7 @@
       (pattern splicing-pattern
         (~? (~@ #:do [log-statement]))
         (~@ . pattern-directive) ...
+        #:undo [undo-log-statement]
         #:with (refactored (... ...)) #'(splicing-replacement ...)))
 
     (define-syntax-class expression-matching-id
