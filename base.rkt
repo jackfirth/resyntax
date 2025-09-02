@@ -142,6 +142,8 @@
   (for/list ([directive (in-list (attribute pattern-directive))])
     (syntax-parse directive
       [(#:when condition:expr) #'(#:when (log-resyntax-rule-condition condition))]
+      [(#:with pattern-expr stx-expr:expr) 
+       #'(#:with pattern-expr (log-resyntax-rule-with-expr stx-expr))]
       [_ directive]))
 
   #:attr undo-log-statement

@@ -7,7 +7,7 @@
          log-resyntax-info
          log-resyntax-debug
          log-resyntax-rule-condition
-         log-resyntax-rule-with-pattern
+         log-resyntax-rule-with-expr
          log-resyntax-rule-undo
          resyntax-logger)
 
@@ -34,19 +34,16 @@
   (log-resyntax-rule-condition-impl expr #:line 'line #:datum 'expr))
 
 
-(define (log-resyntax-rule-with-pattern-impl pattern-result #:line line-num #:pattern-datum pattern-datum #:expr-datum expr-datum)
-  (when (absent? pattern-result)
-    (log-resyntax-debug "rule #:with pattern ~a failed to match ~a on line ~a" pattern-datum expr-datum line-num))
-  pattern-result)
-
-
-(define-syntax-parse-rule (log-resyntax-rule-with-pattern pattern-expr:expr expr:expr)
+(define-syntax-parse-rule (log-resyntax-rule-with-expr expr:expr)
   #:with line (syntax-line (attribute expr))
-  (log-resyntax-rule-with-pattern-impl 
-   (syntax-parse expr #:track-literals [pattern-expr (present #'pattern-expr)] [_ absent])
-   #:line 'line 
-   #:pattern-datum 'pattern-expr 
-   #:expr-datum 'expr))
+  (begin
+    (define temp-result 
+      (with-handlers ([exn:fail? (λ (e) 
+                                   (log-resyntax-debug "rule #:with expression ~a failed with error: ~a on line ~a" 
+                                                       'expr (exn-message e) 'line)
+                                   (raise e))])
+        expr))
+    temp-result))
 
 
 (define-syntax-parse-rule (log-resyntax-rule-undo rule-name:id)
