@@ -198,15 +198,13 @@
 
   (define (skip e)
     (log-resyntax-error
-     "skipping ~a\n encountered an error during macro expansion\n  error:\n~a"
+     "skipping ~a\n encountered an error during initial analysis\n  error:\n~a"
      (or (source-path source) "string source")
      (string-indent (exn-message e) #:amount 3))
     empty-list)
 
   (define results
-    (with-handlers ([exn:fail:syntax? skip]
-                    [exn:fail:filesystem:missing-module? skip]
-                    [exn:fail:contract:variable? skip])
+    (with-handlers ([exn:fail? skip])
       (define analysis (source-analyze source #:lines lines))
       (refactor-visited-forms
        #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
