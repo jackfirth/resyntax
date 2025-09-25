@@ -56,6 +56,7 @@
          rebellion/collection/vector/builder
          rebellion/streaming/transducer
          rebellion/type/record
+         resyntax/default-recommendations/analyzers/binding-origin
          resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/analyzers/ignored-result-values
          resyntax/default-recommendations/analyzers/variable-mutability
@@ -270,6 +271,8 @@
 
     (define expansion-analyzer-props
       (transduce (sequence-append
+                  (syntax-property-bundle-entries
+                   (expansion-analyze binding-origin-analyzer expanded))
                   (syntax-property-bundle-entries
                    (expansion-analyze identifier-usage-analyzer expanded))
                   (syntax-property-bundle-entries
