@@ -187,7 +187,8 @@
   (pattern (f:id arg:pure-expression ...)
     #:when ((literal-set->predicate pure-functions) (attribute f)))
   (pattern ((~or and or if when unless) subexpr:pure-expression ...))
-  (pattern (cond clause:cond-clause ...))
+  (pattern (cond clause:cond-clause ...)))
+
 
 (define-syntax-class cond-clause
   (pattern [test:pure-expression expr:pure-expression ...])
