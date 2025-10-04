@@ -149,6 +149,10 @@ test: "string-append with multiple non-string expressions"
 ------------------------------
 
 
+no-change-test: "string-append with multiple format expressions not refactorable"
+- (string-append (format "foo: ~a" 42) (format "bar: ~a" 42))
+
+
 test: "manual with-output-to-string should be refactored to use with-output-to-string"
 ------------------------------
 (define (f)

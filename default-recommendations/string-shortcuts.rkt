@@ -169,11 +169,16 @@
   (and (syntax? stx) (string? (syntax-e stx))))
 
 
+(define-syntax-class non-format-expr
+  #:literals (format)
+  (pattern (~not (format _ ...))))
+
+
 (define-refactoring-rule string-append-with-format-to-format
   #:description
   "This `string-append` with `format` expression can be simplified to a single `format` call."
   #:literals (string-append format)
-  (string-append before ... (format template:str arg ...) after ...)
+  (string-append before:non-format-expr ... (format template:str arg ...) after:non-format-expr ...)
 
   #:with new-template
   (build-new-format-template (attribute before) (attribute template) (attribute after))
