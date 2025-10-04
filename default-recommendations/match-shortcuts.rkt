@@ -183,11 +183,12 @@
 (define-syntax-class conditional-body
   #:description "conditional expression in match clause body"
   #:attributes (condition [then-expr 1] [else-expr 1])
-  #:literals (if cond else)
+  #:literals (if cond else =>)
   (pattern (if condition only-then-expr only-else-expr)
     #:attr [then-expr 1] (list (attribute only-then-expr))
     #:attr [else-expr 1] (list (attribute only-else-expr)))
-  (pattern (cond [condition then-expr ...] [else else-expr ...])))
+  (pattern (cond [condition then-expr ...+] [else else-expr ...])
+    #:and (~parse (~not =>) (first (attribute then-expr)))))
 
 
 (define-refactoring-rule match-conditional-to-when
