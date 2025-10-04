@@ -297,6 +297,18 @@ test: "match patterns with multi-body cond conditionals can be simplified using 
 ------------------------------
 
 
+no-change-test: "match patterns with cond conditionals that use => can't be simplified using #:when"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (cond
+       [(> x y) => (λ (bool) (list y x))]
+       [else pt])]
+    [(list) '()]))
+------------------------------
+
+
 test: "single-clause match with if conditional should be refactored to match-define instead of #:when"
 ------------------------------
 (define (f pt)
