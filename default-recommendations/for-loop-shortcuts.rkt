@@ -593,12 +593,27 @@ return just that result."
 
 
 (define-refactoring-rule in-value-to-do
-  #:description "This `in-value` clause can be replaced with a `#:do` clause since the variable is not used."
+  #:description
+  "This `in-value` clause can be replaced with a `#:do` clause since the variable is not used."
   #:literals (in-value)
   (for-id:id (clause-before ... [var:id (in-value expr)] clause-after ...) body ...)
   #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
   #:when (equal? (syntax-property #'var 'usage-count) 0)
   (for-id (clause-before ... #:do [expr] clause-after ...) body ...))
+
+
+(define-refactoring-rule named-let-read-loop-to-for-in-port
+  #:description
+  "A named `let` that repeatedly calls `read` can be rewritten to a `for` loop using `in-port`"
+  #:literals (let unless read eof?)
+  (let loop:id ([v:id (read)])
+    (unless (eof? v2:id)
+      body ...
+      (loop2:id (read))))
+  #:when (free-identifier=? (attribute v) (attribute v2))
+  #:when (free-identifier=? (attribute loop) (attribute loop2))
+  (for ([v (in-port)])
+    body ...))
 
 
 (define-refactoring-suite for-loop-shortcuts
@@ -624,6 +639,7 @@ return just that result."
            named-let-loop-to-for/first-in-vector
            named-let-loop-to-for/list
            named-let-loop-to-for/or
+           named-let-read-loop-to-for-in-port
            nested-for-to-for*
            nested-for/and-to-for*/and
            nested-for/or-to-for*/or
