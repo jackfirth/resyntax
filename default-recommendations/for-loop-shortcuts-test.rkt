@@ -1052,7 +1052,7 @@ test: "read-until-eof loop refactorable to for loop with in-port"
 --------------------
 (define (print-reads)
   (let loop ([v (read)])
-    (unless (eof? v)
+    (unless (eof-object? v)
       (displayln v)
       (loop (read)))))
 ====================

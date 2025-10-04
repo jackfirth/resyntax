@@ -605,9 +605,9 @@ return just that result."
 (define-refactoring-rule named-let-read-loop-to-for-in-port
   #:description
   "A named `let` that repeatedly calls `read` can be rewritten to a `for` loop using `in-port`"
-  #:literals (let unless read eof?)
+  #:literals (let unless read eof-object?)
   (let loop:id ([v:id (read)])
-    (unless (eof? v2:id)
+    (unless (eof-object? v2:id)
       body ...
       (loop2:id (read))))
   #:when (free-identifier=? (attribute v) (attribute v2))
