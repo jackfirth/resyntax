@@ -191,5 +191,6 @@
 
 
 (define-syntax-class cond-clause
+  #:literals (else)
   (pattern [test:pure-expression expr:pure-expression ...])
   (pattern [else expr:pure-expression ...]))
