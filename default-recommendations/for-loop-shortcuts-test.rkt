@@ -1046,3 +1046,17 @@ test: "shadowed and unused in-value clause refactorable to #:do clause"
        [b (in-range 0 a)])
   (displayln (list a b)))
 --------------------
+
+
+test: "read-until-eof loop refactorable to for loop with in-port"
+--------------------
+(define (print-reads)
+  (let loop ([v (read)])
+    (unless (eof-object? v)
+      (displayln v)
+      (loop (read)))))
+====================
+(define (print-reads)
+  (for ([v (in-port)])
+    (displayln v)))
+--------------------
