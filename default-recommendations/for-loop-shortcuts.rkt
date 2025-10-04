@@ -604,7 +604,7 @@ return just that result."
 
 (define-refactoring-rule named-let-read-loop-to-for-in-port
   #:description
-  "A named `let` that repeatedly calls `read` can be rewritten to a `for` loop using `in-port`"
+  "A named `let` that repeatedly calls `read` can be rewritten to a `for` loop using `in-port`."
   #:literals (let unless read eof-object?)
   (let loop:id ([v:id (read)])
     (unless (eof-object? v2:id)
@@ -614,6 +614,24 @@ return just that result."
   #:when (free-identifier=? (attribute loop) (attribute loop2))
   (for ([v (in-port)])
     body ...))
+
+
+(define-refactoring-rule index-mutating-map-to-for/list
+  #:description
+  "Instead of mutating an index inside a `map` expression, you can use `for/list` with `in-naturals`."
+  #:literals (let map + add1 set!)
+  (let ([i:id n:nat])
+    (map (:lambda-by-any-name
+          (v:id)
+          (set! i2:id (~or (add1 i3:id) (+ i3:id 1) (+ 1 i3:id)))
+          body)
+         vs:sequence-syntax-convertible-list-expression))
+  #:when (free-identifier=? (attribute i) (attribute i2))
+  #:when (free-identifier=? (attribute i) (attribute i3))
+  #:with starting-index (add1 (syntax-e (attribute n)))
+  (for/list ([v vs.refactored]
+             [i (in-naturals starting-index)])
+    body))
 
 
 (define-refactoring-suite for-loop-shortcuts
@@ -632,6 +650,7 @@ return just that result."
            in-hash-to-in-hash-keys
            in-hash-to-in-hash-values
            in-value-to-do
+           index-mutating-map-to-for/list
            list->set-to-for/set
            list->vector-to-for/vector
            map-to-for

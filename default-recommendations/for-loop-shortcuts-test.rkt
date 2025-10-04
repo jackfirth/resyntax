@@ -1060,3 +1060,19 @@ test: "read-until-eof loop refactorable to for loop with in-port"
   (for ([v (in-port)])
     (displayln v)))
 --------------------
+
+
+test: "index-mutating map to for/list with index"
+--------------------
+(require racket/list)
+(let ([i 0])
+  (map (λ (x)
+         (set! i (+ i 1))
+         (list i x))
+       (range 10)))
+====================
+(require racket/list)
+(for/list ([x (in-range 10)]
+           [i (in-naturals 1)])
+  (list i x))
+--------------------
