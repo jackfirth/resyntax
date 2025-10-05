@@ -302,3 +302,13 @@ test: "comparing length to zero refactorable to empty check"
 (require racket/list)
 (empty? (list 1 2 3))
 ------------------------------
+
+
+test: "first of rest refactorable to second"
+------------------------------
+(require racket/list)
+(first (rest (list 'a 'b 'c)))
+==============================
+(require racket/list)
+(second (list 'a 'b 'c))
+------------------------------

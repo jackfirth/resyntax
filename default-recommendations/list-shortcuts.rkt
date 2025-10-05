@@ -260,12 +260,20 @@
   (empty? list-expr))
 
 
+(define-refactoring-rule first-of-rest-to-second
+  #:description "This expression can be simplified using the `second` function."
+  #:literals (first rest)
+  (first (rest list-expr))
+  (second list-expr))
+
+
 (define-refactoring-suite list-shortcuts
   #:rules (append-single-list-to-single-list
            append*-and-map-to-append-map
            build-list-const-to-make-list
            consing-onto-static-list
            equal-null-list-to-null-predicate
+           first-of-rest-to-second
            filter-to-remove*
            filter-to-remq*
            filter-to-remv*
