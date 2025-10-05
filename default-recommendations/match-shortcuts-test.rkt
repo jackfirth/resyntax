@@ -230,7 +230,27 @@ no-change-test: "root-level and pattern not removed when not matching on a simpl
 ------------------------------
 
 
-test: "match patterns with if conditionals can be simplified using #:when clauses"
+test: "match patterns with long if conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (if (> x y)
+         (list y x 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo)
+         pt)]
+    [(list) '()]))
+==============================
+(define (f pt)
+  (match pt
+    [(list x y)
+     #:when (> x y)
+     (list y x 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo)]
+    [(list x y) pt]
+    [(list) '()]))
+------------------------------
+
+
+no-change-test: "match patterns with short if conditionals won't be simplified using #:when clauses"
 ------------------------------
 (define (f pt)
   (match pt
@@ -239,18 +259,30 @@ test: "match patterns with if conditionals can be simplified using #:when clause
          (list y x)
          pt)]
     [(list) '()]))
+------------------------------
+
+
+test: "match patterns with long cond conditionals can be simplified using #:when clauses"
+------------------------------
+(define (f pt)
+  (match pt
+    [(list x y)
+     (cond
+       [(> x y) (list y x 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo)]
+       [else pt])]
+    [(list) '()]))
 ==============================
 (define (f pt)
   (match pt
     [(list x y)
      #:when (> x y)
-     (list y x)]
+     (list y x 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo 'foo)]
     [(list x y) pt]
     [(list) '()]))
 ------------------------------
 
 
-test: "match patterns with cond conditionals can be simplified using #:when clauses"
+no-change-test: "match patterns with short cond conditionals won't be simplified using #:when clauses"
 ------------------------------
 (define (f pt)
   (match pt
@@ -259,16 +291,7 @@ test: "match patterns with cond conditionals can be simplified using #:when clau
        [(> x y) (list y x)]
        [else pt])]
     [(list) '()]))
-==============================
-(define (f pt)
-  (match pt
-    [(list x y)
-     #:when (> x y)
-     (list y x)]
-    [(list x y) pt]
-    [(list) '()]))
 ------------------------------
-
 
 test: "match patterns with multi-body cond conditionals can be simplified using #:when clauses"
 ------------------------------

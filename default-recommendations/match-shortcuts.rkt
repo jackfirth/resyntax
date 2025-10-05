@@ -208,6 +208,13 @@
   #:when (oneline-syntax? (attribute pattern))
   #:when (<= (syntax-span (attribute pattern)) 60)
 
+  ; Conversely, a conditional with short body expressions isn't worth duplicating the condition
+  ; expression, so we only attempt to refactor conditionals whose body expressions aren't short.
+  #:when (or (> (length (attribute conditional.then-expr)) 1)
+             (> (length (attribute conditional.else-expr)) 1)
+             (>= (syntax-span (first (attribute conditional.then-expr))) 60)
+             (>= (syntax-span (first (attribute conditional.else-expr))) 60))
+
   (match subject
     clause-before ...
     (~@ . (~splicing-replacement ([pattern #:when conditional.condition conditional.then-expr ...]
