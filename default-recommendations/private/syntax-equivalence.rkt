@@ -27,7 +27,7 @@
   (define other-datum (syntax-e other-stx))
   (match datum
     [(? symbol?) (and (symbol? other-datum) (free-identifier=? stx other-stx))]
-    [(? number? boolean? string?) (equal? datum other-datum)]
+    [(or (? number?) (? boolean?) (? string?)) (equal? datum other-datum)]
     [(? list?) (and (list? other-datum) (syntax-pair-free-identifier=? datum other-datum))]
     [(? box?) (and (box? other-datum) (syntax-free-identifier=? (unbox datum) (unbox other-datum)))]
     [(? vector?)
