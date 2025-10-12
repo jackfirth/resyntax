@@ -1088,3 +1088,32 @@ test: "cond in ignored context with single clause refactorable"
     [else (void)])
   42)
 --------------------
+
+
+test: "cond with shared tail expression refactorable to when"
+--------------------
+(define (f c1)
+  (cond
+    [c1
+     (displayln "condition 1")
+     (displayln "shared tail")]
+    [else
+     (displayln "shared tail")]))
+====================
+(define (f c1)
+  (when c1
+    (displayln "condition 1"))
+  (displayln "shared tail"))
+--------------------
+
+
+no-change-test: "cond with unshared tail expression not refactorable to when"
+--------------------
+(define (f c1)
+  (cond
+    [c1
+     (displayln "condition 1")
+     (displayln "true tail")]
+    [else
+     (displayln "false tail")]))
+--------------------
