@@ -17,7 +17,7 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-refactoring-rule with-handlers-literal-handler-to-lambda
+(define-refactoring-rule literal-exception-handler-to-lambda
   #:description
   "A `with-handlers` handler should be a procedure. Wrap this literal in a lambda."
   #:literals (with-handlers)
@@ -28,10 +28,10 @@
     body:expr ...)
   
   (with-handlers (clause-before ...
-                  [pred (lambda (_) handler)]
+                  [pred (λ (_) handler)]
                   clause-after ...)
     body ...))
 
 
 (define-refactoring-suite exception-suggestions
-  #:rules (with-handlers-literal-handler-to-lambda))
+  #:rules (literal-exception-handler-to-lambda))
