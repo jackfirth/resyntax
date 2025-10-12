@@ -359,3 +359,90 @@ no-change-test: "match with if conditional and long pattern should not be refact
          data)]
     [_ 'no-match]))
 ------------------------------
+
+
+test: "list element variable definitions refactorable to match-define"
+------------------------------
+(require racket/list)
+(define (f pt)
+  (define x (list-ref pt 0))
+  (define y (list-ref pt 1))
+  (define z (list-ref pt 2))
+  (+ x y z))
+==============================
+(require racket/list)
+(define (f pt)
+  (define x (first pt))
+  (define y (second pt))
+  (define z (third pt))
+  (+ x y z))
+==============================
+(require racket/list)
+(define (f pt)
+  (match-define (list x y z) pt)
+  (+ x y z))
+------------------------------
+
+
+no-change-test: "list element variable definitions not refactorable when list is used before"
+------------------------------
+(require racket/list)
+(define (f pt)
+  (displayln (drop pt 3))
+  (define x (list-ref pt 0))
+  (define y (list-ref pt 1))
+  (define z (list-ref pt 2))
+  (+ x y z))
+------------------------------
+
+
+no-change-test: "list element variable definitions not refactorable when list is used after"
+------------------------------
+(require racket/list)
+(define (f pt)
+  (define x (list-ref pt 0))
+  (define y (list-ref pt 1))
+  (define z (list-ref pt 2))
+  (displayln (drop pt 3))
+  (+ x y z))
+------------------------------
+
+
+no-change-test: "list element variable definitions not refactorable when out of order"
+------------------------------
+(define (f pt)
+  (define z (list-ref pt 2))
+  (define y (list-ref pt 1))
+  (define x (list-ref pt 0))
+  (+ x y z))
+------------------------------
+
+
+no-change-test: "list element variable definitions not refactorable unless starting at zero"
+------------------------------
+(define (f pt)
+  (define x (list-ref pt 1))
+  (define y (list-ref pt 2))
+  (define z (list-ref pt 3))
+  (+ x y z))
+------------------------------
+
+
+no-change-test: "list element variable definitions not refactorable when referencing different lists"
+------------------------------
+(define (f pt1 pt2)
+  (define x (list-ref pt1 0))
+  (define y (list-ref pt2 1))
+  (define z (list-ref pt1 2))
+  (+ x y z))
+------------------------------
+
+
+no-change-test: "list element variable definitions not refactorable when referencing list expressions"
+------------------------------
+(define (f pt-list)
+  (define x (list-ref (first pt-list) 0))
+  (define y (list-ref (first pt-list) 1))
+  (define z (list-ref (first pt-list) 2))
+  (+ x y z))
+------------------------------

@@ -223,8 +223,46 @@
     clause-after ...))
 
 
+(define-syntax-class list-ref-expr
+  #:attributes (list-id index)
+  #:literals (list-ref first second third fourth fifth sixth seventh eighth ninth tenth)
+
+  (pattern (list-ref list-id:id index-constant:nat)
+    #:attr index (syntax-e (attribute index-constant)))
+
+  (pattern (first list-id:id) #:attr index 0)
+  (pattern (second list-id:id) #:attr index 1)
+  (pattern (third list-id:id) #:attr index 2)
+  (pattern (fourth list-id:id) #:attr index 3)
+  (pattern (fifth list-id:id) #:attr index 4)
+  (pattern (sixth list-id:id) #:attr index 5)
+  (pattern (seventh list-id:id) #:attr index 6)
+  (pattern (eighth list-id:id) #:attr index 7)
+  (pattern (ninth list-id:id) #:attr index 8)
+  (pattern (tenth list-id:id) #:attr index 9))
+
+
+(define-definition-context-refactoring-rule list-element-definitions-to-match-define
+  #:description "These list element variable definitions can be expressed more succinctly with \
+`match-define`. Note that the suggested replacement raises an error if the list contains more \
+elements than expected."
+  #:literals (define)
+  (~seq body-before ... (define v:id ref-expr:list-ref-expr) ...+ body-after ...)
+  #:do [(define num-vars (length (attribute v)))]
+  #:with first-list-id (first (attribute ref-expr.list-id))
+  #:when (for/and ([list-id (in-list (rest (attribute ref-expr.list-id)))])
+           (free-identifier=? list-id (attribute first-list-id)))
+  #:when (equal? (attribute ref-expr.index) (range 0 num-vars))
+  #:when (not (syntax-find-first #'(body-before ... body-after ...)
+                id:id
+                #:when (free-identifier=? (attribute id) (attribute first-list-id))
+                #:when (not (equal? (syntax-property (attribute id) 'usage-count) num-vars))))
+  (body-before ... (match-define (list v ...) first-list-id) body-after ...))
+
+
 (define-refactoring-suite match-shortcuts
-  #:rules (match-conditional-to-when
+  #:rules (list-element-definitions-to-match-define
+           match-conditional-to-when
            predicate-pattern-with-lambda-to-when
            remove-unnecessary-root-and-pattern
            single-clause-match-to-match-define))
