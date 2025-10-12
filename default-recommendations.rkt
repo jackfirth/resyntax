@@ -12,6 +12,7 @@
                resyntax/default-recommendations/console-io-suggestions
                resyntax/default-recommendations/contract-shortcuts
                resyntax/default-recommendations/definition-shortcuts
+               resyntax/default-recommendations/exception-suggestions
                resyntax/default-recommendations/file-io-suggestions
                resyntax/default-recommendations/for-loop-shortcuts
                resyntax/default-recommendations/function-definition-shortcuts
@@ -45,6 +46,7 @@
          resyntax/default-recommendations/console-io-suggestions
          resyntax/default-recommendations/contract-shortcuts
          resyntax/default-recommendations/definition-shortcuts
+         resyntax/default-recommendations/exception-suggestions
          resyntax/default-recommendations/file-io-suggestions
          resyntax/default-recommendations/for-loop-shortcuts
          resyntax/default-recommendations/function-definition-shortcuts
@@ -78,6 +80,7 @@
             console-io-suggestions
             contract-shortcuts
             definition-shortcuts
+            exception-suggestions
             file-io-suggestions
             for-loop-shortcuts
             function-definition-shortcuts
