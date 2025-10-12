@@ -16,6 +16,7 @@
          resyntax/default-recommendations/private/exception
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/metafunction
+         resyntax/default-recommendations/private/syntax-equivalence
          syntax/parse)
 
 
@@ -276,6 +277,21 @@
   (cond-id clause ... [else (void)]))
 
 
+(define-definition-context-refactoring-rule tail-sharing-cond-to-when
+  #:description "Both branches of this `cond` expression share the same tail expression. Moving that \
+tail expression outside `cond` lets you replace `cond` with `when`."
+  #:literals (cond else)
+  (~seq body-before ...
+        (cond [condition:expr true-body ... true-tail]
+              [else false-tail])
+        body-after ...)
+  #:when (syntax-free-identifier=? (attribute true-tail) (attribute false-tail))
+  (body-before ...
+   (when condition true-body ...)
+   true-tail
+   body-after ...))
+
+
 (define-refactoring-suite conditional-shortcuts
   #:rules (always-throwing-cond-to-when
            always-throwing-if-to-when
@@ -292,4 +308,5 @@
            ignored-and-to-when
            nested-if-to-cond
            nested-when-to-compound-when
+           tail-sharing-cond-to-when
            throw-unless-truthy-to-or))
