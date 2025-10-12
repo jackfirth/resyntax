@@ -26,7 +26,7 @@
     for/vector
     for*/vector
     for/set
-    for*/set 
+    for*/set
     for/sum
     for*/sum
     for/product
