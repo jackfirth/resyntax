@@ -177,6 +177,12 @@
   (and (not (empty? (attribute pattern-directive)))
        #'(log-resyntax-debug "~a: partial match" 'id))
 
+  #:with (wrapped-pattern-directive ...)
+  (for/list ([directive (in-list (attribute pattern-directive))])
+    (syntax-parse directive
+      [(#:when condition:expr) #'(#:when (log-resyntax-rule-condition condition))]
+      [_ directive]))
+
   (begin
 
     (define-splicing-syntax-class body-matching-id
@@ -184,7 +190,7 @@
       (~@ . parse-option) ...
       (pattern splicing-pattern
         (~? (~@ #:do [log-statement]))
-        (~@ . pattern-directive) ...
+        (~@ . wrapped-pattern-directive) ...
         #:with (refactored (... ...)) #'(splicing-replacement ...)))
 
     (define-syntax-class expression-matching-id
