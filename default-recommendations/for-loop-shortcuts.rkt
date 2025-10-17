@@ -449,6 +449,8 @@ return just that result."
   #:when (free-identifier=? (attribute loop) (attribute loop2))
   #:when (or (not (identifier? (attribute step)))
              (identifier-binding-unchanged-in-context? (attribute step) this-syntax))
+  #:when (not (syntax-find-first #'(body ...) id:id
+                #:when (free-identifier=? (attribute id) (attribute loop))))
   (for ([x (in-range start stop step)])
     body ...))
 

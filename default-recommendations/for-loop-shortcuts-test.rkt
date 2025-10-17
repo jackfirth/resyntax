@@ -638,6 +638,17 @@ test: "named let loop over counter can be replaced by for in-range"
 ------------------------------------------------------------
 
 
+no-change-test: "named let loop over counter not refactorable when loop function used elsewhere"
+------------------------------------------------------------
+(define (f x a b dx)
+  (let loop ([x a])
+    (when (< x b)
+      (displayln x)
+      (displayln loop)
+      (loop (+ x dx)))))
+------------------------------------------------------------
+
+
 test: "named let loop with conditional return over vector can be replaced by for/first"
 ------------------------------------------------------------
 (define vec (vector 0 1 2 3 4 5))
