@@ -17,6 +17,7 @@
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/let-binding
          resyntax/default-recommendations/private/list-function
+         resyntax/default-recommendations/private/literal-constant
          resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
@@ -436,6 +437,24 @@ return just that result."
     nested.body ...))
 
 
+(define-refactoring-rule named-let-loop-to-for-in-range
+  #:description "This named `let` expression is equivalent to a `for` loop that uses `in-range`."
+  #:literals (let when < +)
+  (let loop:id ([x:id start:expr])
+    (when (< x2:id (~or stop:id stop:literal-constant))
+      body ...+
+      (loop2:id (+ x3:id (~or step:id step:literal-constant)))))
+  #:when (free-identifier=? (attribute x) (attribute x2))
+  #:when (free-identifier=? (attribute x) (attribute x3))
+  #:when (free-identifier=? (attribute loop) (attribute loop2))
+  #:when (or (not (identifier? (attribute step)))
+             (identifier-binding-unchanged-in-context? (attribute step) this-syntax))
+  #:when (not (syntax-find-first #'(body ...) id:id
+                #:when (free-identifier=? (attribute id) (attribute loop))))
+  (for ([x (in-range start stop step)])
+    body ...))
+
+
 (define-refactoring-rule named-let-loop-to-for/list
   #:description "This named `let` expression is equivalent to a `for/list` loop."
   #:literals (let cond else null? empty? null quote car first cdr rest cons)
@@ -654,6 +673,7 @@ return just that result."
            list->set-to-for/set
            list->vector-to-for/vector
            map-to-for
+           named-let-loop-to-for-in-range
            named-let-loop-to-for/and
            named-let-loop-to-for/first-in-vector
            named-let-loop-to-for/list
