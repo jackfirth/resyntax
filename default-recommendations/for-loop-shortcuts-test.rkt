@@ -624,6 +624,20 @@ test: "nested for/and forms can be flattened to a for*/and form"
 ------------------------------
 
 
+test: "named let loop over counter can be replaced by for in-range"
+------------------------------------------------------------
+(define (f x a b dx)
+  (let loop ([x a])
+    (when (< x b)
+      (displayln x)
+      (loop (+ x dx)))))
+============================================================
+(define (f x a b dx)
+  (for ([x (in-range a b dx)])
+    (displayln x)))
+------------------------------------------------------------
+
+
 test: "named let loop with conditional return over vector can be replaced by for/first"
 ------------------------------------------------------------
 (define vec (vector 0 1 2 3 4 5))
@@ -633,8 +647,7 @@ test: "named let loop with conditional return over vector can be replaced by for
          (if (> x 3)
              (+ x 42)
              (loop (add1 i))))))
-------------------------------------------------------------
-------------------------------------------------------------
+============================================================
 (define vec (vector 0 1 2 3 4 5))
 (let loop ([i 0])
   (and (< i (vector-length vec))
@@ -642,8 +655,7 @@ test: "named let loop with conditional return over vector can be replaced by for
          (if (> x 3)
              (+ x 42)
              (loop (+ i 1))))))
-------------------------------------------------------------
-------------------------------------------------------------
+============================================================
 (define vec (vector 0 1 2 3 4 5))
 (for/first ([x (in-vector vec)]
             #:when (> x 3))
