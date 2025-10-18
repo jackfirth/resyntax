@@ -15,7 +15,6 @@
                resyntax/default-recommendations/dict-suggestions
                resyntax/default-recommendations/exception-suggestions
                resyntax/default-recommendations/file-io-suggestions
-               resyntax/default-recommendations/for-loop-shortcuts
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/function-shortcuts
                resyntax/default-recommendations/hash-shortcuts
@@ -24,10 +23,12 @@
                resyntax/default-recommendations/legacy-syntax-migrations
                resyntax/default-recommendations/let-binding-suggestions
                resyntax/default-recommendations/list-shortcuts
+               resyntax/default-recommendations/loops/for-loop-shortcuts
+               resyntax/default-recommendations/loops/list-loopification
+               resyntax/default-recommendations/loops/named-let-loopification
                resyntax/default-recommendations/match-shortcuts
                resyntax/default-recommendations/miscellaneous-suggestions
                resyntax/default-recommendations/mutability-predicates
-               resyntax/default-recommendations/named-let-loopification
                resyntax/default-recommendations/numeric-shortcuts
                resyntax/default-recommendations/require-and-provide-suggestions
                resyntax/default-recommendations/string-shortcuts
@@ -51,7 +52,6 @@
          resyntax/default-recommendations/dict-suggestions
          resyntax/default-recommendations/exception-suggestions
          resyntax/default-recommendations/file-io-suggestions
-         resyntax/default-recommendations/for-loop-shortcuts
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/function-shortcuts
          resyntax/default-recommendations/hash-shortcuts
@@ -60,10 +60,12 @@
          resyntax/default-recommendations/legacy-syntax-migrations
          resyntax/default-recommendations/let-binding-suggestions
          resyntax/default-recommendations/list-shortcuts
+         resyntax/default-recommendations/loops/for-loop-shortcuts
+         resyntax/default-recommendations/loops/list-loopification
+         resyntax/default-recommendations/loops/named-let-loopification
          resyntax/default-recommendations/match-shortcuts
          resyntax/default-recommendations/miscellaneous-suggestions
          resyntax/default-recommendations/mutability-predicates
-         resyntax/default-recommendations/named-let-loopification
          resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/require-and-provide-suggestions
          resyntax/default-recommendations/string-shortcuts
@@ -102,6 +104,7 @@
 
             legacy-syntax-migrations
             let-binding-suggestions
+            list-loopification
             list-shortcuts
             match-shortcuts
             miscellaneous-suggestions
