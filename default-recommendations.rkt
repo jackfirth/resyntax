@@ -27,6 +27,7 @@
                resyntax/default-recommendations/match-shortcuts
                resyntax/default-recommendations/miscellaneous-suggestions
                resyntax/default-recommendations/mutability-predicates
+               resyntax/default-recommendations/named-let-loopification
                resyntax/default-recommendations/numeric-shortcuts
                resyntax/default-recommendations/require-and-provide-suggestions
                resyntax/default-recommendations/string-shortcuts
@@ -62,6 +63,7 @@
          resyntax/default-recommendations/match-shortcuts
          resyntax/default-recommendations/miscellaneous-suggestions
          resyntax/default-recommendations/mutability-predicates
+         resyntax/default-recommendations/named-let-loopification
          resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/require-and-provide-suggestions
          resyntax/default-recommendations/string-shortcuts
@@ -104,6 +106,7 @@
             match-shortcuts
             miscellaneous-suggestions
             mutability-predicates
+            named-let-loopification
             numeric-shortcuts
             require-and-provide-suggestions
             string-shortcuts
