@@ -131,8 +131,30 @@
     modified-element-condition))
 
 
+(define-refactoring-rule named-let-loop-to-for/first-in-naturals
+  #:description
+  "This named `let` expression can be replaced by a simpler, equivalent `for/first` loop."
+  #:literals (let cond else + add1)
+
+  (let loop:id ([i:id start:expr])
+    (cond
+      [condition:expr
+       (loop2:id (~or (+ i2:id 1) (add1 i2:id)))]
+      [else
+       body:expr ...+]))
+  #:when (free-identifier=? (attribute loop) (attribute loop2))
+  #:when (free-identifier=? (attribute i) (attribute i2))
+  #:when (not (syntax-find-first #'(condition body ...)
+                id:id #:when (free-identifier=? (attribute id) (attribute loop))))
+
+  (for/first ([i (in-naturals start)]
+              #:unless condition)
+    body ...))
+
+
 (define-refactoring-rule named-let-loop-to-for/first-in-vector
-  #:description "This loop can be replaced by a simpler, equivalent `for/first` loop."
+  #:description
+  "This named `let` expression can be replaced by a simpler, equivalent `for/first` loop."
   #:literals (let add1 + vector-length vector-ref if and <)
   (let loop1:id ([i1:id 0])
     (and (< i2:id (vector-length vec1:id))
@@ -140,11 +162,11 @@
            (if condition:expr
                true-branch:expr
                (loop2:id (~or (add1 i4:id) (+ i4:id 1) (+ 1 i4:id)))))))
-  #:when (and (log-resyntax-rule-condition (free-identifier=? #'loop1 #'loop2))
-              (log-resyntax-rule-condition (free-identifier=? #'i1 #'i2))
-              (log-resyntax-rule-condition (free-identifier=? #'i1 #'i3))
-              (log-resyntax-rule-condition (free-identifier=? #'i1 #'i4))
-              (log-resyntax-rule-condition (free-identifier=? #'vec1 #'vec2)))
+  #:when (free-identifier=? #'loop1 #'loop2)
+  #:when (free-identifier=? #'i1 #'i2)
+  #:when (free-identifier=? #'i1 #'i3)
+  #:when (free-identifier=? #'i1 #'i4)
+  #:when (free-identifier=? #'vec1 #'vec2)
   (for/first ([x (in-vector vec1)] #:when condition)
     true-branch))
 
@@ -166,6 +188,7 @@
 (define-refactoring-suite named-let-loopification
   #:rules (named-let-loop-to-for-in-range
            named-let-loop-to-for/and
+           named-let-loop-to-for/first-in-naturals
            named-let-loop-to-for/first-in-vector
            named-let-loop-to-for/list
            named-let-loop-to-for/or

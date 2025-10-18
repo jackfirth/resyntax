@@ -33,6 +33,36 @@ no-change-test: "named let loop over counter not refactorable when loop function
 ------------------------------------------------------------
 
 
+test: "named let loop can be refactored to for/first with in-naturals"
+------------------------------------------------------------
+(define (f c g)
+  (let loop ([i 0])
+    (cond
+      [(c i)
+       (loop (+ i 1))]
+      [else
+       (g i)])))
+============================================================
+(define (f c g)
+  (for/first ([i (in-naturals 0)]
+              #:unless (c i))
+    (g i)))
+------------------------------------------------------------
+
+
+no-change-test: "named let loop not refactorable to for/first with in-naturals when loop referenced"
+------------------------------------------------------------
+(define (f c g)
+  (let loop ([i 0])
+    (cond
+      [(c i)
+       (loop (+ i 1))]
+      [else
+       (displayln loop)
+       (g i)])))
+------------------------------------------------------------
+
+
 test: "named let loop with conditional return over vector can be replaced by for/first"
 ------------------------------------------------------------
 (define vec (vector 0 1 2 3 4 5))
@@ -68,8 +98,7 @@ test: "named let loop over list can be replaced by for/list"
      (displayln (car xs))
      (cons (* (car xs) 10)
            (loop (cdr xs)))]))
-------------------------------------------------------------
-------------------------------------------------------------
+============================================================
 (require racket/list)
 (let loop ([xs (list 1 2 3)])
   (cond
@@ -78,8 +107,7 @@ test: "named let loop over list can be replaced by for/list"
      (displayln (first xs))
      (cons (* (first xs) 10)
            (loop (rest xs)))]))
-------------------------------------------------------------
-------------------------------------------------------------
+============================================================
 (require racket/list)
 (for/list ([x (in-list (list 1 2 3))])
   (displayln x)
@@ -97,8 +125,7 @@ test: "named let loop can be replaced with for/and when equivalent"
       [(and (big? (first xs)) (not (red? (car xs))))
        (loop (rest xs))]
       [else #false])))
-------------------------------------------------------------
-------------------------------------------------------------
+============================================================
 (require racket/list)
 (define (f xs big? red?)
   (for/and ([x (in-list xs)])
@@ -115,8 +142,7 @@ test: "named let loop can be replaced with for/or when equivalent"
       [(empty? xs) #false]
       [(and (big? (first xs)) (not (red? (car xs)))) #true]
       [else (loop (rest xs))])))
-------------------------------------------------------------
-------------------------------------------------------------
+============================================================
 (require racket/list)
 (define (f xs big? red?)
   (for/or ([x (in-list xs)])
@@ -125,14 +151,14 @@ test: "named let loop can be replaced with for/or when equivalent"
 
 
 test: "read-until-eof loop refactorable to for loop with in-port"
---------------------
+------------------------------------------------------------
 (define (print-reads)
   (let loop ([v (read)])
     (unless (eof-object? v)
       (displayln v)
       (loop (read)))))
-====================
+============================================================
 (define (print-reads)
   (for ([v (in-port)])
     (displayln v)))
---------------------
+------------------------------------------------------------
