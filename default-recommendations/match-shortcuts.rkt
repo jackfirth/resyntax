@@ -247,7 +247,7 @@
 `match-define`. Note that the suggested replacement raises an error if the list contains more \
 elements than expected."
   #:literals (define)
-  (~seq body-before ... (define v:id ref-expr:list-ref-expr) ...+ body-after ...)
+  (~seq body-before ... (~and definition (define v:id ref-expr:list-ref-expr)) ...+ body-after ...+)
   #:do [(define num-vars (length (attribute v)))]
   #:with first-list-id (first (attribute ref-expr.list-id))
   #:when (for/and ([list-id (in-list (rest (attribute ref-expr.list-id)))])
@@ -257,7 +257,9 @@ elements than expected."
                 id:id
                 #:when (free-identifier=? (attribute id) (attribute first-list-id))
                 #:when (not (equal? (syntax-property (attribute id) 'usage-count) num-vars))))
-  (body-before ... (match-define (list v ...) first-list-id) body-after ...))
+  #:with match-definition
+  #'(~replacement (match-define (list v ...) first-list-id) #:original-splice (definition ...))
+  (body-before ... (~focus-replacement-on match-definition) body-after ...))
 
 
 (define-refactoring-suite match-shortcuts
