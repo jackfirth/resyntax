@@ -446,3 +446,29 @@ no-change-test: "list element variable definitions not refactorable when referen
   (define z (list-ref (first pt-list) 2))
   (+ x y z))
 ------------------------------
+
+
+test: "refactoring list element variable definitions to match-define doesn't reformat surroundings"
+------------------------------
+(require racket/list)
+(define (f pt)
+
+  ( void )
+  
+  (define x (list-ref pt 0))
+  (define y (list-ref pt 1))
+  (define z (list-ref pt 2))
+
+  ; comment
+  ( + x y z ))
+==============================
+(require racket/list)
+(define (f pt)
+
+  ( void )
+  
+  (match-define (list x y z) pt)
+
+  ; comment
+  ( + x y z ))
+------------------------------
