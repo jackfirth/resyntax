@@ -314,8 +314,21 @@ test: "first of rest refactorable to second"
 ------------------------------
 
 
+test: "add-between with incorrect argument order can be fixed"
+------------------------------
+(require racket/list)
+(define (f)
+  (add-between "," (list 'a 'b 'c)))
+==============================
+(require racket/list)
+(define (f)
+  (add-between (list 'a 'b 'c) ","))
+------------------------------
+
+
 no-change-test: "add-between with correct argument order should not be refactored"
 ------------------------------
 (require racket/list)
-(add-between (list 'a 'b 'c) ",")
+(define (f)
+  (add-between (list 'a 'b 'c) ","))
 ------------------------------

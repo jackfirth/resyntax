@@ -267,20 +267,15 @@
   (second list-expr))
 
 
-(define-syntax-class separator-literal
-  #:attributes ()
-  #:literals (quote)
-  (pattern literal:string)
-  (pattern literal:character)
-  (pattern (quote literal:str))
-  (pattern (quote literal:id)))
-
-
 (define-refactoring-rule add-between-wrong-argument-order
   #:description
   "The `add-between` function expects the list as the first argument and the separator as the second argument."
-  #:literals (add-between)
-  (add-between separator:separator-literal list-expr)
+  #:literals (add-between quote)
+  (add-between (~or separator:string
+                    separator:character
+                    (quote separator:str)
+                    (quote separator:id))
+               list-expr)
   (add-between list-expr separator))
 
 
