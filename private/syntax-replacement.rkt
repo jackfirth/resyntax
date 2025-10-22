@@ -59,6 +59,7 @@
 (module+ test
   (require fmt
            racket/port
+           racket/string
            rackunit
            (submod "..")))
 
@@ -348,10 +349,10 @@
       (define formatted (string-replacement-format replacement orig-code))
       (define result (string-apply-replacement orig-code formatted))
       ;; The result should fit within a reasonable line length and shouldn't be multiline
-      (check-false (regexp-match? #rx"\n" result)
+      (check-false (string-contains? result "\n")
                    "Result should remain on a single line")
       ;; Verify the replacement happened
-      (check-true (regexp-match? #rx"\\(list a b c\\)" result)
+      (check-true (string-contains? result "(list a b c)")
                   "Result should contain the list form")))
 
   (test-case "realistic example from herbie-fp/herbie#1391"
@@ -362,7 +363,9 @@
     (define orig-line "      [`(,(and (or '+ '- '* '/ 'and 'or) op) ,as ..2 ,b) `(,op ,(loop `(,op ,@as) env) ,(loop b env))]")
     (check-equal? (string-length orig-line) 102 "Original line should be 102 characters")
     
-    ;; The quasiquote `(,op ,(loop `(,op ,@as) env) ,(loop b env)) starts at position 57
+    ;; The quasiquote expression starts at position 57 and ends at position 101
+    ;; Original: `(,op ,(loop `(,op ,@as) env) ,(loop b env))
+    ;; Replacement: (list op (loop `(,op ,@as) env) (loop b env))
     (define quasiquote-start 57)
     (define quasiquote-end 101) ; just before the final ]
     
