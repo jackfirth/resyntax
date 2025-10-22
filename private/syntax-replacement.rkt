@@ -348,11 +348,39 @@
       (define formatted (string-replacement-format replacement orig-code))
       (define result (string-apply-replacement orig-code formatted))
       ;; The result should fit within a reasonable line length and shouldn't be multiline
-      (check-false (string-contains? result "\n")
+      (check-false (regexp-match? #rx"\n" result)
                    "Result should remain on a single line")
       ;; Verify the replacement happened
-      (check-true (string-contains? result "(list a b c)")
-                  "Result should contain the list form"))))
+      (check-true (regexp-match? #rx"\\(list a b c\\)" result)
+                  "Result should contain the list form")))
+
+  (test-case "realistic example from herbie-fp/herbie#1391"
+    ;; This test simulates the actual issue where a 102-character line would become 103 characters
+    ;; Without the fix, the formatter would allow the code to exceed the line length limit.
+    ;; With the fix, the formatter either keeps it on one line within the limit, or breaks it
+    ;; across multiple lines if it cannot fit.
+    (define orig-line "      [`(,(and (or '+ '- '* '/ 'and 'or) op) ,as ..2 ,b) `(,op ,(loop `(,op ,@as) env) ,(loop b env))]")
+    (check-equal? (string-length orig-line) 102 "Original line should be 102 characters")
+    
+    ;; The quasiquote `(,op ,(loop `(,op ,@as) env) ,(loop b env)) starts at position 57
+    (define quasiquote-start 57)
+    (define quasiquote-end 101) ; just before the final ]
+    
+    (define replacement
+      (string-replacement #:start quasiquote-start
+                          #:end quasiquote-end
+                          #:contents (list (inserted-string "(list op (loop `(,op ,@as) env) (loop b env))"))))
+    
+    ;; Test with Racket's standard line width of 102
+    (parameterize ([current-width 102])
+      (define formatted (string-replacement-format replacement orig-line))
+      (define result (string-apply-replacement orig-line formatted))
+      
+      ;; If the result is a single line, it should not exceed 102 characters
+      ;; If it's multi-line, each line should not exceed 102 characters
+      (for ([line (in-list (string-split result "\n"))])
+        (check-true (<= (string-length line) 102)
+                    (format "Line exceeds length limit: ~a chars (should be <= 102)" (string-length line)))))))
 
 
 (define (syntax-replacement-introduces-incorrect-bindings? replacement)
