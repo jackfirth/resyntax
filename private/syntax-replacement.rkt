@@ -42,6 +42,7 @@
          rebellion/collection/range-set
          rebellion/private/static-name
          rebellion/type/record
+         resyntax/private/linemap
          resyntax/private/logger
          resyntax/private/source
          resyntax/private/string-indent
@@ -56,7 +57,8 @@
 
 
 (module+ test
-  (require racket/port
+  (require fmt
+           racket/port
            rackunit
            (submod "..")))
 
@@ -255,7 +257,20 @@
   ;; horizontal space is available and indenting the resulting string. However, fmt has some odd
   ;; behavior in how it handles formatting regions with multiple expressions (sorawee/fmt#70) and
   ;; regions with commented top-level expressions (sorawee/fmt#68).
-  (define allowed-width (- (current-width) initial-columns))
+  (define base-allowed-width (- (current-width) initial-columns))
+  
+  ;; For single-line replacements, we need to account for trailing text after the replacement
+  ;; to ensure the formatted code doesn't exceed the line length limit.
+  (define trailing-text-length
+    (let ([linemap (string-linemap original)]
+          [orig-end (string-replacement-original-end replacement)])
+      ;; Convert from 0-based string indices to 1-based positions for linemap
+      (if (= (linemap-position-to-line linemap (add1 start))
+             (linemap-position-to-line linemap (add1 orig-end)))
+          (- (linemap-position-to-end-of-line linemap (add1 orig-end)) (add1 orig-end))
+          0)))
+  
+  (define allowed-width (- base-allowed-width trailing-text-length))
   (define formatted-code-substring
     (string-hanging-indent (program-format changed-code-substring #:width allowed-width)
                            #:amount initial-columns))
@@ -315,7 +330,29 @@
                           #:uses-universal-tagged-syntax? #false))
     (define expected
       (string-replacement #:start 0 #:end 13 #:contents (list (inserted-string "(+ 1 2 3)"))))
-    (check-equal? (syntax-replacement-render replacement) expected)))
+    (check-equal? (syntax-replacement-render replacement) expected))
+
+  (test-case "string-replacement-format considers trailing text on single-line replacements"
+    ;; Test that when formatting a single-line replacement, we account for trailing text
+    ;; to avoid exceeding the line length limit. This test simulates the issue from
+    ;; herbie-fp/herbie#1391 where a quasiquote is replaced with a list call.
+    (define orig-code "      [x `(a b c)]")
+    (define replacement
+      (string-replacement #:start 9
+                          #:end 18
+                          #:contents (list (inserted-string "(list a b c)"))))
+    ;; The original code is 18 characters. With trailing "]", it's 19 characters total.
+    ;; If we format without accounting for the trailing "]", the formatted result might
+    ;; exceed the desired line length.
+    (parameterize ([current-width 102])
+      (define formatted (string-replacement-format replacement orig-code))
+      (define result (string-apply-replacement orig-code formatted))
+      ;; The result should fit within a reasonable line length and shouldn't be multiline
+      (check-false (string-contains? result "\n")
+                   "Result should remain on a single line")
+      ;; Verify the replacement happened
+      (check-true (string-contains? result "(list a b c)")
+                  "Result should contain the list form"))))
 
 
 (define (syntax-replacement-introduces-incorrect-bindings? replacement)
