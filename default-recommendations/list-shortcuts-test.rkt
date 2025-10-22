@@ -312,3 +312,10 @@ test: "first of rest refactorable to second"
 (require racket/list)
 (second (list 'a 'b 'c))
 ------------------------------
+
+
+no-change-test: "add-between with correct argument order should not be refactored"
+------------------------------
+(require racket/list)
+(add-between (list 'a 'b 'c) ",")
+------------------------------
