@@ -267,8 +267,21 @@
   (second list-expr))
 
 
+(define-refactoring-rule add-between-wrong-argument-order
+  #:description
+  "The `add-between` function expects the list as the first argument and the separator as the second argument."
+  #:literals (add-between quote)
+  (add-between (~or separator:string
+                    separator:character
+                    (quote separator:str)
+                    (quote separator:id))
+               list-expr)
+  (add-between list-expr separator))
+
+
 (define-refactoring-suite list-shortcuts
-  #:rules (append-single-list-to-single-list
+  #:rules (add-between-wrong-argument-order
+           append-single-list-to-single-list
            append*-and-map-to-append-map
            build-list-const-to-make-list
            consing-onto-static-list
