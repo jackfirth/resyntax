@@ -87,3 +87,45 @@ no-change-test: "with-handlers with identifier handler not refactorable"
 (with-handlers ([exn:fail? handler])
   (void))
 --------------------
+
+
+test: "error with format string and arguments refactorable to raise-arguments-error"
+--------------------
+(define (foo low high)
+  (unless (<= low high)
+    (error 'foo "low should be less than high, ~a ~a" low high))
+  (void))
+====================
+(define (foo low high)
+  (unless (<= low high)
+    (raise-arguments-error 'foo "low should be less than high" "low" low "high" high))
+  (void))
+--------------------
+
+
+test: "error with single argument refactorable to raise-arguments-error"
+--------------------
+(define (bar x)
+  (when (negative? x)
+    (error 'bar "x must be non-negative: ~a" x))
+  (void))
+====================
+(define (bar x)
+  (when (negative? x)
+    (raise-arguments-error 'bar "x must be non-negative" "x" x))
+  (void))
+--------------------
+
+
+no-change-test: "error without format placeholders not refactorable"
+--------------------
+(define (baz)
+  (error 'baz "something went wrong"))
+--------------------
+
+
+no-change-test: "error with non-identifier arguments not refactorable"
+--------------------
+(define (qux x)
+  (error 'qux "value is: ~a" (+ x 1)))
+--------------------
