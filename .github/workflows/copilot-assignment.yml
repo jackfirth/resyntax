@@ -1,0 +1,20 @@
+name: Auto-assign Issues to Copilot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * 1"
+
+permissions:
+  issues: write
+
+jobs:
+  assign-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Assign issue to copilot
+        run: |
+          issue_number=$(gh issue list --state open --label 'copilot-candidate' --json number --jq '.[].number' | shuf -n 1)
+          gh issue edit $issue_number --add-assignee "@copilot"
