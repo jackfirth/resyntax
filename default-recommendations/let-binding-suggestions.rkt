@@ -86,13 +86,14 @@
                       (syntax-free-identifiers #'(body-before ... nested-expr ... body-after ...)))]
                     [nested-id (in-list (attribute nested-id))])
            (identifier-binding-unchanged-in-context? body-free-id nested-id))
+  ;; Ensure later bindings don't depend on earlier ones (sequential let* semantics)
   #:when (for/and ([rhs (in-list (attribute nested-expr))]
                    [i (in-naturals)]
-                   #:when #true
+                   #:when #true ; ensures proper sequencing in the nested loop
                    [nested-id (in-list (attribute nested-id))]
                    [j (in-naturals)]
                    #:when (< i j)
-                   #:when #true
+                   #:when #true ; ensures proper sequencing in the nested loop
                    [rhs-free-id (in-free-id-set (syntax-free-identifiers rhs))])
            (identifier-binding-unchanged-in-context? rhs-free-id nested-id))
   (body-before ...
