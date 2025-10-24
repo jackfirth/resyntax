@@ -143,3 +143,13 @@ no-change-test: "error with more arguments than placeholders not refactorable"
 (define (extra x y)
   (error 'extra "value: ~a" x y))
 --------------------
+
+
+test: "error with ~a at end of string"
+--------------------
+(define (end-tilde x)
+  (error 'end-tilde "value is ~a" x))
+====================
+(define (end-tilde x)
+  (raise-arguments-error 'end-tilde "value is" "x" x))
+--------------------

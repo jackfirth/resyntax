@@ -44,12 +44,7 @@
   #:do [(define message-str (syntax-e #'message))
         (define args-list (syntax->list #'(arg ...)))
         ;; Count the number of ~a placeholders in the message
-        (define placeholder-count
-          (for/sum ([char (in-string message-str)]
-                    [next-char (in-string (string-append (substring message-str 1) " "))])
-            (if (and (char=? char #\~) (char=? next-char #\a))
-                1
-                0)))
+        (define placeholder-count (length (regexp-match* #rx"~a" message-str)))
         ;; Only proceed if the number of placeholders matches the number of arguments
         (define proceed? (= placeholder-count (length args-list)))]
   #:when proceed?
