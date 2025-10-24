@@ -129,3 +129,17 @@ no-change-test: "error with non-identifier arguments not refactorable"
 (define (qux x)
   (error 'qux "value is: ~a" (+ x 1)))
 --------------------
+
+
+no-change-test: "error with mismatched placeholder count not refactorable"
+--------------------
+(define (mismatch x y)
+  (error 'mismatch "values: ~a ~a ~a" x y))
+--------------------
+
+
+no-change-test: "error with more arguments than placeholders not refactorable"
+--------------------
+(define (extra x y)
+  (error 'extra "value: ~a" x y))
+--------------------

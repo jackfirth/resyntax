@@ -42,12 +42,23 @@
   (error sym:expr message:str arg:id ...)
   #:when (string-contains? (syntax-e #'message) "~a")
   #:do [(define message-str (syntax-e #'message))
-        (define cleaned-message (string-replace message-str "~a" ""))
-        ;; Remove trailing punctuation and whitespace that was left after removing ~a
-        (define cleaned-message-trimmed (string-trim cleaned-message))
-        (define cleaned-final
-          (regexp-replace #rx"[,;:\\s]+$" cleaned-message-trimmed ""))
         (define args-list (syntax->list #'(arg ...)))
+        ;; Count the number of ~a placeholders in the message
+        (define placeholder-count
+          (for/sum ([char (in-string message-str)]
+                    [next-char (in-string (string-append (substring message-str 1) " "))])
+            (if (and (char=? char #\~) (char=? next-char #\a))
+                1
+                0)))
+        ;; Only proceed if the number of placeholders matches the number of arguments
+        (define proceed? (= placeholder-count (length args-list)))]
+  #:when proceed?
+  #:do [(define cleaned-message (string-replace message-str "~a" ""))
+        ;; Clean up extra spaces and trailing punctuation from placeholder removal
+        (define cleaned-message-normalized
+          (regexp-replace* #rx"  +" cleaned-message " "))
+        (define cleaned-final
+          (regexp-replace #rx"[,;: ]+$" cleaned-message-normalized ""))
         (define field-pairs
           (apply append
                  (map (λ (arg-stx)
