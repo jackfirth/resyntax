@@ -20,7 +20,7 @@ test: "refactoring an expression doesn't affect formatting of unrefactored code"
 ----------------------------------------
 
 
-test: "define-let-to-double-define doesn't reformat the entire definition context"
+test: "define-let-to-multi-define doesn't reformat the entire definition context"
 ----------------------------------------
 (define (f)
   ( displayln "foo" )

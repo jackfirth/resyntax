@@ -71,20 +71,33 @@
   (call-with-values (λ () expr) receiver))
 
 
-(define-definition-context-refactoring-rule define-let-to-double-define
-  #:description "This `let` expression can be pulled up into a `define` expression."
+(define-definition-context-refactoring-rule define-let-to-multi-define
+  #:description "This `let` expression can be pulled up into multiple `define` expressions."
   #:literals (define let)
   (~seq body-before ...
-        (~and original-definition (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr)))
+        (~and original-definition
+              (define id:id (let ([nested-id:id nested-expr:expr] ...+) expr:expr)))
         body-after ...)
-  #:when (identifier-binding-unchanged-in-context? (attribute id) (attribute nested-expr))
-  #:when (for/and ([body-free-id
-                    (in-free-id-set
-                     (syntax-free-identifiers #'(body-before ... nested-expr body-after ...)))])
-           (identifier-binding-unchanged-in-context? body-free-id (attribute nested-id)))
+  #:when (identifier-binding-unchanged-in-context? (attribute id) #'(nested-expr ...))
+  #:when (for/and ([nested-id (in-list (attribute nested-id))])
+           (not (identifier-has-exact-binding-in-context? nested-id (attribute original-definition))))
+  #:when (for*/and ([body-free-id
+                     (in-free-id-set
+                      (syntax-free-identifiers #'(body-before ... nested-expr ... body-after ...)))]
+                    [nested-id (in-list (attribute nested-id))])
+           (identifier-binding-unchanged-in-context? body-free-id nested-id))
+  #:when (for/and ([rhs (in-list (attribute nested-expr))]
+                   [i (in-naturals)]
+                   #:when #true
+                   [nested-id (in-list (attribute nested-id))]
+                   [j (in-naturals)]
+                   #:when (< i j)
+                   #:when #true
+                   [rhs-free-id (in-free-id-set (syntax-free-identifiers rhs))])
+           (identifier-binding-unchanged-in-context? rhs-free-id nested-id))
   (body-before ...
    (~@ . (~focus-replacement-on
-          (~splicing-replacement ((define nested-id nested-expr) (define id expr))
+          (~splicing-replacement ((define nested-id nested-expr) ... (define id expr))
                                  #:original original-definition)))
    body-after ...))
 
@@ -117,7 +130,7 @@
 (define-refactoring-suite let-binding-suggestions
   #:rules (let-to-define
            begin0-let-to-define-begin0
-           define-let-to-double-define
+           define-let-to-multi-define
            delete-redundant-let
            let-values-then-call-to-call-with-values
            named-let-to-plain-let))
