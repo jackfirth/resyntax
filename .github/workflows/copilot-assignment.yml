@@ -16,5 +16,5 @@ jobs:
         uses: actions/checkout@v5
       - name: Assign issue to copilot
         run: |
-          issue_number=$(gh issue list --state open --label 'copilot-candidate' --json number --jq '.[].number' | shuf -n 1)
+          issue_number=$(gh issue list --state open --label 'copilot-candidate' --search 'no:assignee' --json number --jq '.[].number' | shuf -n 1)
           gh issue edit $issue_number --add-assignee "@copilot"
