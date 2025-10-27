@@ -17,7 +17,7 @@ using `resyntax fix` or `resyntax analyze`, not `raco resyntax fix` or
 `raco resyntax analyze`.
 
 When creating a pull request, avoid being overly verbose in the pull
-request description. A paragraph at most is usually sufficient. If you need to
+request description. Keep descriptions to a single paragraph. If you need to
 include example code, limit it to one or two small blocks. Do not write
 lengthy, detailed explanations or documentation in the PR description.
 
