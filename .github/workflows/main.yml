@@ -14,6 +14,6 @@ jobs:
       - run: raco pkg install --batch --auto cover cover-coveralls
       - run: raco pkg install --batch --auto --link --name resyntax
       - run: raco test --package resyntax
-      - run: raco cover --format coveralls --package resyntax
+      - run: raco cover --format coveralls --suppress-log-execution --package resyntax
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
