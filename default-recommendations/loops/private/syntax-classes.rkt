@@ -9,6 +9,11 @@
          syntax/parse)
 
 
+(module+ test
+  (require (submod "..")
+           rackunit))
+
+
 ;@----------------------------------------------------------------------------------------------------
 
 
@@ -42,3 +47,27 @@
   (pattern (_:lambda-by-any-name (x (~optional (~seq y))) only-body)
     #:when (>= (syntax-span #'only-body) 60)
     #:with (body ...) #'(only-body)))
+
+
+(module+ test
+  (test-case "worthwhile-loop-body-function"
+
+    (define (worthwhile-loop-body-function? stx)
+      (syntax-parse stx [:worthwhile-loop-body-function #true] [_  #false]))
+
+    (define (x-attribute stx)
+      (syntax-parse stx [:worthwhile-loop-body-function (attribute x)]))
+
+    (define (y-attribute stx)
+      (syntax-parse stx [:worthwhile-loop-body-function (attribute y)]))
+
+    (define (body-attribute stx)
+      (syntax-parse stx [:worthwhile-loop-body-function (attribute body)]))
+
+    (test-case "loop function with let binding"
+      (define stx #'(λ (arg) (let ([foo (+ arg 1)]) (* foo foo))))
+      (check-true (worthwhile-loop-body-function? stx))
+      (check-equal? (syntax->datum (x-attribute stx)) 'arg)
+      (check-false (y-attribute stx))
+      (check-equal? (map syntax->datum (body-attribute stx))
+                    (list '(define foo (+ arg 1)) '(* foo foo))))))
