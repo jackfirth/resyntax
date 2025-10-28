@@ -11,6 +11,8 @@
 
 
 (module+ test
+  (clear-suites-under-test!)
+  (clear-header!)
   (test-case "windows-style newlines should be replaced with regular newlines"
     (parameterize ([current-suite-under-test default-recommendations])
       (define program

@@ -5,7 +5,9 @@
          current-suite-under-test
          current-header
          current-line-mask
+         clear-header!
          set-header!
+         clear-suites-under-test!
          add-suite-under-test!
          check-suite-refactors
          check-suite-does-not-refactor
@@ -84,6 +86,10 @@
 (define current-suite-under-test (make-parameter (refactoring-suite #:rules '())))
 
 
+(define (clear-suites-under-test!)
+  (current-suite-under-test (refactoring-suite #:rules '())))
+
+
 (define (add-suite-under-test! suite)
   (define current-rules (refactoring-suite-rules (current-suite-under-test)))
   (define new-rules (append current-rules (refactoring-suite-rules suite)))
@@ -91,6 +97,10 @@
 
 
 (define current-header (make-parameter (code-block "")))
+
+
+(define (clear-header!)
+  (current-header (code-block "")))
 
 
 (define (set-header! header-code)
