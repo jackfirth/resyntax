@@ -227,13 +227,21 @@
 (define-syntax (resyntax-test-module-begin stx)
   (syntax-parse stx
     [(_ body ...)
-     (define has-require? (has-require-statements? (attribute body)))
-     (if has-require?
-         #`(racket-module-begin (module+ test body ...))
-         #`(racket-module-begin
-            (module+ test
-              (add-suite-under-test! default-recommendations)
-              body ...)))]))
+     #:do [(define has-require? (has-require-statements? (attribute body)))]
+     #:attr default-require (and (not has-require?) #'(add-suite-under-test! default-recommendations))
+     #'(racket-module-begin
+        (module+ test
+          ;; We always clear the suites under test first in case this test file is executing in the
+          ;; same (dynamic) module namespace as another test file. If we didn't do this, because the
+          ;; suites under test are stored in a global parameter, then a test runner that reuses
+          ;; namespaces across files might accidentally run extra refactoring rules that the test file
+          ;; didn't specify. The `raco cover` tool is one such test runner: without this reset,
+          ;; coverage reporting with `raco cover` stops working.
+          (clear-suites-under-test!)
+          ;; Similarly, we also clear the test header global parameter.
+          (clear-header!)
+          (~? default-require)
+          body ...))]))
 
 
 ;@----------------------------------------------------------------------------------------------------
