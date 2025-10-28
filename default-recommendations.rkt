@@ -23,6 +23,7 @@
                resyntax/default-recommendations/legacy-syntax-migrations
                resyntax/default-recommendations/let-replacement/cond-let-replacement
                resyntax/default-recommendations/let-replacement/let-binding-suggestions
+               resyntax/default-recommendations/let-replacement/let-replacement
                resyntax/default-recommendations/let-replacement/match-let-replacement
                resyntax/default-recommendations/list-shortcuts
                resyntax/default-recommendations/loops/for-loop-shortcuts
@@ -62,6 +63,7 @@
          resyntax/default-recommendations/legacy-syntax-migrations
          resyntax/default-recommendations/let-replacement/cond-let-replacement
          resyntax/default-recommendations/let-replacement/let-binding-suggestions
+         resyntax/default-recommendations/let-replacement/let-replacement
          resyntax/default-recommendations/let-replacement/match-let-replacement
          resyntax/default-recommendations/list-shortcuts
          resyntax/default-recommendations/loops/for-loop-shortcuts
@@ -109,6 +111,7 @@
 
             legacy-syntax-migrations
             let-binding-suggestions
+            let-replacement
             list-loopification
             list-shortcuts
             match-let-replacement
