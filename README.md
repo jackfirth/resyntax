@@ -1,4 +1,4 @@
-# resyntax [![CI Status][ci-status-badge]][ci-status] [![Documentation][docs-badge]][docs]
+# resyntax [![CI Status][ci-status-badge]][ci-status] [![Documentation][docs-badge]][docs] [![Coverage Status][coverage-badge]][coverage]
 
 A refactoring tool for Racket built on top of `syntax-parse`.
 
@@ -6,6 +6,8 @@ A refactoring tool for Racket built on top of `syntax-parse`.
 [ci-status-badge]: https://github.com/jackfirth/resyntax/workflows/CI/badge.svg
 [docs]: https://docs.racket-lang.org/resyntax/index.html
 [docs-badge]: https://img.shields.io/badge/docs-published-blue.svg
+[coverage]: https://coveralls.io/github/jackfirth/resyntax?branch=master
+[coverage-badge]: https://coveralls.io/repos/github/jackfirth/resyntax/badge.svg?branch=master
 
 ## Quickstart
 
