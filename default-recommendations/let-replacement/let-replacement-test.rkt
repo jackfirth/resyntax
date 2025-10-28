@@ -1,7 +1,7 @@
 #lang resyntax/test
 
 
-require: resyntax/default-recommendations let-binding-suggestions
+require: resyntax/default-recommendations let-replacement
 
 
 header:
@@ -524,57 +524,6 @@ no-change-test: "let forms at submodule level not refactorable to define"
 ------------------------------
 
 
-test: "named lets which don't refer to the name are refactorable to unnamed lets"
-------------------------------
-(let loop ([x 1]) x)
-==============================
-(let ([x 1]) x)
-------------------------------
-
-
-no-change-test: "named lets which do refer to the name aren't refactorable to unnamed lets"
-------------------------------
-(let loop ([x 1])
-  (if (zero? x)
-      x
-      (loop (sub1 x))))
-------------------------------
-
-
-test: "let-values expressions with an immediate call are refactorable to call-with-values"
-- (let-values ([(x y z) (values 1 2 3)]) (list x y z))
-- (call-with-values (λ () (values 1 2 3)) list)
-
-
-no-change-test:
-"let-values expressions with an immediate call with different order aren't refactorable"
-- (let-values ([(x y z) (values 1 2 3)]) (list z y x))
-
-
-no-change-test: "let binding with conflicting define inside"
-------------------------------
-(define (g)
-  (let* ([x 1]
-         [y x])
-    (define x 2)
-    (+ x y)))
-------------------------------
-
-
-no-change-test: "let binding with obfuscated conflicting define inside"
-------------------------------
-(define (g)
-  (let* ([x 'outer]
-         [y x])
-    (displayln y)
-    (define-syntax-rule (m a)
-      (begin
-        (define a 'inner)
-        x))
-    (m x)))
-------------------------------
-
-
 test: "variable definition with nested let binding refactorable to two variable definitions"
 ------------------------------
 (define (f)
@@ -676,47 +625,3 @@ test: "let binding with body nested in begin0 extractable to definition and body
     (displayln "bar")))
 ------------------------------
 
-
-test: "redundant let bindings can be removed"
-------------------------------
-(define x 1)
-(let ([x x])
-  (* x 2))
-==============================
-(define x 1)
-(* x 2)
-------------------------------
-
-
-test: "single-line cond clause with let should be reformatted when refactoring to define"
-------------------------------
-(define (f x)
-  (cond
-    [(number? x) (let ([y 42]) (+ x y))]
-    [else 'else]))
-==============================
-(define (f x)
-  (cond
-    [(number? x)
-     (define y 42)
-     (+ x y)]
-    [else 'else]))
-------------------------------
-
-
-test: "single-line match clause with let should be reformatted when refactoring to define"
-------------------------------
-(require racket/match)
-(define (f x)
-  (match x
-    [(? number? x) (let ([y 42]) (+ x y))]
-    [_ 'else]))
-==============================
-(require racket/match)
-(define (f x)
-  (match x
-    [(? number? x)
-     (define y 42)
-     (+ x y)]
-    [_ 'else]))
-------------------------------

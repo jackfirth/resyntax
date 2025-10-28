@@ -1,7 +1,7 @@
 #lang resyntax/test
 
 
-require: resyntax/default-recommendations let-binding-suggestions
+require: resyntax/default-recommendations let-replacement
 
 
 header:

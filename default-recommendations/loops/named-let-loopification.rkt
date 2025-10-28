@@ -11,7 +11,7 @@
 
 (require racket/list
          resyntax/base
-         resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/let-replacement/private/let-binding
          resyntax/default-recommendations/private/list-function
          resyntax/default-recommendations/private/literal-constant
          resyntax/private/identifier-naming
