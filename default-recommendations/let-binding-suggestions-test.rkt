@@ -40,4 +40,3 @@ test: "redundant let bindings can be removed"
 (define x 1)
 (* x 2)
 ------------------------------
-
