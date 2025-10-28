@@ -183,21 +183,6 @@
    (~@ . (~splicing-replacement (nested-clause ...) #:original outer-else-clause))))
 
 
-(define-syntax-class let-refactorable-cond-clause
-  #:attributes (refactored)
-  (pattern [condition:expr leading-body ... let-expr:refactorable-let-expression]
-    #:with refactored
-    #`(~replacement
-       [condition leading-body ... (~@ . (~focus-replacement-on (let-expr.refactored ...)))]
-       #:original #,this-syntax)))
-
-
-(define-refactoring-rule cond-let-to-cond-define
-  #:description
-  "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
-  #:literals (cond)
-  (cond-id:cond clause-before ... clause:let-refactorable-cond-clause clause-after ...)
-  (cond-id clause-before ... clause.refactored clause-after ...))
 
 
 (define-syntax-class if-arm
@@ -297,7 +282,6 @@ tail expression outside `cond` lets you replace `cond` with `when`."
            always-throwing-if-to-when
            and-let-to-cond
            cond-else-cond-to-cond
-           cond-let-to-cond-define
            cond-void-to-when-or-unless
            explicit-cond-else-void
            if-begin-to-cond

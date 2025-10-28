@@ -21,7 +21,9 @@
                resyntax/default-recommendations/legacy-contract-migrations
                resyntax/default-recommendations/legacy-struct-migrations
                resyntax/default-recommendations/legacy-syntax-migrations
+               resyntax/default-recommendations/let-replacement/cond-let-replacement
                resyntax/default-recommendations/let-replacement/let-binding-suggestions
+               resyntax/default-recommendations/let-replacement/match-let-replacement
                resyntax/default-recommendations/list-shortcuts
                resyntax/default-recommendations/loops/for-loop-shortcuts
                resyntax/default-recommendations/loops/list-loopification
@@ -58,7 +60,9 @@
          resyntax/default-recommendations/legacy-contract-migrations
          resyntax/default-recommendations/legacy-struct-migrations
          resyntax/default-recommendations/legacy-syntax-migrations
+         resyntax/default-recommendations/let-replacement/cond-let-replacement
          resyntax/default-recommendations/let-replacement/let-binding-suggestions
+         resyntax/default-recommendations/let-replacement/match-let-replacement
          resyntax/default-recommendations/list-shortcuts
          resyntax/default-recommendations/loops/for-loop-shortcuts
          resyntax/default-recommendations/loops/list-loopification
@@ -83,6 +87,7 @@
             class-shortcuts
             comparison-shortcuts
             conditional-shortcuts
+            cond-let-replacement
             console-io-suggestions
             contract-shortcuts
             definition-shortcuts
@@ -106,6 +111,7 @@
             let-binding-suggestions
             list-loopification
             list-shortcuts
+            match-let-replacement
             match-shortcuts
             miscellaneous-suggestions
             mutability-predicates
