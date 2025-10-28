@@ -14,6 +14,8 @@
 (require (for-syntax racket/base
                      racket/match
                      resyntax/test/private/statement)
+         racket/runtime-path
+         racket/splicing
          rackunit
          rebellion/base/comparator
          rebellion/base/range
@@ -227,8 +229,10 @@
 (define-syntax (resyntax-test-module-begin stx)
   (syntax-parse stx
     [(_ body ...)
-     #:do [(define has-require? (has-require-statements? (attribute body)))]
+     #:do [(define has-require? (has-require-statements? (attribute body)))
+           (define has-src-path? (and (syntax-source stx) (path? (syntax-source stx))))]
      #:attr default-require (and (not has-require?) #'(add-suite-under-test! default-recommendations))
+     #:attr stx-path (and has-src-path? #`'#,(build-path (syntax-source stx) 'up))
      #'(racket-module-begin
         (module+ test
           ;; We always clear the suites under test first in case this test file is executing in the
@@ -240,8 +244,14 @@
           (clear-suites-under-test!)
           ;; Similarly, we also clear the test header global parameter.
           (clear-header!)
-          (~? default-require)
-          body ...))]))
+          (~? (~@ (define-runtime-path here stx-path)
+                  ;; We also force the current directory to the module's source location's directory.
+                  ;; Cover doesn't do this automatically like raco test does for some reason, and not
+                  ;; doing it breaks tests that use relative path imports inside refactored test code.
+                  (splicing-parameterize ([current-directory here])
+                    (~? default-require)
+                    body ...))
+              (~@ (~? default-require) body ...))))]))
 
 
 ;@----------------------------------------------------------------------------------------------------
