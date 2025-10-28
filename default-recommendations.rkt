@@ -21,8 +21,8 @@
                resyntax/default-recommendations/legacy-contract-migrations
                resyntax/default-recommendations/legacy-struct-migrations
                resyntax/default-recommendations/legacy-syntax-migrations
+               resyntax/default-recommendations/let-binding-suggestions
                resyntax/default-recommendations/let-replacement/cond-let-replacement
-               resyntax/default-recommendations/let-replacement/let-binding-suggestions
                resyntax/default-recommendations/let-replacement/let-replacement
                resyntax/default-recommendations/let-replacement/match-let-replacement
                resyntax/default-recommendations/list-shortcuts
@@ -43,8 +43,7 @@
   [default-recommendations refactoring-suite?]))
 
 
-(require rebellion/private/static-name
-         resyntax/base
+(require resyntax/base
          resyntax/default-recommendations/boolean-shortcuts
          resyntax/default-recommendations/class-shortcuts
          resyntax/default-recommendations/comparison-shortcuts
@@ -61,8 +60,8 @@
          resyntax/default-recommendations/legacy-contract-migrations
          resyntax/default-recommendations/legacy-struct-migrations
          resyntax/default-recommendations/legacy-syntax-migrations
+         resyntax/default-recommendations/let-binding-suggestions
          resyntax/default-recommendations/let-replacement/cond-let-replacement
-         resyntax/default-recommendations/let-replacement/let-binding-suggestions
          resyntax/default-recommendations/let-replacement/let-replacement
          resyntax/default-recommendations/let-replacement/match-let-replacement
          resyntax/default-recommendations/list-shortcuts
