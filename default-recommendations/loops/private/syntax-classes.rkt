@@ -5,7 +5,7 @@
 
 
 (require resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/let-replacement/private/let-binding
          syntax/parse)
 
 

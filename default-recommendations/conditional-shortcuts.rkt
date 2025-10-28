@@ -14,7 +14,7 @@
          resyntax/base
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/exception
-         resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/let-replacement/private/let-binding
          resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-equivalence
          syntax/parse)

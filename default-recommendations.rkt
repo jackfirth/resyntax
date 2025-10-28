@@ -21,7 +21,7 @@
                resyntax/default-recommendations/legacy-contract-migrations
                resyntax/default-recommendations/legacy-struct-migrations
                resyntax/default-recommendations/legacy-syntax-migrations
-               resyntax/default-recommendations/let-binding-suggestions
+               resyntax/default-recommendations/let-replacement/let-binding-suggestions
                resyntax/default-recommendations/list-shortcuts
                resyntax/default-recommendations/loops/for-loop-shortcuts
                resyntax/default-recommendations/loops/list-loopification
@@ -58,7 +58,7 @@
          resyntax/default-recommendations/legacy-contract-migrations
          resyntax/default-recommendations/legacy-struct-migrations
          resyntax/default-recommendations/legacy-syntax-migrations
-         resyntax/default-recommendations/let-binding-suggestions
+         resyntax/default-recommendations/let-replacement/let-binding-suggestions
          resyntax/default-recommendations/list-shortcuts
          resyntax/default-recommendations/loops/for-loop-shortcuts
          resyntax/default-recommendations/loops/list-loopification

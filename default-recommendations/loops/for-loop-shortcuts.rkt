@@ -16,7 +16,7 @@
          resyntax/default-recommendations/loops/private/syntax-classes
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/let-replacement/private/let-binding
          resyntax/default-recommendations/private/list-function
          resyntax/default-recommendations/private/literal-constant
          resyntax/default-recommendations/private/metafunction

@@ -16,7 +16,7 @@
          resyntax/base
          resyntax/default-recommendations/private/definition-context
          resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/default-recommendations/private/let-binding
+         resyntax/default-recommendations/let-replacement/private/let-binding
          resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/private/syntax-neighbors
