@@ -41,12 +41,21 @@ issue number is being addressed.
 
 When writing tests, you can use the [`raco cover`][9] command to check the
 code coverage of your test cases. The command `raco cover path/to/file.rkt`
-will generate an HTML report showing what code is covered by the indicated test.
-To check for all tests in the repository, you can run `raco cover --package resyntax`.
+will generate an HTML report showing what code is covered by running the
+indicated files. To check coverage for the whole repository, you can run
+this command:
+
+```bash
+raco cover --suppress-log-execution --package resyntax
+```
+
+The `--suppress-log-execution` flag is necessary to avoid a bug in `raco cover`
+related to Racket's logging system. The `raco cover` tool has a few other sharp
+edges like this; see its documentation for more details.
+
 Pull requests should aim for high code coverage, and an integration with Coveralls
-is set up to help track coverage over time. Beware that `raco cover` has some
-sharp edges and inconsistencies compared to `raco test`; see its documentation for
-more details.
+is set up to help track coverage over time. You can view the Coveralls report for
+the entire repository at [this link][10].
 
 [1]: https://docs.racket-lang.org/resyntax/
 [2]: https://racket-lang.org/
@@ -57,3 +66,4 @@ more details.
 [7]: https://github.com/herbie-fp/herbie
 [8]: https://github.com/racket/typed-racket
 [9]: https://docs.racket-lang.org/cover/
+[10]: https://coveralls.io/github/jackfirth/resyntax
