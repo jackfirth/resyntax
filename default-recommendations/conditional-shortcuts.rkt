@@ -236,13 +236,42 @@ tail expression outside `cond` lets you replace `cond` with `when`."
    body-after ...))
 
 
+(define if-begin-to-cond-message
+  "The `cond` form supports multiple body expressions in each branch, making `begin` unnecessary.")
+
+
+(define-refactoring-rule if-else-cond-to-cond
+  #:description if-begin-to-cond-message
+  #:literals (if cond)
+  (if condition then-branch (cond clause ...))
+  (cond [condition then-branch] clause ...))
+
+
+(define-refactoring-rule cond-else-if-to-cond
+  #:description "The `else`-`if` branch of this `cond` expression can be collapsed into the `cond`\
+ expression."
+  #:literals (cond else if)
+  (cond clause ... [else (if inner-condition inner-then-branch else-branch)])
+  (cond clause ... [inner-condition inner-then-branch] [else else-branch]))
+
+
+(define-refactoring-rule cond-begin-to-cond
+  #:description "The bodies of `cond` clauses are already implicitly wrapped in `begin`."
+  #:literals (cond begin)
+  (cond clause-before ... [condition (begin body ...)] clause-after ...)
+  (cond clause-before ... [condition body ...] clause-after ...))
+
+
 (define-refactoring-suite conditional-shortcuts
   #:rules (always-throwing-cond-to-when
            always-throwing-if-to-when
            cond-else-cond-to-cond
+           cond-else-if-to-cond
            cond-void-to-when-or-unless
+           cond-begin-to-cond
            explicit-cond-else-void
            if-begin-to-cond
+           if-else-cond-to-cond
            if-else-false-to-and
            if-void-to-when-or-unless
            if-x-else-x-to-and
