@@ -1,9 +1,10 @@
-name: Build and Test
+name: CI
 
 on: [push, pull_request]
 
 jobs:
-  run:
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' || github.actor != 'Copilot' }}
     steps:
