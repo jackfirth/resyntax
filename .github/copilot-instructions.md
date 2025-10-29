@@ -42,7 +42,7 @@ issue number is being addressed.
 When writing tests, you can use the [`raco cover`][9] command to check the
 code coverage of your test cases. The command `raco cover path/to/file.rkt`
 will generate an HTML report showing what code is covered by the indicated test.
-To check for all tests in the repository, you can run `raco cover --pkgs resyntax`.
+To check for all tests in the repository, you can run `raco cover --package resyntax`.
 Pull requests should aim for high code coverage, and an integration with Coveralls
 is set up to help track coverage over time. Beware that `raco cover` has some
 sharp edges and inconsistencies compared to `raco test`; see its documentation for
