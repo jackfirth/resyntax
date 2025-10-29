@@ -6,7 +6,7 @@ jobs:
   ci:
     name: "Build and Test"
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.actor != 'github-copilot[bot]' }}
+    if: ${{ github.event_name == 'pull_request' || github.actor != 'Copilot' }}
     steps:
       - uses: actions/checkout@master
       - uses: Bogdanp/setup-racket@v1.5
