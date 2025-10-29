@@ -91,10 +91,18 @@
   #:attributes (negated? condition [body 1])
   #:literals (cond void not begin let)
 
-  (pattern (cond [(not condition) (void)] [else :block-expression]) #:with negated? #false)
-  (pattern (cond [(not condition) :block-expression] [else (void)]) #:with negated? #true)
-  (pattern (cond [condition (void)] [else :block-expression]) #:with negated? #true)
-  (pattern (cond [condition :block-expression] [else (void)]) #:with negated? #false))
+  (pattern (cond [(not condition) (void)] [else block-expr:block-expression])
+    #:with negated? #false
+    #:with (body ...) #'(block-expr.body ...))
+  (pattern (cond [(not condition) block-expr:block-expression] [else (void)])
+    #:with negated? #true
+    #:with (body ...) #'(block-expr.body ...))
+  (pattern (cond [condition (void)] [else block-expr:block-expression])
+    #:with negated? #true
+    #:with (body ...) #'(block-expr.body ...))
+  (pattern (cond [condition block-expr:block-expression] [else (void)])
+    #:with negated? #false
+    #:with (body ...) #'(block-expr.body ...)))
 
 
 (define-refactoring-rule cond-void-to-when-or-unless
@@ -257,18 +265,32 @@ tail expression outside `cond` lets you replace `cond` with `when`."
 
 (define-refactoring-rule cond-begin-to-cond
   #:description "The bodies of `cond` clauses are already implicitly wrapped in `begin`."
-  #:literals (cond begin)
+  #:literals (cond begin else void)
   (cond clause-before ... [condition (begin body ...)] clause-after ...)
+  ;; Don't match if this is the else clause of a cond that could be converted to when/unless
+  #:when (not (and (empty? (attribute clause-after))
+                   (= (length (attribute clause-before)) 1)
+                   (syntax-parse (first (attribute clause-before))
+                     #:literals (void not)
+                     [(~or [_ (void)]
+                           [(not _) (void)]) #true]
+                     [_ #false])))
+  ;; Also don't match if the clause after is [else (void)]
+  #:when (or (empty? (attribute clause-after))
+             (syntax-parse #'(clause-after ...)
+               #:literals (else void)
+               [(~not ([else (void)])) #true]
+               [_ #false]))
   (cond clause-before ... [condition body ...] clause-after ...))
 
 
 (define-refactoring-suite conditional-shortcuts
   #:rules (always-throwing-cond-to-when
            always-throwing-if-to-when
+           cond-begin-to-cond
            cond-else-cond-to-cond
            cond-else-if-to-cond
            cond-void-to-when-or-unless
-           cond-begin-to-cond
            explicit-cond-else-void
            if-begin-to-cond
            if-else-cond-to-cond
