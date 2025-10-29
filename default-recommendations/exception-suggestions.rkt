@@ -43,8 +43,18 @@ conventions."
   (error sym:expr message:str arg:id ...+)
 
   #:do [(define message-str (syntax-e (attribute message)))
-        (define args-list (attribute arg))]
-  #:when (= (length (regexp-match* #rx"~a" message-str)) (length args-list))
+        (define args-list (attribute arg))
+        (define tilde-a-matches (regexp-match-positions* #rx"~a" message-str))]
+  #:when (= (length tilde-a-matches) (length args-list))
+  ;; Check that all ~a occurrences are surrounded by spaces or at string boundaries
+  #:when (for/and ([match (in-list tilde-a-matches)])
+           (define start (car match))
+           (define end (cdr match))
+           (define before-ok? (or (= start 0)
+                                 (char-whitespace? (string-ref message-str (- start 1)))))
+           (define after-ok? (or (= end (string-length message-str))
+                                (char-whitespace? (string-ref message-str end))))
+           (and before-ok? after-ok?))
   #:do [(define cleaned-message (string-replace message-str "~a" ""))
         ;; Clean up extra spaces and trailing punctuation from placeholder removal
         (define cleaned-message-normalized
