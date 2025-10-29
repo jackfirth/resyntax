@@ -9,8 +9,10 @@
   [cond-let-replacement refactoring-suite?]))
 
 
-(require resyntax/base
+(require racket/list
+         resyntax/base
          resyntax/default-recommendations/let-replacement/private/let-binding
+         resyntax/default-recommendations/private/if-arm
          syntax/parse)
 
 
@@ -34,5 +36,29 @@
   (cond-id clause-before ... clause.refactored clause-after ...))
 
 
+(define-refactoring-rule if-let-to-cond
+  #:description
+  "`cond` with internal definitions is preferred over `if` with `let`, to reduce nesting"
+  #:literals (if void)
+  (if condition
+      (~and then-expr:if-arm (~not (void)))
+      (~and else-expr:if-arm (~not (void))))
+  #:when (or (attribute then-expr.uses-let?) (attribute else-expr.uses-let?))
+  (cond (~replacement [condition then-expr.refactored ...] #:original-splice (condition then-expr))
+        (~replacement [else else-expr.refactored ...] #:original else-expr)))
+
+
+(define-refactoring-rule and-let-to-cond
+  #:description
+  "Using `cond` allows converting `let` to internal definitions, reducing nesting"
+  #:literals (and cond)
+  (and condition let-expr:refactorable-let-expression)
+  #:when (not (empty? (attribute let-expr.id)))
+  (cond [condition let-expr.refactored ...]
+        [else #false]))
+
+
 (define-refactoring-suite cond-let-replacement
-  #:rules (cond-let-to-cond-define))
+  #:rules (and-let-to-cond
+           cond-let-to-cond-define
+           if-let-to-cond))
