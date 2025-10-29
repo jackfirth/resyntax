@@ -153,3 +153,18 @@ test: "error with ~a at end of string"
 (define (end-tilde x)
   (raise-arguments-error 'end-tilde "value is" "x" x))
 --------------------
+
+
+no-change-test: "error with ~a in quotes should not be refactored"
+--------------------
+(define (find-output-radio-box label)
+  (error 'find-output-radio-box "could not find `~a' radio box"
+         label))
+--------------------
+
+
+no-change-test: "error with ~a in parentheses should not be refactored"
+--------------------
+(define (f x y)
+  (error 'f "bad point (~a, ~a)" x y))
+--------------------
