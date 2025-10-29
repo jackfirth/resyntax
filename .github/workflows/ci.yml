@@ -1,0 +1,15 @@
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request' || github.actor != 'Copilot' }}
+    steps:
+      - uses: actions/checkout@master
+      - uses: Bogdanp/setup-racket@v1.5
+        with:
+          version: stable
+      - run: raco pkg install --batch --auto --link --name resyntax
+      - run: raco test --package resyntax

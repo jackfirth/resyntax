@@ -1,21 +1,21 @@
-name: CI
+name: Code Coverage
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - master
+  pull_request:
 
 jobs:
-  ci:
-    name: "Build and Test"
+  run:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request' || github.actor != 'Copilot' }}
     steps:
       - uses: actions/checkout@master
       - uses: Bogdanp/setup-racket@v1.5
         with:
           version: stable
-      - run: echo "github actor is ${{ github.actor }} and triggering actor is ${{ github.triggering_actor }}"
       - run: raco pkg install --batch --auto cover cover-coveralls
       - run: raco pkg install --batch --auto --link --name resyntax
-      - run: raco test --package resyntax
       - run: raco cover --format coveralls --suppress-log-execution --package resyntax
         env:
           COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
