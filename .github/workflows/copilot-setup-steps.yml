@@ -14,7 +14,6 @@ on:
 jobs:
   copilot-setup-steps:
     runs-on: ubuntu-latest
-    if: github.event_name != 'push' || github.actor != 'copilot-swe-agent[bot]'
 
     permissions:
       contents: read
