@@ -19,7 +19,6 @@ jobs:
   code-coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
-    if:  ${{ github.event_name == 'pull_request' || github.ref == 'master' }}
     steps:
       - uses: actions/checkout@master
       - uses: Bogdanp/setup-racket@v1.5
