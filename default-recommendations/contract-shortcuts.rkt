@@ -60,20 +60,8 @@
       result-contract))
 
 
-(define-splicing-syntax-class unprotected-submodule-option
-  (pattern (~optional (~seq #:unprotected-submodule submodule-name))))
-
-
-(define-refactoring-rule provide/contract-to-contract-out
-  #:description "The `provide/contract` form is a legacy form made obsolete by `contract-out`."
-  #:literals (provide/contract)
-  (provide/contract submod:unprotected-submodule-option item ...)
-  (provide (contract-out (~@ . submod) item ...)))
-
-
 (define-refactoring-suite contract-shortcuts
   #:rules (arrow-contract-with-rest-to-arrow-contract-with-ellipses
            explicit-path-string?-to-path-string?
            nested-or/c-to-flat-or/c
-           nested-and/c-to-flat-and/c
-           provide/contract-to-contract-out))
+           nested-and/c-to-flat-and/c))

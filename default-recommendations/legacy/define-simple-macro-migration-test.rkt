@@ -1,7 +1,7 @@
 #lang resyntax/test
 
 
-require: resyntax/default-recommendations syntax-parse-shortcuts
+require: resyntax/default-recommendations define-simple-macro-migration
 
 
 header:

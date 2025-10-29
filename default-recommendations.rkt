@@ -18,9 +18,12 @@
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/function-shortcuts
                resyntax/default-recommendations/hash-shortcuts
-               resyntax/default-recommendations/legacy-contract-migrations
-               resyntax/default-recommendations/legacy-struct-migrations
-               resyntax/default-recommendations/legacy-syntax-migrations
+               resyntax/default-recommendations/legacy/define-simple-macro-migration
+               resyntax/default-recommendations/legacy/legacy-contract-migrations
+               resyntax/default-recommendations/legacy/legacy-struct-migrations
+               resyntax/default-recommendations/legacy/legacy-syntax-migrations
+               resyntax/default-recommendations/legacy/make-temporary-directory-migration
+               resyntax/default-recommendations/legacy/provide-contract-migration
                resyntax/default-recommendations/let-binding-suggestions
                resyntax/default-recommendations/let-replacement/cond-let-replacement
                resyntax/default-recommendations/let-replacement/let-replacement
@@ -57,9 +60,12 @@
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/function-shortcuts
          resyntax/default-recommendations/hash-shortcuts
-         resyntax/default-recommendations/legacy-contract-migrations
-         resyntax/default-recommendations/legacy-struct-migrations
-         resyntax/default-recommendations/legacy-syntax-migrations
+         resyntax/default-recommendations/legacy/define-simple-macro-migration
+         resyntax/default-recommendations/legacy/legacy-contract-migrations
+         resyntax/default-recommendations/legacy/legacy-struct-migrations
+         resyntax/default-recommendations/legacy/legacy-syntax-migrations
+         resyntax/default-recommendations/legacy/make-temporary-directory-migration
+         resyntax/default-recommendations/legacy/provide-contract-migration
          resyntax/default-recommendations/let-binding-suggestions
          resyntax/default-recommendations/let-replacement/cond-let-replacement
          resyntax/default-recommendations/let-replacement/let-replacement
@@ -91,6 +97,7 @@
             cond-let-replacement
             console-io-suggestions
             contract-shortcuts
+            define-simple-macro-migration
             definition-shortcuts
             dict-suggestions
             exception-suggestions
@@ -113,12 +120,14 @@
             let-replacement
             list-loopification
             list-shortcuts
+            make-temporary-directory-migration
             match-let-replacement
             match-shortcuts
             miscellaneous-suggestions
             mutability-predicates
             named-let-loopification
             numeric-shortcuts
+            provide-contract-migration
             require-and-provide-suggestions
             string-shortcuts
             syntax-shortcuts
