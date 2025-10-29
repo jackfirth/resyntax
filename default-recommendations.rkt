@@ -33,7 +33,6 @@
                resyntax/default-recommendations/loops/list-loopification
                resyntax/default-recommendations/loops/named-let-loopification
                resyntax/default-recommendations/match-shortcuts
-               resyntax/default-recommendations/miscellaneous-suggestions
                resyntax/default-recommendations/mutability-predicates
                resyntax/default-recommendations/numeric-shortcuts
                resyntax/default-recommendations/require-and-provide-suggestions
@@ -75,7 +74,6 @@
          resyntax/default-recommendations/loops/list-loopification
          resyntax/default-recommendations/loops/named-let-loopification
          resyntax/default-recommendations/match-shortcuts
-         resyntax/default-recommendations/miscellaneous-suggestions
          resyntax/default-recommendations/mutability-predicates
          resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/require-and-provide-suggestions
@@ -123,7 +121,6 @@
             make-temporary-directory-migration
             match-let-replacement
             match-shortcuts
-            miscellaneous-suggestions
             mutability-predicates
             named-let-loopification
             numeric-shortcuts

@@ -474,4 +474,34 @@ test: "refactoring list element variable definitions to match-define doesn't ref
 ------------------------------
 
 
+test: "and with match on same identifier can be simplified"
+------------------------------
+(define (f x)
+  (and x (match x [1 2])))
+==============================
+(define (f x)
+  (match x
+    [#f #f]
+    [1 2]))
+------------------------------
+
+
+test: "and with match on same identifier preserves formatting"
+------------------------------
+(define (foo some-var)
+  (and some-var
+       (match some-var
+         ['first-case 'first-result]
+         ['second-case 'second-result])))
+==============================
+(define (foo some-var)
+  (match some-var
+    [#f #f]
+    ['first-case 'first-result]
+    ['second-case 'second-result]))
+------------------------------
+
+
+no-change-test: "and with match on different identifiers not refactorable"
+- (define (foo x y) (and x (match y ['a 'b] ['c 'd])))
 

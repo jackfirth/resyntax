@@ -265,8 +265,18 @@ elements than expected."
   (body-before ... (~focus-replacement-on match-definition) body-after ...))
 
 
+(define-refactoring-rule and-match-to-match
+  #:description "This `and` expression can be turned into a clause of the inner `match` expression,\
+ reducing nesting."
+  #:literals (and match)
+  (and and-subject:id (match match-subject:id match-clause ...))
+  #:when (free-identifier=? #'and-subject #'match-subject)
+  (match match-subject [#false #false] match-clause ...))
+
+
 (define-refactoring-suite match-shortcuts
-  #:rules (list-element-definitions-to-match-define
+  #:rules (and-match-to-match
+           list-element-definitions-to-match-define
            match-conditional-to-when
            predicate-pattern-with-lambda-to-when
            remove-unnecessary-root-and-pattern

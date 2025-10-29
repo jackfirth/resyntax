@@ -828,3 +828,49 @@ no-change-test: "cond with unshared tail expression not refactorable to when"
     [else
      (displayln "false tail")]))
 --------------------
+
+
+test: "if with else cond can be flattened to cond"
+- (if 'a 'b (cond ['c 'd] ['e 'f]))
+------------------------------
+(cond
+  ['a 'b]
+  ['c 'd]
+  ['e 'f])
+------------------------------
+
+
+test: "cond with else-if can be collapsed"
+- (cond ['a 'b] ['c 'd] [else (if 'e 'f 'g)])
+------------------------------
+(cond
+  ['a 'b]
+  ['c 'd]
+  ['e 'f]
+  [else 'g])
+------------------------------
+
+
+test: "cond with begin in clause can be simplified"
+------------------------------
+(cond ['a (begin 'b 'c 'd)])
+==============================
+(cond
+  ['a
+   'b
+   'c
+   'd])
+------------------------------
+
+
+test: "cond with begin in middle clause can be simplified"
+------------------------------
+(cond ['a 'b] ['c (begin 'd 'e)] ['f 'g])
+==============================
+(cond
+  ['a 'b]
+  ['c
+   'd
+   'e]
+  ['f 'g])
+------------------------------
