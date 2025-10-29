@@ -89,7 +89,8 @@
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
     (syntax-parse stx
-      [(tag:keyword subform ...)
+      #:literals (module)
+      [((~or tag:keyword tag:module) subform ...)
        (define separators (syntax-property (attribute tag) 'uts-separators))
        (unless separators
          (raise-arguments-error
