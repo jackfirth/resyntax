@@ -11,6 +11,7 @@ jobs:
       - uses: Bogdanp/setup-racket@v1.5
         with:
           version: stable
+      - run: echo "github actor is ${{ github.actor }} and triggering actor is ${{ github.triggering_actor }}"
       - run: raco pkg install --batch --auto cover cover-coveralls
       - run: raco pkg install --batch --auto --link --name resyntax
       - run: raco test --package resyntax
