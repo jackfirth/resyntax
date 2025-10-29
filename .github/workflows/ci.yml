@@ -3,6 +3,7 @@ name: CI
 on: [push, pull_request]
 
 jobs:
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
@@ -14,3 +15,18 @@ jobs:
           version: stable
       - run: raco pkg install --batch --auto --link --name resyntax
       - run: raco test --package resyntax
+
+  code-coverage:
+    name: Code Coverage
+    runs-on: ubuntu-latest
+    if:  ${{ github.event_name == 'pull_request' || github.ref == 'master' }}
+    steps:
+      - uses: actions/checkout@master
+      - uses: Bogdanp/setup-racket@v1.5
+        with:
+          version: stable
+      - run: raco pkg install --batch --auto cover cover-coveralls
+      - run: raco pkg install --batch --auto --link --name resyntax
+      - run: raco cover --format coveralls --suppress-log-execution --package resyntax
+        env:
+          COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
