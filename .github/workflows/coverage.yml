@@ -3,7 +3,7 @@ name: Code Coverage
 on: [pull_request]
 
 jobs:
-  code-coverage:
+  run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master

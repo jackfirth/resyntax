@@ -1,9 +1,9 @@
-name: Build and Test
+name: Continuous Integration
 
 on: [push, pull_request]
 
 jobs:
-  ci:
+  run:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request' || github.actor != 'Copilot' }}
     steps:
