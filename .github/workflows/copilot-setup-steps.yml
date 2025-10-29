@@ -23,4 +23,5 @@ jobs:
       - uses: Bogdanp/setup-racket@v1.14
         with:
           version: stable
+      - run: raco pkg install --batch --auto cover
       - run: raco pkg install --batch --auto --link --name resyntax
