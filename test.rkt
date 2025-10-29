@@ -302,7 +302,7 @@
         [(#:program statement ...) (attribute statement)]))
     (define raw-module-id (datum->syntax #false 'module start-srcloc definitely-original-syntax))
     (define module-level-separators
-      (append (list "" "#lang ") (make-list (length statements) "\n") (list "")))
+      (append (list "" "") (make-list (length statements) "\n") (list "")))
     (define module-id (syntax-property raw-module-id 'uts-separators module-level-separators))
     (define derived-modname-symbol (derive-module-name-from-source source-name))
     (define raw-modname
@@ -313,7 +313,9 @@
       (datum->syntax #false 'resyntax/test prelude-srcloc definitely-original-syntax))
     (define prelude (syntax-property raw-prelude 'uts-content "resyntax/test"))
     (define module-datum (list* module-id modname prelude statements))
-    (define whole-program-srcloc (syntax-srcloc cleaned-parse-tree))
+    (define whole-program-srcloc
+      (srcloc-extend-right start-srcloc
+                           (+ (string-length "resyntax/test\n") (syntax-span cleaned-parse-tree))))
     (check-universal-tagged-syntax
      (datum->syntax #false module-datum whole-program-srcloc definitely-original-syntax)))
 
@@ -504,7 +506,7 @@
     [rename default-resyntax-test-recommendations refactoring-suite refactoring-suite?]))
 
 
-  (require (except-in (submod "..") #%app)
+  (require (prefix-in resyntax-test-lang- (submod ".."))
            racket/list
            racket/string
            resyntax/base
@@ -515,8 +517,11 @@
     #:description
     "Multi-line code blocks with a single line of code can be written in a more succinct form."
     #:uses-universal-tagged-syntax? #true
-    #:literals (test)
-    ((~and statement-tag #:statement) (~and test-id:test) test-name:str (#:code-block code:str) ...+)
+    #:literals (resyntax-test-lang-test)
+    ((~and statement-tag #:statement)
+     (~and test-id:resyntax-test-lang-test)
+     test-name:str
+     (#:code-block code:str) ...+)
     #:do [(define code-strings (map syntax-e (attribute code)))]
     #:when (for/and ([s (in-list code-strings)])
              (string-with-one-newline-at-end? s))
@@ -527,6 +532,36 @@
   (define (string-with-one-newline-at-end? s)
     (equal? (string-find s "\n") (sub1 (string-length s))))
 
+
+  (define-refactoring-rule unnecessary-default-recommendations-require
+    #:description
+    "The `default-recommendations` refactoring suite is used by default if no suite is specified."
+    #:uses-universal-tagged-syntax? #true
+    #:literals (resyntax-test-lang-require)
+    #:datum-literals (module resyntax/default-recommendations default-recommendations)
+    (module-id:module modname prelude
+      before:non-require-statement ...
+      (#:statement resyntax-test-lang-require
+       resyntax/default-recommendations
+       default-recommendations)
+      after:non-require-statement ...)
+    #:do [(define module-id-stx (attribute module-id))
+          (define old-seps (syntax-property module-id-stx 'uts-separators))
+          (define sep-index-before-require (+ 2 (length (attribute before))))
+          (define new-seps (list-remove-index old-seps sep-index-before-require))]
+    #:with new-module-id (syntax-property module-id-stx 'uts-separators new-seps)
+    (new-module-id modname prelude before ... after ...))
+
+
+  (define (list-remove-index lst i)
+    (append (take lst i) (drop lst (add1 i))))
+
+
+  (define-syntax-class non-require-statement
+    #:literals (resyntax-test-lang-require)
+    (pattern (#:statement (~not resyntax-test-lang-require) _ ...)))
+
   
   (define-refactoring-suite default-resyntax-test-recommendations
-    #:rules (unnecessary-multi-line-code-block)))
+    #:rules (unnecessary-default-recommendations-require
+             unnecessary-multi-line-code-block)))
