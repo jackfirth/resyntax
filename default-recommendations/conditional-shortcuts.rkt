@@ -14,7 +14,7 @@
          resyntax/base
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/exception
-         resyntax/default-recommendations/let-replacement/private/let-binding
+         resyntax/default-recommendations/private/if-arm
          resyntax/default-recommendations/private/metafunction
          resyntax/default-recommendations/private/syntax-equivalence
          syntax/parse)
@@ -185,25 +185,6 @@
 
 
 
-(define-syntax-class if-arm
-  #:attributes (uses-begin? uses-let? [refactored 1])
-  #:literals (begin)
-
-  (pattern (begin body ...)
-    #:attr uses-begin? #true
-    #:attr uses-let? #false
-    #:with (refactored ...) #`(~splicing-replacement (body ...) #:original #,this-syntax))
-
-  (pattern :refactorable-let-expression
-    #:attr uses-begin? #false
-    #:attr uses-let? #true)
-
-  (pattern other
-    #:with (refactored ...) #'(other)
-    #:attr uses-begin? #false
-    #:attr uses-let? #false))
-
-
 (define-refactoring-rule if-begin-to-cond
   #:description "Using `cond` instead of `if` here makes `begin` unnecessary"
   #:literals (if void)
@@ -213,28 +194,6 @@
   #:when (or (attribute then-expr.uses-begin?) (attribute else-expr.uses-begin?))
   (cond (~replacement [condition then-expr.refactored ...] #:original-splice (condition then-expr))
         (~replacement [else else-expr.refactored ...] #:original else-expr)))
-
-
-(define-refactoring-rule if-let-to-cond
-  #:description
-  "`cond` with internal definitions is preferred over `if` with `let`, to reduce nesting"
-  #:literals (if void)
-  (if condition
-      (~and then-expr:if-arm (~not (void)))
-      (~and else-expr:if-arm (~not (void))))
-  #:when (or (attribute then-expr.uses-let?) (attribute else-expr.uses-let?))
-  (cond (~replacement [condition then-expr.refactored ...] #:original-splice (condition then-expr))
-        (~replacement [else else-expr.refactored ...] #:original else-expr)))
-
-
-(define-refactoring-rule and-let-to-cond
-  #:description
-  "Using `cond` allows converting `let` to internal definitions, reducing nesting"
-  #:literals (and cond)
-  (and condition let-expr:refactorable-let-expression)
-  #:when (not (empty? (attribute let-expr.id)))
-  (cond [condition let-expr.refactored ...]
-        [else #false]))
 
 
 (define-refactoring-rule nested-when-to-compound-when
@@ -280,13 +239,11 @@ tail expression outside `cond` lets you replace `cond` with `when`."
 (define-refactoring-suite conditional-shortcuts
   #:rules (always-throwing-cond-to-when
            always-throwing-if-to-when
-           and-let-to-cond
            cond-else-cond-to-cond
            cond-void-to-when-or-unless
            explicit-cond-else-void
            if-begin-to-cond
            if-else-false-to-and
-           if-let-to-cond
            if-void-to-when-or-unless
            if-x-else-x-to-and
            ignored-and-to-when
