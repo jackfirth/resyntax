@@ -52,6 +52,7 @@
          rebellion/type/record
          resyntax/base
          resyntax/default-recommendations
+         resyntax/private/analysis
          resyntax/private/comment-reader
          resyntax/private/git
          resyntax/private/limiting
