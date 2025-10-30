@@ -440,10 +440,10 @@ no-change-test: "list element variable definitions not refactorable when referen
 
 no-change-test: "list element variable definitions not refactorable when referencing list expressions"
 ------------------------------
-(define (f pt-list)
-  (define x (list-ref (first pt-list) 0))
-  (define y (list-ref (first pt-list) 1))
-  (define z (list-ref (first pt-list) 2))
+(define (f pt-func)
+  (define x (list-ref (pt-func) 0))
+  (define y (list-ref (pt-func) 1))
+  (define z (list-ref (pt-func) 2))
   (+ x y z))
 ------------------------------
 
