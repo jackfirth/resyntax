@@ -367,7 +367,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
         (define file-string (if (> total-files 1) "files" "file"))
         (if (zero? total-fixes)
             (printf "Resyntax found no issues.")
-            (printf "Automated Resyntax fixes\n\nResyntax fixed ~a ~a in ~a ~a." 
+            (printf "Resyntax fixed ~a ~a in ~a ~a." 
                     total-fixes issue-string total-files file-string))
         (unless (zero? total-fixes)
           (printf "\n")
@@ -378,7 +378,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
   
   ;; Output JSON
   (write-json
-   (hasheq 'commit_message commit-message
+   (hasheq 'commit_message_body commit-message
            'fix_count total-fixes))
   (newline))
 
