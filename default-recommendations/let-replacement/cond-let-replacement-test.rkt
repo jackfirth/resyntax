@@ -297,3 +297,25 @@ no-change-test: "and with more than two arguments should not be refactored"
 (and 'some-condition 'another-condition (let ([x 42]) (* x 2)))
 ------------------------------
 
+
+test: "cond-let-to-cond-define doesn't reformat the entire cond expression"
+----------------------------------------
+(define (f c1 c2)
+  (cond
+    [c1 ( displayln "foo" )]
+    [c2
+     ( displayln "bar" )
+     (let ([x 1])
+       (* x 2))]
+    [else ( displayln "else" )]))
+========================================
+(define (f c1 c2)
+  (cond
+    [c1 ( displayln "foo" )]
+    [c2
+     ( displayln "bar" )
+     (define x 1)
+     (* x 2)]
+    [else ( displayln "else" )]))
+----------------------------------------
+
