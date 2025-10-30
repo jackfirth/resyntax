@@ -8,6 +8,7 @@
          racket/logging
          racket/match
          racket/path
+         racket/port
          rebellion/base/comparator
          rebellion/base/range
          rebellion/collection/entry
@@ -33,7 +34,7 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-(define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message))
+(define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message json))
 (define-enum-type resyntax-fix-method (modify-files create-multiple-git-commits))
 (define-record-type resyntax-analyze-options (targets suite output-format output-destination))
 
@@ -159,6 +160,10 @@ changed relative to baseref are analyzed and fixed."
    ("--output-as-commit-message"
     "Report results in the form of a Git commit message printed to stdout."
     (set! output-format git-commit-message))
+
+   ("--output-as-json"
+    "Report results in the form of a JSON object printed to stdout."
+    (set! output-format json))
 
    ("--refactoring-suite"
     modpath
@@ -293,6 +298,8 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (match output-format
     [(== git-commit-message)
      (resyntax-fix-print-git-commit-message analysis)]
+    [(== json)
+     (resyntax-fix-print-json analysis)]
     [(== plain-text)
      (resyntax-fix-print-plain-text-summary analysis)]))
 
@@ -342,6 +349,38 @@ For help on these, use 'analyze --help' or 'fix --help'."
              #:into (into-for-each display))
   (when (positive? total-fixes)
     (newline)))
+
+
+(define (resyntax-fix-print-json analysis)
+  (define total-fixes (resyntax-analysis-total-fixes analysis))
+  (define total-files (resyntax-analysis-total-sources-modified analysis))
+  (define fix-counts-by-rule
+    (transduce (in-hash-entries (multiset-frequencies (resyntax-analysis-rules-applied analysis)))
+               (sorting #:key entry-value #:descending? #true)
+               #:into into-list))
+  
+  ;; Build commit message
+  (define commit-message
+    (with-output-to-string
+      (λ ()
+        (define issue-string (if (> total-fixes 1) "issues" "issue"))
+        (define file-string (if (> total-files 1) "files" "file"))
+        (if (zero? total-fixes)
+            (printf "Resyntax found no issues.")
+            (printf "Automated Resyntax fixes\n\nResyntax fixed ~a ~a in ~a ~a." 
+                    total-fixes issue-string total-files file-string))
+        (unless (zero? total-fixes)
+          (printf "\n")
+          (for ([rule+count (in-list fix-counts-by-rule)])
+            (match-define (entry rule count) rule+count)
+            (define occurrence-string (if (> count 1) "occurrences" "occurrence"))
+            (printf "\n  * Fixed ~a ~a of `~a`" count occurrence-string rule))))))
+  
+  ;; Output JSON
+  (write-json
+   (hasheq 'commit_message commit-message
+           'fix_count total-fixes))
+  (newline))
 
 
 (module+ main
