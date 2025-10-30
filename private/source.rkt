@@ -15,6 +15,7 @@
   [source-original (-> source? unmodified-source?)]
   [source-read-syntax (-> source? syntax?)]
   [source-read-language (-> source? (or/c module-path? #false))]
+  [source-expand (-> source? syntax?)]
   [source-text-of (-> source? syntax? immutable-string?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
@@ -125,6 +126,10 @@
     (check-equal? (source-read-language (string-source "#lang info")) 'info)
     (check-equal? (source-read-language (string-source "#lang setup/infotab")) 'setup/infotab)
     (check-equal? (source-read-language (string-source "(void)")) #false)))
+
+
+(define (source-expand code)
+  (expand (source-read-syntax code)))
 
 
 (define/guard (source-path code)

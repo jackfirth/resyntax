@@ -22,6 +22,7 @@
          rackunit
          rebellion/base/comparator
          rebellion/base/range
+         rebellion/base/result
          rebellion/collection/entry
          rebellion/collection/hash
          rebellion/collection/list
@@ -206,8 +207,8 @@
 (define-check (check-suite-does-not-refactor original-program)
   (define suite (current-suite-under-test))
   (set! original-program (code-block-append (current-header) original-program))
+  (fail-unless-program-compiles original-program)
   (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
-
   (define result-set
     (call-with-logs-captured
      (λ ()
@@ -225,6 +226,19 @@
                         ['actual (string-block-info refactored-program)])
         (unless (empty? (refactoring-result-set-results result-set))
           (fail-check "the program was not changed, but no-op fixes were suggested"))))))
+
+
+(define (fail-unless-program-compiles program)
+  (define src (string-source (code-block-raw-string program)))
+  (define expansion-result
+    (parameterize ([current-namespace (make-base-namespace)])
+      (result (source-expand src))))
+  (match expansion-result
+    [(? success?) (void)]
+    [(failure e)
+     (with-check-info (['actual (string-block-info (code-block-raw-string program))]
+                       ['exception e])
+       (fail-check "the program raised an error when compiled and couldn't be analyzed"))]))
 
 
 (define-check (check-suite-analysis program context-list target property-key expected-value)
