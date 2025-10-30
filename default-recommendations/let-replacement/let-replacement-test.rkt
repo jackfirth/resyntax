@@ -625,3 +625,32 @@ test: "let binding with body nested in begin0 extractable to definition and body
     (displayln "bar")))
 ------------------------------
 
+
+test: "let-to-define doesn't reformat the entire definition context"
+----------------------------------------
+(define (f)
+  ( displayln "foo" )
+  (let ([x 1])
+    (* x 2)))
+========================================
+(define (f)
+  ( displayln "foo" )
+  (define x 1)
+  (* x 2))
+----------------------------------------
+
+
+test: "define-let-to-double-define doesn't reformat the entire definition context"
+----------------------------------------
+(define (f)
+  ( displayln "foo" )
+  (define y (let ([x 1]) (* x 2)))
+  ( displayln "bar" ))
+========================================
+(define (f)
+  ( displayln "foo" )
+  (define x 1)
+  (define y (* x 2))
+  ( displayln "bar" ))
+----------------------------------------
+

@@ -70,6 +70,18 @@ test: "nested ands interspersed with ors can be flattened"
 - (and 1 2 (or 3 4) 5 6)
 
 
+test: "refactoring an expression doesn't affect formatting of unrefactored code"
+----------------------------------------
+( displayln "foo" )
+(or 1 (or 2 3))
+( displayln "bar" )
+========================================
+( displayln "foo" )
+(or 1 2 3)
+( displayln "bar" )
+----------------------------------------
+
+
 test: "using if to convert a boolean expression to a boolean can be removed"
 - (if (string? "foo") #true #false)
 - (string? "foo")
