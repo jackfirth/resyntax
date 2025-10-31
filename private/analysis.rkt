@@ -6,9 +6,8 @@
 
 (provide
  (contract-out
-  [source-analyze (->* (source?)
-                       (#:lines range-set?
-                        #:analyzers (listof expansion-analyzer?))
+  [source-analyze (->* (source? #:analyzers (listof expansion-analyzer?))
+                       (#:lines range-set?)
                        source-code-analysis?)]
   [source-code-analysis? (-> any/c boolean?)]
   [source-code-analysis-code (-> source-code-analysis? source?)]
@@ -61,9 +60,7 @@
 
 (define (source-analyze code
                         #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
-                        #:analyzers [analyzers (list identifier-usage-analyzer
-                                                     ignored-result-values-analyzer
-                                                     variable-mutability-analyzer)])
+                        #:analyzers analyzers)
   (define ns (make-base-namespace))
   (parameterize ([current-directory (or (source-directory code) (current-directory))]
                  [current-namespace ns])
