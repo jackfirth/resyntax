@@ -52,6 +52,9 @@
          rebellion/type/record
          resyntax/base
          resyntax/default-recommendations
+         resyntax/default-recommendations/analyzers/identifier-usage
+         resyntax/default-recommendations/analyzers/ignored-result-values
+         resyntax/default-recommendations/analyzers/variable-mutability
          resyntax/private/analysis
          resyntax/private/comment-reader
          resyntax/private/git
@@ -206,7 +209,11 @@
 
   (define results
     (with-handlers ([exn:fail? skip])
-      (define analysis (source-analyze source #:lines lines))
+      (define analysis (source-analyze source
+                                       #:lines lines
+                                       #:analyzers (list identifier-usage-analyzer
+                                                         ignored-result-values-analyzer
+                                                         variable-mutability-analyzer)))
       (refactor-visited-forms
        #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
   
@@ -234,7 +241,10 @@
   (with-handlers ([exn:fail:syntax? skip]
                   [exn:fail:filesystem:missing-module? skip]
                   [exn:fail:contract:variable? skip])
-    (define analysis (source-analyze source))
+    (define analysis (source-analyze source
+                                     #:analyzers (list identifier-usage-analyzer
+                                                       ignored-result-values-analyzer
+                                                       variable-mutability-analyzer)))
     (source-code-analysis-added-syntax-properties analysis)))
 
 

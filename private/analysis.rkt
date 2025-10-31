@@ -6,7 +6,9 @@
 
 (provide
  (contract-out
-  [source-analyze (->* (source?) (#:lines range-set?) source-code-analysis?)]
+  [source-analyze (->* (source? #:analyzers (listof expansion-analyzer?))
+                       (#:lines range-set?)
+                       source-code-analysis?)]
   [source-code-analysis? (-> any/c boolean?)]
   [source-code-analysis-code (-> source-code-analysis? source?)]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
@@ -56,7 +58,9 @@
   (code visited-forms expansion-time-output namespace added-syntax-properties))
 
 
-(define (source-analyze code #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
+(define (source-analyze code
+                        #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
+                        #:analyzers analyzers)
   (define ns (make-base-namespace))
   (parameterize ([current-directory (or (source-directory code) (current-directory))]
                  [current-namespace ns])
@@ -136,13 +140,11 @@
                  #:into (into-sorted-map syntax-path<=>)))
 
     (define expansion-analyzer-props
-      (transduce (sequence-append
-                  (syntax-property-bundle-entries
-                   (expansion-analyze identifier-usage-analyzer expanded))
-                  (syntax-property-bundle-entries
-                   (expansion-analyze ignored-result-values-analyzer expanded))
-                  (syntax-property-bundle-entries
-                   (expansion-analyze variable-mutability-analyzer expanded)))
+      (transduce analyzers
+                 (append-mapping
+                  (λ (analyzer)
+                    (syntax-property-bundle-entries
+                     (expansion-analyze analyzer expanded))))
                  #:into into-syntax-property-bundle))
 
     (define expansion-analyzer-props-adjusted-for-visits
@@ -234,3 +236,28 @@
 (define (extract-module-require-spec mod-stx)
   (syntax-parse mod-stx
     [(_ name _ . _) `',(syntax-e #'name)]))
+
+
+(module+ test
+  (require rackunit)
+
+  (test-case "source-analyze with custom analyzers list"
+    ;; Test that source-analyze accepts an analyzers parameter
+    (define test-source (string-source "#lang racket/base (define x 1)"))
+    
+    ;; Test with empty analyzers list
+    (define analysis-empty (source-analyze test-source #:analyzers '()))
+    (check-true (source-code-analysis? analysis-empty))
+    
+    ;; Test with single analyzer
+    (define analysis-single 
+      (source-analyze test-source #:analyzers (list identifier-usage-analyzer)))
+    (check-true (source-code-analysis? analysis-single))
+    
+    ;; Test with default analyzers (should match default behavior)
+    (define analysis-default
+      (source-analyze test-source
+                      #:analyzers (list identifier-usage-analyzer
+                                        ignored-result-values-analyzer
+                                        variable-mutability-analyzer)))
+    (check-true (source-code-analysis? analysis-default))))
