@@ -248,7 +248,7 @@
     ;; Test that source-analyze accepts an analyzers parameter
     (define test-source (string-source "#lang racket/base (define x 1)"))
     
-    ;; Test with default analyzers (empty list should work)
+    ;; Test with empty analyzers list
     (define analysis-empty (source-analyze test-source #:analyzers '()))
     (check-true (source-code-analysis? analysis-empty))
     
