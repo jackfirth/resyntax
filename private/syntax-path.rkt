@@ -5,10 +5,6 @@
 
 
 (provide
- (struct-out vector-element-syntax)
- (struct-out hash-value-syntax)
- (struct-out prefab-field-syntax)
- (struct-out tail-syntax)
  (contract-out
   [syntax-path? (-> any/c boolean?)]
   [syntax-path<=> (comparator/c syntax-path?)]
@@ -16,13 +12,12 @@
   [nonempty-syntax-path? (-> any/c boolean?)]
   [proper-syntax-path? (-> any/c boolean?)]
   [empty-syntax-path syntax-path?]
-  [syntax-path (-> (sequence/c syntax-path-element?) syntax-path?)]
-  [syntax-path-elements (-> syntax-path? (treelist/c syntax-path-element?))]
-  [syntax-path-element? (-> any/c boolean?)]
+  [syntax-path (-> (sequence/c exact-nonnegative-integer?) syntax-path?)]
+  [syntax-path-elements (-> syntax-path? (treelist/c exact-nonnegative-integer?))]
   [syntax-path-parent (-> nonempty-syntax-path? syntax-path?)]
   [syntax-path-next-neighbor (-> syntax-path? (or/c syntax-path? #false))]
-  [syntax-path-last-element (-> nonempty-syntax-path? syntax-path-element?)]
-  [syntax-path-add (-> syntax-path? syntax-path-element? syntax-path?)]
+  [syntax-path-last-element (-> nonempty-syntax-path? exact-nonnegative-integer?)]
+  [syntax-path-add (-> syntax-path? exact-nonnegative-integer? syntax-path?)]
   [syntax-path-remove-prefix (-> syntax-path? syntax-path? syntax-path?)]
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
@@ -31,8 +26,7 @@
    (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) exact-nonnegative-integer? syntax?)]
   [syntax-insert-splice
    (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) (sequence/c syntax?) syntax?)]
-  [syntax-label-paths (-> syntax? symbol? syntax?)]
-  [box-element-syntax syntax-path-element?]))
+  [syntax-label-paths (-> syntax? symbol? syntax?)]))
 
 
 (require (for-syntax racket/base
@@ -61,42 +55,6 @@
 
 
 ;@----------------------------------------------------------------------------------------------------
-
-
-(define (syntax-path-element? v)
-  (or (exact-nonnegative-integer? v)
-      (tail-syntax? v)
-      (box-element-syntax? v)
-      (vector-element-syntax? v)
-      (hash-value-syntax? v)
-      (prefab-field-syntax? v)))
-
-
-(define-singleton-type box-element-syntax)
-
-
-(struct tail-syntax (index)
-  #:transparent
-  #:sealed
-  #:guard (struct-guard/c exact-nonnegative-integer?))
-
-
-(struct vector-element-syntax (index)
-  #:transparent
-  #:sealed
-  #:guard (struct-guard/c exact-nonnegative-integer?))
-
-
-(struct hash-value-syntax (key-datum)
-  #:transparent
-  #:sealed)
-
-
-(struct prefab-field-syntax (index)
-  #:transparent
-  #:sealed
-  #:guard (struct-guard/c exact-nonnegative-integer?))
-
 
 (struct syntax-path (elements)
   #:transparent
@@ -145,8 +103,8 @@
 (module+ test
   (test-case "syntax-path-add"
     (check-equal? (syntax-path-add empty-syntax-path 0) (syntax-path (list 0)))
-    (check-equal? (syntax-path-add (syntax-path (list 0)) box-element-syntax)
-                  (syntax-path (list 0 box-element-syntax)))))
+    (check-equal? (syntax-path-add (syntax-path (list 0)) 1)
+                  (syntax-path (list 0 1)))))
 
 
 (define (syntax-path-parent path)
@@ -156,7 +114,7 @@
 (module+ test
   (test-case "syntax-path-parent"
     (check-equal? (syntax-path-parent (syntax-path (list 0))) empty-syntax-path)
-    (check-equal? (syntax-path-parent (syntax-path (list 0 box-element-syntax)))
+    (check-equal? (syntax-path-parent (syntax-path (list 0 1)))
                   (syntax-path (list 0)))
     (check-exn exn:fail:contract? (λ () (syntax-path-parent empty-syntax-path)))
     (check-exn #rx"expected: nonempty-syntax-path?" (λ () (syntax-path-parent empty-syntax-path)))))
@@ -166,10 +124,8 @@
   (define elements (syntax-path-elements path))
   (guard (not (treelist-empty? elements)) #:else #false)
   (define parent-elems (treelist-drop-right elements 1))
-  (match (treelist-last elements)
-    [(? exact-nonnegative-integer? i)
-     (syntax-path (treelist-add parent-elems (add1 i)))]
-    [_ #false]))
+  (define i (treelist-last elements))
+  (syntax-path (treelist-add parent-elems (add1 i))))
 
 
 (module+ test
@@ -237,8 +193,8 @@
 (module+ test
   (test-case "syntax-path-last-element"
     (check-equal? (syntax-path-last-element (syntax-path (list 0))) 0)
-    (check-equal? (syntax-path-last-element (syntax-path (list 0 box-element-syntax)))
-                  box-element-syntax)
+    (check-equal? (syntax-path-last-element (syntax-path (list 0 1)))
+                  1)
     (check-exn exn:fail:contract? (λ () (syntax-path-last-element empty-syntax-path)))
     (check-exn #rx"expected: nonempty-syntax-path?"
                (λ () (syntax-path-last-element empty-syntax-path)))))
@@ -253,40 +209,84 @@
 
 
 (define (syntax-path-element-neighbors? leading trailing)
-  (match (list leading trailing)
-    [(list (? exact-nonnegative-integer? i) (? exact-nonnegative-integer? j)) (equal? i (sub1 j))]
-    [(list (vector-element-syntax i) (vector-element-syntax j)) (equal? i (sub1 j))]
-    [(list (prefab-field-syntax i) (prefab-field-syntax j)) (equal? i (sub1 j))]
-    [(list (? exact-nonnegative-integer? i) (tail-syntax j)) (equal? i (sub1 j))]
-    [(list _ _) #false]))
+  (and (exact-nonnegative-integer? leading)
+       (exact-nonnegative-integer? trailing)
+       (equal? leading (sub1 trailing))))
 
 
 (define (syntax-ref init-stx path)
   (define result
     (for/fold ([stx init-stx])
               ([element (in-treelist (syntax-path-elements path))])
-      (define unwrapped
-        ; It's only *not* syntax in the case where `tail-syntax` was used to pick out a trailing
-        ; list of subforms of a form. These sorts of syntax objects get created by #%app macro
-        ; insertion, which is how I discovered this check was necessary.
-        (if (syntax? stx)
-            (syntax-e stx)
-            stx))
-      (match element
-        [(? exact-nonnegative-integer? i)
-         (unless (possibly-improper-list-of-minimum-size? unwrapped (add1 i))
+      (define unwrapped (syntax-e stx))
+      (cond
+        ; Handle improper lists - flatten them so the tail is treated as the last element
+        [(and (pair? unwrapped) (not (list? unwrapped)))
+         (define flattened (flatten-improper-list unwrapped))
+         (unless (< element (length flattened))
            (raise-arguments-error 'syntax-ref
                                   "syntax path is inconsistent with the syntax's shape"
                                   "syntax" init-stx
                                   "path" path
                                   "malformed subform" stx
                                   "path element" element))
-         (list-ref unwrapped i)]
-        [(tail-syntax i) (drop unwrapped i)]
-        [(vector-element-syntax i) (vector-ref unwrapped i)]
-        [(== box-element-syntax) (unbox unwrapped)]
-        [(hash-value-syntax key) (hash-ref unwrapped key)]
-        [(prefab-field-syntax i) (prefab-struct-ref unwrapped i)])))
+         (list-ref flattened element)]
+        ; Handle proper lists
+        [(list? unwrapped)
+         (unless (< element (length unwrapped))
+           (raise-arguments-error 'syntax-ref
+                                  "syntax path is inconsistent with the syntax's shape"
+                                  "syntax" init-stx
+                                  "path" path
+                                  "malformed subform" stx
+                                  "path element" element))
+         (list-ref unwrapped element)]
+        ; Handle vectors
+        [(vector? unwrapped)
+         (unless (< element (vector-length unwrapped))
+           (raise-arguments-error 'syntax-ref
+                                  "syntax path is inconsistent with the syntax's shape"
+                                  "syntax" init-stx
+                                  "path" path
+                                  "malformed subform" stx
+                                  "path element" element))
+         (vector-ref unwrapped element)]
+        ; Handle boxes - treat as single-element list
+        [(box? unwrapped)
+         (unless (zero? element)
+           (raise-arguments-error 'syntax-ref
+                                  "syntax path is inconsistent with the syntax's shape"
+                                  "syntax" init-stx
+                                  "path" path
+                                  "malformed subform" stx
+                                  "path element" element))
+         (unbox unwrapped)]
+        ; Handle prefab structs - treat as list of fields
+        [(prefab-struct? unwrapped)
+         (define fields (struct->list unwrapped))
+         (unless (< element (length fields))
+           (raise-arguments-error 'syntax-ref
+                                  "syntax path is inconsistent with the syntax's shape"
+                                  "syntax" init-stx
+                                  "path" path
+                                  "malformed subform" stx
+                                  "path element" element))
+         (list-ref fields element)]
+        ; Hashes are unsupported
+        [(hash? unwrapped)
+         (raise-arguments-error 'syntax-ref
+                                "syntax paths cannot traverse hash datums"
+                                "syntax" init-stx
+                                "path" path
+                                "hash subform" stx)]
+        ; Other datums don't have children
+        [else
+         (raise-arguments-error 'syntax-ref
+                                "syntax path is inconsistent with the syntax's shape"
+                                "syntax" init-stx
+                                "path" path
+                                "malformed subform" stx
+                                "path element" element)])))
   (when (or (pair? result) (empty? result))
     (raise-arguments-error 'syntax-ref
                            "syntax path refers to a non-syntax component"
@@ -294,6 +294,55 @@
                            "path" path
                            "component" result))
   result)
+
+
+; Helper function to check if a structure is truly improper (has an atom tail)
+; vs. dotted syntax (wraps proper lists with syntax objects)
+(define (has-improper-tail? lst)
+  (cond
+    [(null? lst) #false]
+    [(pair? lst)
+     (define cdr-elem (cdr lst))
+     (cond
+       [(syntax? cdr-elem)
+        (define unwrapped (syntax-e cdr-elem))
+        (cond
+          [(list? unwrapped) #false]  ; Dotted syntax with proper list
+          [(pair? unwrapped) (has-improper-tail? unwrapped)]  ; Keep checking
+          [else #true])]  ; Atom tail
+       [(null? cdr-elem) #false]
+       [(pair? cdr-elem) (has-improper-tail? cdr-elem)]
+       [else #true])]  ; Non-syntax atom tail
+    [else #false]))
+
+
+; Helper function to flatten improper lists and dotted syntax
+; e.g., '(a b . c) becomes '(a b c)
+; e.g., '(a . (b . (c . d))) becomes '(a b c d)
+; e.g., pair with syntax object cdr like (a . #'(b c)) becomes (a b c)
+(define (flatten-improper-list lst)
+  (cond
+    [(null? lst) '()]
+    [(pair? lst)
+     (define car-elem (car lst))
+     (define cdr-elem (cdr lst))
+     ; If cdr is a syntax object, unwrap it to handle dotted syntax
+     (define cdr-unwrapped
+       (if (syntax? cdr-elem)
+           (syntax-e cdr-elem)
+           cdr-elem))
+     ; Check if the unwrapped cdr is a list
+     (cond
+       [(list? cdr-unwrapped)
+        ; It's a proper list, so append it (flattens dotted syntax)
+        (cons car-elem cdr-unwrapped)]
+       [(pair? cdr-unwrapped)
+        ; It's an improper list, recursively flatten
+        (cons car-elem (flatten-improper-list cdr-unwrapped))]
+       [else
+        ; It's an atom (the improper tail)
+        (list car-elem cdr-elem)])]
+    [else (list lst)]))
 
 
 (module+ test
@@ -309,50 +358,54 @@
       (define actual (syntax-ref stx (syntax-path (list 1))))
       (check-equal? (syntax->datum actual) 'b))
 
-    (test-case "tail syntax path"
+    (test-case "improper list - dotted syntax treated as proper list"
+      ; #'(a . (b c)) is dotted syntax equivalent to #'(a b c)
+      ; After flattening, we have: (a b c), so index 1 gives us b
       (define stx #'(a . (b c)))
-      (define actual (syntax-ref stx (syntax-path (list (tail-syntax 1)))))
-      (check-equal? (syntax->datum actual) '(b c)))
+      (define actual (syntax-ref stx (syntax-path (list 1))))
+      (check-equal? (syntax->datum actual) 'b))
 
-    (test-case "tail syntax path of flat syntax list"
-      (define stx #'(a b c))
-      (define thrown
-        (with-handlers ([(λ (_) #true) values])
-          (syntax-ref stx (syntax-path (list (tail-syntax 1))))
-          #false))
-      (check-pred exn:fail:contract? thrown)
-      (check-regexp-match #rx"syntax-ref:" (exn-message thrown))
-      (check-regexp-match #rx"path refers to a non-syntax component" (exn-message thrown)))
+    (test-case "improper list with atom tail"
+      (define stx #'(a b . c))
+      (define actual (syntax-ref stx (syntax-path (list 2))))
+      (check-equal? (syntax->datum actual) 'c))
 
     (test-case "vector element path"
       (define stx #'#[a b c])
-      (define actual (syntax-ref stx (syntax-path (list (vector-element-syntax 1)))))
+      (define actual (syntax-ref stx (syntax-path (list 1))))
       (check-equal? (syntax->datum actual) 'b))
 
     (test-case "box element path"
       (define stx #'#&a)
-      (define actual (syntax-ref stx (syntax-path (list box-element-syntax))))
+      (define actual (syntax-ref stx (syntax-path (list 0))))
       (check-equal? (syntax->datum actual) 'a))
 
-    (test-case "hash value path"
+    (test-case "hash value path - should error"
       (define stx #'#hash((a . 1) (b . 2) (c . 3)))
-      (define actual (syntax-ref stx (syntax-path (list (hash-value-syntax 'b)))))
-      (check-equal? (syntax->datum actual) 2))
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (syntax-ref stx (syntax-path (list 0)))
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"syntax-ref:" (exn-message thrown))
+      (check-regexp-match #rx"cannot traverse hash" (exn-message thrown)))
 
     (test-case "nested list path"
       (define stx #'(a b c (m (FOO x y z) n)))
       (define actual (syntax-ref stx (syntax-path (list 3 1 0))))
       (check-equal? (syntax->datum actual) 'FOO))
 
-    (test-case "list element after tail syntax path"
+    (test-case "improper list with dotted syntax - nested access"
+      ; #'(a b . (c FOO e)) is dotted syntax equivalent to #'(a b c FOO e)
+      ; After flattening: (a b c FOO e), so index 3 gives us FOO
       (define stx #'(a b . (c FOO e)))
-      (define actual (syntax-ref stx (syntax-path (list (tail-syntax 2) 1))))
+      (define actual (syntax-ref stx (syntax-path (list 3))))
       (check-equal? (syntax->datum actual) 'FOO))
 
-    (test-case "list element after tail syntax path in flat syntax"
-      (define stx #'(a b c FOO e))
-      (define actual (syntax-ref stx (syntax-path (list (tail-syntax 2) 1))))
-      (check-equal? (syntax->datum actual) 'FOO))
+    (test-case "prefab struct field path"
+      (define stx #'#s(point 10 20))
+      (define actual (syntax-ref stx (syntax-path (list 0))))
+      (check-equal? (syntax->datum actual) 10))
 
     (test-case "list element on syntax that's too short"
       (define stx #'(a b c))
@@ -365,51 +418,116 @@
       (check-regexp-match #rx"path is inconsistent" (exn-message thrown)))))
 
 
+
+
+
+
 (define (syntax-set init-stx path new-subform)
   (let loop ([stx init-stx] [elements (syntax-path-elements path)])
     (guarded-block
       (guard (not (treelist-empty? elements)) #:else new-subform)
-      (define next-element (treelist-first elements))
+      (define i (treelist-first elements))
       (define remaining-elements (treelist-rest elements))
-      (define unwrapped
-        ; It's only *not* syntax in the case where `tail-syntax` was used to pick out a trailing
-        ; list of subforms of a form. These sorts of syntax objects get created by #%app macro
-        ; insertion, which is how I discovered this check was necessary.
-        (if (syntax? stx)
-            (syntax-e stx)
-            stx))
-      (match next-element
-        [(? exact-nonnegative-integer? i)
-         (define updated-child (loop (list-ref unwrapped i) remaining-elements))
-         (define updated-datum (improper-list-set unwrapped i updated-child))
-         (if (syntax? stx)
-             (datum->syntax stx updated-datum stx stx)
-             updated-datum)]
-        [(tail-syntax i)
-         (define tail-part (drop unwrapped i))
-         (define updated-tail (loop tail-part remaining-elements))
-         (define updated-datum (append (take unwrapped i) updated-tail))
+      (define unwrapped (syntax-e stx))
+      (cond
+        ; Handle improper lists and dotted syntax - flatten, update, and potentially reconstruct
+        ; Note: Dotted syntax like #'(a . (b c)) flattens to (a b c) and stays flattened.
+        ; Only truly improper lists with atom tails need to be reconstructed.
+        [(and (pair? unwrapped) (not (list? unwrapped)))
+         (define is-truly-improper (has-improper-tail? unwrapped))
+         (define flattened (flatten-improper-list unwrapped))
+         (define updated-elem (loop (list-ref flattened i) remaining-elements))
+         (define updated-flattened (list-set flattened i updated-elem))
+         ; Check if the original had a true improper tail (atom) vs dotted syntax (wraps lists)
+         (define updated-datum
+           (if is-truly-improper
+               ; Truly improper list, reconstruct the structure
+               (unflatten-improper-list updated-flattened unwrapped)
+               ; Dotted syntax that flattened to proper list, keep it proper
+               updated-flattened))
          (datum->syntax stx updated-datum stx stx)]
-        [(vector-element-syntax i)
+        ; Handle proper lists
+        [(list? unwrapped)
+         (define updated-child (loop (list-ref unwrapped i) remaining-elements))
+         (define updated-datum (list-set unwrapped i updated-child))
+         (datum->syntax stx updated-datum stx stx)]
+        ; Handle vectors
+        [(vector? unwrapped)
          (define updated-child (loop (vector-ref unwrapped i) remaining-elements))
          (define updated-vector (vector-copy unwrapped))
          (vector-set! updated-vector i updated-child)
          (datum->syntax stx updated-vector stx stx)]
-        [(== box-element-syntax)
+        ; Handle boxes - treat as single-element list
+        [(box? unwrapped)
          (define updated-child (loop (unbox unwrapped) remaining-elements))
          (define updated-datum (box-immutable updated-child))
          (datum->syntax stx updated-datum stx stx)]
-        [(hash-value-syntax key)
-         (define updated-child (loop (hash-ref unwrapped key) remaining-elements))
-         (define updated-datum (hash-set unwrapped key updated-child))
-         (datum->syntax stx updated-datum stx stx)]
-        [(prefab-field-syntax i)
-         (define updated-child (loop (prefab-struct-ref unwrapped i) remaining-elements))
+        ; Handle prefab structs - treat as list of fields
+        [(prefab-struct? unwrapped)
          (define key (prefab-struct-key unwrapped))
          (define fields (struct->list unwrapped))
+         (define updated-child (loop (list-ref fields i) remaining-elements))
          (define updated-fields (list-set fields i updated-child))
          (define updated-datum (apply make-prefab-struct key updated-fields))
-         (datum->syntax stx updated-datum stx stx)]))))
+         (datum->syntax stx updated-datum stx stx)]
+        ; Hashes are unsupported
+        [(hash? unwrapped)
+         (raise-arguments-error 'syntax-set
+                                "syntax paths cannot traverse hash datums"
+                                "syntax" init-stx
+                                "path" path)]
+        ; Other datums don't have children
+        [else
+         (raise-arguments-error 'syntax-set
+                                "syntax path is inconsistent with the syntax's shape"
+                                "syntax" init-stx
+                                "path" path
+                                "malformed subform" stx
+                                "path element" i)]))))
+
+
+; Helper function to unflatten an improper list, preserving the original structure
+; Takes the flattened list and the original improper list structure
+(define (unflatten-improper-list flattened original)
+  (cond
+    [(null? flattened) '()]
+    [(and (pair? original) (not (list? original)))
+     ; Reconstruct the improper structure
+     (let unflatten-with-tail ([flat flattened] [orig original])
+       (cond
+         [(or (null? (cdr flat)) (not (pair? orig)))
+          ; Base case: last element or reached non-pair in original
+          (car flat)]
+         [else
+          ; Recursive case: continue building the improper list
+          (cons (car flat) (unflatten-with-tail (cdr flat) (cdr orig)))]))]
+    [else 
+     ; For proper lists or single elements, return as-is
+     flattened]))
+
+
+(module+ test
+  (test-case "unflatten-improper-list"
+    
+    (test-case "empty list"
+      (check-equal? (unflatten-improper-list '() '()) '()))
+    
+    (test-case "proper list stays proper"
+      (define flat '(a b c))
+      (define orig '(x y z))  ; proper list
+      (check-equal? (unflatten-improper-list flat orig) '(a b c)))
+    
+    (test-case "reconstruct simple improper list"
+      (define flat '(a b c))
+      (define orig '(x y . z))  ; improper list structure
+      (define result (unflatten-improper-list flat orig))
+      (check-equal? result '(a b . c)))
+    
+    (test-case "reconstruct nested improper list"
+      (define flat '(a b c d))
+      (define orig '(w . (x . (y . z))))  ; nested improper structure
+      (define result (unflatten-improper-list flat orig))
+      (check-equal? result '(a . (b . (c . d)))))))
 
 
 (module+ test
@@ -427,34 +545,35 @@
       (define actual (syntax-set stx (syntax-path (list 1)) new-subform))
       (check-equal? (syntax->datum actual) '(a FOO c)))
 
-    (test-case "tail syntax path"
+    (test-case "dotted syntax - replacing middle element"
+      ; #'(a . (b c)) is equivalent to #'(a b c), so index 1 is b
       (define stx #'(a . (b c)))
-      (define actual (syntax-set stx (syntax-path (list (tail-syntax 1))) #'(FOO bar)))
-      (check-equal? (syntax->datum actual) '(a FOO bar)))
+      (define actual (syntax-set stx (syntax-path (list 1)) new-subform))
+      (check-equal? (syntax->datum actual) '(a FOO c)))
 
-    (test-case "tail syntax path of flat syntax list"
-      (define stx #'(a b c))
-      (define actual (syntax-set stx (syntax-path (list (tail-syntax 1))) #'(FOO bar)))
-      (check-equal? (syntax->datum actual) '(a FOO bar)))
+    (test-case "improper list with atom tail"
+      (define stx #'(a b . c))
+      (define actual (syntax-set stx (syntax-path (list 2)) new-subform))
+      (check-equal? (syntax->datum actual) '(a b . FOO)))
 
     (test-case "vector element path"
       (define stx #'#[a b c])
-      (define actual (syntax-set stx (syntax-path (list (vector-element-syntax 1))) new-subform))
+      (define actual (syntax-set stx (syntax-path (list 1)) new-subform))
       (check-equal? (syntax->datum actual) '#[a FOO c]))
 
     (test-case "box element path"
       (define stx #'#&a)
-      (define actual (syntax-set stx (syntax-path (list box-element-syntax)) new-subform))
+      (define actual (syntax-set stx (syntax-path (list 0)) new-subform))
       (check-equal? (syntax->datum actual) '#&FOO))
 
-    (test-case "hash value path"
+    (test-case "hash value path - should error"
       (define stx #'#hash((a . 1) (b . 2) (c . 3)))
-      (define actual (syntax-set stx (syntax-path (list (hash-value-syntax 'b))) new-subform))
-      (check-equal? (syntax->datum actual) '#hash((a . 1) (b . FOO) (c . 3))))
+      (check-exn exn:fail:contract?
+                 (λ () (syntax-set stx (syntax-path (list 0)) new-subform))))
 
     (test-case "prefab field path"
       (define stx #'#s(point 1 2))
-      (define actual (syntax-set stx (syntax-path (list (prefab-field-syntax 0))) new-subform))
+      (define actual (syntax-set stx (syntax-path (list 0)) new-subform))
       (check-equal? (syntax->datum actual) '#s(point FOO 2)))
 
     (test-case "nested list path"
@@ -462,15 +581,16 @@
       (define actual (syntax-set stx (syntax-path (list 3 1 0)) new-subform))
       (check-equal? (syntax->datum actual) '(a b c (m (FOO x y z) n))))
 
-    (test-case "list element after tail syntax path"
+    (test-case "dotted syntax - replacing in flattened list"
+      ; #'(a b . (c OLD e)) is equivalent to #'(a b c OLD e)
+      ; Index 3 is OLD in the flattened list
       (define stx #'(a b . (c OLD e)))
-      (define actual (syntax-set stx (syntax-path (list (tail-syntax 2) 1)) new-subform))
-      (check-equal? (syntax->datum actual) '(a b c FOO e)))
-
-    (test-case "list element after tail syntax path in flat syntax"
-      (define stx #'(a b c OLD e))
-      (define actual (syntax-set stx (syntax-path (list (tail-syntax 2) 1)) new-subform))
+      (define actual (syntax-set stx (syntax-path (list 3)) new-subform))
       (check-equal? (syntax->datum actual) '(a b c FOO e)))))
+
+
+
+
 
 
 (define/guard (syntax-remove-splice stx path children-count)
@@ -708,37 +828,73 @@
 
 (define (syntax-label-paths stx property-name)
   (let loop ([stx stx] [path (syntax-path '())])
+    (define unwrapped (syntax-e stx))
     (define datum-with-children-labeled
-      (match (syntax-e stx)
+      (match unwrapped
+        ; Handle proper lists
         [(list children ...)
          (for/list ([child (in-list children)]
                     [i (in-naturals)])
            (loop child (syntax-path-add path i)))]
-        [(list-rest children ... tail-child)
-         #:when (not (empty? children))
-         (append (for/list ([child (in-list children)]
-                            [i (in-naturals)])
-                   (loop child (syntax-path-add path i)))
-                 (loop tail-child (syntax-path-add path (tail-syntax (length children)))))]
+        ; Handle improper lists and dotted syntax
+        ; We flatten for path indexing but preserve structure in output
+        [(cons _ _) #:when (not (list? unwrapped))
+         (define flattened-children (flatten-improper-list unwrapped))
+         (define labeled-flat
+           (for/list ([child (in-list flattened-children)]
+                      [i (in-naturals)])
+             (loop child (syntax-path-add path i))))
+         ; Reconstruct the ORIGINAL structure with labeled children
+         ; This is tricky: we need to preserve dotted syntax
+         (let rebuild ([orig unwrapped] [flat labeled-flat])
+           (cond
+             [(pair? orig)
+              (define car-labeled (car flat))
+              (define cdr-elem (cdr orig))
+              (cond
+                [(syntax? cdr-elem)
+                 (define cdr-unwrapped (syntax-e cdr-elem))
+                 (cond
+                   [(list? cdr-unwrapped)
+                    ; Dotted syntax - cdr wraps a list, so rest of flat goes there
+                    (cons car-labeled (cdr flat))]
+                   [(pair? cdr-unwrapped)
+                    ; Nested improper - recurse
+                    (cons car-labeled (rebuild cdr-unwrapped (cdr flat)))]
+                   [else
+                    ; Atom tail - single element
+                    (cons car-labeled (car (cdr flat)))])]
+                [(pair? cdr-elem)
+                 ; Direct pair - recurse
+                 (cons car-labeled (rebuild cdr-elem (cdr flat)))]
+                [else
+                 ; Atom tail
+                 (cons car-labeled (car (cdr flat)))])]
+             [else orig]))]
+        ; Handle vectors - treat like lists
         [(vector children ...)
          (for/vector ([child (in-list children)]
                       [i (in-naturals)])
-           (loop child (syntax-path-add path (vector-element-syntax i))))]
-        [(box child) (box-immutable (loop child (syntax-path-add path box-element-syntax)))]
-        [(? hash? ht)
-         (define (label-entry key value-child)
-           (values key (loop value-child (syntax-path-add path (hash-value-syntax key)))))
-         (hash-map/copy ht label-entry)]
+           (loop child (syntax-path-add path i)))]
+        ; Handle boxes - treat as single-element list (index 0)
+        [(box child)
+         (box-immutable (loop child (syntax-path-add path 0)))]
+        ; Handle hashes - skip them, return original
+        [(? hash? ht) ht]
+        ; Handle prefab structs - treat as list of fields
         [(? prefab-struct? s)
          (define key (prefab-struct-key s))
          (define labeled-children
            (for/list ([child (in-list (struct->list s))]
                       [i (in-naturals)])
-             (loop child (syntax-path-add path (prefab-field-syntax i)))))
+             (loop child (syntax-path-add path i))))
          (apply make-prefab-struct key labeled-children)]
+        ; Atoms have no children
         [_ stx]))
     (define stx-with-children-labeled (datum->syntax stx datum-with-children-labeled stx stx))
     (syntax-property stx-with-children-labeled property-name path)))
+
+
 
 
 (module+ test
@@ -750,17 +906,23 @@
     (check-equal? (syntax-property #'foo* 'path) (syntax-path (treelist 0)))
     (check-equal? (syntax-property #'a* 'path) (syntax-path (treelist 1 0)))
     (check-equal? (syntax-property #'b* 'path) (syntax-path (treelist 1 1)))
-    (check-equal? (syntax-property #'c* 'path) (syntax-path (treelist 1 (tail-syntax 2))))
+    ; c is at index 2 in the flattened improper list (a b . c)
+    (check-equal? (syntax-property #'c* 'path) (syntax-path (treelist 1 2)))
     (check-equal? (syntax-property #'bar* 'path) (syntax-path (treelist 2)))
     (check-equal? (syntax-property #'baz* 'path) (syntax-path (treelist 3 0)))
-    (check-equal? (syntax-property #'x* 'path) (syntax-path (treelist 4 (vector-element-syntax 0))))
-    (check-equal? (syntax-property #'y* 'path) (syntax-path (treelist 4 (vector-element-syntax 1))))
-    (check-equal? (syntax-property #'z* 'path) (syntax-path (treelist 5 box-element-syntax)))
-    (check-equal? (syntax-property #'n* 'path) (syntax-path (treelist 6 (prefab-field-syntax 0))))
-    (check-equal? (syntax-property #'m* 'path) (syntax-path (treelist 6 (prefab-field-syntax 1))))
+    ; vectors now use integer indices
+    (check-equal? (syntax-property #'x* 'path) (syntax-path (treelist 4 0)))
+    (check-equal? (syntax-property #'y* 'path) (syntax-path (treelist 4 1)))
+    ; boxes use index 0
+    (check-equal? (syntax-property #'z* 'path) (syntax-path (treelist 5 0)))
+    ; prefab fields use integer indices
+    (check-equal? (syntax-property #'n* 'path) (syntax-path (treelist 6 0)))
+    (check-equal? (syntax-property #'m* 'path) (syntax-path (treelist 6 1)))
     (for ([id (in-syntax #'(foo* a* b* c* bar* baz* x* y* z* n* m*))])
       (define path (syntax-property id 'path))
       (check-equal? (syntax->datum (syntax-ref stx path)) (syntax->datum id)))))
+
+
 
 
 (define (prefab-struct? v)
@@ -783,73 +945,6 @@
        ['< lesser]))))
 
 
-(define syntax-path-element<=>
-  (matching-comparator
-   [(? exact-nonnegative-integer? i) #:compare i]
-   [(tail-syntax i) #:compare i]
-   [(vector-element-syntax i) #:compare i]
-   [(hash-value-syntax key) #:compare key datum<=>]
-   [(== box-element-syntax)]
-   [(prefab-field-syntax i) #:compare i]))
-
-
-(module+ test
-  (test-case "syntax-path-element<=>"
-    (define unsorted
-      (list 2
-            (tail-syntax 1)
-            box-element-syntax
-            1
-            3
-            (hash-value-syntax 'foo)
-            (tail-syntax 4)
-            (vector-element-syntax 5)))
-
-    (define sorted
-      (sort unsorted (λ (a b) (compare-infix syntax-path-element<=>  a < b))))
-
-    (define expected
-      (list 1
-            2
-            3
-            (tail-syntax 1)
-            (tail-syntax 4)
-            (vector-element-syntax 5)
-            (hash-value-syntax 'foo)
-            box-element-syntax))
-    (check-equal? sorted expected)))
-
-
 (define syntax-path<=>
-  (comparator-map (lexicographic-comparator syntax-path-element<=>) syntax-path-elements
+  (comparator-map (lexicographic-comparator natural<=>) syntax-path-elements
                   #:name 'syntax-path<=>))
-
-
-(define (possibly-improper-list-of-minimum-size? v size)
-  (or (zero? size)
-      (and (pair? v) (possibly-improper-list-of-minimum-size? (cdr v) (sub1 size)))))
-
-
-(module+ test
-  (test-case "possibly-improper-list-of-minimum-size?"
-    (check-true (possibly-improper-list-of-minimum-size? '(a b c d e) 2))
-    (check-false (possibly-improper-list-of-minimum-size? '(a b c d e) 8))
-    (check-true (possibly-improper-list-of-minimum-size? '(a b c d . e) 2))
-    (check-false (possibly-improper-list-of-minimum-size? '(a b c d . e) 8))
-    (check-true (possibly-improper-list-of-minimum-size? 'a 0))
-    (check-false (possibly-improper-list-of-minimum-size? 'a 1))))
-
-
-(define (improper-list-set lst i v)
-  (cond
-    [(positive? i) (cons (car lst) (improper-list-set (cdr lst) (sub1 i) v))]
-    [(pair? lst) (cons v (cdr lst))]
-    [else v]))
-
-
-(module+ test
-  (test-case "improper-list-set"
-    (check-equal? (improper-list-set '(a b c) 0 'FOO) '(FOO b c))
-    (check-equal? (improper-list-set '(a b . c) 0 'FOO) '(FOO b . c))
-    (check-equal? (improper-list-set '(a b c) 2 'FOO) '(a b FOO))
-    (check-equal? (improper-list-set '(a b . c) 2 'FOO) '(a b . FOO))))

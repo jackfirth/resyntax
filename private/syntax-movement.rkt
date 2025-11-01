@@ -91,6 +91,6 @@
 
        ; void
        (syntax-path (list 3 0))
-       (sorted-set (syntax-path (list 3 2 (tail-syntax 1) 0)) #:comparator syntax-path<=>)))
+       (sorted-set (syntax-path (list 3 2 1)) #:comparator syntax-path<=>)))
 
     (check-equal? table expected-table)))
