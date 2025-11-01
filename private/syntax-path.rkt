@@ -12,13 +12,13 @@
   [nonempty-syntax-path? (-> any/c boolean?)]
   [proper-syntax-path? (-> any/c boolean?)]
   [empty-syntax-path syntax-path?]
-  [syntax-path (-> (sequence/c syntax-path-element?) syntax-path?)]
-  [syntax-path-elements (-> syntax-path? (treelist/c syntax-path-element?))]
+  [syntax-path (-> (sequence/c exact-nonnegative-integer?) syntax-path?)]
+  [syntax-path-elements (-> syntax-path? (treelist/c exact-nonnegative-integer?))]
   [syntax-path-element? (-> any/c boolean?)]
   [syntax-path-parent (-> nonempty-syntax-path? syntax-path?)]
   [syntax-path-next-neighbor (-> syntax-path? (or/c syntax-path? #false))]
-  [syntax-path-last-element (-> nonempty-syntax-path? syntax-path-element?)]
-  [syntax-path-add (-> syntax-path? syntax-path-element? syntax-path?)]
+  [syntax-path-last-element (-> nonempty-syntax-path? exact-nonnegative-integer?)]
+  [syntax-path-add (-> syntax-path? exact-nonnegative-integer? syntax-path?)]
   [syntax-path-remove-prefix (-> syntax-path? syntax-path? syntax-path?)]
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
@@ -57,9 +57,8 @@
 
 ;@----------------------------------------------------------------------------------------------------
 
-
-(define (syntax-path-element? v)
-  (exact-nonnegative-integer? v))
+; syntax-path-element? is now just exact-nonnegative-integer?
+(define syntax-path-element? exact-nonnegative-integer?)
 
 
 (struct syntax-path (elements)
@@ -302,13 +301,52 @@
   result)
 
 
-; Helper function to flatten improper lists
+; Helper function to check if a structure is truly improper (has an atom tail)
+; vs. dotted syntax (wraps proper lists with syntax objects)
+(define (has-improper-tail? lst)
+  (cond
+    [(null? lst) #false]
+    [(pair? lst)
+     (define cdr-elem (cdr lst))
+     (cond
+       [(syntax? cdr-elem)
+        (define unwrapped (syntax-e cdr-elem))
+        (cond
+          [(list? unwrapped) #false]  ; Dotted syntax with proper list
+          [(pair? unwrapped) (has-improper-tail? unwrapped)]  ; Keep checking
+          [else #true])]  ; Atom tail
+       [(null? cdr-elem) #false]
+       [(pair? cdr-elem) (has-improper-tail? cdr-elem)]
+       [else #true])]  ; Non-syntax atom tail
+    [else #false]))
+
+
+; Helper function to flatten improper lists and dotted syntax
 ; e.g., '(a b . c) becomes '(a b c)
 ; e.g., '(a . (b . (c . d))) becomes '(a b c d)
+; e.g., pair with syntax object cdr like (a . #'(b c)) becomes (a b c)
 (define (flatten-improper-list lst)
   (cond
     [(null? lst) '()]
-    [(pair? lst) (cons (car lst) (flatten-improper-list (cdr lst)))]
+    [(pair? lst)
+     (define car-elem (car lst))
+     (define cdr-elem (cdr lst))
+     ; If cdr is a syntax object, unwrap it to handle dotted syntax
+     (define cdr-unwrapped
+       (if (syntax? cdr-elem)
+           (syntax-e cdr-elem)
+           cdr-elem))
+     ; Check if the unwrapped cdr is a list
+     (cond
+       [(list? cdr-unwrapped)
+        ; It's a proper list, so append it (flattens dotted syntax)
+        (cons car-elem cdr-unwrapped)]
+       [(pair? cdr-unwrapped)
+        ; It's an improper list, recursively flatten
+        (cons car-elem (flatten-improper-list cdr-unwrapped))]
+       [else
+        ; It's an atom (the improper tail)
+        (list car-elem cdr-elem)])]
     [else (list lst)]))
 
 
@@ -325,13 +363,12 @@
       (define actual (syntax-ref stx (syntax-path (list 1))))
       (check-equal? (syntax->datum actual) 'b))
 
-    (test-case "improper list - accessing second element (the tail)"
-      ; In #'(a . (b c)), the cdr is a syntax object wrapping (b c)
-      ; After flattening, we have: (a (b c)), so index 1 gives us (b c) as a syntax object
+    (test-case "improper list - dotted syntax treated as proper list"
+      ; #'(a . (b c)) is dotted syntax equivalent to #'(a b c)
+      ; After flattening, we have: (a b c), so index 1 gives us b
       (define stx #'(a . (b c)))
       (define actual (syntax-ref stx (syntax-path (list 1))))
-      ; The result is a syntax object wrapping the list (b c), not the atom b
-      (check-equal? (syntax->datum actual) '(b c)))
+      (check-equal? (syntax->datum actual) 'b))
 
     (test-case "improper list with atom tail"
       (define stx #'(a b . c))
@@ -363,12 +400,11 @@
       (define actual (syntax-ref stx (syntax-path (list 3 1 0))))
       (check-equal? (syntax->datum actual) 'FOO))
 
-    (test-case "improper list with nested access"
-      ; #'(a b . (c FOO e)) flattens to (a b (c FOO e))
-      ; The tail (c FOO e) is a syntax object at index 2
-      ; So at index 2, we get the whole (c FOO e) syntax, then index 1 within that gives FOO
+    (test-case "improper list with dotted syntax - nested access"
+      ; #'(a b . (c FOO e)) is dotted syntax equivalent to #'(a b c FOO e)
+      ; After flattening: (a b c FOO e), so index 3 gives us FOO
       (define stx #'(a b . (c FOO e)))
-      (define actual (syntax-ref stx (syntax-path (list 2 1))))
+      (define actual (syntax-ref stx (syntax-path (list 3))))
       (check-equal? (syntax->datum actual) 'FOO))
 
     (test-case "prefab struct field path"
@@ -399,14 +435,21 @@
       (define remaining-elements (treelist-rest elements))
       (define unwrapped (syntax-e stx))
       (cond
-        ; Handle improper lists - flatten, update, and reconstruct
-        ; Note: This does flatten/unflatten on each access, which could be optimized if needed
-        ; for deeply nested paths, but improper lists are relatively rare in practice.
+        ; Handle improper lists and dotted syntax - flatten, update, and potentially reconstruct
+        ; Note: Dotted syntax like #'(a . (b c)) flattens to (a b c) and stays flattened.
+        ; Only truly improper lists with atom tails need to be reconstructed.
         [(and (pair? unwrapped) (not (list? unwrapped)))
+         (define is-truly-improper (has-improper-tail? unwrapped))
          (define flattened (flatten-improper-list unwrapped))
          (define updated-elem (loop (list-ref flattened i) remaining-elements))
          (define updated-flattened (list-set flattened i updated-elem))
-         (define updated-datum (unflatten-improper-list updated-flattened unwrapped))
+         ; Check if the original had a true improper tail (atom) vs dotted syntax (wraps lists)
+         (define updated-datum
+           (if is-truly-improper
+               ; Truly improper list, reconstruct the structure
+               (unflatten-improper-list updated-flattened unwrapped)
+               ; Dotted syntax that flattened to proper list, keep it proper
+               updated-flattened))
          (datum->syntax stx updated-datum stx stx)]
         ; Handle proper lists
         [(list? unwrapped)
@@ -468,6 +511,28 @@
      flattened]))
 
 
+(module+ test
+  (test-case "unflatten-improper-list"
+    
+    (test-case "empty list"
+      (check-equal? (unflatten-improper-list '() '()) '()))
+    
+    (test-case "proper list stays proper"
+      (define flat '(a b c))
+      (define orig '(x y z))  ; proper list
+      (check-equal? (unflatten-improper-list flat orig) '(a b c)))
+    
+    (test-case "reconstruct simple improper list"
+      (define flat '(a b c))
+      (define orig '(x y . z))  ; improper list structure
+      (define result (unflatten-improper-list flat orig))
+      (check-equal? result '(a b . c)))
+    
+    (test-case "reconstruct nested improper list"
+      (define flat '(a b c d))
+      (define orig '(w . (x . (y . z))))  ; nested improper structure
+      (define result (unflatten-improper-list flat orig))
+      (check-equal? result '(a . (b . (c . d)))))))
 
 
 (module+ test
@@ -485,11 +550,11 @@
       (define actual (syntax-set stx (syntax-path (list 1)) new-subform))
       (check-equal? (syntax->datum actual) '(a FOO c)))
 
-    (test-case "improper list - replacing the tail"
-      ; In #'(a . (b c)), index 1 is the tail (b c), replace it with FOO
+    (test-case "dotted syntax - replacing middle element"
+      ; #'(a . (b c)) is equivalent to #'(a b c), so index 1 is b
       (define stx #'(a . (b c)))
       (define actual (syntax-set stx (syntax-path (list 1)) new-subform))
-      (check-equal? (syntax->datum actual) '(a . FOO)))
+      (check-equal? (syntax->datum actual) '(a FOO c)))
 
     (test-case "improper list with atom tail"
       (define stx #'(a b . c))
@@ -521,10 +586,11 @@
       (define actual (syntax-set stx (syntax-path (list 3 1 0)) new-subform))
       (check-equal? (syntax->datum actual) '(a b c (m (FOO x y z) n))))
 
-    (test-case "nested path in improper list tail"
-      ; #'(a b . (c OLD e)) - index 2 gives us the tail (c OLD e), then index 1 in that
+    (test-case "dotted syntax - replacing in flattened list"
+      ; #'(a b . (c OLD e)) is equivalent to #'(a b c OLD e)
+      ; Index 3 is OLD in the flattened list
       (define stx #'(a b . (c OLD e)))
-      (define actual (syntax-set stx (syntax-path (list 2 1)) new-subform))
+      (define actual (syntax-set stx (syntax-path (list 3)) new-subform))
       (check-equal? (syntax->datum actual) '(a b c FOO e)))))
 
 
@@ -775,15 +841,41 @@
          (for/list ([child (in-list children)]
                     [i (in-naturals)])
            (loop child (syntax-path-add path i)))]
-        ; Handle improper lists - flatten them for path purposes
+        ; Handle improper lists and dotted syntax
+        ; We flatten for path indexing but preserve structure in output
         [(cons _ _) #:when (not (list? unwrapped))
          (define flattened-children (flatten-improper-list unwrapped))
          (define labeled-flat
            (for/list ([child (in-list flattened-children)]
                       [i (in-naturals)])
              (loop child (syntax-path-add path i))))
-         ; Reconstruct the improper structure
-         (unflatten-improper-list labeled-flat unwrapped)]
+         ; Reconstruct the ORIGINAL structure with labeled children
+         ; This is tricky: we need to preserve dotted syntax
+         (let rebuild ([orig unwrapped] [flat labeled-flat])
+           (cond
+             [(pair? orig)
+              (define car-labeled (car flat))
+              (define cdr-elem (cdr orig))
+              (cond
+                [(syntax? cdr-elem)
+                 (define cdr-unwrapped (syntax-e cdr-elem))
+                 (cond
+                   [(list? cdr-unwrapped)
+                    ; Dotted syntax - cdr wraps a list, so rest of flat goes there
+                    (cons car-labeled (cdr flat))]
+                   [(pair? cdr-unwrapped)
+                    ; Nested improper - recurse
+                    (cons car-labeled (rebuild cdr-unwrapped (cdr flat)))]
+                   [else
+                    ; Atom tail - single element
+                    (cons car-labeled (car (cdr flat)))])]
+                [(pair? cdr-elem)
+                 ; Direct pair - recurse
+                 (cons car-labeled (rebuild cdr-elem (cdr flat)))]
+                [else
+                 ; Atom tail
+                 (cons car-labeled (car (cdr flat)))])]
+             [else orig]))]
         ; Handle vectors - treat like lists
         [(vector children ...)
          (for/vector ([child (in-list children)]
@@ -858,13 +950,8 @@
        ['< lesser]))))
 
 
-(define syntax-path-element<=>
-  (make-comparator
-   (λ (left right)
-     (cond
-       [(< left right) lesser]
-       [(> left right) greater]
-       [else equivalent]))))
+; syntax-path-element<=> is now just natural<=> from rebellion
+(define syntax-path-element<=> natural<=>)
 
 
 (module+ test
