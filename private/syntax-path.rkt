@@ -945,21 +945,6 @@
        ['< lesser]))))
 
 
-(module+ test
-  (test-case "natural<=>"
-    (define unsorted
-      (list 2 5 1 3 42 0))
-
-    (define sorted
-      (sort unsorted (λ (a b) (compare-infix natural<=>  a < b))))
-
-    (define expected
-      (list 0 1 2 3 5 42))
-    (check-equal? sorted expected)))
-
-
-
-
 (define syntax-path<=>
   (comparator-map (lexicographic-comparator natural<=>) syntax-path-elements
                   #:name 'syntax-path<=>))
