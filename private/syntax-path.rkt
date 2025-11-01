@@ -14,7 +14,6 @@
   [empty-syntax-path syntax-path?]
   [syntax-path (-> (sequence/c exact-nonnegative-integer?) syntax-path?)]
   [syntax-path-elements (-> syntax-path? (treelist/c exact-nonnegative-integer?))]
-  [syntax-path-element? (-> any/c boolean?)]
   [syntax-path-parent (-> nonempty-syntax-path? syntax-path?)]
   [syntax-path-next-neighbor (-> syntax-path? (or/c syntax-path? #false))]
   [syntax-path-last-element (-> nonempty-syntax-path? exact-nonnegative-integer?)]
@@ -56,10 +55,6 @@
 
 
 ;@----------------------------------------------------------------------------------------------------
-
-; syntax-path-element? is now just exact-nonnegative-integer?
-(define syntax-path-element? exact-nonnegative-integer?)
-
 
 (struct syntax-path (elements)
   #:transparent
@@ -950,17 +945,13 @@
        ['< lesser]))))
 
 
-; syntax-path-element<=> is now just natural<=> from rebellion
-(define syntax-path-element<=> natural<=>)
-
-
 (module+ test
-  (test-case "syntax-path-element<=>"
+  (test-case "natural<=>"
     (define unsorted
       (list 2 5 1 3 42 0))
 
     (define sorted
-      (sort unsorted (λ (a b) (compare-infix syntax-path-element<=>  a < b))))
+      (sort unsorted (λ (a b) (compare-infix natural<=>  a < b))))
 
     (define expected
       (list 0 1 2 3 5 42))
@@ -970,5 +961,5 @@
 
 
 (define syntax-path<=>
-  (comparator-map (lexicographic-comparator syntax-path-element<=>) syntax-path-elements
+  (comparator-map (lexicographic-comparator natural<=>) syntax-path-elements
                   #:name 'syntax-path<=>))
