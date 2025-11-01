@@ -32,6 +32,8 @@
   [syntax-insert-splice
    (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) (sequence/c syntax?) syntax?)]
   [syntax-label-paths (-> syntax? symbol? syntax?)]
+  [syntax-path->string (-> proper-syntax-path? string?)]
+  [string->syntax-path (-> string? proper-syntax-path?)]
   [box-element-syntax syntax-path-element?]))
 
 
@@ -43,6 +45,7 @@
          data/order
          guard
          racket/sequence
+         racket/string
          racket/struct
          racket/treelist
          racket/list
@@ -135,7 +138,108 @@
          (exact-nonnegative-integer? elem))))
 
 
-; TODO: add tests for proper-syntax-path?
+(define (syntax-path->string path)
+  (unless (proper-syntax-path? path)
+    (raise-argument-error 'syntax-path->string "proper-syntax-path?" path))
+  (if (empty-syntax-path? path)
+      "/"
+      (string-join (map number->string (treelist->list (syntax-path-elements path))) "/" #:before-first "/")))
+
+
+(define (string->syntax-path str)
+  (unless (string? str)
+    (raise-argument-error 'string->syntax-path "string?" str))
+  (cond
+    [(equal? str "/") empty-syntax-path]
+    [(string-suffix? str "/")
+     (raise-argument-error 'string->syntax-path "string that does not end with '/' (except for root)" str)]
+    [(not (string-prefix? str "/"))
+     (raise-argument-error 'string->syntax-path "string that starts with '/'" str)]
+    [else
+     (define parts (string-split (substring str 1) "/"))
+     (define elements
+       (for/list ([part (in-list parts)])
+         (define num (string->number part))
+         (unless (and num (exact-nonnegative-integer? num))
+           (raise-argument-error 'string->syntax-path
+                                 "string containing only non-negative integers separated by '/'"
+                                 str))
+         num))
+     (syntax-path elements)]))
+
+
+(module+ test
+  (test-case "proper-syntax-path?"
+    (check-true (proper-syntax-path? empty-syntax-path))
+    (check-true (proper-syntax-path? (syntax-path (list 0))))
+    (check-true (proper-syntax-path? (syntax-path (list 0 1 2))))
+    (check-false (proper-syntax-path? (syntax-path (list 0 box-element-syntax))))
+    (check-false (proper-syntax-path? (syntax-path (list (tail-syntax 1)))))
+    (check-false (proper-syntax-path? 42)))
+
+  (test-case "syntax-path->string"
+    (test-case "empty path"
+      (check-equal? (syntax-path->string empty-syntax-path) "/"))
+
+    (test-case "single element"
+      (check-equal? (syntax-path->string (syntax-path (list 0))) "/0"))
+
+    (test-case "multiple elements"
+      (check-equal? (syntax-path->string (syntax-path (list 0 1 2))) "/0/1/2"))
+
+    (test-case "large numbers"
+      (check-equal? (syntax-path->string (syntax-path (list 42 100 999))) "/42/100/999"))
+
+    (test-case "non-proper path should fail"
+      (check-exn exn:fail:contract?
+                 (λ () (syntax-path->string (syntax-path (list 0 box-element-syntax)))))))
+
+  (test-case "string->syntax-path"
+    (test-case "root path"
+      (check-equal? (string->syntax-path "/") empty-syntax-path))
+
+    (test-case "single element"
+      (check-equal? (string->syntax-path "/0") (syntax-path (list 0))))
+
+    (test-case "multiple elements"
+      (check-equal? (string->syntax-path "/0/1/2") (syntax-path (list 0 1 2))))
+
+    (test-case "large numbers"
+      (check-equal? (string->syntax-path "/42/100/999") (syntax-path (list 42 100 999))))
+
+    (test-case "trailing slash should fail (except root)"
+      (check-exn exn:fail:contract?
+                 (λ () (string->syntax-path "/0/"))))
+
+    (test-case "no leading slash should fail"
+      (check-exn exn:fail:contract?
+                 (λ () (string->syntax-path "0/1"))))
+
+    (test-case "non-numeric element should fail"
+      (check-exn exn:fail:contract?
+                 (λ () (string->syntax-path "/0/foo/2"))))
+
+    (test-case "negative number should fail"
+      (check-exn exn:fail:contract?
+                 (λ () (string->syntax-path "/0/-1/2"))))
+
+    (test-case "empty string should fail"
+      (check-exn exn:fail:contract?
+                 (λ () (string->syntax-path ""))))
+
+    (test-case "non-integer number should fail"
+      (check-exn exn:fail:contract?
+                 (λ () (string->syntax-path "/0/1.5/2")))))
+
+  (test-case "round-trip conversion"
+    (define paths
+      (list empty-syntax-path
+            (syntax-path (list 0))
+            (syntax-path (list 0 1 2))
+            (syntax-path (list 5))
+            (syntax-path (list 42 100 999))))
+    (for ([path (in-list paths)])
+      (check-equal? (string->syntax-path (syntax-path->string path)) path))))
 
 
 (define (syntax-path-add path element)
