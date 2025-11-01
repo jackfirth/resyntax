@@ -3,9 +3,9 @@ name: Autopilot
 on:
   workflow_dispatch:
   schedule:
-    # 17:00 UTC on Monday, Wednesday, and Friday
+    # Run at 17:00 UTC every day
     # 17:00 UTC is (usually) 10:00 PDT
-    - cron: "0 17 * * 1,3,5"
+    - cron: "0 17 * * *"
 
 permissions:
   issues: write
