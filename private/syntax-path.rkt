@@ -143,7 +143,8 @@
     (raise-argument-error 'syntax-path->string "proper-syntax-path?" path))
   (if (empty-syntax-path? path)
       "/"
-      (string-join (map number->string (treelist->list (syntax-path-elements path))) "/" #:before-first "/")))
+      (let ([elements (treelist->list (syntax-path-elements path))])
+        (string-join (map number->string elements) "/" #:before-first "/"))))
 
 
 (define (string->syntax-path str)
