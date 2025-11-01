@@ -19,6 +19,7 @@
          resyntax/private/analyzer
          resyntax/private/syntax-path
          resyntax/private/syntax-property-bundle
+         resyntax/private/syntax-traversal
          syntax/id-table
          syntax/parse)
 
@@ -44,253 +45,125 @@
     (values (and phase (+ phase levels)) ids)))
 
 
-(define-syntax-class (fully-expanded-top-level-form [phase 0])
-  #:attributes (bound-ids-by-phase used-ids-by-phase)
-  #:literal-sets ((kernel-literals #:phase phase))
+;; Label syntax with phase information
+(define (syntax-label-id-phases expanded-stx)
+  (let loop ([expanded-stx expanded-stx] [phase 0] [skip? #false])
+    (syntax-traverse expanded-stx
+      #:skip-root? skip?
+      #:literal-sets ([kernel-literals #:phase phase])
 
-  (pattern (~var subform (fully-expanded-general-top-level-form phase))
-    #:attr bound-ids-by-phase (attribute subform.bound-ids-by-phase)
-    #:attr used-ids-by-phase (attribute subform.used-ids-by-phase))
+      [:id (syntax-property this-syntax 'phase phase)]
+      [(begin-for-syntax _ ...) (loop this-syntax (add1 phase) #true)]
 
-  (pattern (#%expression (~var subexpr (fully-expanded-expression phase)))
-    #:attr bound-ids-by-phase (attribute subexpr.bound-ids-by-phase)
-    #:attr used-ids-by-phase (attribute subexpr.used-ids-by-phase))
+      [(define-syntaxes-id:define-syntaxes ids expr)
+       (define new-define-syntaxes (loop (attribute define-syntaxes-id) phase #false))
+       (define new-ids (loop (attribute ids) phase #true))
+       (define new-expr (loop (attribute expr) (add1 phase) #false))
+       (define new-datum (list new-define-syntaxes new-ids new-expr))
+       (datum->syntax this-syntax new-datum this-syntax this-syntax)]
 
-  (pattern (module :id :module-path
-             (#%plain-module-begin (~var body (fully-expanded-module-level-form phase)) ...))
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute body.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase)))
+      [((~or module module*) _ ...) (loop this-syntax 0 #true)]
 
-  (pattern (begin (~var body (fully-expanded-top-level-form phase)) ...)
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute body.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase)))
-
-  (pattern (begin-for-syntax (~var body (fully-expanded-top-level-form (add1 phase))) ...)
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute body.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase))))
+      #:parent-context-modifier (λ (stx) stx)
+      #:parent-srcloc-modifier (λ (stx) stx)
+      #:parent-props-modifier (λ (stx) stx))))
 
 
-(define-syntax-class (fully-expanded-module-level-form phase)
-  #:attributes (bound-ids-by-phase used-ids-by-phase)
-  #:literal-sets ((kernel-literals #:phase phase))
+;; Find all binding sites and return them as a stream of identifiers
+(define (binding-site-identifiers expanded-stx)
+  (let loop ([expanded-stx expanded-stx] [phase 0])
+    (define (recur stx)
+      (loop stx phase))
+    (syntax-search expanded-stx
+      #:literal-sets ([kernel-literals #:phase phase])
 
-  (pattern (~var subform (fully-expanded-general-top-level-form phase))
-    #:attr bound-ids-by-phase (attribute subform.bound-ids-by-phase)
-    #:attr used-ids-by-phase (attribute subform.used-ids-by-phase))
+      [(id:id _ ...)
+       #:do [(define id-phase (syntax-property (attribute id) 'phase))]
+       #:when (not (equal? id-phase phase))
+       (loop this-syntax id-phase)]
 
-  (pattern (#%provide :raw-provide-spec ...)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash))
+      [(quote-syntax _ ...) (stream)]
 
-  (pattern (begin-for-syntax (~var body (fully-expanded-module-level-form (add1 phase))) ...)
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute body.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase)))
+      [(define-values (id ...) body)
+       (stream-append (attribute id) (recur (attribute body)))]
 
-  (pattern (~var subform (fully-expanded-submodule-form phase))
-    #:attr bound-ids-by-phase (attribute subform.bound-ids-by-phase)
-    #:attr used-ids-by-phase (attribute subform.used-ids-by-phase))
+      [(define-syntaxes (id ...) body)
+       (stream-append (attribute id) (loop (attribute body) (add1 phase)))]
 
-  (pattern (#%declare _ ...)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash)))
+      [((~or let-values letrec-values) ([(id ...) rhs] ...) body ...)
+       (define inner-exprs (append (attribute rhs) (attribute body)))
+       (define ids (append* (attribute id)))
+       (apply stream-append ids (map recur inner-exprs))]
 
+      [(#%plain-lambda formals body ...)
+       (apply stream-append
+              (syntax-search (attribute formals) [:id])
+              (map recur (attribute body)))]
 
-(define-syntax-class (fully-expanded-submodule-form phase)
-  #:attributes (bound-ids-by-phase used-ids-by-phase)
-  #:literal-sets ((kernel-literals #:phase phase))
-
-  (pattern (module :id :module-path
-             (#%plain-module-begin (~var body (fully-expanded-module-level-form phase)) ...))
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute body.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase)))
-
-  (pattern (module* :id (~or #false :module-path)
-             (#%plain-module-begin (~var body (fully-expanded-module-level-form phase)) ...))
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute body.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase))))
+      [(case-lambda [formals body ...] ...)
+       (apply stream-append
+              (syntax-search #'(formals ...) [:id])
+              (map recur (append* (attribute body))))])))
 
 
-(define-syntax-class (fully-expanded-general-top-level-form phase)
-  #:attributes (bound-ids-by-phase used-ids-by-phase)
-  #:literal-sets ((kernel-literals #:phase phase))
+;; Find all identifier usage sites (not binding sites)
+(define (usage-site-identifiers expanded-stx)
+  (let loop ([expanded-stx expanded-stx] [phase 0])
+    (define (recur stx)
+      (loop stx phase))
+    (syntax-search expanded-stx
+      #:literal-sets ([kernel-literals #:phase phase])
+      
+      ;; Phase mismatch - recurse with correct phase
+      [(id:id _ ...)
+       #:do [(define id-phase (syntax-property (attribute id) 'phase))]
+       #:when (not (equal? id-phase phase))
+       (loop this-syntax id-phase)]
 
-  (pattern (~var subexpr (fully-expanded-expression phase))
-    #:attr bound-ids-by-phase (attribute subexpr.bound-ids-by-phase)
-    #:attr used-ids-by-phase (attribute subexpr.used-ids-by-phase))
-
-  (pattern (define-values (id:id ...) (~var rhs (fully-expanded-expression phase)))
-    #:attr bound-ids-by-phase
-    (append-all-id-maps (list (hash phase (list->treelist (attribute id)))
-                              (attribute rhs.bound-ids-by-phase)))
-    #:attr used-ids-by-phase (attribute rhs.used-ids-by-phase))
-
-  (pattern (define-syntaxes (id:id ...) (~var rhs (fully-expanded-expression (add1 phase))))
-    #:attr bound-ids-by-phase
-    (append-all-id-maps (list (hash phase (list->treelist (attribute id)))
-                              (attribute rhs.bound-ids-by-phase)))
-    #:attr used-ids-by-phase (attribute rhs.used-ids-by-phase))
-
-  (pattern (#%require :raw-require-spec ...)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash)))
-
-
-(define-syntax-class (fully-expanded-expression phase)
-  #:attributes (bound-ids-by-phase used-ids-by-phase)
-  #:literal-sets ((kernel-literals #:phase phase))
-
-  (pattern id:id
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash phase (treelist (attribute id))))
-
-  (pattern (#%plain-lambda (~var formals (fully-expanded-formals phase))
-                           (~var body (fully-expanded-expression phase)) ...+)
-    #:attr bound-ids-by-phase
-    (append-all-id-maps (cons (attribute formals.bound-ids-by-phase)
-                              (attribute body.bound-ids-by-phase)))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase)))
-
-  (pattern (case-lambda
-             ((~var formals (fully-expanded-formals phase))
-              (~var body (fully-expanded-expression phase)) ...+)
-             ...)
-    #:attr bound-ids-by-phase
-    (append-all-id-maps (append* (attribute formals.bound-ids-by-phase)
-                                 (attribute body.bound-ids-by-phase)))
-    #:attr used-ids-by-phase (append-all-id-maps (append* (attribute body.used-ids-by-phase))))
-
-  (pattern (if (~var condition (fully-expanded-expression phase))
-               (~var true-branch (fully-expanded-expression phase))
-               (~var false-branch (fully-expanded-expression phase)))
-    #:attr bound-ids-by-phase
-    (append-all-id-maps
-     (list (attribute condition.bound-ids-by-phase)
-           (attribute true-branch.bound-ids-by-phase)
-           (attribute false-branch.bound-ids-by-phase)))
-    #:attr used-ids-by-phase
-    (append-all-id-maps
-     (list (attribute condition.used-ids-by-phase)
-           (attribute true-branch.used-ids-by-phase)
-           (attribute false-branch.used-ids-by-phase))))
-
-  (pattern (begin (~var body (fully-expanded-expression phase)) ...+)
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute body.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute body.used-ids-by-phase)))
-
-  (pattern (begin0 (~var result (fully-expanded-expression phase))
-             (~var post-body (fully-expanded-expression phase)) ...)
-    #:attr bound-ids-by-phase
-    (append-all-id-maps
-     (cons (attribute result.bound-ids-by-phase) (attribute post-body.bound-ids-by-phase)))
-    #:attr used-ids-by-phase
-    (append-all-id-maps
-     (cons (attribute result.used-ids-by-phase) (attribute post-body.used-ids-by-phase))))
-
-  (pattern (let-values ([(id:id ...) (~var rhs (fully-expanded-expression phase))] ...)
-             (~var body (fully-expanded-expression phase)) ...+)
-    #:do [(define immediately-bound-ids (list->treelist (append* (attribute id))))]
-    #:attr bound-ids-by-phase
-    (append-all-id-maps
-     (append (list (hash phase immediately-bound-ids))
-             (attribute rhs.bound-ids-by-phase)
-             (attribute body.bound-ids-by-phase)))
-    #:attr used-ids-by-phase
-    (append-all-id-maps
-     (append (attribute rhs.used-ids-by-phase) (attribute body.used-ids-by-phase))))
-
-  (pattern (letrec-values ([(id:id ...) (~var rhs (fully-expanded-expression phase))] ...)
-             (~var body (fully-expanded-expression phase)) ...+)
-    #:do [(define immediately-bound-ids (list->treelist (append* (attribute id))))]
-    #:attr bound-ids-by-phase
-    (append-all-id-maps
-     (append (list (hash phase immediately-bound-ids))
-             (attribute rhs.bound-ids-by-phase)
-             (attribute body.bound-ids-by-phase)))
-    #:attr used-ids-by-phase
-    (append-all-id-maps
-     (append (attribute rhs.used-ids-by-phase) (attribute body.used-ids-by-phase))))
-
-  (pattern (set! id:id (~var rhs (fully-expanded-expression phase)))
-    #:attr bound-ids-by-phase (attribute rhs.bound-ids-by-phase)
-    #:attr used-ids-by-phase
-    (append-all-id-maps
-     (list (hash phase (treelist (attribute id))) (attribute rhs.used-ids-by-phase))))
-
-  (pattern (quote _)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash))
-
-  (pattern (quote-syntax _)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash))
-
-  (pattern (quote-syntax _ #:local)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash))
-
-  (pattern (with-continuation-mark
-               (~var key (fully-expanded-expression phase))
-             (~var value (fully-expanded-expression phase))
-             (~var result (fully-expanded-expression phase)))
-    #:attr bound-ids-by-phase
-    (append-all-id-maps
-     (list (attribute key.bound-ids-by-phase)
-           (attribute value.bound-ids-by-phase)
-           (attribute result.bound-ids-by-phase)))
-    #:attr used-ids-by-phase
-    (append-all-id-maps
-     (list (attribute key.used-ids-by-phase)
-           (attribute value.used-ids-by-phase)
-           (attribute result.used-ids-by-phase))))
-
-  (pattern (#%plain-app (~var subexpr (fully-expanded-expression phase)) ...+)
-    #:attr bound-ids-by-phase (append-all-id-maps (attribute subexpr.bound-ids-by-phase))
-    #:attr used-ids-by-phase (append-all-id-maps (attribute subexpr.used-ids-by-phase)))
-
-  (pattern (#%top . id:id)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash phase (treelist (attribute id))))
-
-  (pattern (#%variable-reference id:id)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash phase (treelist (attribute id))))
-
-  (pattern (#%variable-reference (#%top . id:id))
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash phase (treelist (attribute id))))
-
-  (pattern (#%variable-reference)
-    #:attr bound-ids-by-phase (hash)
-    #:attr used-ids-by-phase (hash)))
-
-
-(define-syntax-class (fully-expanded-formals phase)
-  #:attributes (bound-ids-by-phase used-ids-by-phase)
-
-  (pattern (id:id ...)
-    #:attr bound-ids-by-phase (hash phase (list->treelist (attribute id)))
-    #:attr used-ids-by-phase (hash))
-
-  (pattern (id:id ...+ . rest-id:id)
-    #:attr bound-ids-by-phase
-    (hash phase (treelist-add (list->treelist (attribute id)) (attribute rest-id)))
-    #:attr used-ids-by-phase (hash))
-
-  (pattern id:id
-    #:attr bound-ids-by-phase (hash phase (treelist (attribute id)))
-    #:attr used-ids-by-phase (hash)))
-
-
-(define-syntax-class module-path
-  (pattern _))
-
-
-(define-syntax-class raw-require-spec
-  (pattern _))
-
-
-(define-syntax-class raw-provide-spec
-  (pattern _))
+      ;; Skip quote-syntax - no identifier usages inside
+      [(quote-syntax _ ...) (stream)]
+      
+      ;; define-values: recurse into RHS only (LHS is bindings)
+      [(define-values (_ ...) rhs)
+       (recur (attribute rhs))]
+      
+      ;; define-syntaxes: recurse into RHS at phase+1 (LHS is bindings)
+      [(define-syntaxes (_ ...) rhs)
+       (loop (attribute rhs) (add1 phase))]
+      
+      ;; let-values/letrec-values: recurse into RHS and body (binding ids excluded by pattern)
+      [((~or let-values letrec-values) ([(_ ...) rhs] ...) body ...)
+       (apply stream-append (append (map recur (attribute rhs))
+                                    (map recur (attribute body))))]
+      
+      ;; lambda: formals are bindings, recurse into body only
+      [(#%plain-lambda _ body ...)
+       (apply stream-append (map recur (attribute body)))]
+      
+      ;; case-lambda: formals are bindings, recurse into bodies only
+      [(case-lambda [_ body ...] ...)
+       (apply stream-append (map recur (append* (attribute body))))]
+      
+      ;; set!: the identifier is used, and recurse into RHS
+      [(set! id:id rhs)
+       (stream-cons (attribute id) (recur (attribute rhs)))]
+      
+      ;; #%top: the identifier is used
+      [(#%top . id:id)
+       (stream (attribute id))]
+      
+      ;; #%variable-reference with identifier
+      [(#%variable-reference id:id)
+       (stream (attribute id))]
+      
+      ;; #%variable-reference with #%top
+      [(#%variable-reference (#%top . id:id))
+       (stream (attribute id))]
+      
+      ;; Standalone identifier - this is a usage!
+      [id:id
+       #:when (identifier? this-syntax)
+       (stream (attribute id))])))
 
 
 (define (phase-binding-table bound-ids used-ids #:phase phase)
@@ -315,17 +188,30 @@
 
 
 (define (fully-expanded-syntax-binding-table stx)
-  (syntax-parse stx
-    [:fully-expanded-top-level-form
-     (identifier-binding-table (attribute bound-ids-by-phase) (attribute used-ids-by-phase))]))
+  (define labeled-stx (syntax-label-id-phases (syntax-label-paths stx 'expanded-path)))
+  
+  ;; Get bound identifiers and group by phase
+  (define bound-ids-by-phase
+    (for/fold ([result (hash)])
+              ([id (in-stream (binding-site-identifiers labeled-stx))])
+      (define id-phase (syntax-property id 'phase))
+      (hash-update result id-phase (λ (prev) (treelist-add prev id)) (treelist))))
+  
+  ;; Get used identifiers and group by phase
+  (define used-ids-by-phase
+    (for/fold ([result (hash)])
+              ([id (in-stream (usage-site-identifiers labeled-stx))])
+      (define id-phase (syntax-property id 'phase))
+      (hash-update result id-phase (λ (prev) (treelist-add prev id)) (treelist))))
+  
+  (identifier-binding-table bound-ids-by-phase used-ids-by-phase))
 
 
 (define identifier-usage-analyzer
   (make-expansion-analyzer
    #:name 'identifier-usage-analyzer
    (λ (expanded-stx)
-     (define table
-       (fully-expanded-syntax-binding-table (syntax-label-paths expanded-stx 'expanded-path)))
+     (define table (fully-expanded-syntax-binding-table expanded-stx))
      (transduce (in-hash-values table)
                 (append-mapping
                  (λ (id-table)
