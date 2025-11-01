@@ -364,9 +364,9 @@
       (check-equal? (syntax->datum actual) 'FOO))
 
     (test-case "improper list with nested access"
-      ; #'(a b . (c FOO e)) flattens to (a b c FOO e) where c FOO e is the tail
-      ; But the tail is itself a syntax object wrapping (c FOO e)
-      ; So at index 2, we get the whole (c FOO e) syntax
+      ; #'(a b . (c FOO e)) flattens to (a b (c FOO e))
+      ; The tail (c FOO e) is a syntax object at index 2
+      ; So at index 2, we get the whole (c FOO e) syntax, then index 1 within that gives FOO
       (define stx #'(a b . (c FOO e)))
       (define actual (syntax-ref stx (syntax-path (list 2 1))))
       (check-equal? (syntax->datum actual) 'FOO))
@@ -400,6 +400,8 @@
       (define unwrapped (syntax-e stx))
       (cond
         ; Handle improper lists - flatten, update, and reconstruct
+        ; Note: This does flatten/unflatten on each access, which could be optimized if needed
+        ; for deeply nested paths, but improper lists are relatively rare in practice.
         [(and (pair? unwrapped) (not (list? unwrapped)))
          (define flattened (flatten-improper-list unwrapped))
          (define updated-elem (loop (list-ref flattened i) remaining-elements))
@@ -451,16 +453,19 @@
 (define (unflatten-improper-list flattened original)
   (cond
     [(null? flattened) '()]
-    [(null? (cdr flattened)) (car flattened)]
     [(and (pair? original) (not (list? original)))
      ; Reconstruct the improper structure
      (let unflatten-with-tail ([flat flattened] [orig original])
        (cond
-         [(null? (cdr flat)) (car flat)]
-         [(pair? orig)
-          (cons (car flat) (unflatten-with-tail (cdr flat) (cdr orig)))]
-         [else (car flat)]))]
-    [else flattened]))
+         [(or (null? (cdr flat)) (not (pair? orig)))
+          ; Base case: last element or reached non-pair in original
+          (car flat)]
+         [else
+          ; Recursive case: continue building the improper list
+          (cons (car flat) (unflatten-with-tail (cdr flat) (cdr orig)))]))]
+    [else 
+     ; For proper lists or single elements, return as-is
+     flattened]))
 
 
 
