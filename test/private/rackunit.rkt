@@ -34,7 +34,6 @@
          rebellion/type/tuple
          resyntax
          resyntax/base
-         resyntax/private/analysis
          resyntax/private/analyzer
          resyntax/private/logger
          resyntax/private/refactoring-result
@@ -263,23 +262,9 @@
   (define program-src (string-source (code-block-raw-string program)))
   (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
 
-  (define (skip e)
-    (log-resyntax-error
-     "skipping analysis\n encountered an error during macro expansion\n  error:\n~a"
-     (string-indent (exn-message e) #:amount 3))
-    (syntax-property-bundle))
-
   (define actual-props
     (call-with-logs-captured
-     (λ ()
-       (define full-source (source->string program-src))
-       (if (string-prefix? full-source "#lang racket")
-           (with-handlers ([exn:fail:syntax? skip]
-                          [exn:fail:filesystem:missing-module? skip]
-                          [exn:fail:contract:variable? skip])
-             (source-code-analysis-added-syntax-properties
-              (source-analyze program-src #:analyzers (refactoring-suite-analyzers suite))))
-           (syntax-property-bundle)))))
+     (λ () (reysntax-analyze-for-properties-only program-src #:suite suite))))
 
   (define target-src (string-source (string-trim (code-block-raw-string target))))
   (define context-src-list
