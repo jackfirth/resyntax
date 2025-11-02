@@ -204,12 +204,27 @@
         (~replacement [else else-expr.refactored ...] #:original else-expr)))
 
 
+(define-syntax-class nested-when-expression
+  #:attributes ([condition 1] [body 1] depth)
+  #:literals (when and)
+
+  (pattern (when (~or (and subcondition ...) first-condition)
+             (~or nested:nested-when-expression (~seq only-body ...)))
+    #:with (condition ...)
+    #'((~? (~@ subcondition ...) first-condition) (~? (~@ nested.condition ...)))
+    #:attr [body 1] (or (attribute nested.body) (attribute only-body))
+    #:attr depth (add1 (or (attribute nested.depth) 0))))
+
+
 (define-refactoring-rule nested-when-to-compound-when
   #:description
   "Nested `when` expressions can be merged into a single compound `when` expression."
-  #:literals (when and)
-  (when outer-condition:expr (when inner-condition:expr body:expr ...))
-  (when (and outer-condition inner-condition) body ...))
+  when-expr:nested-when-expression
+  #:when (or (>= (attribute when-expr.depth) 3)
+             (>= (length (attribute when-expr.condition)) 3)
+             (and (equal? (attribute when-expr.depth) 2)
+                  (andmap identifier? (attribute when-expr.condition))))
+  (when (and when-expr.condition ...) when-expr.body ...))
 
 
 (define-refactoring-rule ignored-and-to-when

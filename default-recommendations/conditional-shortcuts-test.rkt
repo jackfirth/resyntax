@@ -698,20 +698,56 @@ test: "if clause with begin in false branch and commented true branch refactorab
 ------------------------------
 
 
-test: "immediately-nested when expressions can be merged"
+no-change-test: "two when forms with non-trivial conditions"
 --------------------
-(define (f c1 c2)
-  (when c1
-    (when c2
-      (displayln "both passed"))))
+(define (f a b c)
+  (when (a)
+    (when (b)
+      c)))
+--------------------
+
+
+test: "three when forms"
+--------------------
+(define (f a b c d)
+  (when (a)
+    (when (b)
+      (when (c)
+        d))))
 ====================
-(define (f c1 c2)
-  (when (and c1 c2)
-    (displayln "both passed")))
+(define (f a b c d)
+  (when (and (a) (b) (c))
+    d))
 --------------------
 
 
-test: "nested when with multiple body expressions can be merged"
+test: "two when forms with and"
+--------------------
+(define (f a b c d)
+  (when (and (a) (b))
+    (when (c)
+      d)))
+====================
+(define (f a b c d)
+  (when (and (a) (b) (c))
+    d))
+--------------------
+
+
+test: "two when forms with identifiers"
+--------------------
+(define (f a b c)
+  (when a
+    (when b
+      c)))
+====================
+(define (f a b c)
+  (when (and a b)
+    c))
+--------------------
+
+
+test: "two when forms with identifiers and multiple body expressions"
 --------------------
 (define (f c1 c2)
   (when c1
