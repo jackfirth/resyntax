@@ -18,6 +18,7 @@
          racket/match
          racket/port
          racket/pretty
+         racket/set
          racket/string
          rackunit
          rebellion/base/comparator
@@ -33,6 +34,7 @@
          rebellion/type/tuple
          resyntax
          resyntax/base
+         resyntax/private/analyzer
          resyntax/private/logger
          resyntax/private/refactoring-result
          resyntax/private/source
@@ -91,10 +93,23 @@
   (current-suite-under-test (refactoring-suite #:rules '())))
 
 
-(define (add-suite-under-test! suite)
-  (define current-rules (refactoring-suite-rules (current-suite-under-test)))
-  (define new-rules (append current-rules (refactoring-suite-rules suite)))
-  (current-suite-under-test (refactoring-suite #:rules new-rules)))
+(define (add-suite-under-test! suite-or-analyzer)
+  (cond
+    [(refactoring-suite? suite-or-analyzer)
+     (define current-rules (refactoring-suite-rules (current-suite-under-test)))
+     (define current-analyzers (refactoring-suite-analyzers (current-suite-under-test)))
+     (define new-rules (append current-rules (refactoring-suite-rules suite-or-analyzer)))
+     (define new-analyzers (set-union current-analyzers (refactoring-suite-analyzers suite-or-analyzer)))
+     (current-suite-under-test (refactoring-suite #:rules new-rules #:analyzers new-analyzers))]
+    [(expansion-analyzer? suite-or-analyzer)
+     (define current-rules (refactoring-suite-rules (current-suite-under-test)))
+     (define current-analyzers (refactoring-suite-analyzers (current-suite-under-test)))
+     (define new-analyzers (set-add current-analyzers suite-or-analyzer))
+     (current-suite-under-test (refactoring-suite #:rules current-rules #:analyzers new-analyzers))]
+    [else
+     (raise-argument-error 'add-suite-under-test!
+                           "(or/c refactoring-suite? expansion-analyzer?)"
+                           suite-or-analyzer)]))
 
 
 (define current-header (make-parameter (code-block "")))
@@ -249,7 +264,7 @@
 
   (define actual-props
     (call-with-logs-captured
-     (λ () (reysntax-analyze-for-properties-only program-src))))
+     (λ () (reysntax-analyze-for-properties-only program-src #:suite suite))))
 
   (define target-src (string-source (string-trim (code-block-raw-string target))))
   (define context-src-list

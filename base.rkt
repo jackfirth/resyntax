@@ -18,7 +18,9 @@
   [refactoring-suite? (-> any/c boolean?)]
   [refactoring-suite
    (->* ()
-        (#:rules (sequence/c refactoring-rule?) #:name (or/c interned-symbol? #false))
+        (#:rules (sequence/c refactoring-rule?)
+         #:analyzers (sequence/c expansion-analyzer?)
+         #:name (or/c interned-symbol? #false))
         refactoring-suite?)]
   [refactoring-suite-rules (-> refactoring-suite? (listof refactoring-rule?))]
   [refactoring-suite-analyzers (-> refactoring-suite? (set/c expansion-analyzer?))]))
@@ -234,12 +236,16 @@
   #:omit-root-binding)
 
 
-(define (refactoring-suite #:rules [rules '()] #:name [name #false])
+(define (refactoring-suite #:rules [rules '()] #:analyzers [analyzers '()] #:name [name #false])
   (define rule-list (sequence->list rules))
-  (define combined-analyzers
+  (define analyzers-from-rules
     (for*/set ([rule (in-list rule-list)]
                [analyzer (in-set (refactoring-rule-analyzers rule))])
       analyzer))
+  (define extra-analyzers
+    (for/set ([analyzer analyzers])
+      analyzer))
+  (define combined-analyzers (set-union analyzers-from-rules extra-analyzers))
   (constructor:refactoring-suite #:rules rule-list #:analyzers combined-analyzers #:name name))
 
 
