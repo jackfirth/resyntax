@@ -1,5 +1,5 @@
 #lang resyntax/test
-require: resyntax/default-recommendations default-recommendations
+require: resyntax/default-recommendations/analyzers/variable-mutability variable-mutability-analyzer
 header: - #lang racket/base
 
 

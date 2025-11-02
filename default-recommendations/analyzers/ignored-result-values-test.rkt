@@ -1,5 +1,5 @@
 #lang resyntax/test
-require: resyntax/default-recommendations default-recommendations
+require: resyntax/default-recommendations/analyzers/ignored-result-values ignored-result-values-analyzer
 header: - #lang racket/base
 
 

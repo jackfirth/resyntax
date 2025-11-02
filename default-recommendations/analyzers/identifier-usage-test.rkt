@@ -1,7 +1,7 @@
 #lang resyntax/test
 
 
-require: resyntax/default-recommendations default-recommendations
+require: resyntax/default-recommendations/analyzers/identifier-usage identifier-usage-analyzer
 header: - #lang racket/base
 
 
