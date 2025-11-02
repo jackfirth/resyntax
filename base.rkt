@@ -315,4 +315,28 @@
     
     (check-equal? (length (refactoring-suite-analyzers inner-suite)) 3)
     ;; Both rules have the same analyzers, so deduplicated should still be 3
-    (check-equal? (length (refactoring-suite-analyzers outer-suite)) 3)))
+    (check-equal? (length (refactoring-suite-analyzers outer-suite)) 3))
+
+  (test-case "define-refactoring-suite with nested suites preserves analyzers"
+    (define-refactoring-rule rule-a
+      #:description "Rule A"
+      pattern-a
+      replacement-a)
+
+    (define-refactoring-suite suite-a
+      #:rules (rule-a))
+
+    (define-refactoring-rule rule-b
+      #:description "Rule B"
+      pattern-b
+      replacement-b)
+
+    (define-refactoring-suite suite-b
+      #:rules (rule-b)
+      #:suites (suite-a))
+
+    ;; Suite B should have both rules
+    (check-equal? (length (refactoring-suite-rules suite-b)) 2)
+    ;; And should have 3 analyzers (deduplicated from both rules)
+    (check-equal? (length (refactoring-suite-analyzers suite-b)) 3)
+    (check-true (andmap expansion-analyzer? (refactoring-suite-analyzers suite-b)))))
