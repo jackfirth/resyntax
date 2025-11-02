@@ -225,7 +225,6 @@
   #:attributes ([condition 1] [body 1])
   #:literals (when)
   (pattern (when c1:expr (when c2:expr nested:deeply-nested-when-expression))
-    #:when (>= (length (syntax->list #'(c1 c2 nested.condition ...))) 3)
     #:with (condition ...) #'(c1 c2 nested.condition ...)
     #:with (body ...) #'(nested.body ...)))
 
