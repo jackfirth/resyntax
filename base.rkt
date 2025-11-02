@@ -14,14 +14,14 @@
  (contract-out
   [refactoring-rule? (-> any/c boolean?)]
   [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
-  [refactoring-rule-analyzers (-> refactoring-rule? (listof expansion-analyzer?))]
+  [refactoring-rule-analyzers (-> refactoring-rule? (set/c expansion-analyzer?))]
   [refactoring-suite? (-> any/c boolean?)]
   [refactoring-suite
    (->* ()
         (#:rules (sequence/c refactoring-rule?) #:name (or/c interned-symbol? #false))
         refactoring-suite?)]
   [refactoring-suite-rules (-> refactoring-suite? (listof refactoring-rule?))]
-  [refactoring-suite-analyzers (-> refactoring-suite? (listof expansion-analyzer?))]))
+  [refactoring-suite-analyzers (-> refactoring-suite? (set/c expansion-analyzer?))]))
 
 
 (module+ private
@@ -37,6 +37,7 @@
                      resyntax/private/more-syntax-parse-classes)
          racket/list
          racket/sequence
+         racket/set
          rebellion/base/immutable-string
          rebellion/base/option
          rebellion/base/symbol
@@ -156,9 +157,9 @@
      #:name 'id
      #:description (string->immutable-string description.c)
      #:uses-universal-tagged-syntax? (~? uses-universal-tagged-syntax? #false)
-     #:analyzers (list identifier-usage-analyzer
-                       ignored-result-values-analyzer
-                       variable-mutability-analyzer)
+     #:analyzers (set identifier-usage-analyzer
+                      ignored-result-values-analyzer
+                      variable-mutability-analyzer)
      #:transformer
      (λ (stx)
        (syntax-parse stx
@@ -236,8 +237,9 @@
 (define (refactoring-suite #:rules [rules '()] #:name [name #false])
   (define rule-list (sequence->list rules))
   (define combined-analyzers
-    (remove-duplicates
-     (append-map refactoring-rule-analyzers rule-list)))
+    (for*/set ([rule (in-list rule-list)]
+               [analyzer (in-set (refactoring-rule-analyzers rule))])
+      analyzer))
   (constructor:refactoring-suite #:rules rule-list #:analyzers combined-analyzers #:name name))
 
 
@@ -276,8 +278,10 @@
       replacement)
     
     (check-true (refactoring-rule? test-rule))
-    (check-equal? (length (refactoring-rule-analyzers test-rule)) 3)
-    (check-true (andmap expansion-analyzer? (refactoring-rule-analyzers test-rule))))
+    (check-true (set? (refactoring-rule-analyzers test-rule)))
+    (check-equal? (set-count (refactoring-rule-analyzers test-rule)) 3)
+    (check-true (for/and ([analyzer (in-set (refactoring-rule-analyzers test-rule))])
+                  (expansion-analyzer? analyzer))))
 
   (test-case "refactoring-suite combines analyzers from rules"
     (define-refactoring-rule rule1
@@ -294,9 +298,11 @@
     
     (check-true (refactoring-suite? suite))
     (check-equal? (length (refactoring-suite-rules suite)) 2)
-    ;; All rules have the same analyzers, so the combined list should have 3 unique analyzers
-    (check-equal? (length (refactoring-suite-analyzers suite)) 3)
-    (check-true (andmap expansion-analyzer? (refactoring-suite-analyzers suite))))
+    (check-true (set? (refactoring-suite-analyzers suite)))
+    ;; All rules have the same analyzers, so the combined set should have 3 unique analyzers
+    (check-equal? (set-count (refactoring-suite-analyzers suite)) 3)
+    (check-true (for/and ([analyzer (in-set (refactoring-suite-analyzers suite))])
+                  (expansion-analyzer? analyzer))))
 
   (test-case "nested suites combine analyzers correctly"
     (define-refactoring-rule inner-rule
@@ -313,9 +319,9 @@
     
     (define outer-suite (refactoring-suite #:rules (list outer-rule inner-rule)))
     
-    (check-equal? (length (refactoring-suite-analyzers inner-suite)) 3)
+    (check-equal? (set-count (refactoring-suite-analyzers inner-suite)) 3)
     ;; Both rules have the same analyzers, so deduplicated should still be 3
-    (check-equal? (length (refactoring-suite-analyzers outer-suite)) 3))
+    (check-equal? (set-count (refactoring-suite-analyzers outer-suite)) 3))
 
   (test-case "define-refactoring-suite with nested suites preserves analyzers"
     (define-refactoring-rule rule-a
@@ -338,5 +344,6 @@
     ;; Suite B should have both rules
     (check-equal? (length (refactoring-suite-rules suite-b)) 2)
     ;; And should have 3 analyzers (deduplicated from both rules)
-    (check-equal? (length (refactoring-suite-analyzers suite-b)) 3)
-    (check-true (andmap expansion-analyzer? (refactoring-suite-analyzers suite-b)))))
+    (check-equal? (set-count (refactoring-suite-analyzers suite-b)) 3)
+    (check-true (for/and ([analyzer (in-set (refactoring-suite-analyzers suite-b))])
+                  (expansion-analyzer? analyzer)))))

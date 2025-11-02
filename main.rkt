@@ -473,7 +473,8 @@
   
   (test-case "resyntax-analyze uses suite analyzers"
     (define test-suite default-recommendations)
-    (check-true (list? (refactoring-suite-analyzers test-suite)))
-    (check-false (empty? (refactoring-suite-analyzers test-suite)))
+    (check-true (set? (refactoring-suite-analyzers test-suite)))
+    (check-false (set-empty? (refactoring-suite-analyzers test-suite)))
     ;; Verify that all analyzers in the suite are expansion-analyzer?
-    (check-true (andmap expansion-analyzer? (refactoring-suite-analyzers test-suite)))))
+    (check-true (for/and ([analyzer (in-set (refactoring-suite-analyzers test-suite))])
+                  (expansion-analyzer? analyzer)))))

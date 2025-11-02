@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [source-analyze (->* (source? #:analyzers (listof expansion-analyzer?))
+  [source-analyze (->* (source? #:analyzers (sequence/c expansion-analyzer?))
                        (#:lines range-set?)
                        source-code-analysis?)]
   [source-code-analysis? (-> any/c boolean?)]
