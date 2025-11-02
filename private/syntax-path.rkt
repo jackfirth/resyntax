@@ -218,14 +218,11 @@
 
 
 (define (syntax-path->string path)
-  (if (empty-syntax-path? path)
-      "/"
-      (string-append
-       "/"
-       (string-join
-        (for/list ([elem (in-treelist (syntax-path-elements path))])
-          (number->string elem))
-        "/"))))
+  (string-join
+   (for/list ([elem (in-treelist (syntax-path-elements path))])
+     (number->string elem))
+   "/"
+   #:before-first "/"))
 
 
 (module+ test
@@ -284,24 +281,62 @@
       (check-equal? (string->syntax-path "/42/99/1000") (syntax-path (list 42 99 1000))))
     
     (test-case "error on missing leading slash"
-      (check-exn exn:fail:contract?
-                 (λ () (string->syntax-path "0/1/2"))))
+      (define input "0/1/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"0/1/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string must start with /" (exn-message thrown)))
     
     (test-case "error on trailing slash"
-      (check-exn exn:fail:contract?
-                 (λ () (string->syntax-path "/0/1/"))))
+      (define input "/0/1/")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/1/\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string must not end with /" (exn-message thrown)))
     
     (test-case "error on invalid element"
-      (check-exn exn:fail:contract?
-                 (λ () (string->syntax-path "/0/abc/2"))))
+      (define input "/0/abc/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/abc/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string contains invalid element" (exn-message thrown))
+      (check-regexp-match #rx"invalid element: \"abc\"" (exn-message thrown)))
     
     (test-case "error on negative number"
-      (check-exn exn:fail:contract?
-                 (λ () (string->syntax-path "/0/-1/2"))))
+      (define input "/0/-1/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/-1/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string contains invalid element" (exn-message thrown))
+      (check-regexp-match #rx"invalid element: \"-1\"" (exn-message thrown)))
     
     (test-case "error on float"
-      (check-exn exn:fail:contract?
-                 (λ () (string->syntax-path "/0/1.5/2"))))))
+      (define input "/0/1.5/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/1.5/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string contains invalid element" (exn-message thrown))
+      (check-regexp-match #rx"invalid element: \"1.5\"" (exn-message thrown)))))
 
 
 (module+ test
