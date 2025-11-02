@@ -20,6 +20,8 @@
   [syntax-path-add (-> syntax-path? exact-nonnegative-integer? syntax-path?)]
   [syntax-path-remove-prefix (-> syntax-path? syntax-path? syntax-path?)]
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
+  [syntax-path->string (-> syntax-path? immutable-string?)]
+  [string->syntax-path (-> string? syntax-path?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
   [syntax-remove-splice
@@ -36,7 +38,9 @@
                      racket/syntax)
          data/order
          guard
+         racket/mutability
          racket/sequence
+         racket/string
          racket/struct
          racket/treelist
          racket/list
@@ -212,6 +216,148 @@
   (and (exact-nonnegative-integer? leading)
        (exact-nonnegative-integer? trailing)
        (equal? leading (sub1 trailing))))
+
+
+(define (syntax-path->string path)
+  (string->immutable-string
+   (string-join
+    (for/list ([elem (in-treelist (syntax-path-elements path))])
+      (number->string elem))
+    "/"
+    #:before-first "/")))
+
+
+(module+ test
+  (test-case "syntax-path->string"
+    (test-case "empty path"
+      (check-equal? (syntax-path->string empty-syntax-path) "/"))
+    
+    (test-case "single element"
+      (check-equal? (syntax-path->string (syntax-path (list 0))) "/0"))
+    
+    (test-case "multiple elements"
+      (check-equal? (syntax-path->string (syntax-path (list 0 1 2))) "/0/1/2"))
+    
+    (test-case "large numbers"
+      (check-equal? (syntax-path->string (syntax-path (list 42 99 1000))) "/42/99/1000"))))
+
+
+(define (string->syntax-path str)
+  (unless (string-prefix? str "/")
+    (raise-arguments-error
+     'string->syntax-path
+     "syntax path string must start with /"
+     "given" str))
+  (when (and (> (string-length str) 1) (string-suffix? str "/"))
+    (raise-arguments-error
+     'string->syntax-path
+     "syntax path string must not end with / (except for root path)"
+     "given" str))
+  (if (equal? str "/")
+      empty-syntax-path
+      (let* ([parts (string-split (substring str 1) "/")]
+             [numbers (for/list ([part (in-list parts)])
+                        (define num (string->number part))
+                        (unless (and num (exact-nonnegative-integer? num))
+                          (raise-arguments-error
+                           'string->syntax-path
+                           "syntax path string contains invalid element (must be nonnegative integer)"
+                           "given" str
+                           "invalid element" part))
+                        num)])
+        (syntax-path numbers))))
+
+
+(module+ test
+  (test-case "string->syntax-path"
+    (test-case "empty path"
+      (check-equal? (string->syntax-path "/") empty-syntax-path))
+    
+    (test-case "single element"
+      (check-equal? (string->syntax-path "/0") (syntax-path (list 0))))
+    
+    (test-case "multiple elements"
+      (check-equal? (string->syntax-path "/0/1/2") (syntax-path (list 0 1 2))))
+    
+    (test-case "large numbers"
+      (check-equal? (string->syntax-path "/42/99/1000") (syntax-path (list 42 99 1000))))
+    
+    (test-case "error on missing leading slash"
+      (define input "0/1/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"0/1/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string must start with /" (exn-message thrown)))
+    
+    (test-case "error on trailing slash"
+      (define input "/0/1/")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/1/\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string must not end with /" (exn-message thrown)))
+    
+    (test-case "error on invalid element"
+      (define input "/0/abc/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/abc/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string contains invalid element" (exn-message thrown))
+      (check-regexp-match #rx"invalid element: \"abc\"" (exn-message thrown)))
+    
+    (test-case "error on negative number"
+      (define input "/0/-1/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/-1/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string contains invalid element" (exn-message thrown))
+      (check-regexp-match #rx"invalid element: \"-1\"" (exn-message thrown)))
+    
+    (test-case "error on float"
+      (define input "/0/1.5/2")
+      (define thrown
+        (with-handlers ([(λ (_) #true) values])
+          (string->syntax-path input)
+          #false))
+      (check-pred exn:fail:contract? thrown)
+      (check-regexp-match #rx"string->syntax-path:" (exn-message thrown))
+      (check-regexp-match #rx"given: \"/0/1.5/2\"" (exn-message thrown))
+      (check-regexp-match #rx"syntax path string contains invalid element" (exn-message thrown))
+      (check-regexp-match #rx"invalid element: \"1.5\"" (exn-message thrown)))))
+
+
+(module+ test
+  (test-case "round-trip conversion"
+    (test-case "empty path"
+      (check-equal? (string->syntax-path (syntax-path->string empty-syntax-path))
+                    empty-syntax-path))
+    
+    (test-case "single element path"
+      (define path (syntax-path (list 5)))
+      (check-equal? (string->syntax-path (syntax-path->string path)) path))
+    
+    (test-case "multiple element path"
+      (define path (syntax-path (list 1 2 3 4 5)))
+      (check-equal? (string->syntax-path (syntax-path->string path)) path))
+    
+    (test-case "path with large numbers"
+      (define path (syntax-path (list 0 100 999 1234567)))
+      (check-equal? (string->syntax-path (syntax-path->string path)) path))))
 
 
 (define (syntax-ref init-stx path)
