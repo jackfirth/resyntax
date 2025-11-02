@@ -18,6 +18,7 @@
          racket/match
          racket/port
          racket/pretty
+         racket/set
          racket/string
          rackunit
          rebellion/base/comparator
@@ -33,6 +34,8 @@
          rebellion/type/tuple
          resyntax
          resyntax/base
+         resyntax/private/analysis
+         resyntax/private/analyzer
          resyntax/private/logger
          resyntax/private/refactoring-result
          resyntax/private/source
@@ -86,15 +89,27 @@
 
 (define current-suite-under-test (make-parameter (refactoring-suite #:rules '())))
 
+;; Additional analyzers that should be included when running analysis tests
+(define current-analyzers-under-test (make-parameter (set)))
+
 
 (define (clear-suites-under-test!)
-  (current-suite-under-test (refactoring-suite #:rules '())))
+  (current-suite-under-test (refactoring-suite #:rules '()))
+  (current-analyzers-under-test (set)))
 
 
-(define (add-suite-under-test! suite)
-  (define current-rules (refactoring-suite-rules (current-suite-under-test)))
-  (define new-rules (append current-rules (refactoring-suite-rules suite)))
-  (current-suite-under-test (refactoring-suite #:rules new-rules)))
+(define (add-suite-under-test! suite-or-analyzer)
+  (cond
+    [(refactoring-suite? suite-or-analyzer)
+     (define current-rules (refactoring-suite-rules (current-suite-under-test)))
+     (define new-rules (append current-rules (refactoring-suite-rules suite-or-analyzer)))
+     (current-suite-under-test (refactoring-suite #:rules new-rules))]
+    [(expansion-analyzer? suite-or-analyzer)
+     (current-analyzers-under-test (set-add (current-analyzers-under-test) suite-or-analyzer))]
+    [else
+     (raise-argument-error 'add-suite-under-test!
+                           "(or/c refactoring-suite? expansion-analyzer?)"
+                           suite-or-analyzer)]))
 
 
 (define current-header (make-parameter (code-block "")))
@@ -243,13 +258,23 @@
 
 (define-check (check-suite-analysis program context-list target property-key expected-value)
   (define suite (current-suite-under-test))
+  (define extra-analyzers (current-analyzers-under-test))
   (set! program (code-block-append (current-header) program))
   (define program-src (string-source (code-block-raw-string program)))
   (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
 
+  ;; Combine analyzers from the suite and any additional analyzers
+  (define all-analyzers
+    (set-union (refactoring-suite-analyzers suite) extra-analyzers))
+
   (define actual-props
     (call-with-logs-captured
-     (λ () (reysntax-analyze-for-properties-only program-src))))
+     (λ ()
+       (define full-source (source->string program-src))
+       (if (string-prefix? full-source "#lang racket")
+           (source-code-analysis-added-syntax-properties
+            (source-analyze program-src #:analyzers all-analyzers))
+           (syntax-property-bundle)))))
 
   (define target-src (string-source (string-trim (code-block-raw-string target))))
   (define context-src-list
