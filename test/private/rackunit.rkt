@@ -89,23 +89,24 @@
 
 (define current-suite-under-test (make-parameter (refactoring-suite #:rules '())))
 
-;; Additional analyzers that should be included when running analysis tests
-(define current-analyzers-under-test (make-parameter (set)))
-
 
 (define (clear-suites-under-test!)
-  (current-suite-under-test (refactoring-suite #:rules '()))
-  (current-analyzers-under-test (set)))
+  (current-suite-under-test (refactoring-suite #:rules '())))
 
 
 (define (add-suite-under-test! suite-or-analyzer)
   (cond
     [(refactoring-suite? suite-or-analyzer)
      (define current-rules (refactoring-suite-rules (current-suite-under-test)))
+     (define current-analyzers (refactoring-suite-analyzers (current-suite-under-test)))
      (define new-rules (append current-rules (refactoring-suite-rules suite-or-analyzer)))
-     (current-suite-under-test (refactoring-suite #:rules new-rules))]
+     (define new-analyzers (set-union current-analyzers (refactoring-suite-analyzers suite-or-analyzer)))
+     (current-suite-under-test (refactoring-suite #:rules new-rules #:analyzers new-analyzers))]
     [(expansion-analyzer? suite-or-analyzer)
-     (current-analyzers-under-test (set-add (current-analyzers-under-test) suite-or-analyzer))]
+     (define current-rules (refactoring-suite-rules (current-suite-under-test)))
+     (define current-analyzers (refactoring-suite-analyzers (current-suite-under-test)))
+     (define new-analyzers (set-add current-analyzers suite-or-analyzer))
+     (current-suite-under-test (refactoring-suite #:rules current-rules #:analyzers new-analyzers))]
     [else
      (raise-argument-error 'add-suite-under-test!
                            "(or/c refactoring-suite? expansion-analyzer?)"
@@ -258,14 +259,9 @@
 
 (define-check (check-suite-analysis program context-list target property-key expected-value)
   (define suite (current-suite-under-test))
-  (define extra-analyzers (current-analyzers-under-test))
   (set! program (code-block-append (current-header) program))
   (define program-src (string-source (code-block-raw-string program)))
   (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
-
-  ;; Combine analyzers from the suite and any additional analyzers
-  (define all-analyzers
-    (set-union (refactoring-suite-analyzers suite) extra-analyzers))
 
   (define (skip e)
     (log-resyntax-error
@@ -282,7 +278,7 @@
                           [exn:fail:filesystem:missing-module? skip]
                           [exn:fail:contract:variable? skip])
              (source-code-analysis-added-syntax-properties
-              (source-analyze program-src #:analyzers all-analyzers)))
+              (source-analyze program-src #:analyzers (refactoring-suite-analyzers suite))))
            (syntax-property-bundle)))))
 
   (define target-src (string-source (string-trim (code-block-raw-string target))))
