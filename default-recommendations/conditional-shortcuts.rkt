@@ -204,67 +204,27 @@
         (~replacement [else else-expr.refactored ...] #:original else-expr)))
 
 
-;; Syntax class to count and extract deeply nested when expressions
-(define-syntax-class deeply-nested-when-expression
-  #:attributes ([condition 1] [body 1])
-  #:literals (when)
-  
-  ;; Base case: innermost when with any condition
-  (pattern (when inner-condition:expr inner-body:expr ...)
-    #:with (condition ...) #'(inner-condition)
-    #:with (body ...) #'(inner-body ...))
-  
-  ;; Recursive case: nest of when expressions
-  (pattern (when outer-condition:expr nested:deeply-nested-when-expression)
-    #:with (condition ...) #'(outer-condition nested.condition ...)
-    #:with (body ...) #'(nested.body ...)))
-
-
-;; Match three or more nested when expressions
-(define-syntax-class triple-nested-when-expression
-  #:attributes ([condition 1] [body 1])
-  #:literals (when)
-  (pattern (when c1:expr (when c2:expr nested:deeply-nested-when-expression))
-    #:with (condition ...) #'(c1 c2 nested.condition ...)
-    #:with (body ...) #'(nested.body ...)))
-
-
-;; Match two nested when where outer has and
-(define-syntax-class double-nested-when-outer-and
-  #:attributes ([condition 1] [body 1])
+(define-syntax-class nested-when-expression
+  #:attributes ([condition 1] [body 1] depth)
   #:literals (when and)
-  (pattern (when (and outer-parts ...) (when inner-condition:expr inner-body:expr ...))
-    #:with (condition ...) #'(outer-parts ... inner-condition)
-    #:with (body ...) #'(inner-body ...)))
 
-
-;; Match two nested when where inner has and
-(define-syntax-class double-nested-when-inner-and
-  #:attributes ([condition 1] [body 1])
-  #:literals (when and)
-  (pattern (when outer-condition:expr (when (and inner-parts ...) inner-body:expr ...))
-    #:with (condition ...) #'(outer-condition inner-parts ...)
-    #:with (body ...) #'(inner-body ...)))
-
-
-;; Match two nested when where both are identifiers
-(define-syntax-class double-nested-when-both-ids
-  #:attributes ([condition 1] [body 1])
-  #:literals (when)
-  (pattern (when outer-id:id (when inner-id:id inner-body:expr ...))
-    #:with (condition ...) #'(outer-id inner-id)
-    #:with (body ...) #'(inner-body ...)))
+  (pattern (when (~or (and subcondition ...) first-condition)
+             (~or nested:nested-when-expression (~seq only-body ...)))
+    #:with (condition ...)
+    #'((~? (~@ subcondition ...) first-condition) (~? (~@ nested.condition ...)))
+    #:attr [body 1] (or (attribute nested.body) (attribute only-body))
+    #:attr depth (add1 (or (attribute nested.depth) 0))))
 
 
 (define-refactoring-rule nested-when-to-compound-when
   #:description
   "Nested `when` expressions can be merged into a single compound `when` expression."
-  #:literals (when and)
-  (~or nested:triple-nested-when-expression
-       nested:double-nested-when-outer-and
-       nested:double-nested-when-inner-and
-       nested:double-nested-when-both-ids)
-  (when (and nested.condition ...) nested.body ...))
+  when-expr:nested-when-expression
+  #:when (or (>= (attribute when-expr.depth) 3)
+             (>= (length (attribute when-expr.condition)) 3)
+             (and (equal? (attribute when-expr.depth) 2)
+                  (andmap identifier? (attribute when-expr.condition))))
+  (when (and when-expr.condition ...) when-expr.body ...))
 
 
 (define-refactoring-rule ignored-and-to-when
