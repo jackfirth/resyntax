@@ -244,8 +244,6 @@
 
 
 (define (string->syntax-path str)
-  (unless (string? str)
-    (raise-argument-error 'string->syntax-path "string?" str))
   (unless (string-prefix? str "/")
     (raise-arguments-error
      'string->syntax-path
@@ -264,7 +262,7 @@
                         (unless (and num (exact-nonnegative-integer? num))
                           (raise-arguments-error
                            'string->syntax-path
-                           "syntax path string contains invalid element (must be non-negative integer)"
+                           "syntax path string contains invalid element (must be nonnegative integer)"
                            "given" str
                            "invalid element" part))
                         num)])
