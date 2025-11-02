@@ -1,0 +1,44 @@
+name: Resyntax Analysis
+
+# The Resyntax integration is split into two phases: a workflow that analyzes the code and uploads
+# the analysis as an artifact, and a workflow that downloads the analysis artifact and creates a
+# review of the pull request. This split is for permissions reasons; the analysis workflow checks out
+# the pull request branch and compiles it, executing arbitrary code as it does so. For that reason,
+# the first workflow has read-only permissions in the github repository. The second workflow only
+# downloads the pull request review artifact and submits it, and it executes with read-write permissions
+# without executing any code in the repository. This division of responsibilities allows Resyntax to
+# safely analyze pull requests from forks. This strategy is outlined in the following article:
+# https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    if: ${{ github.triggering_actor != 'resyntax-ci[bot]' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5.0.0
+        # See https://github.com/actions/checkout/issues/118.
+        with:
+          fetch-depth: 0
+      - uses: Bogdanp/setup-racket@v1.5
+        with:
+          version: stable
+      - run: raco pkg install --batch --auto --link --name resyntax
+      - name: Analyze changed files
+        run: racket -l- resyntax/cli analyze --local-git-repository . "origin/${GITHUB_BASE_REF}" --output-as-github-review --output-to-file ./resyntax-review.json
+      - name: Upload analysis artifact
+        uses: actions/upload-artifact@v4.6.1
+        with:
+          name: resyntax-review
+          path: resyntax-review.json
