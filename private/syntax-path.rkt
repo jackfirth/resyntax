@@ -20,7 +20,7 @@
   [syntax-path-add (-> syntax-path? exact-nonnegative-integer? syntax-path?)]
   [syntax-path-remove-prefix (-> syntax-path? syntax-path? syntax-path?)]
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
-  [syntax-path->string (-> syntax-path? string?)]
+  [syntax-path->string (-> syntax-path? immutable-string?)]
   [string->syntax-path (-> string? syntax-path?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
@@ -38,6 +38,7 @@
                      racket/syntax)
          data/order
          guard
+         racket/mutability
          racket/sequence
          racket/string
          racket/struct
@@ -218,11 +219,12 @@
 
 
 (define (syntax-path->string path)
-  (string-join
-   (for/list ([elem (in-treelist (syntax-path-elements path))])
-     (number->string elem))
-   "/"
-   #:before-first "/"))
+  (string->immutable-string
+   (string-join
+    (for/list ([elem (in-treelist (syntax-path-elements path))])
+      (number->string elem))
+    "/"
+    #:before-first "/")))
 
 
 (module+ test
