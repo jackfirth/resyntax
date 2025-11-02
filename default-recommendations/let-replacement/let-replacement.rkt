@@ -36,20 +36,22 @@
   (leading-body ... replacement ...))
 
 
-(define-definition-context-refactoring-rule define-let-to-double-define
-  #:description "This `let` expression can be pulled up into a `define` expression."
+(define-definition-context-refactoring-rule define-let-to-multi-define
+  #:description "This `let` expression can be pulled up into multiple `define` expressions."
   #:literals (define let)
   (~seq body-before ...
-        (~and original-definition (define id:id (let ([nested-id:id nested-expr:expr]) expr:expr)))
+        (~and original-definition (define id:id (let ([nested-id:id nested-expr:expr] ...) expr:expr)))
         body-after ...)
-  #:when (identifier-binding-unchanged-in-context? (attribute id) (attribute nested-expr))
-  #:when (for/and ([body-free-id
-                    (in-free-id-set
-                     (syntax-free-identifiers #'(body-before ... nested-expr body-after ...)))])
-           (identifier-binding-unchanged-in-context? body-free-id (attribute nested-id)))
+  #:when (for/and ([nested-expr (in-list (attribute nested-expr))])
+           (identifier-binding-unchanged-in-context? (attribute id) nested-expr))
+  #:when (for*/and ([body-free-id
+                     (in-free-id-set
+                      (syntax-free-identifiers #'(body-before ... (nested-expr ...) body-after ...)))]
+                    [nested-id (in-list (attribute nested-id))])
+           (identifier-binding-unchanged-in-context? body-free-id nested-id))
   (body-before ...
    (~@ . (~focus-replacement-on
-          (~splicing-replacement ((define nested-id nested-expr) (define id expr))
+          (~splicing-replacement ((define nested-id nested-expr) ... (define id expr))
                                  #:original original-definition)))
    body-after ...))
 
@@ -73,5 +75,5 @@
 
 (define-refactoring-suite let-replacement
   #:rules (let-to-define
-           define-let-to-double-define
+           define-let-to-multi-define
            begin0-let-to-define-begin0))

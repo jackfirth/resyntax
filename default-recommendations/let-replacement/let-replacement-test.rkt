@@ -597,6 +597,57 @@ no-change-test:
 ------------------------------
 
 
+test: "variable definition with nested let binding with multiple bindings refactorable"
+------------------------------
+(define (f)
+  (displayln "foo")
+  (define a (let ([b 1] [c 2]) (+ b c 10)))
+  (* a 3))
+==============================
+(define (f)
+  (displayln "foo")
+  (define b 1)
+  (define c 2)
+  (define a (+ b c 10))
+  (* a 3))
+------------------------------
+
+
+test: "variable definition with nested let binding with three bindings refactorable"
+------------------------------
+(define (f)
+  (define a (let ([b 1] [c 2] [d 3]) (+ b c d)))
+  (* a 10))
+==============================
+(define (f)
+  (define b 1)
+  (define c 2)
+  (define d 3)
+  (define a (+ b c d))
+  (* a 10))
+------------------------------
+
+
+no-change-test:
+"variable definition with nested let binding with multiple bindings where one conflicts not refactorable"
+------------------------------
+(define (f)
+  (define x 5)
+  (define a (let ([b 1] [x 2]) (+ b x 10)))
+  (* a 3))
+------------------------------
+
+
+no-change-test:
+"variable definition with nested let binding with multiple bindings where one shadows outer binding not refactorable"
+------------------------------
+(define x 5)
+(define (f)
+  (define a (let ([x 1] [c 2]) (+ x c 10)))
+  (* x a))
+------------------------------
+
+
 test: "let binding nested in begin0 extractable to definition"
 ------------------------------
 (define (f)
@@ -640,7 +691,7 @@ test: "let-to-define doesn't reformat the entire definition context"
 ----------------------------------------
 
 
-test: "define-let-to-double-define doesn't reformat the entire definition context"
+test: "define-let-to-multi-define doesn't reformat the entire definition context"
 ----------------------------------------
 (define (f)
   ( displayln "foo" )
