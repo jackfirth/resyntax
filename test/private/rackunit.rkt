@@ -267,13 +267,22 @@
   (define all-analyzers
     (set-union (refactoring-suite-analyzers suite) extra-analyzers))
 
+  (define (skip e)
+    (log-resyntax-error
+     "skipping analysis\n encountered an error during macro expansion\n  error:\n~a"
+     (string-indent (exn-message e) #:amount 3))
+    (syntax-property-bundle))
+
   (define actual-props
     (call-with-logs-captured
      (λ ()
        (define full-source (source->string program-src))
        (if (string-prefix? full-source "#lang racket")
-           (source-code-analysis-added-syntax-properties
-            (source-analyze program-src #:analyzers all-analyzers))
+           (with-handlers ([exn:fail:syntax? skip]
+                          [exn:fail:filesystem:missing-module? skip]
+                          [exn:fail:contract:variable? skip])
+             (source-code-analysis-added-syntax-properties
+              (source-analyze program-src #:analyzers all-analyzers)))
            (syntax-property-bundle)))))
 
   (define target-src (string-source (string-trim (code-block-raw-string target))))
