@@ -52,9 +52,6 @@
          rebellion/type/record
          resyntax/base
          resyntax/default-recommendations
-         resyntax/default-recommendations/analyzers/identifier-usage
-         resyntax/default-recommendations/analyzers/ignored-result-values
-         resyntax/default-recommendations/analyzers/variable-mutability
          resyntax/private/analysis
          resyntax/private/comment-reader
          resyntax/private/git
@@ -75,6 +72,7 @@
 (module+ test
   (require racket/list
            rackunit
+           resyntax/private/analyzer
            (submod "..")))
 
 
@@ -211,9 +209,7 @@
     (with-handlers ([exn:fail? skip])
       (define analysis (source-analyze source
                                        #:lines lines
-                                       #:analyzers (list identifier-usage-analyzer
-                                                         ignored-result-values-analyzer
-                                                         variable-mutability-analyzer)))
+                                       #:analyzers (refactoring-suite-analyzers effective-suite)))
       (refactor-visited-forms
        #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
   
@@ -242,9 +238,7 @@
                   [exn:fail:filesystem:missing-module? skip]
                   [exn:fail:contract:variable? skip])
     (define analysis (source-analyze source
-                                     #:analyzers (list identifier-usage-analyzer
-                                                       ignored-result-values-analyzer
-                                                       variable-mutability-analyzer)))
+                                     #:analyzers (refactoring-suite-analyzers suite)))
     (source-code-analysis-added-syntax-properties analysis)))
 
 
@@ -475,4 +469,11 @@
     (check-equal? (refactoring-result-string-replacement (first results))
                   (string-replacement #:start 13
                                       #:end 28
-                                      #:contents (list (inserted-string "(or 1 2 3)"))))))
+                                      #:contents (list (inserted-string "(or 1 2 3)")))))
+  
+  (test-case "resyntax-analyze uses suite analyzers"
+    (define test-suite default-recommendations)
+    (check-true (list? (refactoring-suite-analyzers test-suite)))
+    (check-false (empty? (refactoring-suite-analyzers test-suite)))
+    ;; Verify that all analyzers in the suite are expansion-analyzer?
+    (check-true (andmap expansion-analyzer? (refactoring-suite-analyzers test-suite)))))
