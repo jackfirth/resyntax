@@ -29,37 +29,29 @@
   (read-line (~? port (current-input-port)) 'any))
 
 
-(define-refactoring-rule printf-newline-only
-  #:description "The `newline` function can be used to print a single newline character."
+(define-syntax-class printf-without-specifiers
+  #:attributes (refactored)
   #:literals (printf)
-  (printf "\n")
-  (newline))
+  
+  (pattern (printf "\n")
+    #:with refactored #'(newline))
+  
+  (pattern (printf s:str)
+    #:when (string-suffix? (syntax-e #'s) "\n")
+    #:with stripped (substring (syntax-e #'s) 0 (- (string-length (syntax-e #'s)) 1))
+    #:with refactored #'(displayln stripped))
+  
+  (pattern (printf s:str)
+    #:with refactored #'(display s)))
 
 
-(define-refactoring-rule printf-ending-with-newline
+(define-refactoring-rule printf-to-display
   #:description
-  "When `printf` is used with a single string argument ending in a newline, use `displayln`."
-  #:literals (printf)
-  (printf s:str)
-  #:when (string-suffix? (syntax-e #'s) "\n")
-  #:when (not (equal? (syntax-e #'s) "\n"))
-  #:with stripped (substring (syntax-e #'s) 0 (- (string-length (syntax-e #'s)) 1))
-  (displayln stripped))
+  "When `printf` is used with a single string argument, use `display`, `displayln`, or `newline`."
+  expr:printf-without-specifiers
+  expr.refactored)
 
 
-(define-refactoring-rule printf-without-newline
-  #:description "When `printf` is used with a single string argument, use `display`."
-  #:literals (printf)
-  (printf s:str)
-  #:when (not (string-suffix? (syntax-e #'s) "\n"))
-  (display s))
-
-
-;; Rules are ordered from most specific to least specific. printf-newline-only handles the
-;; special case of "\n", printf-ending-with-newline handles strings ending with newlines,
-;; and printf-without-newline handles all other strings.
 (define-refactoring-suite console-io-suggestions
-  #:rules (printf-newline-only
-           printf-ending-with-newline
-           printf-without-newline
+  #:rules (printf-to-display
            read-line-any))
