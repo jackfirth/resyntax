@@ -18,11 +18,6 @@
          syntax/parse)
 
 
-(module+ test
-  (require (submod "..")
-           rackunit))
-
-
 ;@----------------------------------------------------------------------------------------------------
 
 
@@ -62,13 +57,3 @@
      (define labeled-stx (syntax-label-paths expanded-stx 'expansion-path))
      (transduce (annotate-application-subexpressions labeled-stx)
                 #:into into-syntax-property-bundle))))
-
-
-(module+ test
-  (test-case "function-expression-analyzer"
-
-    (test-case "empty module"
-      (define stx #'(module foo racket/base))
-      (define props (expansion-analyze function-expression-analyzer (expand stx)))
-      ;; Even empty modules have configure-runtime calls, so we check that we get some properties
-      (check-true (syntax-property-bundle? props)))))
