@@ -55,6 +55,9 @@
   (display s))
 
 
+;; Rules are ordered from most specific to least specific. printf-newline-only handles the
+;; special case of "\n", printf-ending-with-newline handles strings ending with newlines,
+;; and printf-without-newline handles all other strings.
 (define-refactoring-suite console-io-suggestions
   #:rules (printf-newline-only
            printf-ending-with-newline
