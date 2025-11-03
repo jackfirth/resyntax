@@ -139,12 +139,30 @@
                  (mapping-values (λ (exp-paths) (present-value (sorted-set-least-element exp-paths))))
                  #:into (into-sorted-map syntax-path<=>)))
 
-    (define expansion-analyzer-props
+    (define expansion-analyzer-props-raw
       (transduce analyzers
                  (append-mapping
                   (λ (analyzer)
                     (syntax-property-bundle-entries
                      (expansion-analyze analyzer expanded))))
+                 #:into into-syntax-property-bundle))
+
+    ;; Filter out properties with invalid paths and log warnings
+    (define expansion-analyzer-props
+      (transduce (syntax-property-bundle-entries expansion-analyzer-props-raw)
+                 (filtering
+                  (λ (prop-entry)
+                    (match-define (syntax-property-entry path key _value) prop-entry)
+                    (define valid? (syntax-contains-path? expanded path))
+                    (unless valid?
+                      (log-resyntax-warning
+                       (string-append
+                        "ignoring property with out-of-syntax path returned by analyzer\n"
+                        "  path: ~a\n"
+                        "  property key: ~a")
+                       path
+                       key))
+                    valid?))
                  #:into into-syntax-property-bundle))
 
     (define expansion-analyzer-props-adjusted-for-visits

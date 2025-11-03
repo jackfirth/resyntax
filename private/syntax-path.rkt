@@ -23,6 +23,7 @@
   [syntax-path->string (-> syntax-path? immutable-string?)]
   [string->syntax-path (-> string? syntax-path?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
+  [syntax-contains-path? (-> syntax? syntax-path? boolean?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
   [syntax-remove-splice
    (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) exact-nonnegative-integer? syntax?)]
@@ -564,6 +565,66 @@
       (check-regexp-match #rx"path is inconsistent" (exn-message thrown)))))
 
 
+(define (syntax-contains-path? init-stx path)
+  (with-handlers ([exn:fail:contract? (λ (_) #false)])
+    (syntax-ref init-stx path)
+    #true))
+
+
+(module+ test
+  (test-case "syntax-contains-path?"
+
+    (test-case "empty path on any syntax"
+      (define stx #'a)
+      (check-true (syntax-contains-path? stx empty-syntax-path)))
+
+    (test-case "valid path in list"
+      (define stx #'(a b c))
+      (check-true (syntax-contains-path? stx (syntax-path (list 0))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 2)))))
+
+    (test-case "invalid path in list - out of bounds"
+      (define stx #'(a b c))
+      (check-false (syntax-contains-path? stx (syntax-path (list 3))))
+      (check-false (syntax-contains-path? stx (syntax-path (list 10)))))
+
+    (test-case "valid nested path"
+      (define stx #'(a (b c) d))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1 0))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1 1)))))
+
+    (test-case "invalid nested path"
+      (define stx #'(a (b c) d))
+      (check-false (syntax-contains-path? stx (syntax-path (list 1 2))))
+      (check-false (syntax-contains-path? stx (syntax-path (list 3 0)))))
+
+    (test-case "valid path in vector"
+      (define stx #'#[a b c])
+      (check-true (syntax-contains-path? stx (syntax-path (list 0))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1)))))
+
+    (test-case "invalid path in vector"
+      (define stx #'#[a b c])
+      (check-false (syntax-contains-path? stx (syntax-path (list 5)))))
+
+    (test-case "valid path in box"
+      (define stx #'#&a)
+      (check-true (syntax-contains-path? stx (syntax-path (list 0)))))
+
+    (test-case "invalid path in box"
+      (define stx #'#&a)
+      (check-false (syntax-contains-path? stx (syntax-path (list 1)))))
+
+    (test-case "path on non-compound datum"
+      (define stx #'atom)
+      (check-false (syntax-contains-path? stx (syntax-path (list 0)))))
+
+    (test-case "path referring to non-syntax component"
+      ; This test ensures we catch the error when syntax-ref finds a non-syntax component
+      (define stx #'(a b c))
+      ; If we try to drill down into 'a', we should fail because atoms don't have children
+      (check-false (syntax-contains-path? stx (syntax-path (list 0 0)))))))
 
 
 
