@@ -11,6 +11,7 @@
 
 (require racket/file
          racket/list
+         racket/string
          rebellion/private/static-name
          resyntax/base
          syntax/parse)
@@ -28,5 +29,34 @@
   (read-line (~? port (current-input-port)) 'any))
 
 
+(define-refactoring-rule printf-newline-only
+  #:description "The `newline` function can be used to print a single newline character."
+  #:literals (printf)
+  (printf "\n")
+  (newline))
+
+
+(define-refactoring-rule printf-ending-with-newline
+  #:description
+  "When `printf` is used with a single string argument ending in a newline, use `displayln`."
+  #:literals (printf)
+  (printf s:str)
+  #:when (string-suffix? (syntax-e #'s) "\n")
+  #:when (not (equal? (syntax-e #'s) "\n"))
+  #:with stripped (substring (syntax-e #'s) 0 (- (string-length (syntax-e #'s)) 1))
+  (displayln stripped))
+
+
+(define-refactoring-rule printf-without-newline
+  #:description "When `printf` is used with a single string argument, use `display`."
+  #:literals (printf)
+  (printf s:str)
+  #:when (not (string-suffix? (syntax-e #'s) "\n"))
+  (display s))
+
+
 (define-refactoring-suite console-io-suggestions
-  #:rules (read-line-any))
+  #:rules (printf-newline-only
+           printf-ending-with-newline
+           printf-without-newline
+           read-line-any))
