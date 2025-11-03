@@ -139,17 +139,12 @@
                  (mapping-values (λ (exp-paths) (present-value (sorted-set-least-element exp-paths))))
                  #:into (into-sorted-map syntax-path<=>)))
 
-    (define expansion-analyzer-props-raw
+    (define expansion-analyzer-props
       (transduce analyzers
                  (append-mapping
                   (λ (analyzer)
                     (syntax-property-bundle-entries
                      (expansion-analyze analyzer expanded))))
-                 #:into into-syntax-property-bundle))
-
-    ;; Filter out properties with invalid paths and log warnings
-    (define expansion-analyzer-props
-      (transduce (syntax-property-bundle-entries expansion-analyzer-props-raw)
                  (filtering
                   (λ (prop-entry)
                     (match-define (syntax-property-entry path key _value) prop-entry)

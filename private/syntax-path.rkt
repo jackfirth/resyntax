@@ -566,9 +566,64 @@
 
 
 (define (syntax-contains-path? init-stx path)
-  (with-handlers ([exn:fail? (λ (_) #false)])
-    (syntax-ref init-stx path)
-    #true))
+  (let/ec return
+    (for/fold ([stx init-stx])
+              ([element (in-treelist (syntax-path-elements path))])
+      (define unwrapped (syntax-e stx))
+      (cond
+        ; Handle improper lists - flatten them so the tail is treated as the last element
+        [(and (pair? unwrapped) (not (list? unwrapped)))
+         (define flattened (flatten-improper-list unwrapped))
+         (unless (< element (length flattened))
+           (return #false))
+         (list-ref flattened element)]
+        ; Handle proper lists
+        [(list? unwrapped)
+         (unless (< element (length unwrapped))
+           (return #false))
+         (list-ref unwrapped element)]
+        ; Handle vectors
+        [(vector? unwrapped)
+         (unless (< element (vector-length unwrapped))
+           (return #false))
+         (vector-ref unwrapped element)]
+        ; Handle boxes - treat as single-element list
+        [(box? unwrapped)
+         (unless (zero? element)
+           (return #false))
+         (unbox unwrapped)]
+        ; Handle prefab structs - treat as list of fields
+        [(prefab-struct? unwrapped)
+         (define fields (struct->list unwrapped))
+         (unless (< element (length fields))
+           (return #false))
+         (list-ref fields element)]
+        ; Hashes are unsupported
+        [(hash? unwrapped)
+         (return #false)]
+        ; Other datums don't have children
+        [else
+         (return #false)]))
+    ; Check if result would be a non-syntax component
+    (define result-stx
+      (for/fold ([stx init-stx])
+                ([element (in-treelist (syntax-path-elements path))])
+        (define unwrapped (syntax-e stx))
+        (cond
+          [(and (pair? unwrapped) (not (list? unwrapped)))
+           (list-ref (flatten-improper-list unwrapped) element)]
+          [(list? unwrapped)
+           (list-ref unwrapped element)]
+          [(vector? unwrapped)
+           (vector-ref unwrapped element)]
+          [(box? unwrapped)
+           (unbox unwrapped)]
+          [(prefab-struct? unwrapped)
+           (list-ref (struct->list unwrapped) element)]
+          [else stx])))
+    (if (or (pair? result-stx) (empty? result-stx))
+        #false
+        #true)))
 
 
 (module+ test
