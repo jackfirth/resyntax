@@ -6,14 +6,22 @@ header: - #lang racket/base
 
 
 analysis-test: "applied functions should be annotated"
-- (list 1 2 3)
+--------------------
+(define (f)
+  (list 1 2 3))
+--------------------
+@within - (list 1 2 3)
 @inspect - list
 @property application-subexpression-kind
 @assert function
 
 
 analysis-test: "applied function arguments should be annotated"
-- (list 1 2 3)
-@inspect - 2
+--------------------
+(define (f x y z)
+  (list x y z))
+--------------------
+@within - (list x y z)
+@inspect - y
 @property application-subexpression-kind
 @assert argument
