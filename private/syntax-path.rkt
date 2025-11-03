@@ -621,9 +621,7 @@
           [(prefab-struct? unwrapped)
            (list-ref (struct->list unwrapped) element)]
           [else stx])))
-    (if (or (pair? result-stx) (empty? result-stx))
-        #false
-        #true)))
+    (not (or (pair? result-stx) (empty? result-stx)))))
 
 
 (module+ test
