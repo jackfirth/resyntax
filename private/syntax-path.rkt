@@ -566,7 +566,7 @@
 
 
 (define (syntax-contains-path? init-stx path)
-  (with-handlers ([exn:fail:contract? (λ (_) #false)])
+  (with-handlers ([exn:fail? (λ (_) #false)])
     (syntax-ref init-stx path)
     #true))
 

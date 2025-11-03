@@ -156,10 +156,7 @@
                     (define valid? (syntax-contains-path? expanded path))
                     (unless valid?
                       (log-resyntax-warning
-                       (string-append
-                        "ignoring property with out-of-syntax path returned by analyzer\n"
-                        "  path: ~a\n"
-                        "  property key: ~a")
+                       "ignoring property with out-of-syntax path returned by analyzer~n  path: ~a~n  property key: ~a"
                        path
                        key))
                     valid?))
