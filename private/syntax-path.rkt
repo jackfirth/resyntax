@@ -23,6 +23,7 @@
   [syntax-path->string (-> syntax-path? immutable-string?)]
   [string->syntax-path (-> string? syntax-path?)]
   [syntax-ref (-> syntax? syntax-path? syntax?)]
+  [syntax-contains-path? (-> syntax? syntax-path? boolean?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
   [syntax-remove-splice
    (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) exact-nonnegative-integer? syntax?)]
@@ -564,6 +565,119 @@
       (check-regexp-match #rx"path is inconsistent" (exn-message thrown)))))
 
 
+(define (syntax-contains-path? init-stx path)
+  (let/ec return
+    (for/fold ([stx init-stx])
+              ([element (in-treelist (syntax-path-elements path))])
+      (define unwrapped (syntax-e stx))
+      (cond
+        ; Handle improper lists - flatten them so the tail is treated as the last element
+        [(and (pair? unwrapped) (not (list? unwrapped)))
+         (define flattened (flatten-improper-list unwrapped))
+         (unless (< element (length flattened))
+           (return #false))
+         (list-ref flattened element)]
+        ; Handle proper lists
+        [(list? unwrapped)
+         (unless (< element (length unwrapped))
+           (return #false))
+         (list-ref unwrapped element)]
+        ; Handle vectors
+        [(vector? unwrapped)
+         (unless (< element (vector-length unwrapped))
+           (return #false))
+         (vector-ref unwrapped element)]
+        ; Handle boxes - treat as single-element list
+        [(box? unwrapped)
+         (unless (zero? element)
+           (return #false))
+         (unbox unwrapped)]
+        ; Handle prefab structs - treat as list of fields
+        [(prefab-struct? unwrapped)
+         (define fields (struct->list unwrapped))
+         (unless (< element (length fields))
+           (return #false))
+         (list-ref fields element)]
+        ; Hashes are unsupported
+        [(hash? unwrapped)
+         (return #false)]
+        ; Other datums don't have children
+        [else
+         (return #false)]))
+    ; Check if result would be a non-syntax component
+    (define result-stx
+      (for/fold ([stx init-stx])
+                ([element (in-treelist (syntax-path-elements path))])
+        (define unwrapped (syntax-e stx))
+        (cond
+          [(and (pair? unwrapped) (not (list? unwrapped)))
+           (list-ref (flatten-improper-list unwrapped) element)]
+          [(list? unwrapped)
+           (list-ref unwrapped element)]
+          [(vector? unwrapped)
+           (vector-ref unwrapped element)]
+          [(box? unwrapped)
+           (unbox unwrapped)]
+          [(prefab-struct? unwrapped)
+           (list-ref (struct->list unwrapped) element)]
+          [else stx])))
+    (not (or (pair? result-stx) (empty? result-stx)))))
+
+
+(module+ test
+  (test-case "syntax-contains-path?"
+
+    (test-case "empty path on any syntax"
+      (define stx #'a)
+      (check-true (syntax-contains-path? stx empty-syntax-path)))
+
+    (test-case "valid path in list"
+      (define stx #'(a b c))
+      (check-true (syntax-contains-path? stx (syntax-path (list 0))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 2)))))
+
+    (test-case "invalid path in list - out of bounds"
+      (define stx #'(a b c))
+      (check-false (syntax-contains-path? stx (syntax-path (list 3))))
+      (check-false (syntax-contains-path? stx (syntax-path (list 10)))))
+
+    (test-case "valid nested path"
+      (define stx #'(a (b c) d))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1 0))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1 1)))))
+
+    (test-case "invalid nested path"
+      (define stx #'(a (b c) d))
+      (check-false (syntax-contains-path? stx (syntax-path (list 1 2))))
+      (check-false (syntax-contains-path? stx (syntax-path (list 3 0)))))
+
+    (test-case "valid path in vector"
+      (define stx #'#[a b c])
+      (check-true (syntax-contains-path? stx (syntax-path (list 0))))
+      (check-true (syntax-contains-path? stx (syntax-path (list 1)))))
+
+    (test-case "invalid path in vector"
+      (define stx #'#[a b c])
+      (check-false (syntax-contains-path? stx (syntax-path (list 5)))))
+
+    (test-case "valid path in box"
+      (define stx #'#&a)
+      (check-true (syntax-contains-path? stx (syntax-path (list 0)))))
+
+    (test-case "invalid path in box"
+      (define stx #'#&a)
+      (check-false (syntax-contains-path? stx (syntax-path (list 1)))))
+
+    (test-case "path on non-compound datum"
+      (define stx #'atom)
+      (check-false (syntax-contains-path? stx (syntax-path (list 0)))))
+
+    (test-case "path referring to non-syntax component"
+      ; This test ensures we catch the error when syntax-ref finds a non-syntax component
+      (define stx #'(a b c))
+      ; If we try to drill down into 'a', we should fail because atoms don't have children
+      (check-false (syntax-contains-path? stx (syntax-path (list 0 0)))))))
 
 
 

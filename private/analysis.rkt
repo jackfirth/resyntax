@@ -145,6 +145,16 @@
                   (λ (analyzer)
                     (syntax-property-bundle-entries
                      (expansion-analyze analyzer expanded))))
+                 (filtering
+                  (λ (prop-entry)
+                    (match-define (syntax-property-entry path key _value) prop-entry)
+                    (define valid? (syntax-contains-path? expanded path))
+                    (unless valid?
+                      (log-resyntax-warning
+                       "ignoring property with out-of-syntax path returned by analyzer~n  path: ~a~n  property key: ~a"
+                       path
+                       key))
+                    valid?))
                  #:into into-syntax-property-bundle))
 
     (define expansion-analyzer-props-adjusted-for-visits
@@ -260,4 +270,40 @@
                       #:analyzers (list identifier-usage-analyzer
                                         ignored-result-values-analyzer
                                         variable-mutability-analyzer)))
-    (check-true (source-code-analysis? analysis-default))))
+    (check-true (source-code-analysis? analysis-default)))
+
+  (test-case "source-analyze filters out properties with invalid paths"
+    ;; Create a test analyzer that returns properties with both valid and invalid paths
+    (define test-source (string-source "#lang racket/base (define x 1)"))
+    
+    (define bad-analyzer
+      (make-expansion-analyzer
+       #:name 'bad-analyzer
+       (λ (expanded)
+         (syntax-property-bundle
+          ;; Valid path - the root
+          (syntax-property-entry empty-syntax-path 'valid-prop #true)
+          ;; Invalid path - way out of bounds
+          (syntax-property-entry (syntax-path (list 999)) 'invalid-prop #true)
+          ;; Another invalid path
+          (syntax-property-entry (syntax-path (list 0 999)) 'another-invalid-prop #true)))))
+    
+    ;; Run analysis with the bad analyzer - should not crash
+    (define analysis (source-analyze test-source #:analyzers (list bad-analyzer)))
+    
+    ;; Check that the analysis completed successfully
+    (check-true (source-code-analysis? analysis))
+    
+    ;; Check that the valid property is present in the result
+    (define props (source-code-analysis-added-syntax-properties analysis))
+    (check-true (syntax-property-bundle? props))
+    
+    ;; The valid property at the root should be present
+    (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+    (check-equal? (hash-ref root-props 'valid-prop #false) #true)
+    
+    ;; The invalid properties should NOT be present
+    ;; Check that path /999 is not in the bundle
+    (define path-999-props
+      (syntax-property-bundle-get-immediate-properties props (syntax-path (list 999))))
+    (check-true (hash-empty? path-999-props))))
