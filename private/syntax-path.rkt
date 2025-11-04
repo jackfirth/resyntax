@@ -873,10 +873,6 @@
       (check-equal? (syntax->datum actual) '(a b c FOO e)))))
 
 
-
-
-
-
 (define/guard (syntax-remove-splice stx path children-count)
   (guard (positive? children-count) #:else stx)
   (define parent (syntax-ref stx (syntax-path-parent path)))
@@ -1179,8 +1175,6 @@
     (syntax-property stx-with-children-labeled property-name path)))
 
 
-
-
 (module+ test
   (test-case "syntax-label-paths"
     (define stx #'(foo (a b . c) bar (baz) #(x y) #&z #s(point n m)))
@@ -1207,21 +1201,38 @@
       (check-equal? (syntax->datum (syntax-ref stx path)) (syntax->datum id)))))
 
 
+(define (in-syntax-children stx)
+  (match (syntax-e stx)
+    [(? pair? stx-pair)
+     (in-generator
+      (let loop ([stx-pair stx-pair])
+        (match stx-pair
+          [(list) (void)]
+          [(cons head tail)
+           (yield head)
+           (cond
+             [(and (syntax? tail)
+                   (or (pair? (syntax-e tail)) (empty? (syntax-e tail))))
+              (unless (empty? (syntax-e tail))
+                (loop (syntax-e tail)))]
+             [else
+              (loop tail)])]
+          [improper-tail
+           (yield improper-tail)])))]
+    [(? vector? vec) (in-vector vec)]
+    [(? box? b) (in-value (unbox b))]
+    [(? prefab-struct? s) (in-list (struct->list s))]
+    [_ (in-list (list))]))
+
 
 (define (in-syntax-paths stx #:base-path [base-path empty-syntax-path])
   (in-generator
-   (let traverse ([relative-path empty-syntax-path])
-     ; Yield the current path with base-path prefix
-     (define base-elems (syntax-path-elements base-path))
-     (define relative-elems (syntax-path-elements relative-path))
-     (yield (syntax-path (treelist-append base-elems relative-elems)))
-     
-     ; Try to traverse children
-     (let try-child ([i 0])
-       (define child-path (syntax-path-add relative-path i))
-       (when (syntax-contains-path? stx child-path)
-         (traverse child-path)
-         (try-child (add1 i)))))))
+   (let traverse ([stx stx]
+                  [parent-elems (syntax-path-elements base-path)])
+     (yield (syntax-path parent-elems))
+     (for ([child-stx (in-syntax-children stx)]
+           [i (in-naturals)])
+       (traverse child-stx (treelist-add parent-elems i))))))
 
 
 (module+ test
@@ -1348,7 +1359,6 @@
   (unless (prefab-struct? s)
     (raise-argument-error 'prefab-struct-ref "prefab-struct?" s))
   (list-ref (struct->list s) i))
-
 
 
 (define datum<=>
