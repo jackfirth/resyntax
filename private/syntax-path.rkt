@@ -26,7 +26,8 @@
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
   [syntax-remove-splice (-> syntax? nonempty-syntax-path? exact-nonnegative-integer? syntax?)]
   [syntax-insert-splice (-> syntax? nonempty-syntax-path? (sequence/c syntax?) syntax?)]
-  [syntax-label-paths (-> syntax? symbol? syntax?)]))
+  [syntax-label-paths (-> syntax? symbol? syntax?)]
+  [in-syntax-paths (->* (syntax?) (#:base-path syntax-path?) (sequence/c syntax-path?))]))
 
 
 (require (for-syntax racket/base
@@ -37,6 +38,7 @@
          data/order
          guard
          racket/format
+         racket/generator
          racket/mutability
          racket/sequence
          racket/string
@@ -871,10 +873,6 @@
       (check-equal? (syntax->datum actual) '(a b c FOO e)))))
 
 
-
-
-
-
 (define/guard (syntax-remove-splice stx path children-count)
   (guard (positive? children-count) #:else stx)
   (define parent (syntax-ref stx (syntax-path-parent path)))
@@ -1177,8 +1175,6 @@
     (syntax-property stx-with-children-labeled property-name path)))
 
 
-
-
 (module+ test
   (test-case "syntax-label-paths"
     (define stx #'(foo (a b . c) bar (baz) #(x y) #&z #s(point n m)))
@@ -1205,6 +1201,154 @@
       (check-equal? (syntax->datum (syntax-ref stx path)) (syntax->datum id)))))
 
 
+(define (in-syntax-children stx)
+  (match (syntax-e stx)
+    [(? pair? stx-pair)
+     (in-generator
+      (let loop ([stx-pair stx-pair])
+        (match stx-pair
+          [(list) (void)]
+          [(cons head tail)
+           (yield head)
+           (cond
+             [(and (syntax? tail)
+                   (or (pair? (syntax-e tail)) (empty? (syntax-e tail))))
+              (unless (empty? (syntax-e tail))
+                (loop (syntax-e tail)))]
+             [else
+              (loop tail)])]
+          [improper-tail
+           (yield improper-tail)])))]
+    [(? vector? vec) (in-vector vec)]
+    [(? box? b) (in-value (unbox b))]
+    [(? prefab-struct? s) (in-list (struct->list s))]
+    [_ (in-list (list))]))
+
+
+(define (in-syntax-paths stx #:base-path [base-path empty-syntax-path])
+  (in-generator
+   (let traverse ([stx stx]
+                  [parent-elems (syntax-path-elements base-path)])
+     (yield (syntax-path parent-elems))
+     (for ([child-stx (in-syntax-children stx)]
+           [i (in-naturals)])
+       (traverse child-stx (treelist-add parent-elems i))))))
+
+
+(module+ test
+  (test-case "in-syntax-paths"
+    
+    (test-case "simple flat list"
+      (define stx #'(a b c))
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 2)))))
+    
+    (test-case "nested list"
+      (define stx #'(a (b0 b1) c))
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 1 0))
+                     (syntax-path (list 1 1))
+                     (syntax-path (list 2)))))
+    
+    (test-case "with base-path"
+      (define stx #'(a (b0 b1) c))
+      (define paths (sequence->list (in-syntax-paths stx #:base-path (syntax-path (list 5 6 7)))))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list 5 6 7))
+                     (syntax-path (list 5 6 7 0))
+                     (syntax-path (list 5 6 7 1))
+                     (syntax-path (list 5 6 7 1 0))
+                     (syntax-path (list 5 6 7 1 1))
+                     (syntax-path (list 5 6 7 2)))))
+    
+    (test-case "deeply nested structure"
+      (define stx #'(a (b (c (d e)))))
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 1 0))
+                     (syntax-path (list 1 1))
+                     (syntax-path (list 1 1 0))
+                     (syntax-path (list 1 1 1))
+                     (syntax-path (list 1 1 1 0))
+                     (syntax-path (list 1 1 1 1)))))
+    
+    (test-case "single atom"
+      (define stx #'atom)
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list (syntax-path (list)))))
+    
+    (test-case "empty list"
+      (define stx #'())
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list (syntax-path (list)))))
+    
+    (test-case "vector"
+      (define stx #'#[a b c])
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 2)))))
+    
+    (test-case "box"
+      (define stx #'#&a)
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0)))))
+    
+    (test-case "improper lists - all produce same paths"
+      (define expected-paths
+        (list
+         (syntax-path (list))
+         (syntax-path (list 0))
+         (syntax-path (list 1))
+         (syntax-path (list 2))))
+      
+      (test-case "proper list: #'(a b c)"
+        (define stx #'(a b c))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "improper with tail: #'(a b . c)"
+        (define stx #'(a b . c))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "nested improper: #'(a . (b . (c . ())))"
+        (define stx #'(a . (b . (c . ()))))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "dotted syntax: #'(a . (b c))"
+        (define stx #'(a . (b c)))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "nested dotted: #'(a . (b . c))"
+        (define stx #'(a . (b . c)))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths)))))
 
 
 (define (prefab-struct? v)
@@ -1215,7 +1359,6 @@
   (unless (prefab-struct? s)
     (raise-argument-error 'prefab-struct-ref "prefab-struct?" s))
   (list-ref (struct->list s) i))
-
 
 
 (define datum<=>
