@@ -9,11 +9,12 @@
   [variable-mutability-analyzer expansion-analyzer?]))
 
 
-(require racket/dict
-         racket/list
+(require racket/list
          racket/match
          racket/stream
+         rebellion/collection/entry
          rebellion/streaming/transducer
+         resyntax/default-recommendations/analyzers/private/expanded-id-table
          resyntax/private/analyzer
          resyntax/private/syntax-path
          resyntax/private/syntax-property-bundle
@@ -104,20 +105,19 @@
 
 (define (variable-mutability stx)
   (define labeled-stx (syntax-label-id-phases (syntax-label-paths stx 'expanded-path)))
-  (define variable-table (make-hash))
+  (define variable-table (make-expanded-id-table))
   (for ([id (in-stream (binding-site-variables labeled-stx))])
     (define phase (syntax-property id 'phase))
-    (define phase-specific-table
-      (hash-ref! variable-table phase (λ () (make-free-id-table #:phase phase))))
-    (free-id-table-set! phase-specific-table id 'immutable))
+    (expanded-id-table-set! variable-table (expanded-identifier id phase) 'immutable))
   (for ([id (in-stream (mutated-variables labeled-stx))])
-    (define phase-specific-table (hash-ref variable-table (syntax-property id 'phase)))
-    (free-id-table-set! phase-specific-table id 'mutable))
-  (transduce (in-hash-values variable-table)
-             (append-mapping in-dict-pairs)
+    (define phase (syntax-property id 'phase))
+    (expanded-id-table-set! variable-table (expanded-identifier id phase) 'mutable))
+  (transduce (in-expanded-id-table variable-table)
              (mapping
               (λ (e)
-                (match-define (cons id mode) e)
+                (define expanded-id (entry-key e))
+                (define mode (entry-value e))
+                (define id (expanded-identifier-syntax expanded-id))
                 (define path (syntax-property id 'expanded-path))
                 (syntax-property-entry path 'variable-mutability mode)))
              #:into into-syntax-property-bundle))

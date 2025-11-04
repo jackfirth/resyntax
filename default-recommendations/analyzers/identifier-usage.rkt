@@ -9,13 +9,11 @@
   [identifier-usage-analyzer expansion-analyzer?]))
 
 
-(require racket/hash
-         racket/list
-         racket/set
+(require racket/list
          racket/stream
-         racket/treelist
-         rebellion/collection/hash
+         rebellion/collection/entry
          rebellion/streaming/transducer
+         resyntax/default-recommendations/analyzers/private/expanded-id-table
          resyntax/private/analyzer
          resyntax/private/syntax-path
          resyntax/private/syntax-property-bundle
@@ -32,17 +30,6 @@
 
 
 ;@----------------------------------------------------------------------------------------------------
-
-
-(define (append-all-id-maps id-maps)
-  (for/fold ([combined (hash)])
-            ([map id-maps])
-    (hash-union combined map #:combine treelist-append)))
-
-
-(define (id-map-shift-phase id-map levels)
-  (for/hash ([(phase ids) (in-hash id-map)])
-    (values (and phase (+ phase levels)) ids)))
 
 
 ;; Label syntax with phase information
@@ -166,45 +153,28 @@
        (stream (attribute id))])))
 
 
-(define (phase-binding-table bound-ids used-ids #:phase phase)
-  (define initial-map
-    (for/fold ([map (make-immutable-free-id-table #:phase phase)])
-              ([bound bound-ids])
-      (free-id-table-set map bound '())))
-  (for*/fold ([map initial-map])
-             ([bound bound-ids]
-              [used used-ids]
-              #:when (free-identifier=? bound used))
-    (free-id-table-update map bound (λ (previous) (cons used previous)) '())))
-
-
-(define (identifier-binding-table bound-ids-by-phase used-ids-by-phase)
-  (for/hash
-      ([phase
-        (in-set (set-union (hash-key-set bound-ids-by-phase) (hash-key-set used-ids-by-phase)))])
-    (define bound-ids (hash-ref bound-ids-by-phase phase '()))
-    (define used-ids (hash-ref used-ids-by-phase phase '()))
-    (values phase (phase-binding-table bound-ids used-ids #:phase phase))))
-
-
 (define (fully-expanded-syntax-binding-table stx)
   (define labeled-stx (syntax-label-id-phases (syntax-label-paths stx 'expanded-path)))
   
-  ;; Get bound identifiers and group by phase
-  (define bound-ids-by-phase
-    (for/fold ([result (hash)])
-              ([id (in-stream (binding-site-identifiers labeled-stx))])
-      (define id-phase (syntax-property id 'phase))
-      (hash-update result id-phase (λ (prev) (treelist-add prev id)) (treelist))))
+  ;; Create expanded-id-table to track bound identifiers with empty usage lists
+  (define table (make-expanded-id-table))
   
-  ;; Get used identifiers and group by phase
-  (define used-ids-by-phase
-    (for/fold ([result (hash)])
-              ([id (in-stream (usage-site-identifiers labeled-stx))])
-      (define id-phase (syntax-property id 'phase))
-      (hash-update result id-phase (λ (prev) (treelist-add prev id)) (treelist))))
+  ;; Initialize all bound identifiers with empty usage lists
+  (for ([id (in-stream (binding-site-identifiers labeled-stx))])
+    (define id-phase (syntax-property id 'phase))
+    (expanded-id-table-set! table (expanded-identifier id id-phase) '()))
   
-  (identifier-binding-table bound-ids-by-phase used-ids-by-phase))
+  ;; For each usage, find its binding within the same phase and add it to the usage list
+  (for ([used-id (in-stream (usage-site-identifiers labeled-stx))])
+    (define used-phase (syntax-property used-id 'phase))
+    (for ([bound-entry (in-expanded-id-table-phase table used-phase)])
+      (define bound-expanded-id (entry-key bound-entry))
+      (define bound-id (expanded-identifier-syntax bound-expanded-id))
+      (when (free-identifier=? bound-id used-id)
+        (define current-usages (entry-value bound-entry))
+        (expanded-id-table-set! table bound-expanded-id (cons used-id current-usages)))))
+  
+  table)
 
 
 (define identifier-usage-analyzer
@@ -212,10 +182,12 @@
    #:name 'identifier-usage-analyzer
    (λ (expanded-stx)
      (define table (fully-expanded-syntax-binding-table expanded-stx))
-     (transduce (in-hash-values table)
-                (append-mapping
-                 (λ (id-table)
-                   (for/stream ([(bound-id usages) (in-free-id-table id-table)])
-                     (define exp-path (syntax-property bound-id 'expanded-path))
-                     (syntax-property-entry exp-path 'usage-count (length usages)))))
+     (transduce (in-expanded-id-table table)
+                (mapping
+                 (λ (entry)
+                   (define expanded-id (entry-key entry))
+                   (define usages (entry-value entry))
+                   (define bound-id (expanded-identifier-syntax expanded-id))
+                   (define exp-path (syntax-property bound-id 'expanded-path))
+                   (syntax-property-entry exp-path 'usage-count (length usages))))
                 #:into into-syntax-property-bundle))))
