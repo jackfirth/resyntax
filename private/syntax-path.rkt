@@ -36,6 +36,7 @@
                      racket/syntax)
          data/order
          guard
+         racket/format
          racket/mutability
          racket/sequence
          racket/string
@@ -52,6 +53,7 @@
 
 (module+ test
   (require (submod "..")
+           racket/format
            racket/syntax
            rackunit))
 
@@ -61,10 +63,39 @@
 (struct syntax-path (elements)
   #:transparent
   #:sealed
-  #:guard (λ (elements _) (sequence->treelist elements)))
+  #:guard (λ (elements _) (sequence->treelist elements))
+  
+  #:methods gen:custom-write
+  [(define (write-proc this out mode)
+     (write-string "#<syntax-path:" out)
+     (write-string (syntax-path->string this) out)
+     (write-string ">" out))])
 
 
 (define empty-syntax-path (syntax-path (treelist)))
+
+
+(module+ test
+  (test-case "syntax-path custom printing"
+    
+    (test-case "empty path prints as #<syntax-path:/>"
+      (check-equal? (~a empty-syntax-path) "#<syntax-path:/>")
+      (check-equal? (~v empty-syntax-path) "#<syntax-path:/>")
+      (check-equal? (~s empty-syntax-path) "#<syntax-path:/>"))
+    
+    (test-case "single element path prints compactly"
+      (define path (syntax-path (list 0)))
+      (check-equal? (~a path) "#<syntax-path:/0>")
+      (check-equal? (~v path) "#<syntax-path:/0>"))
+    
+    (test-case "multiple element path prints with slashes"
+      (define path (syntax-path (list 1 2 3 4)))
+      (check-equal? (~a path) "#<syntax-path:/1/2/3/4>")
+      (check-equal? (~v path) "#<syntax-path:/1/2/3/4>"))
+    
+    (test-case "path with large numbers"
+      (define path (syntax-path (list 42 99 1000)))
+      (check-equal? (~a path) "#<syntax-path:/42/99/1000>"))))
 
 
 (define (empty-syntax-path? v)
