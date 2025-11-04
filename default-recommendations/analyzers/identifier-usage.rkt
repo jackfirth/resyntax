@@ -9,7 +9,8 @@
   [identifier-usage-analyzer expansion-analyzer?]))
 
 
-(require racket/list
+(require racket/hash
+         racket/list
          racket/stream
          rebellion/collection/entry
          rebellion/streaming/transducer
@@ -159,21 +160,24 @@
   ;; Create expanded-id-table to track bound identifiers with empty usage lists
   (define table (make-expanded-id-table))
   
+  ;; Group bound identifiers by phase for efficient lookup
+  (define bound-by-phase (make-hash))
+  
   ;; Initialize all bound identifiers with empty usage lists
   (for ([id (in-stream (binding-site-identifiers labeled-stx))])
     (define id-phase (syntax-property id 'phase))
-    (expanded-id-table-set! table (expanded-identifier id id-phase) '()))
+    (define expanded-id (expanded-identifier id id-phase))
+    (expanded-id-table-set! table expanded-id '())
+    (hash-update! bound-by-phase id-phase (λ (lst) (cons expanded-id lst)) '()))
   
-  ;; For each usage, find its binding and add it to the usage list
+  ;; For each usage, find its binding within the same phase and add it to the usage list
   (for ([used-id (in-stream (usage-site-identifiers labeled-stx))])
     (define used-phase (syntax-property used-id 'phase))
-    (for ([bound-entry (in-expanded-id-table table)])
-      (define bound-expanded-id (entry-key bound-entry))
+    (define bound-at-phase (hash-ref bound-by-phase used-phase '()))
+    (for ([bound-expanded-id bound-at-phase])
       (define bound-id (expanded-identifier-syntax bound-expanded-id))
-      (define bound-phase (expanded-identifier-phase bound-expanded-id))
-      (when (and (equal? bound-phase used-phase)
-                 (free-identifier=? bound-id used-id))
-        (define current-usages (entry-value bound-entry))
+      (when (free-identifier=? bound-id used-id)
+        (define current-usages (expanded-id-table-ref table bound-expanded-id '()))
         (expanded-id-table-set! table bound-expanded-id (cons used-id current-usages)))))
   
   table)

@@ -9,7 +9,8 @@
  (contract-out
   [expanded-id-table? (-> any/c boolean?)]
   [make-expanded-id-table (-> expanded-id-table?)]
-  [expanded-id-table-ref (-> expanded-id-table? expanded-identifier? any/c)]
+  [expanded-id-table-ref
+   (->* (expanded-id-table? expanded-identifier?) (failure-result/c) any/c)]
   [expanded-id-table-set! (-> expanded-id-table? expanded-identifier? any/c void?)]
   [in-expanded-id-table
    (-> expanded-id-table? (sequence/c (entry/c expanded-identifier? any/c)))]))
@@ -21,6 +22,7 @@
          racket/match
          racket/sequence
          racket/stream
+         rebellion/base/result
          rebellion/collection/entry
          syntax/id-table)
 
@@ -47,9 +49,15 @@
   (expanded-id-table (make-hasheq)))
 
 
-(define (expanded-id-table-ref table id)
-  (define phase-table (hash-ref (expanded-id-table-table table) (expanded-identifier-phase id)))
-  (free-id-table-ref phase-table (expanded-identifier-syntax id)))
+(define (expanded-id-table-ref table id [failure-result (λ () (error 'expanded-id-table-ref "no mapping for ~a" id))])
+  (define phase (expanded-identifier-phase id))
+  (define stx (expanded-identifier-syntax id))
+  (define phase-table (hash-ref (expanded-id-table-table table) phase #false))
+  (if phase-table
+      (free-id-table-ref phase-table stx failure-result)
+      (if (procedure? failure-result)
+          (failure-result)
+          failure-result)))
 
 
 (define (expanded-id-table-set! table id value)
