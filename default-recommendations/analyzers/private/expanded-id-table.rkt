@@ -13,7 +13,9 @@
    (->* (expanded-id-table? expanded-identifier?) (failure-result/c) any/c)]
   [expanded-id-table-set! (-> expanded-id-table? expanded-identifier? any/c void?)]
   [in-expanded-id-table
-   (-> expanded-id-table? (sequence/c (entry/c expanded-identifier? any/c)))]))
+   (-> expanded-id-table? (sequence/c (entry/c expanded-identifier? any/c)))]
+  [in-expanded-id-table-phase
+   (-> expanded-id-table? (or/c exact-nonnegative-integer? #false) (sequence/c (entry/c expanded-identifier? any/c)))]))
 
 
 (require guard
@@ -40,9 +42,7 @@
   #:guard (struct-guard/c identifier? (or/c exact-nonnegative-integer? #false)))
 
 
-(struct expanded-id-table (table)
-  #:transparent
-  #:mutable)
+(struct expanded-id-table (table))
 
 
 (define (make-expanded-id-table)
@@ -74,6 +74,14 @@
   (for*/stream ([(phase phase-table) (in-hash (expanded-id-table-table table))]
                 [(stx value) (in-free-id-table phase-table)])
     (entry (expanded-identifier stx phase) value)))
+
+
+(define (in-expanded-id-table-phase table phase)
+  (define phase-table (hash-ref (expanded-id-table-table table) phase #false))
+  (if phase-table
+      (for/stream ([(stx value) (in-free-id-table phase-table)])
+        (entry (expanded-identifier stx phase) value))
+      (stream)))
 
 
 ;@----------------------------------------------------------------------------------------------------
