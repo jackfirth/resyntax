@@ -29,11 +29,8 @@ test: "should suggest 'any linemode with read-line when linemode and port not sp
 
 
 test: "printf to display"
-----------------------------------------
-(printf "foo")
-========================================
-(display "foo")
-----------------------------------------
+- (printf "foo")
+- (display "foo")
 
 
 test: "printf to displayln"
