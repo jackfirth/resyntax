@@ -49,7 +49,7 @@
 
 (struct splice-replacement (start-path replaced-children-count new-children)
   #:transparent
-  #:guard (struct-guard/c proper-syntax-path? exact-nonnegative-integer? (treelist/c added-syntax?))
+  #:guard (struct-guard/c syntax-path? exact-nonnegative-integer? (treelist/c added-syntax?))
   #:sealed)
 
 

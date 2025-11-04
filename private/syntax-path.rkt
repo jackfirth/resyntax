@@ -10,7 +10,6 @@
   [syntax-path<=> (comparator/c syntax-path?)]
   [empty-syntax-path? (-> any/c boolean?)]
   [nonempty-syntax-path? (-> any/c boolean?)]
-  [proper-syntax-path? (-> any/c boolean?)]
   [empty-syntax-path syntax-path?]
   [syntax-path (-> (sequence/c exact-nonnegative-integer?) syntax-path?)]
   [syntax-path-elements (-> syntax-path? (treelist/c exact-nonnegative-integer?))]
@@ -25,10 +24,8 @@
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-contains-path? (-> syntax? syntax-path? boolean?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
-  [syntax-remove-splice
-   (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) exact-nonnegative-integer? syntax?)]
-  [syntax-insert-splice
-   (-> syntax? (and/c proper-syntax-path? nonempty-syntax-path?) (sequence/c syntax?) syntax?)]
+  [syntax-remove-splice (-> syntax? nonempty-syntax-path? exact-nonnegative-integer? syntax?)]
+  [syntax-insert-splice (-> syntax? nonempty-syntax-path? (sequence/c syntax?) syntax?)]
   [syntax-label-paths (-> syntax? symbol? syntax?)]))
 
 
@@ -92,13 +89,7 @@
     (check-false (nonempty-syntax-path? 42))))
 
 
-(define (proper-syntax-path? v)
-  (and (syntax-path? v)
-       (for/and ([elem (in-treelist (syntax-path-elements v))])
-         (exact-nonnegative-integer? elem))))
 
-
-; TODO: add tests for proper-syntax-path?
 
 
 (define (syntax-path-add path element)
