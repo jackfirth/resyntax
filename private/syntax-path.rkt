@@ -49,7 +49,6 @@
          racket/vector
          rebellion/base/comparator
          rebellion/type/singleton
-         resyntax/private/matching-comparator
          syntax/parse/define)
 
 
