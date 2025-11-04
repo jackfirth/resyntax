@@ -161,7 +161,7 @@
      #:name 'id
      #:description (string->immutable-string description.c)
      #:uses-universal-tagged-syntax? (~? uses-universal-tagged-syntax? #false)
-     #:analyzers (list->set (sequence->list (~? analyzers.c '())))
+     #:analyzers (for/set ([analyzer (~? analyzers.c '())]) analyzer)
      #:transformer
      (λ (stx)
        (syntax-parse stx
@@ -288,7 +288,9 @@
     
     (check-true (refactoring-rule? test-rule))
     (check-true (set? (refactoring-rule-analyzers test-rule)))
-    ;; Without #:analyzers, should have empty set
+    ;; Without #:analyzers, should have empty set (breaking change from previous behavior
+    ;; where rules had 3 default analyzers - identifier-usage, ignored-result-values, and
+    ;; variable-mutability analyzers)
     (check-equal? (set-count (refactoring-rule-analyzers test-rule)) 0))
 
   (test-case "refactoring-rule with explicit analyzers"
@@ -324,7 +326,8 @@
     (check-true (refactoring-suite? suite))
     (check-equal? (length (refactoring-suite-rules suite)) 2)
     (check-true (set? (refactoring-suite-analyzers suite)))
-    ;; Should have 2 unique analyzers from the two rules
+    ;; Should have 2 unique analyzers from the two rules. Sets automatically deduplicate
+    ;; analyzers, so if both rules used the same analyzer, the count would be 1.
     (check-equal? (set-count (refactoring-suite-analyzers suite)) 2)
     (check-true (set-member? (refactoring-suite-analyzers suite) analyzer1))
     (check-true (set-member? (refactoring-suite-analyzers suite) analyzer2)))
