@@ -222,7 +222,10 @@
                  #:into into-list))
     
     ;; Extract expander-added properties from visits
-    ;; Known expander properties that need to be preserved
+    ;; We need to preserve certain properties that the expander adds during visits,
+    ;; such as 'class-body which marks syntax inside a class body and affects
+    ;; which refactoring rules can be applied. These properties are not captured
+    ;; by expansion analyzers and must be manually extracted from visited syntax.
     (define expander-property-keys '(class-body))
     (define expander-property-entries
       (for*/list ([(path visit) (in-hash most-recent-visits-by-original-path)]
