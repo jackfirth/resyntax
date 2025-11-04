@@ -16,6 +16,7 @@
          racket/sequence
          racket/set
          resyntax/base
+         resyntax/default-recommendations/analyzers/ignored-result-values
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
          resyntax/default-recommendations/private/syntax-identifier-sets
@@ -131,6 +132,7 @@
 (define-refactoring-rule ignored-map-to-for-each
   #:description
   "The result of this `map` expression is unused. Make that explicit with `for-each` instead."
+  #:analyzers (list ignored-result-values-analyzer)
   #:literals (map)
   (map proc list ...)
   #:when (equal? (syntax-property this-syntax 'expression-result) 'ignored)

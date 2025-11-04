@@ -12,6 +12,7 @@
 (require racket/dict
          racket/set
          resyntax/base
+         resyntax/default-recommendations/analyzers/identifier-usage
          syntax/parse)
 
 
@@ -45,6 +46,7 @@
 
 (define-refactoring-rule in-dict-to-in-dict-keys
   #:description "This `in-dict` can be replaced with `in-dict-keys` since the value is not used."
+  #:analyzers (list identifier-usage-analyzer)
   #:literals (in-dict)
   (for-id:id (clause-before ... [(key:id value:id) (in-dict dict-expr)] clause-after ...) body ...)
   #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
@@ -54,6 +56,7 @@
 
 (define-refactoring-rule in-dict-to-in-dict-values
   #:description "This `in-dict` can be replaced with `in-dict-values` since the key is not used."
+  #:analyzers (list identifier-usage-analyzer)
   #:literals (in-dict)
   (for-id:id (clause-before ... [(key:id value:id) (in-dict dict-expr)] clause-after ...) body ...)
   #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
