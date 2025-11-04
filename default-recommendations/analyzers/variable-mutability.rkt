@@ -9,8 +9,7 @@
   [variable-mutability-analyzer expansion-analyzer?]))
 
 
-(require racket/dict
-         racket/list
+(require racket/list
          racket/match
          racket/stream
          rebellion/collection/entry

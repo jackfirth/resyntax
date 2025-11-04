@@ -9,13 +9,9 @@
   [identifier-usage-analyzer expansion-analyzer?]))
 
 
-(require racket/hash
-         racket/list
-         racket/set
+(require racket/list
          racket/stream
-         racket/treelist
          rebellion/collection/entry
-         rebellion/collection/hash
          rebellion/streaming/transducer
          resyntax/private/analyzer
          resyntax/private/expanded-id-table
