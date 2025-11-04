@@ -11,6 +11,7 @@
 
 (require racket/list
          resyntax/base
+         resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/private/pure-expression
          syntax/parse)
 
@@ -27,6 +28,7 @@
 
 (define-definition-context-refactoring-rule unused-definition
   #:description "This definition is not used."
+  #:analyzers (list identifier-usage-analyzer)
   (~seq before ... definition:side-effect-free-definition first-after remaining-after ...)
   #:when (equal? (syntax-property (attribute definition.id) 'usage-count) 0)
   (before ...

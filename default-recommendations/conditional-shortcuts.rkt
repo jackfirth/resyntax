@@ -12,6 +12,7 @@
 (require (for-syntax racket/base)
          racket/list
          resyntax/base
+         resyntax/default-recommendations/analyzers/ignored-result-values
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/exception
          resyntax/default-recommendations/private/if-arm
@@ -229,6 +230,7 @@
 
 (define-refactoring-rule ignored-and-to-when
   #:description "This `and` expression's result is ignored. Using `when` makes this clearer."
+  #:analyzers (list ignored-result-values-analyzer)
   #:literals (and)
   (and condition:expr body:expr)
   #:when (syntax-property this-syntax 'expression-result)
@@ -238,6 +240,7 @@
 
 (define-refactoring-rule explicit-cond-else-void
   #:description "Add an explicit `[else (void)]` clause to make the default behavior clear."
+  #:analyzers (list ignored-result-values-analyzer)
   #:literals (cond else void)
   (cond-id:cond (~and clause (~not [else . _])) ...)
   #:when (equal? (syntax-property this-syntax 'expression-result) 'ignored)

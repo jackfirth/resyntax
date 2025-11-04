@@ -13,6 +13,7 @@
          racket/match
          racket/set
          resyntax/base
+         resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/private/syntax-lines
@@ -249,6 +250,7 @@
   #:description "These list element variable definitions can be expressed more succinctly with \
 `match-define`. Note that the suggested replacement raises an error if the list contains more \
 elements than expected."
+  #:analyzers (list identifier-usage-analyzer)
   #:literals (define)
   (~seq body-before ... (~and definition (define v:id ref-expr:list-ref-expr)) ...+ body-after ...+)
   #:do [(define num-vars (length (attribute v)))]

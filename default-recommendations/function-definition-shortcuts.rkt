@@ -13,6 +13,7 @@
          guard
          racket/list
          resyntax/base
+         resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/list-function
          resyntax/default-recommendations/private/syntax-lines
@@ -144,6 +145,7 @@
 (define-refactoring-rule empty-checked-rest-args-to-optional-arg
   #:description
   "This function definition uses rest arguments in a way equivalent to using an optional argument."
+  #:analyzers (list identifier-usage-analyzer)
   #:literals (define if)
 
   (define (f arg ... . rest-args:id)

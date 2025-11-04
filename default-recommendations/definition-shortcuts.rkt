@@ -14,6 +14,7 @@
          racket/match
          rebellion/private/static-name
          resyntax/base
+         resyntax/default-recommendations/analyzers/identifier-usage
          syntax/parse)
 
 
@@ -33,6 +34,7 @@
 
 (define-definition-context-refactoring-rule inline-unnecessary-define
   #:description "This variable is returned immediately and can be inlined."
+  #:analyzers (list identifier-usage-analyzer)
   #:literals (define)
   (~seq body-before ... (~and definition (define id1:id expr)) id2:id)
   #:when (free-identifier=? #'id1 #'id2)
