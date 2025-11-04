@@ -24,10 +24,8 @@
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-contains-path? (-> syntax? syntax-path? boolean?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
-  [syntax-remove-splice
-   (-> syntax? (and/c syntax-path? nonempty-syntax-path?) exact-nonnegative-integer? syntax?)]
-  [syntax-insert-splice
-   (-> syntax? (and/c syntax-path? nonempty-syntax-path?) (sequence/c syntax?) syntax?)]
+  [syntax-remove-splice (-> syntax? nonempty-syntax-path? exact-nonnegative-integer? syntax?)]
+  [syntax-insert-splice (-> syntax? nonempty-syntax-path? (sequence/c syntax?) syntax?)]
   [syntax-label-paths (-> syntax? symbol? syntax?)]))
 
 
