@@ -35,6 +35,7 @@
          rebellion/collection/sorted-map
          rebellion/collection/sorted-set
          rebellion/collection/vector/builder
+         rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
          resyntax/default-recommendations/analyzers/identifier-usage
@@ -64,7 +65,7 @@
 (define (source-code-analysis-visited-forms analysis)
   (define stx (source-code-analysis-enriched-syntax analysis))
   (define paths (source-code-analysis-visited-paths analysis))
-  (for/list ([path (in-list paths)])
+  (for/list ([path (in-sorted-set paths)])
     (syntax-ref stx path)))
 
 
@@ -86,8 +87,8 @@
     (log-resyntax-debug "original source name: ~a" program-source-name)
     (log-resyntax-debug "original syntax:\n  ~a" program-stx)
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
-    (define original-visits (make-vector-builder))
-    (define most-recent-visits-by-original-path (make-hash))
+    (define visited-syntaxes (make-mutable-sorted-map #:key-comparator syntax-path<=>))
+    (define context-syntaxes (make-mutable-sorted-map #:key-comparator syntax-path<=>))
 
     (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
       (guard (syntax-original-and-from-source? stx program-source-name) #:else #false)
@@ -108,12 +109,17 @@
     (define/match (observe-event! sig val)
       [('visit (? syntax? visited))
        (when (resyntax-should-analyze-syntax? visited)
-         (vector-builder-add original-visits visited))
+         (define visited-path (syntax-original-path visited))
+         (unless visited-path
+           (raise-arguments-error
+            'source-analyze "visit is missing original path"
+            "visited syntax" visited))
+         (sorted-map-put-if-absent! visited-syntaxes visited-path visited))
        (for ([visit-subform (in-stream (syntax-search-everything visited))]
              #:when (and (resyntax-should-analyze-syntax? visit-subform #:as-visit? #false)
                          (syntax-has-original-path? visit-subform)))
          (define path (syntax-original-path visit-subform))
-         (hash-set! most-recent-visits-by-original-path path visit-subform))]
+         (sorted-map-put! context-syntaxes path visit-subform))]
       [(_ _) (void)])
 
     (define output-port (open-output-string))
@@ -121,6 +127,8 @@
       (parameterize ([current-expand-observe observe-event!]
                      [current-output-port output-port])
         (expand program-stx)))
+
+    (define visited-paths (sorted-set->immutable-sorted-set (sorted-map-keys visited-syntaxes)))
 
     ;; We evaluate the module in order to ensure it's declared in the namespace, then we attach it at
     ;; expansion time to ensure the module is visited (but not instantiated). This allows refactoring
@@ -130,6 +138,36 @@
 
     (define output (get-output-string output-port))
     (define movement-table (syntax-movement-table expanded))
+
+    ;; Here we search the expanded syntax for unambiguously original syntax objects and insert them
+    ;; into the context table. This ensures that any identifiers which survive expansion will contain
+    ;; all their post-expansion scopes when being analyzed by rules.
+    (for ([e (in-sorted-map movement-table)])
+      (match-define (entry orig-path exp-paths) e)
+      (define num-orig-paths
+        (transduce exp-paths
+                   (filtering (λ (path) (syntax-original? (syntax-ref expanded path))))
+                   #:into into-count))
+      (when (>= num-orig-paths 2)
+        (log-resyntax-debug
+                        (string-append
+                         "ignoring expansion lexical context for original path ~a because"
+                         " multiple expanded forms claim to originate from that path and be original"
+                         " syntax.")
+                        orig-path))
+      (when (equal? num-orig-paths 1)
+        (define exp-path (present-value (sorted-set-least-element exp-paths)))
+        (sorted-map-put! context-syntaxes orig-path (syntax-ref expanded exp-path))))
+
+    (define enriched-program-stx-without-analyzer-props
+      (for/fold ([program-stx program-stx])
+                ([e (in-sorted-map context-syntaxes)])
+        (match-define (entry orig-path context-stx) e)
+        (define child-stx (syntax-ref program-stx orig-path))
+        (define stx-to-use-for-props (sorted-map-get visited-syntaxes orig-path child-stx))
+        (define enriched-child
+          (datum->syntax context-stx (syntax-e child-stx) child-stx stx-to-use-for-props))
+        (syntax-set program-stx orig-path enriched-child)))
 
     (define property-selection-table
       (transduce movement-table
@@ -161,7 +199,10 @@
                     (define valid? (syntax-contains-path? expanded path))
                     (unless valid?
                       (log-resyntax-warning
-                       "ignoring property with out-of-syntax path returned by analyzer~n  path: ~a~n  property key: ~a"
+                       (string-append
+                        "ignoring property with out-of-syntax path returned by analyzer\n"
+                        "  path: ~a\n"
+                        "  property key: ~a")
                        path
                        key))
                     valid?))
@@ -180,74 +221,11 @@
         (string-indent (pretty-format expansion-analyzer-props-adjusted-for-visits) #:amount 2))
       (log-resyntax-debug "syntax properties from expansion analyzers:\n~a" props-str))
 
-    (define (enrich stx #:skip-root? [skip-root? #false])
-      (syntax-traverse stx
-        #:skip-root? skip-root?
-        [child
-         #:do [(define child-stx (attribute child))
-               (define orig-path (syntax-original-path child-stx))]
-         #:when (and orig-path (sorted-map-contains-key? movement-table orig-path))
-         #:do [(define expansions
-                 (transduce (sorted-map-get movement-table orig-path)
-                            (mapping (λ (p) (syntax-ref expanded p)))
-                            (filtering syntax-original?)
-                            #:into into-list))]
-         #:when (equal? (length expansions) 1)
-         (match-define (list expanded-child) expansions)
-         (log-resyntax-debug "enriching ~a with scopes from expansion" child-stx)
-         (enrich (datum->syntax expanded-child (syntax-e child-stx) child-stx child-stx)
-                 #:skip-root? #true)]
-        [child
-         #:do [(define child-stx (attribute child))
-               (define orig-path (syntax-original-path child-stx))]
-         #:when (and orig-path (hash-has-key? most-recent-visits-by-original-path orig-path))
-         #:do [(define visit (hash-ref most-recent-visits-by-original-path orig-path))]
-         (log-resyntax-debug "enriching ~a with scopes from visit" child-stx)
-         (enrich (datum->syntax visit (syntax-e child-stx) child-stx child-stx) #:skip-root? #true)]
-        #:parent-context-modifier values
-        #:parent-srcloc-modifier values
-        #:parent-props-modifier values))
-    
-    (define visited-paths
-      (transduce (build-vector original-visits)
-                 (peeking
-                  (λ (visit)
-                    (unless (syntax-original-path visit)
-                      (raise-arguments-error
-                       'source-analyze "visit is missing original path"
-                       "visited syntax" visit))))
-                 (mapping syntax-original-path)
-                 (deduplicating)
-                 (sorting syntax-path<=>)
-                 #:into into-list))
-    
-    ;; Extract expander-added properties from visits
-    ;; We need to preserve certain properties that the expander adds during visits,
-    ;; such as 'class-body which marks syntax inside a class body and affects
-    ;; which refactoring rules can be applied. These properties are not captured
-    ;; by expansion analyzers and must be manually extracted from visited syntax.
-    ;; If new expander properties need to be preserved, add them to this list.
-    (define expander-property-keys '(class-body))
-    (define expander-property-entries
-      (for*/list ([(path visit) (in-hash most-recent-visits-by-original-path)]
-                  [key (in-list expander-property-keys)]
-                  [val (in-value (syntax-property visit key))]
-                  #:when val)
-        (syntax-property-entry path key val)))
-    
-    ;; Combine expander and analyzer properties
-    (define all-property-entries
-      (append (sequence->list (syntax-property-bundle-entries expansion-analyzer-props-adjusted-for-visits))
-              expander-property-entries))
-    (define all-properties (sequence->syntax-property-bundle all-property-entries))
-    
-    ;; Label the original program syntax with paths, then add all properties and enrich
-    (define program-stx-with-paths (syntax-label-original-paths program-stx))
-    (define program-stx-with-props 
-      (syntax-add-all-properties program-stx-with-paths all-properties))
-    (define enriched-program-stx (enrich program-stx-with-props))
+    (define enriched-program-stx
+      (syntax-add-all-properties enriched-program-stx-without-analyzer-props
+                                 expansion-analyzer-props-adjusted-for-visits))
 
-    (log-resyntax-debug "visited ~a forms" (length visited-paths))
+    (log-resyntax-debug "visited ~a forms" (sorted-set-size visited-paths))
     (source-code-analysis #:code code
                           #:enriched-syntax enriched-program-stx
                           #:visited-paths visited-paths
