@@ -26,3 +26,18 @@ test: "should suggest 'any linemode with read-line when linemode and port not sp
 (define (foo)
   (read-line (current-input-port) 'any))
 ----------------------------------------
+
+
+test: "printf to display"
+- (printf "foo")
+- (display "foo")
+
+
+test: "printf to displayln"
+- (printf "foo\nbar\n")
+- (displayln "foo\nbar")
+
+
+test: "printf to newline"
+- (printf "\n")
+- (newline)
