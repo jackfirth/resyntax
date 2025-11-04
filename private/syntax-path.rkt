@@ -38,6 +38,7 @@
          data/order
          guard
          racket/format
+         racket/generator
          racket/mutability
          racket/sequence
          racket/string
@@ -1208,38 +1209,19 @@
 
 
 (define (in-syntax-paths stx #:base-path [base-path empty-syntax-path])
-  (make-do-sequence
-   (λ ()
-     (values
-      ; pos->element: return the current path with base-path prefix
-      (λ (relative-path)
-        (define base-elems (syntax-path-elements base-path))
-        (define relative-elems (syntax-path-elements relative-path))
-        (syntax-path (treelist-append base-elems relative-elems)))
-      ; next-pos: get the next relative path to visit
-      (λ (relative-path)
-        ; Try to go to first child
-        (define child-path (syntax-path-add relative-path 0))
-        (cond
-          [(syntax-contains-path? stx child-path) child-path]
-          [else
-           ; No children, try next sibling or ancestor's sibling
-           (let find-next ([current-path relative-path])
-             (cond
-               [(empty-syntax-path? current-path) #false]
-               [else
-                (define next-sibling (syntax-path-next-neighbor current-path))
-                (cond
-                  [(and next-sibling (syntax-contains-path? stx next-sibling)) next-sibling]
-                  [else (find-next (syntax-path-parent current-path))])]))]))
-      ; initial position: start with empty path (relative to base-path)
-      empty-syntax-path
-      ; continue?: check if we have a valid relative path
-      (λ (relative-path) (and relative-path (syntax-contains-path? stx relative-path)))
-      ; no value at the end
-      #f
-      ; no final value
-      #f))))
+  (in-generator
+   (let traverse ([relative-path empty-syntax-path])
+     ; Yield the current path with base-path prefix
+     (define base-elems (syntax-path-elements base-path))
+     (define relative-elems (syntax-path-elements relative-path))
+     (yield (syntax-path (treelist-append base-elems relative-elems)))
+     
+     ; Try to traverse children
+     (let try-child ([i 0])
+       (define child-path (syntax-path-add relative-path i))
+       (when (syntax-contains-path? stx child-path)
+         (traverse child-path)
+         (try-child (add1 i)))))))
 
 
 (module+ test
@@ -1322,7 +1304,40 @@
       (check-equal? paths
                     (list
                      (syntax-path (list))
-                     (syntax-path (list 0)))))))
+                     (syntax-path (list 0)))))
+    
+    (test-case "improper lists - all produce same paths"
+      (define expected-paths
+        (list
+         (syntax-path (list))
+         (syntax-path (list 0))
+         (syntax-path (list 1))
+         (syntax-path (list 2))))
+      
+      (test-case "proper list: #'(a b c)"
+        (define stx #'(a b c))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "improper with tail: #'(a b . c)"
+        (define stx #'(a b . c))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "nested improper: #'(a . (b . (c . ())))"
+        (define stx #'(a . (b . (c . ()))))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "dotted syntax: #'(a . (b c))"
+        (define stx #'(a . (b c)))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths))
+      
+      (test-case "nested dotted: #'(a . (b . c))"
+        (define stx #'(a . (b . c)))
+        (define paths (sequence->list (in-syntax-paths stx)))
+        (check-equal? paths expected-paths)))))
 
 
 (define (prefab-struct? v)
