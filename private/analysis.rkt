@@ -226,6 +226,7 @@
     ;; such as 'class-body which marks syntax inside a class body and affects
     ;; which refactoring rules can be applied. These properties are not captured
     ;; by expansion analyzers and must be manually extracted from visited syntax.
+    ;; If new expander properties need to be preserved, add them to this list.
     (define expander-property-keys '(class-body))
     (define expander-property-entries
       (for*/list ([(path visit) (in-hash most-recent-visits-by-original-path)]
