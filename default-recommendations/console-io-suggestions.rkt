@@ -47,7 +47,7 @@
 
 (define-refactoring-rule printf-to-display
   #:description
-  "When `printf` is used with a single string argument, use `display`, `displayln`, or `newline`."
+  "This use of `printf` has no arguments other than the template string."
   expr:printf-without-specifiers
   expr.refactored)
 
