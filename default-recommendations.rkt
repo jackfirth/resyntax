@@ -15,6 +15,7 @@
                resyntax/default-recommendations/dict-suggestions
                resyntax/default-recommendations/exception-suggestions
                resyntax/default-recommendations/file-io-suggestions
+               resyntax/default-recommendations/function-argument-let-extraction
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/function-shortcuts
                resyntax/default-recommendations/hash-shortcuts
@@ -56,6 +57,7 @@
          resyntax/default-recommendations/dict-suggestions
          resyntax/default-recommendations/exception-suggestions
          resyntax/default-recommendations/file-io-suggestions
+         resyntax/default-recommendations/function-argument-let-extraction
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/function-shortcuts
          resyntax/default-recommendations/hash-shortcuts
@@ -101,6 +103,7 @@
             exception-suggestions
             file-io-suggestions
             for-loop-shortcuts
+            function-argument-let-extraction
             function-definition-shortcuts
             function-shortcuts
             hash-shortcuts
