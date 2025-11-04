@@ -26,7 +26,8 @@
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
   [syntax-remove-splice (-> syntax? nonempty-syntax-path? exact-nonnegative-integer? syntax?)]
   [syntax-insert-splice (-> syntax? nonempty-syntax-path? (sequence/c syntax?) syntax?)]
-  [syntax-label-paths (-> syntax? symbol? syntax?)]))
+  [syntax-label-paths (-> syntax? symbol? syntax?)]
+  [in-syntax-paths (->* (syntax?) (#:base-path syntax-path?) (sequence/c syntax-path?))]))
 
 
 (require (for-syntax racket/base
@@ -1205,6 +1206,123 @@
       (check-equal? (syntax->datum (syntax-ref stx path)) (syntax->datum id)))))
 
 
+
+(define (in-syntax-paths stx #:base-path [base-path empty-syntax-path])
+  (make-do-sequence
+   (λ ()
+     (values
+      ; pos->element: return the current path with base-path prefix
+      (λ (relative-path)
+        (define base-elems (syntax-path-elements base-path))
+        (define relative-elems (syntax-path-elements relative-path))
+        (syntax-path (treelist-append base-elems relative-elems)))
+      ; next-pos: get the next relative path to visit
+      (λ (relative-path)
+        ; Try to go to first child
+        (define child-path (syntax-path-add relative-path 0))
+        (cond
+          [(syntax-contains-path? stx child-path) child-path]
+          [else
+           ; No children, try next sibling or ancestor's sibling
+           (let find-next ([current-path relative-path])
+             (cond
+               [(empty-syntax-path? current-path) #false]
+               [else
+                (define next-sibling (syntax-path-next-neighbor current-path))
+                (cond
+                  [(and next-sibling (syntax-contains-path? stx next-sibling)) next-sibling]
+                  [else (find-next (syntax-path-parent current-path))])]))]))
+      ; initial position: start with empty path (relative to base-path)
+      empty-syntax-path
+      ; continue?: check if we have a valid relative path
+      (λ (relative-path) (and relative-path (syntax-contains-path? stx relative-path)))
+      ; no value at the end
+      #f
+      ; no final value
+      #f))))
+
+
+(module+ test
+  (test-case "in-syntax-paths"
+    
+    (test-case "simple flat list"
+      (define stx #'(a b c))
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 2)))))
+    
+    (test-case "nested list"
+      (define stx #'(a (b0 b1) c))
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 1 0))
+                     (syntax-path (list 1 1))
+                     (syntax-path (list 2)))))
+    
+    (test-case "with base-path"
+      (define stx #'(a (b0 b1) c))
+      (define paths (sequence->list (in-syntax-paths stx #:base-path (syntax-path (list 5 6 7)))))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list 5 6 7))
+                     (syntax-path (list 5 6 7 0))
+                     (syntax-path (list 5 6 7 1))
+                     (syntax-path (list 5 6 7 1 0))
+                     (syntax-path (list 5 6 7 1 1))
+                     (syntax-path (list 5 6 7 2)))))
+    
+    (test-case "deeply nested structure"
+      (define stx #'(a (b (c (d e)))))
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 1 0))
+                     (syntax-path (list 1 1))
+                     (syntax-path (list 1 1 0))
+                     (syntax-path (list 1 1 1))
+                     (syntax-path (list 1 1 1 0))
+                     (syntax-path (list 1 1 1 1)))))
+    
+    (test-case "single atom"
+      (define stx #'atom)
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list (syntax-path (list)))))
+    
+    (test-case "empty list"
+      (define stx #'())
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list (syntax-path (list)))))
+    
+    (test-case "vector"
+      (define stx #'#[a b c])
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0))
+                     (syntax-path (list 1))
+                     (syntax-path (list 2)))))
+    
+    (test-case "box"
+      (define stx #'#&a)
+      (define paths (sequence->list (in-syntax-paths stx)))
+      (check-equal? paths
+                    (list
+                     (syntax-path (list))
+                     (syntax-path (list 0)))))))
 
 
 (define (prefab-struct? v)
