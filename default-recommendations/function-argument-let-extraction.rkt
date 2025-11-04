@@ -65,8 +65,9 @@
   ;; Only apply if at least one argument has a let expression
   #:when (not (null? (attribute all-bind-id)))
   
-  ;; Check that none of the new bindings conflict
-  #:when (not (check-duplicate-identifier (attribute all-bind-id)))
+  ;; Check that none of the new bindings have duplicate names
+  #:when (let ([names (map syntax-e (attribute all-bind-id))])
+           (= (length names) (length (remove-duplicates names))))
   
   (leading-body ...
    (~@ . (~splicing-replacement
