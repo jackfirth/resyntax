@@ -14,6 +14,7 @@
          racket/set
          rebellion/private/static-name
          resyntax/base
+         resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/private/definition-context
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/default-recommendations/let-replacement/private/let-binding
@@ -28,6 +29,7 @@
 (define-definition-context-refactoring-rule let-to-define
   #:description
   "Internal definitions are recommended instead of `let` expressions, to reduce nesting."
+  #:analyzers (list identifier-usage-analyzer)
   (~seq leading-body ... let-expression:refactorable-let-expression)
   #:with (replacement ...)
   (if (empty? (attribute leading-body))
@@ -40,7 +42,8 @@
   #:description "This `let` expression can be pulled up into multiple `define` expressions."
   #:literals (define let)
   (~seq body-before ...
-        (~and original-definition (define id:id (let ([nested-id:id nested-expr:expr] ...) expr:expr)))
+        (~and original-definition
+              (define id:id (let ([nested-id:id nested-expr:expr] ...) expr:expr)))
         body-after ...)
   #:when (for/and ([nested-expr (in-list (attribute nested-expr))])
            (identifier-binding-unchanged-in-context? (attribute id) nested-expr))

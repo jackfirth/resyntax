@@ -13,6 +13,7 @@
          racket/list
          racket/set
          resyntax/base
+         resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/loops/private/syntax-classes
          resyntax/default-recommendations/private/boolean
          resyntax/default-recommendations/private/lambda-by-any-name
@@ -242,6 +243,7 @@ return just that result."
   #:description
   "The `or` expression in this `for` loop can be replaced by a filtering clause, letting you use\
  `define` instead of `let` in the loop body."
+  #:analyzers (list identifier-usage-analyzer)
   #:literals (for/and for*/and or)
   ((~and loop-id (~or for/and for*/and))
    (~and original-clauses (clause ...))
@@ -270,6 +272,7 @@ return just that result."
 
 (define-refactoring-rule in-hash-to-in-hash-keys
   #:description "This `in-hash` can be replaced with `in-hash-keys` since the value is not used."
+  #:analyzers (list identifier-usage-analyzer)
   #:literals (in-hash)
   (for-id:id (clause-before ... [(key:id value:id) (in-hash hash-expr)] clause-after ...) body ...)
   #:when ((literal-set->predicate simple-for-loops) (attribute for-id))
