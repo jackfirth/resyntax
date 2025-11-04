@@ -61,7 +61,6 @@
   (code enriched-syntax visited-paths expansion-time-output namespace added-syntax-properties))
 
 
-;; Backward-compatible accessor that computes visited forms from paths
 (define (source-code-analysis-visited-forms analysis)
   (define stx (source-code-analysis-enriched-syntax analysis))
   (define paths (source-code-analysis-visited-paths analysis))
