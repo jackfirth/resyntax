@@ -11,6 +11,8 @@
                        source-code-analysis?)]
   [source-code-analysis? (-> any/c boolean?)]
   [source-code-analysis-code (-> source-code-analysis? source?)]
+  [source-code-analysis-enriched-syntax (-> source-code-analysis? syntax?)]
+  [source-code-analysis-visited-paths (-> source-code-analysis? (listof syntax-path?))]
   [source-code-analysis-visited-forms (-> source-code-analysis? (listof syntax?))]
   [source-code-analysis-expansion-time-output (-> source-code-analysis? immutable-string?)]
   [source-code-analysis-namespace (-> source-code-analysis? namespace?)]
@@ -55,7 +57,15 @@
 
 
 (define-record-type source-code-analysis
-  (code visited-forms expansion-time-output namespace added-syntax-properties))
+  (code enriched-syntax visited-paths expansion-time-output namespace added-syntax-properties))
+
+
+;; Backward-compatible accessor that computes visited forms from paths
+(define (source-code-analysis-visited-forms analysis)
+  (define stx (source-code-analysis-enriched-syntax analysis))
+  (define paths (source-code-analysis-visited-paths analysis))
+  (for/list ([path (in-list paths)])
+    (syntax-ref stx path)))
 
 
 (define (source-analyze code
@@ -198,35 +208,45 @@
         #:parent-srcloc-modifier values
         #:parent-props-modifier values))
     
-    (define visited
+    (define visited-paths
       (transduce (build-vector original-visits)
                  (peeking
                   (λ (visit)
                     (unless (syntax-original-path visit)
                       (raise-arguments-error
-                       'source-analyze "pre-enriched visit is missing original path"
+                       'source-analyze "visit is missing original path"
                        "visited syntax" visit))))
-                 (deduplicating #:key syntax-original-path)
-                 (mapping
-                  (λ (visit)
-                    (define path (syntax-original-path visit))
-                    (define visit-props
-                      (syntax-property-bundle-get-all-properties
-                       expansion-analyzer-props-adjusted-for-visits path))
-                    (syntax-add-all-properties visit visit-props)))
-                 (mapping enrich)
-                 (peeking
-                  (λ (visit)
-                    (unless (syntax-original-path visit)
-                      (raise-arguments-error
-                       'source-analyze "post-enriched visit is missing original path"
-                       "visited syntax" visit))))
-                 (sorting syntax-path<=> #:key syntax-original-path)
+                 (mapping syntax-original-path)
+                 (deduplicating)
+                 (sorting syntax-path<=>)
                  #:into into-list))
+    
+    ;; Extract expander-added properties from visits
+    ;; Known expander properties that need to be preserved
+    (define expander-property-keys '(class-body))
+    (define expander-property-entries
+      (for*/list ([(path visit) (in-hash most-recent-visits-by-original-path)]
+                  [key (in-list expander-property-keys)]
+                  [val (in-value (syntax-property visit key))]
+                  #:when val)
+        (syntax-property-entry path key val)))
+    
+    ;; Combine expander and analyzer properties
+    (define all-property-entries
+      (append (sequence->list (syntax-property-bundle-entries expansion-analyzer-props-adjusted-for-visits))
+              expander-property-entries))
+    (define all-properties (sequence->syntax-property-bundle all-property-entries))
+    
+    ;; Label the original program syntax with paths, then add all properties and enrich
+    (define program-stx-with-paths (syntax-label-original-paths program-stx))
+    (define program-stx-with-props 
+      (syntax-add-all-properties program-stx-with-paths all-properties))
+    (define enriched-program-stx (enrich program-stx-with-props))
 
-    (log-resyntax-debug "visited ~a forms" (length visited))
+    (log-resyntax-debug "visited ~a forms" (length visited-paths))
     (source-code-analysis #:code code
-                          #:visited-forms visited
+                          #:enriched-syntax enriched-program-stx
+                          #:visited-paths visited-paths
                           #:expansion-time-output output
                           #:namespace ns
                           #:added-syntax-properties expansion-analyzer-props-adjusted-for-visits)))
