@@ -34,11 +34,8 @@ test: "printf to display"
 
 
 test: "printf to displayln"
-----------------------------------------
-(printf "foo\nbar\n")
-========================================
-(displayln "foo\nbar")
-----------------------------------------
+- (printf "foo\nbar\n")
+- (displayln "foo\nbar")
 
 
 test: "printf to newline"
