@@ -1,13 +1,14 @@
 #lang resyntax/test
 
 
-require: resyntax/default-recommendations/function-argument-let-extraction function-argument-let-extraction
+require: resyntax/default-recommendations/let-replacement/argument-let-replacement argument-let-replacement
 
 
 header:
 --------------------
 #lang racket
-(define (g x y) (+ x y))
+(define (g x y)
+  (+ x y))
 --------------------
 
 
@@ -18,8 +19,7 @@ test: "let in function argument can be extracted"
        (* x 2))
      (let ([y 100])
        (* y 3))))
---------------------
---------------------
+====================
 (define (f)
   (define x 42)
   (define y 100)
@@ -32,8 +32,7 @@ test: "single let in function argument can be extracted"
 (define (f)
   (list (let ([x 10])
           (+ x 5))))
---------------------
---------------------
+====================
 (define (f)
   (define x 10)
   (list (+ x 5)))
@@ -46,8 +45,7 @@ test: "multiple bindings in single let can be extracted"
   (g (let ([x 1]
            [y 2])
        (+ x y))))
---------------------
---------------------
+====================
 (define (f)
   (define x 1)
   (define y 2)
@@ -61,8 +59,7 @@ test: "let in one argument while other arguments are plain"
   (cons (let ([x 42])
           (* x 2))
         100))
---------------------
---------------------
+====================
 (define (f)
   (define x 42)
   (cons (* x 2) 100))
@@ -75,8 +72,7 @@ test: "nested lets in same argument are extracted"
   (list (let ([x 1])
           (let ([y 2])
             (+ x y)))))
---------------------
---------------------
+====================
 (define (f)
   (define x 1)
   (define y 2)

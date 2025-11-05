@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [function-argument-let-extraction refactoring-suite?]))
+  [argument-let-replacement refactoring-suite?]))
 
 
 (require racket/list
@@ -76,5 +76,5 @@
            #:original original-call)))))
 
 
-(define-refactoring-suite function-argument-let-extraction
+(define-refactoring-suite argument-let-replacement
   #:rules (extract-lets-from-function-arguments))

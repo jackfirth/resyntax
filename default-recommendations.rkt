@@ -15,7 +15,6 @@
                resyntax/default-recommendations/dict-suggestions
                resyntax/default-recommendations/exception-suggestions
                resyntax/default-recommendations/file-io-suggestions
-               resyntax/default-recommendations/function-argument-let-extraction
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/function-shortcuts
                resyntax/default-recommendations/hash-shortcuts
@@ -26,6 +25,7 @@
                resyntax/default-recommendations/legacy/make-temporary-directory-migration
                resyntax/default-recommendations/legacy/provide-contract-migration
                resyntax/default-recommendations/let-binding-suggestions
+               resyntax/default-recommendations/let-replacement/argument-let-replacement
                resyntax/default-recommendations/let-replacement/cond-let-replacement
                resyntax/default-recommendations/let-replacement/let-replacement
                resyntax/default-recommendations/let-replacement/match-let-replacement
@@ -57,7 +57,6 @@
          resyntax/default-recommendations/dict-suggestions
          resyntax/default-recommendations/exception-suggestions
          resyntax/default-recommendations/file-io-suggestions
-         resyntax/default-recommendations/function-argument-let-extraction
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/function-shortcuts
          resyntax/default-recommendations/hash-shortcuts
@@ -68,6 +67,7 @@
          resyntax/default-recommendations/legacy/make-temporary-directory-migration
          resyntax/default-recommendations/legacy/provide-contract-migration
          resyntax/default-recommendations/let-binding-suggestions
+         resyntax/default-recommendations/let-replacement/argument-let-replacement
          resyntax/default-recommendations/let-replacement/cond-let-replacement
          resyntax/default-recommendations/let-replacement/let-replacement
          resyntax/default-recommendations/let-replacement/match-let-replacement
@@ -90,7 +90,8 @@
 
 
 (define-refactoring-suite default-recommendations
-  #:suites (boolean-shortcuts
+  #:suites (argument-let-replacement
+            boolean-shortcuts
             class-shortcuts
             comparison-shortcuts
             conditional-shortcuts
@@ -103,7 +104,6 @@
             exception-suggestions
             file-io-suggestions
             for-loop-shortcuts
-            function-argument-let-extraction
             function-definition-shortcuts
             function-shortcuts
             hash-shortcuts
