@@ -2,6 +2,7 @@ compiled/
 doc/
 *~
 *.backup
+coverage/
 # These only come up if you generate the scribble docs manually, instead of
 # through `raco setup`. But we exclude them anyway to help newcomers (and
 # Copilot) avoid accidentally committing rendered documentation files.
