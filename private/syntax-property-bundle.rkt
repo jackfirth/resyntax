@@ -257,8 +257,9 @@
 (define (syntax-all-properties stx)
   (sequence->syntax-property-bundle
    (for*/list ([path (in-syntax-paths stx)]
-               [key (in-list (syntax-property-symbol-keys (syntax-ref stx path)))])
-     (define value (syntax-property (syntax-ref stx path) key))
+               #:do [(define subform (syntax-ref stx path))]
+               [key (in-list (syntax-property-symbol-keys subform))])
+     (define value (syntax-property subform key))
      (syntax-property-entry path key value))))
 
 
