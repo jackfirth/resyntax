@@ -22,6 +22,7 @@
          rebellion/type/enum
          rebellion/type/record
          resyntax
+         resyntax/base
          resyntax/default-recommendations
          resyntax/private/file-group
          resyntax/private/github
@@ -56,6 +57,7 @@
 (define (resyntax-analyze-parse-command-line)
   (define targets (make-vector-builder))
   (define suite default-recommendations)
+  (define selected-rule #false)
   (define output-format plain-text)
   (define output-destination 'console)
 
@@ -97,6 +99,12 @@ changed relative to baseref are analyzed."
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
 
+   ("--refactoring-rule"
+    rule-name
+    "Only use this refactoring rule from the refactoring suite, instead of all of the suite's rules."
+    (define rule-sym (string->symbol rule-name))
+    (set! selected-rule rule-sym))
+
    ("--output-to-file"
     outputpath
     "Store results in a file instead of printing them to the console."
@@ -106,6 +114,15 @@ changed relative to baseref are analyzed."
     "Report results by leaving a GitHub review on the pull request currently being analyzed, as \
 determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
     (set! output-format github-pull-request-review)))
+
+  (when selected-rule
+    (define filtered-suite
+      (refactoring-suite
+       #:name (object-name suite)
+       #:rules (for/list ([rule (in-list (refactoring-suite-rules suite))]
+                          #:when (equal? (object-name rule) selected-rule))
+                 rule)))
+    (set! suite filtered-suite))
   
   (resyntax-analyze-options
    #:targets (build-vector targets)
@@ -117,6 +134,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
 (define (resyntax-fix-parse-command-line)
   (define targets (make-vector-builder))
   (define suite default-recommendations)
+  (define selected-rule #false)
   (define (add-target! target)
     (vector-builder-add targets target))
   (define fix-method modify-files)
@@ -173,6 +191,12 @@ changed relative to baseref are analyzed and fixed."
     (define parsed-suite-name (read (open-input-string suite-name)))
     (set! suite (dynamic-require parsed-modpath parsed-suite-name)))
 
+   ("--refactoring-rule"
+    rule-name
+    "Only use this refactoring rule from the refactoring suite, instead of all of the suite's rules."
+    (define rule-sym (string->symbol rule-name))
+    (set! selected-rule rule-sym))
+
    ("--max-pass-count"
     passcount
     "The maximum number of times Resyntax will fix each file. By default, Resyntax runs at most 10 \
@@ -194,6 +218,15 @@ are needed when applying a fix unlocks further fixes."
     modifiedlines
     "The maximum number of lines to modify. If not specified, no line limit is applied."
     (set! max-modified-lines (string->number modifiedlines))))
+
+  (when selected-rule
+    (define filtered-suite
+      (refactoring-suite
+       #:name (object-name suite)
+       #:rules (for/list ([rule (in-list (refactoring-suite-rules suite))]
+                          #:when (equal? (object-name rule) selected-rule))
+                 rule)))
+    (set! suite filtered-suite))
 
   (resyntax-fix-options #:targets (build-vector targets)
                         #:suite suite
