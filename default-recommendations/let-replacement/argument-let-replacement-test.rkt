@@ -1,7 +1,7 @@
 #lang resyntax/test
 
 
-require: resyntax/default-recommendations/let-replacement/argument-let-replacement argument-let-replacement
+require: resyntax/default-recommendations argument-let-replacement
 
 
 header:
@@ -77,4 +77,33 @@ test: "nested lets in same argument are extracted"
   (define x 1)
   (define y 2)
   (list (+ x y)))
+--------------------
+
+
+no-change-test: "lets after side-effectful expressions not extracted"
+--------------------
+(define (f)
+  (list (displayln "foo")
+        (let ([x 1])
+          (* x 2))))
+--------------------
+
+
+no-change-test: "lets after error expressions not extracted"
+--------------------
+(define (f)
+  (list (error 'foo "bad stuff")
+        (let ([x 1])
+          (* x 2))))
+--------------------
+
+
+no-change-test: "lets after expression not known to be pure not extracted"
+--------------------
+(define (f)
+  (list (unknown-code)
+        (let ([x 1])
+          (* x 2))))
+(define (unknown-code)
+  (void))
 --------------------
