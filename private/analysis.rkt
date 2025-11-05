@@ -71,6 +71,9 @@
 ;; Timeout for analyzers in seconds
 (define analyzer-timeout-seconds 10)
 
+;; Milliseconds per second (for time conversions)
+(define milliseconds-per-second 1000)
+
 ;; Run an analyzer with a timeout. Returns the result or #false if timeout occurred.
 (define (run-analyzer-with-timeout analyzer expanded source-name)
   (define result-box (box #false))
@@ -84,7 +87,7 @@
          (set-box! result-box (expansion-analyze analyzer expanded))))))
   
   (define timeout-evt (alarm-evt (+ (current-inexact-milliseconds) 
-                                    (* analyzer-timeout-seconds 1000))))
+                                    (* analyzer-timeout-seconds milliseconds-per-second))))
   
   ;; Wait for either completion or timeout
   (define final-result
@@ -370,8 +373,8 @@
       (make-expansion-analyzer
        #:name 'slow-analyzer
        (λ (expanded)
-         ;; Sleep for 15 seconds - longer than the 10 second timeout
-         (sleep 15)
+         ;; Sleep for 11 seconds - slightly longer than the 10 second timeout
+         (sleep 11)
          (syntax-property-bundle
           (syntax-property-entry empty-syntax-path 'slow-prop #true)))))
     
