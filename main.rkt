@@ -155,8 +155,9 @@
       ([exn:fail?
         (λ (e)
           (log-resyntax-error
-           "could not load language refactoring suite due to error\n  language: ~a\n  error: ~a"
-           lang-name e)
+           "could not load language refactoring suite due to error\n  language: ~a\n  error:\n~a"
+           lang-name
+           (string-indent (exn-message e) #:amount 3))
           #false)])
     (define lang-resyntax-submod `(submod ,lang-name resyntax))
     (dynamic-require lang-resyntax-submod 'refactoring-suite (λ () #false))))
