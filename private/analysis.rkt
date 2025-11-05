@@ -68,6 +68,57 @@
     (syntax-ref stx path)))
 
 
+;; Timeout for analyzers in seconds
+(define analyzer-timeout-seconds 10)
+
+;; Run an analyzer with a timeout. Returns the result or #false if timeout occurred.
+(define (run-analyzer-with-timeout analyzer expanded source-name)
+  (define result-box (box #false))
+  (define error-box (box #false))
+  (define start-time (current-inexact-milliseconds))
+  
+  (define analyzer-thread
+    (thread
+     (λ ()
+       (with-handlers ([exn:fail? (λ (e) (set-box! error-box e))])
+         (set-box! result-box (expansion-analyze analyzer expanded))))))
+  
+  (define timeout-evt (alarm-evt (+ (current-inexact-milliseconds) 
+                                    (* analyzer-timeout-seconds 1000))))
+  
+  ;; Wait for either completion or timeout
+  (define final-result
+    (sync
+     (handle-evt analyzer-thread (λ (_) 'completed))
+     (handle-evt timeout-evt (λ (_) 'timeout))))
+    
+  (cond
+    [(eq? final-result 'timeout)
+     (kill-thread analyzer-thread)
+     (log-resyntax-warning
+      "analyzer ~a timed out after ~a seconds while analyzing ~a"
+      (object-name analyzer)
+      analyzer-timeout-seconds
+      source-name)
+     #false]
+    [else
+     (define elapsed-ms (- (current-inexact-milliseconds) start-time))
+     (log-resyntax-debug
+      "analyzer ~a completed in ~a ms while analyzing ~a"
+      (object-name analyzer)
+      (inexact->exact (round elapsed-ms))
+      source-name)
+     (cond
+       [(unbox error-box)
+        (log-resyntax-error
+         "analyzer ~a failed with error while analyzing ~a: ~a"
+         (object-name analyzer)
+         source-name
+         (exn-message (unbox error-box)))
+        #false]
+       [else (unbox result-box)])]))
+
+
 (define (source-analyze code
                         #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
                         #:analyzers analyzers)
@@ -190,8 +241,10 @@
       (transduce analyzers
                  (append-mapping
                   (λ (analyzer)
-                    (syntax-property-bundle-entries
-                     (expansion-analyze analyzer expanded))))
+                    (define result (run-analyzer-with-timeout analyzer expanded program-source-name))
+                    (if result
+                        (syntax-property-bundle-entries result)
+                        '())))
                  (filtering
                   (λ (prop-entry)
                     (match-define (syntax-property-entry path key _value) prop-entry)
@@ -307,4 +360,55 @@
     ;; Check that path /999 is not in the bundle
     (define path-999-props
       (syntax-property-bundle-get-immediate-properties props (syntax-path (list 999))))
-    (check-true (hash-empty? path-999-props))))
+    (check-true (hash-empty? path-999-props)))
+  
+  (test-case "analyzer timeout"
+    ;; Create a test analyzer that sleeps longer than the timeout
+    (define test-source (string-source "#lang racket/base (define x 1)"))
+    
+    (define slow-analyzer
+      (make-expansion-analyzer
+       #:name 'slow-analyzer
+       (λ (expanded)
+         ;; Sleep for 15 seconds - longer than the 10 second timeout
+         (sleep 15)
+         (syntax-property-bundle
+          (syntax-property-entry empty-syntax-path 'slow-prop #true)))))
+    
+    ;; Run analysis with the slow analyzer - should timeout and not crash
+    (define analysis (source-analyze test-source #:analyzers (list slow-analyzer)))
+    
+    ;; Check that the analysis completed (even though the analyzer timed out)
+    (check-true (source-code-analysis? analysis))
+    
+    ;; Check that no properties were added from the timed-out analyzer
+    (define props (source-code-analysis-added-syntax-properties analysis))
+    (check-true (syntax-property-bundle? props))
+    (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+    ;; The slow-prop should NOT be present since the analyzer timed out
+    (check-false (hash-has-key? root-props 'slow-prop)))
+  
+  (test-case "analyzer completes within timeout"
+    ;; Create a test analyzer that completes quickly
+    (define test-source (string-source "#lang racket/base (define x 1)"))
+    
+    (define fast-analyzer
+      (make-expansion-analyzer
+       #:name 'fast-analyzer
+       (λ (expanded)
+         ;; This should complete quickly, well within the timeout
+         (syntax-property-bundle
+          (syntax-property-entry empty-syntax-path 'fast-prop #true)))))
+    
+    ;; Run analysis with the fast analyzer - should complete successfully
+    (define analysis (source-analyze test-source #:analyzers (list fast-analyzer)))
+    
+    ;; Check that the analysis completed
+    (check-true (source-code-analysis? analysis))
+    
+    ;; Check that properties were added from the successful analyzer
+    (define props (source-code-analysis-added-syntax-properties analysis))
+    (check-true (syntax-property-bundle? props))
+    (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+    ;; The fast-prop should be present since the analyzer completed successfully
+    (check-equal? (hash-ref root-props 'fast-prop #false) #true)))
