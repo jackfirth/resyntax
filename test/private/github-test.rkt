@@ -1,13 +1,11 @@
 #lang racket/base
 
-
 (require rackunit
          resyntax/private/github)
 
 
 (module+ test
   (test-case "github-review-comment-jsexpr"
-    
     (test-case "single-line comment"
       (define comment
         (github-review-comment
@@ -24,7 +22,6 @@
       (check-equal? (hash-ref result 'side) "RIGHT")
       (check-false (hash-has-key? result 'start_line))
       (check-false (hash-has-key? result 'start_side)))
-    
     (test-case "multi-line comment"
       (define comment
         (github-review-comment
@@ -41,7 +38,6 @@
       (check-equal? (hash-ref result 'line) 8)
       (check-equal? (hash-ref result 'start_side) "LEFT")
       (check-equal? (hash-ref result 'side) "RIGHT")))
-  
   (test-case "github-review-request-jsexpr"
     (define comment1
       (github-review-comment
@@ -73,27 +69,21 @@
     (check-equal? (hash-ref result 'body) "Review body")
     (check-equal? (hash-ref result 'event) "COMMENT")
     (check-equal? (length (hash-ref result 'comments)) 2))
-  
   (test-case "git-ref->pr-number"
-    
     (test-case "valid PR ref"
       (check-equal? (git-ref->pr-number "refs/pull/42/merge") 42)
       (check-equal? (git-ref->pr-number "refs/pull/123/merge") 123)
       (check-equal? (git-ref->pr-number "refs/pull/1/merge") 1))
-    
     (test-case "invalid refs raise errors"
       (check-exn exn:fail? (lambda () (git-ref->pr-number "refs/heads/main")))
       (check-exn exn:fail? (lambda () (git-ref->pr-number "refs/pull/42/head")))
       (check-exn exn:fail? (lambda () (git-ref->pr-number "invalid")))))
-  
   (test-case "github-review-body"
-    
     (test-case "with comments"
       (check-equal? (github-review-body #t 1)
                     "[Resyntax](https://docs.racket-lang.org/resyntax/) analyzed 1 file in this pull request and has added suggestions.")
       (check-equal? (github-review-body #t 5)
                     "[Resyntax](https://docs.racket-lang.org/resyntax/) analyzed 5 files in this pull request and has added suggestions."))
-    
     (test-case "without comments"
       (check-equal? (github-review-body #f 1)
                     "[Resyntax](https://docs.racket-lang.org/resyntax/) analyzed 1 file in this pull request and found no issues.")
