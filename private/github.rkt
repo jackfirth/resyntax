@@ -7,7 +7,26 @@
 (provide
  (contract-out
   [github-review-request? (-> any/c boolean?)]
+  [github-review-request
+   (-> #:owner-repo string?
+       #:pull-number exact-nonnegative-integer?
+       #:body string?
+       #:event string?
+       #:comments list?
+       github-review-request?)]
   [github-review-request-jsexpr (-> github-review-request? jsexpr?)]
+  [github-review-comment? (-> any/c boolean?)]
+  [github-review-comment
+   (-> #:path string?
+       #:body string?
+       #:start-line exact-nonnegative-integer?
+       #:end-line exact-nonnegative-integer?
+       #:start-side string?
+       #:end-side string?
+       github-review-comment?)]
+  [github-review-comment-jsexpr (-> github-review-comment? jsexpr?)]
+  [git-ref->pr-number (-> string? exact-nonnegative-integer?)]
+  [github-review-body (-> boolean? exact-nonnegative-integer? string?)]
   [refactoring-results->github-review
    (-> (sequence/c refactoring-result?) #:file-count exact-nonnegative-integer?
        github-review-request?)]))
