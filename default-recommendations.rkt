@@ -25,6 +25,7 @@
                resyntax/default-recommendations/legacy/make-temporary-directory-migration
                resyntax/default-recommendations/legacy/provide-contract-migration
                resyntax/default-recommendations/let-binding-suggestions
+               resyntax/default-recommendations/let-replacement/argument-let-replacement
                resyntax/default-recommendations/let-replacement/cond-let-replacement
                resyntax/default-recommendations/let-replacement/let-replacement
                resyntax/default-recommendations/let-replacement/match-let-replacement
@@ -66,6 +67,7 @@
          resyntax/default-recommendations/legacy/make-temporary-directory-migration
          resyntax/default-recommendations/legacy/provide-contract-migration
          resyntax/default-recommendations/let-binding-suggestions
+         resyntax/default-recommendations/let-replacement/argument-let-replacement
          resyntax/default-recommendations/let-replacement/cond-let-replacement
          resyntax/default-recommendations/let-replacement/let-replacement
          resyntax/default-recommendations/let-replacement/match-let-replacement
@@ -88,7 +90,8 @@
 
 
 (define-refactoring-suite default-recommendations
-  #:suites (boolean-shortcuts
+  #:suites (argument-let-replacement
+            boolean-shortcuts
             class-shortcuts
             comparison-shortcuts
             conditional-shortcuts
