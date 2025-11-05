@@ -21,7 +21,9 @@
   [into-syntax-property-bundle (reducer/c syntax-property-entry? syntax-property-bundle?)]
   [property-hashes-into-syntax-property-bundle
    (reducer/c (entry/c syntax-path? immutable-hash?) syntax-property-bundle?)]
-  [syntax-add-all-properties (-> syntax? syntax-property-bundle? syntax?)]))
+  [syntax-add-all-properties (-> syntax? syntax-property-bundle? syntax?)]
+  [syntax-immediate-properties (-> syntax? syntax-property-bundle?)]
+  [syntax-all-properties (-> syntax? syntax-property-bundle?)]))
 
 
 (require guard
@@ -244,6 +246,22 @@
   (syntax-set stx path new-subform))
 
 
+(define (syntax-immediate-properties stx)
+  (define keys (syntax-property-symbol-keys stx))
+  (sequence->syntax-property-bundle
+   (for/list ([key (in-list keys)])
+     (define value (syntax-property stx key))
+     (syntax-property-entry empty-syntax-path key value))))
+
+
+(define (syntax-all-properties stx)
+  (sequence->syntax-property-bundle
+   (for*/list ([path (in-syntax-paths stx)]
+               [key (in-list (syntax-property-symbol-keys (syntax-ref stx path)))])
+     (define value (syntax-property (syntax-ref stx path) key))
+     (syntax-property-entry path key value))))
+
+
 (module+ test
   (test-case "syntax-add-all-properties"
     (define stx #'(a (b c) d))
@@ -266,3 +284,101 @@
     (define/syntax-parse (b* c*) #'bc*)
     (check-equal? (syntax-property #'b* 'headphone-shaped?) #true)
     (check-equal? (syntax-property #'c* 'headphone-shaped?) #false)))
+
+
+(module+ test
+  (test-case "syntax-immediate-properties"
+
+    (test-case "syntax with no properties"
+      (define stx #'(a b c))
+      (define props (syntax-immediate-properties stx))
+      (check-true (syntax-property-bundle? props))
+      (check-equal? (syntax-property-bundle-get-immediate-properties props empty-syntax-path)
+                    (hash)))
+
+    (test-case "syntax with single property"
+      (define stx (syntax-property #'(a b c) 'foo 42))
+      (define props (syntax-immediate-properties stx))
+      (check-true (syntax-property-bundle? props))
+      (define immediate (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (check-equal? (hash-ref immediate 'foo) 42))
+
+    (test-case "syntax with multiple properties"
+      (define stx
+        (syntax-property
+         (syntax-property
+          (syntax-property #'(a b c) 'foo 42)
+          'bar #true)
+         'baz "hello"))
+      (define props (syntax-immediate-properties stx))
+      (check-true (syntax-property-bundle? props))
+      (define immediate (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (check-equal? (hash-ref immediate 'foo) 42)
+      (check-equal? (hash-ref immediate 'bar) #true)
+      (check-equal? (hash-ref immediate 'baz) "hello"))
+
+    (test-case "only extracts immediate properties, not from subforms"
+      (define inner-stx (syntax-property #'x 'inner-prop 123))
+      (define outer-stx
+        (syntax-property
+         (datum->syntax #f (list inner-stx #'y) #f)
+         'outer-prop 456))
+      (define props (syntax-immediate-properties outer-stx))
+      (define immediate (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (check-equal? (hash-ref immediate 'outer-prop #false) 456)
+      (check-equal? (hash-ref immediate 'inner-prop #false) #false))))
+
+
+(module+ test
+  (test-case "syntax-all-properties"
+
+    (test-case "syntax with no properties"
+      (define stx #'(a b c))
+      (define props (syntax-all-properties stx))
+      (check-true (syntax-property-bundle? props))
+      (check-equal? (sequence-length (syntax-property-bundle-entries props)) 0))
+
+    (test-case "syntax with property only on root"
+      (define stx (syntax-property #'(a b c) 'root-prop 42))
+      (define props (syntax-all-properties stx))
+      (check-true (syntax-property-bundle? props))
+      (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (check-equal? (hash-ref root-props 'root-prop) 42))
+
+    (test-case "syntax with properties on multiple subforms"
+      (define a-stx (syntax-property #'a 'a-prop 1))
+      (define b-stx (syntax-property #'b 'b-prop 2))
+      (define c-stx (syntax-property #'c 'c-prop 3))
+      (define stx (datum->syntax #f (list a-stx b-stx c-stx) #f))
+      (define stx-with-root (syntax-property stx 'root-prop 0))
+      (define props (syntax-all-properties stx-with-root))
+      (check-true (syntax-property-bundle? props))
+      
+      (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (check-equal? (hash-ref root-props 'root-prop) 0)
+      
+      (define a-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 0))))
+      (check-equal? (hash-ref a-props 'a-prop) 1)
+      
+      (define b-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 1))))
+      (check-equal? (hash-ref b-props 'b-prop) 2)
+      
+      (define c-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 2))))
+      (check-equal? (hash-ref c-props 'c-prop) 3))
+
+    (test-case "nested syntax with properties"
+      (define inner-b (syntax-property #'b 'inner-prop 42))
+      (define inner-c (syntax-property #'c 'inner-prop 99))
+      (define inner-list (datum->syntax #f (list inner-b inner-c) #f))
+      (define inner-with-prop (syntax-property inner-list 'list-prop 10))
+      (define outer (datum->syntax #f (list #'a inner-with-prop #'d) #f))
+      (define props (syntax-all-properties outer))
+      
+      (define inner-list-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 1))))
+      (check-equal? (hash-ref inner-list-props 'list-prop) 10)
+      
+      (define b-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 1 0))))
+      (check-equal? (hash-ref b-props 'inner-prop) 42)
+      
+      (define c-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 1 1))))
+      (check-equal? (hash-ref c-props 'inner-prop) 99))))
