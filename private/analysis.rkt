@@ -114,7 +114,7 @@
       source-name)
      (cond
        [(unbox error-box)
-        (log-resyntax-error
+        (log-resyntax-warning
          "analyzer ~a failed with error while analyzing ~a: ~a"
          (object-name analyzer)
          source-name
@@ -413,4 +413,21 @@
     (check-true (syntax-property-bundle? props))
     (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
     ;; The fast-prop should be present since the analyzer completed successfully
-    (check-equal? (hash-ref root-props 'fast-prop #false) #true)))
+    (check-equal? (hash-ref root-props 'fast-prop #false) #true))
+  
+  (test-case "failing analyzer is skipped and warning is logged"
+    ;; Create a test analyzer that raises an error
+    (define test-source (string-source "#lang racket/base (define x 1)"))
+    
+    (define failing-analyzer
+      (make-expansion-analyzer
+       #:name 'failing-analyzer
+       (λ (expanded)
+         ;; This will raise an error
+         (error "intentional test error"))))
+    
+    ;; Run analysis with the failing analyzer - should skip it and not crash
+    (define analysis (source-analyze test-source #:analyzers (list failing-analyzer)))
+    
+    ;; Check that the analysis completed (even though the analyzer failed)
+    (check-true (source-code-analysis? analysis))))
