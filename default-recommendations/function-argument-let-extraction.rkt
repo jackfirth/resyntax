@@ -70,11 +70,10 @@
            (= (length names) (length (remove-duplicates names))))
   
   (leading-body ...
-   (~@ . (~splicing-replacement
-          ((define all-bind-id all-bind-rhs) ...)
-          #:original ()))
-   (~replacement (func arg.body-expr ...)
-                 #:original original-call)))
+   (~@ . (~focus-replacement-on
+          (~splicing-replacement
+           ((define all-bind-id all-bind-rhs) ... (func arg.body-expr ...))
+           #:original original-call)))))
 
 
 (define-refactoring-suite function-argument-let-extraction
