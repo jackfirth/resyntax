@@ -74,7 +74,8 @@
 ;; Milliseconds per second (for time conversions)
 (define milliseconds-per-second 1000)
 
-;; Run an analyzer with a timeout. Returns the result or #false if timeout occurred.
+;; Run an analyzer with a timeout. Returns the result or an empty syntax property bundle
+;; if timeout occurred or an error was raised.
 (define (run-analyzer-with-timeout analyzer expanded source-name)
   (define result-box (box #false))
   (define error-box (box #false))
@@ -103,7 +104,7 @@
       (object-name analyzer)
       analyzer-timeout-seconds
       source-name)
-     #false]
+     (syntax-property-bundle)]
     [else
      (define elapsed-ms (- (current-inexact-milliseconds) start-time))
      (log-resyntax-debug
@@ -118,7 +119,7 @@
          (object-name analyzer)
          source-name
          (exn-message (unbox error-box)))
-        #false]
+        (syntax-property-bundle)]
        [else (unbox result-box)])]))
 
 
@@ -245,9 +246,7 @@
                  (append-mapping
                   (λ (analyzer)
                     (define result (run-analyzer-with-timeout analyzer expanded program-source-name))
-                    (if result
-                        (syntax-property-bundle-entries result)
-                        '())))
+                    (syntax-property-bundle-entries result)))
                  (filtering
                   (λ (prop-entry)
                     (match-define (syntax-property-entry path key _value) prop-entry)
