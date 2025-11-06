@@ -1,0 +1,111 @@
+name: Manual Rule Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      rule-name:
+        description: The name of the refactoring rule to run.
+        required: true
+
+jobs:
+  manual-rule-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Generate a token
+      id: generate-token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: 999945
+        private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
+
+    - name: Get GitHub App User ID
+      id: get-user-id
+      run: echo "user-id=$(gh api "/users/${{ steps.generate-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+
+    - name: Checkout test corpus repository
+      uses: actions/checkout@v5.0.0
+      with:
+        repository: jackfirth/resyntax-test-corpus
+        token: ${{ steps.generate-token.outputs.token }}
+
+    - name: Install Racket
+      uses: Bogdanp/setup-racket@v1.11
+      with:
+        version: current
+        local_catalogs: $GITHUB_WORKSPACE
+
+    - name: Ensure test corpus packages are installed
+      run: raco pkg install --auto --no-setup scribble-doc scribble-html-lib scribble-lib scribble-test scribble-text-lib scribble
+
+    - name: Update test corpus packages to local dirs
+      run: raco pkg update --link --no-setup scribble-8.18/scribble-doc scribble-8.18/scribble-html-lib scribble-8.18/scribble-lib scribble-8.18/scribble-test scribble-8.18/scribble-text-lib scribble-8.18/scribble
+
+    - name: Compile test corpus packages
+      run: raco setup --pkgs scribble-doc scribble-html-lib scribble-lib scribble-test scribble-text-lib scribble
+
+    - name: Install Resyntax
+      run: raco pkg install --auto --skip-installed resyntax
+
+    - name: Configure token-based access to test corpus repository
+      run: git remote set-url origin "https://x-access-token:${{ steps.generate-token.outputs.token }}@github.com/jackfirth/resyntax-test-corpus.git"
+
+    - name: Configure Git username
+      run: git config user.name "${{ steps.generate-token.outputs.app-slug }}[bot]"
+
+    - name: Configure Git email
+      run: git config user.email "${{ steps.get-user-id.outputs.user-id }}+${{ steps.generate-token.outputs.app-slug }}[bot]@users.noreply.github.com"
+
+    - name: Create branch in test corpus repository
+      run: git checkout -b autofix-${{ github.run_number }}-${{ github.run_attempt }}
+
+    - name: Run Resyntax
+      id: run-resyntax
+      run: |
+        echo "SUMMARY_JSON=$(racket -l- resyntax/cli fix \
+          --package scribble-doc \
+          --package scribble-html-lib \
+          --package scribble-lib \
+          --package scribble-test \
+          --package scribble-text-lib \
+          --package scribble \
+          --refactoring-rule "${{ inputs.rule-name }}" \
+          --max-pass-count 1 \
+          --output-as-json \
+          --create-multiple-commits)" >> "$GITHUB_OUTPUT"
+
+    - name: Push fixes to remote branch
+      if: ${{ steps.run-resyntax.outputs.SUMMARY_JSON.fix_count > 0 }}
+      uses: actions/github-script@v7.0.1
+      with:
+        github-token: ${{ steps.generate-token.outputs.token }}
+        script: |
+          await exec.exec(
+            'git push --set-upstream origin autofix-${{ github.run_number }}-${{ github.run_attempt }}',
+            [],
+            {cwd: 'cloned-package'});
+    
+    - name: Create pull request
+      if: ${{ steps.run-resyntax.outputs.SUMMARY_JSON.fix_count > 0 }}
+      uses: actions/github-script@v7.0.1
+      env:
+        SUMMARY_JSON: ${{ steps.run-resyntax.outputs.SUMMARY_JSON }}
+      with:
+        github-token: ${{ steps.generate-token.outputs.token }}
+        script: |
+          const { readFile, writeFile } = require('fs/promises');
+          const commitMessageBody = process.env.SUMMARY_JSON.commit_message_body;
+          const targetRepo = await github.rest.repos.get({owner: "jackfirth", repo: "resyntax-test-corpus"});
+          console.log(targetRepo);
+          const base = targetRepo.data.default_branch
+          await github.rest.pulls.create({
+            owner: "jackfirth",
+            repo: "resyntax-test-corpus",
+            title: "Automated Resyntax fixes",
+            head: "autofix-${{ github.run_number }}-${{ github.run_attempt }}",
+            base: base,
+            body: commitMessageBody,
+            maintainer_can_modify: true,
+          });
