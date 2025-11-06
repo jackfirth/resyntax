@@ -47,12 +47,11 @@
 (define (variable-mutability stx)
   (define labeled-stx (syntax-label-id-phases (syntax-label-paths stx 'expanded-path)))
   
-  ;; Create table with all bound identifiers initialized to 'immutable
-  (define variable-table (fully-expanded-syntax-id-table labeled-stx))
-  
-  ;; Initialize all entries with 'immutable
-  (for ([entry (in-expanded-id-table variable-table)])
-    (expanded-id-table-set! variable-table (entry-key entry) 'immutable))
+  ;; Create table and initialize all bound identifiers with 'immutable
+  (define variable-table (make-expanded-id-table))
+  (for ([id (in-stream (binding-site-identifiers labeled-stx))])
+    (define phase (syntax-property id 'phase))
+    (expanded-id-table-set! variable-table (expanded-identifier id phase) 'immutable))
   
   ;; Mark mutated variables as 'mutable
   (for ([id (in-stream (mutated-variables labeled-stx))])

@@ -17,6 +17,7 @@
   [in-expanded-id-table-phase
    (-> expanded-id-table? (or/c exact-nonnegative-integer? #false) (sequence/c (entry/c expanded-identifier? any/c)))]
   [syntax-label-id-phases (-> syntax? syntax?)]
+  [binding-site-identifiers (-> syntax? stream?)]
   [fully-expanded-syntax-id-table (-> syntax? expanded-id-table?)]))
 
 
@@ -153,6 +154,10 @@
               (map recur (append* (attribute body))))])))
 
 
+;; Builds an expanded-id-table from phase-labeled syntax.
+;; The input syntax should already have phase labels added via syntax-label-id-phases.
+;; Returns an expanded-id-table mapping expanded-identifiers to empty lists,
+;; with one entry for each binding site in the syntax.
 (define (fully-expanded-syntax-id-table stx)
   ;; stx is expected to already have phase labels via syntax-label-id-phases
   (define table (make-expanded-id-table))
