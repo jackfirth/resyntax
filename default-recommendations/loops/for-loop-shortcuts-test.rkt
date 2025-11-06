@@ -563,3 +563,56 @@ test: "shadowed and unused in-value clause refactorable to #:do clause"
        [b (in-range 0 a)])
   (displayln (list a b)))
 --------------------
+
+
+test: "sequence-tail with in-vector refactorable to in-vector with start index"
+--------------------
+(require racket/sequence)
+(define vec (vector 1 2 3 4 5))
+(for ([x (sequence-tail (in-vector vec) 2)])
+  (displayln x))
+====================
+(require racket/sequence)
+(define vec (vector 1 2 3 4 5))
+(for ([x (in-vector vec 2)])
+  (displayln x))
+--------------------
+
+
+test: "sequence-tail with in-vector and variable start index refactorable"
+--------------------
+(require racket/sequence)
+(define vec (vector 1 2 3 4 5))
+(define start-idx 3)
+(for ([x (sequence-tail (in-vector vec) start-idx)])
+  (displayln x))
+====================
+(require racket/sequence)
+(define vec (vector 1 2 3 4 5))
+(define start-idx 3)
+(for ([x (in-vector vec start-idx)])
+  (displayln x))
+--------------------
+
+
+test: "sequence-tail with in-vector in for/list refactorable"
+--------------------
+(require racket/sequence)
+(define vec (vector 1 2 3 4 5))
+(for/list ([x (sequence-tail (in-vector vec) 1)])
+  (* x 2))
+====================
+(require racket/sequence)
+(define vec (vector 1 2 3 4 5))
+(for/list ([x (in-vector vec 1)])
+  (* x 2))
+--------------------
+
+
+no-change-test: "sequence-tail with non-in-vector sequence not refactorable"
+--------------------
+(require racket/sequence)
+(define lst (list 1 2 3 4 5))
+(for ([x (sequence-tail (in-list lst) 2)])
+  (displayln x))
+--------------------

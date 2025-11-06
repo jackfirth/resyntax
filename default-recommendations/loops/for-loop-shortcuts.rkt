@@ -11,6 +11,7 @@
 
 (require (for-syntax racket/base)
          racket/list
+         racket/sequence
          racket/set
          resyntax/base
          resyntax/default-recommendations/analyzers/identifier-usage
@@ -299,6 +300,13 @@ return just that result."
   (for-id (clause-before ... #:do [expr] clause-after ...) body ...))
 
 
+(define-refactoring-rule sequence-tail-in-vector-to-in-vector
+  #:description "The `in-vector` function accepts an optional start index, making `sequence-tail` unnecessary."
+  #:literals (sequence-tail in-vector)
+  (sequence-tail (in-vector vec) start)
+  (in-vector vec start))
+
+
 (define-refactoring-suite for-loop-shortcuts
   #:rules (for/fold-building-hash-to-for/hash
            for/fold-result-keyword
@@ -314,5 +322,6 @@ return just that result."
            nested-for/and-to-for*/and
            nested-for/or-to-for*/or
            or-let-in-for/and-to-filter-clause
+           sequence-tail-in-vector-to-in-vector
            unless-expression-in-for-loop-to-unless-keyword
            when-expression-in-for-loop-to-when-keyword))
