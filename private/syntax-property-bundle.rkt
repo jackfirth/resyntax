@@ -22,8 +22,8 @@
   [property-hashes-into-syntax-property-bundle
    (reducer/c (entry/c syntax-path? immutable-hash?) syntax-property-bundle?)]
   [syntax-add-all-properties (-> syntax? syntax-property-bundle? syntax?)]
-  [syntax-immediate-properties (-> syntax? syntax-property-bundle?)]
-  [syntax-all-properties (-> syntax? syntax-property-bundle?)]))
+  [syntax-immediate-properties (->* (syntax?) (#:base-path syntax-path?) syntax-property-bundle?)]
+  [syntax-all-properties (->* (syntax?) (#:base-path syntax-path?) syntax-property-bundle?)]))
 
 
 (require guard
@@ -246,21 +246,25 @@
   (syntax-set stx path new-subform))
 
 
-(define (syntax-immediate-properties stx)
+(define (syntax-immediate-properties stx #:base-path [base-path empty-syntax-path])
   (define keys (syntax-property-symbol-keys stx))
-  (sequence->syntax-property-bundle
-   (for/list ([key (in-list keys)])
-     (define value (syntax-property stx key))
-     (syntax-property-entry empty-syntax-path key value))))
+  (transduce keys
+             (mapping (λ (key)
+                        (define value (syntax-property stx key))
+                        (syntax-property-entry base-path key value)))
+             #:into into-syntax-property-bundle))
 
 
-(define (syntax-all-properties stx)
-  (sequence->syntax-property-bundle
-   (for*/list ([path (in-syntax-paths stx)]
-               #:do [(define subform (syntax-ref stx path))]
-               [key (in-list (syntax-property-symbol-keys subform))])
-     (define value (syntax-property subform key))
-     (syntax-property-entry path key value))))
+(define (syntax-all-properties stx #:base-path [base-path empty-syntax-path])
+  (transduce (in-syntax-paths stx #:base-path base-path)
+             (append-mapping
+              (λ (path)
+                (define subform (syntax-ref stx (syntax-path-remove-prefix path base-path)))
+                (define keys (syntax-property-symbol-keys subform))
+                (for/list ([key (in-list keys)])
+                  (define value (syntax-property subform key))
+                  (syntax-property-entry path key value))))
+             #:into into-syntax-property-bundle))
 
 
 (module+ test
@@ -382,4 +386,25 @@
       (check-equal? (hash-ref b-props 'inner-prop) 42)
       
       (define c-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 1 1))))
-      (check-equal? (hash-ref c-props 'inner-prop) 99))))
+      (check-equal? (hash-ref c-props 'inner-prop) 99))
+
+    (test-case "with base-path parameter"
+      (define stx (syntax-property #'(a b c) 'root-prop 42))
+      (define base (syntax-path (list 5 10)))
+      (define props (syntax-immediate-properties stx #:base-path base))
+      (check-true (syntax-property-bundle? props))
+      (define base-props (syntax-property-bundle-get-immediate-properties props base))
+      (check-equal? (hash-ref base-props 'root-prop) 42))
+
+    (test-case "syntax-all-properties with base-path"
+      (define a-stx (syntax-property #'a 'a-prop 1))
+      (define b-stx (syntax-property #'b 'b-prop 2))
+      (define stx (datum->syntax #f (list a-stx b-stx) #f))
+      (define base (syntax-path (list 3 7)))
+      (define props (syntax-all-properties stx #:base-path base))
+      
+      (define a-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 3 7 0))))
+      (check-equal? (hash-ref a-props 'a-prop) 1)
+      
+      (define b-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 3 7 1))))
+      (check-equal? (hash-ref b-props 'b-prop) 2))))
