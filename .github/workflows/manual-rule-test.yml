@@ -66,15 +66,14 @@ jobs:
 
     - name: Run Resyntax
       id: run-resyntax
-          # --package scribble-doc \
-          # --package scribble-html-lib \
-          # --package scribble-lib \
-          # --package scribble-test \
-          # --package scribble-text-lib \
-          # --package scribble \
       run: |
         echo "SUMMARY_JSON=$(racket -l- resyntax/cli fix \
-          --file scribble-8.18/scribble-lib/scribble/core.rkt \
+          --package scribble-doc \
+          --package scribble-html-lib \
+          --package scribble-lib \
+          --package scribble-test \
+          --package scribble-text-lib \
+          --package scribble \
           --refactoring-rule "${{ inputs.rule-name }}" \
           --max-pass-count 1 \
           --output-as-json \
