@@ -18,6 +18,7 @@ jobs:
       with:
         app-id: 999945
         private-key: ${{ secrets.RESYNTAX_APP_PRIVATE_KEY }}
+        owner: jackfirth
 
     - name: Get GitHub App User ID
       id: get-user-id
@@ -35,10 +36,12 @@ jobs:
       uses: Bogdanp/setup-racket@v1.11
       with:
         version: current
-        local_catalogs: $GITHUB_WORKSPACE
+        distribution: minimal
+        dest: ${HOME}/racketdist
+        sudo: never
 
-    - name: Ensure test corpus packages are installed
-      run: raco pkg install --auto --no-setup scribble-doc scribble-html-lib scribble-lib scribble-test scribble-text-lib scribble
+    - name: Ensure all test corpus packages are installed
+      run: raco pkg install --auto --no-setup --installation --skip-installed scribble-doc scribble-html-lib scribble-lib scribble-test scribble-text-lib scribble
 
     - name: Update test corpus packages to local dirs
       run: raco pkg update --link --no-setup scribble-8.18/scribble-doc scribble-8.18/scribble-html-lib scribble-8.18/scribble-lib scribble-8.18/scribble-test scribble-8.18/scribble-text-lib scribble-8.18/scribble
@@ -63,32 +66,34 @@ jobs:
 
     - name: Run Resyntax
       id: run-resyntax
+          # --package scribble-doc \
+          # --package scribble-html-lib \
+          # --package scribble-lib \
+          # --package scribble-test \
+          # --package scribble-text-lib \
+          # --package scribble \
       run: |
         echo "SUMMARY_JSON=$(racket -l- resyntax/cli fix \
-          --package scribble-doc \
-          --package scribble-html-lib \
-          --package scribble-lib \
-          --package scribble-test \
-          --package scribble-text-lib \
-          --package scribble \
+          --file scribble-8.18/scribble-lib/scribble/core.rkt \
           --refactoring-rule "${{ inputs.rule-name }}" \
           --max-pass-count 1 \
           --output-as-json \
           --create-multiple-commits)" >> "$GITHUB_OUTPUT"
+    
+    - name: Log summary JSON
+      run: echo '${{ steps.run-resyntax.outputs.SUMMARY_JSON }}'
 
     - name: Push fixes to remote branch
-      if: ${{ steps.run-resyntax.outputs.SUMMARY_JSON.fix_count > 0 }}
+      if: ${{ fromJSON(steps.run-resyntax.outputs.SUMMARY_JSON).fix_count > 0 }}
       uses: actions/github-script@v7.0.1
       with:
         github-token: ${{ steps.generate-token.outputs.token }}
         script: |
           await exec.exec(
-            'git push --set-upstream origin autofix-${{ github.run_number }}-${{ github.run_attempt }}',
-            [],
-            {cwd: 'cloned-package'});
+            'git push --set-upstream origin autofix-${{ github.run_number }}-${{ github.run_attempt }}');
     
     - name: Create pull request
-      if: ${{ steps.run-resyntax.outputs.SUMMARY_JSON.fix_count > 0 }}
+      if: ${{ fromJSON(steps.run-resyntax.outputs.SUMMARY_JSON).fix_count > 0 }}
       uses: actions/github-script@v7.0.1
       env:
         SUMMARY_JSON: ${{ steps.run-resyntax.outputs.SUMMARY_JSON }}
@@ -96,7 +101,7 @@ jobs:
         github-token: ${{ steps.generate-token.outputs.token }}
         script: |
           const { readFile, writeFile } = require('fs/promises');
-          const commitMessageBody = process.env.SUMMARY_JSON.commit_message_body;
+          const commitMessageBody = JSON.parse(process.env.SUMMARY_JSON).commit_message_body;
           const targetRepo = await github.rest.repos.get({owner: "jackfirth", repo: "resyntax-test-corpus"});
           console.log(targetRepo);
           const base = targetRepo.data.default_branch
