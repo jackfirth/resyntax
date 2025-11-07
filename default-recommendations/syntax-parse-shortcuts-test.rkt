@@ -49,6 +49,17 @@ test: "define-syntax with syntax-parse using stx name refactorable to define-syn
 ------------------------------
 
 
+no-change-test: "define-syntax with syntax-parse using custom name in directives not refactorable"
+------------------------------
+(define-syntax my-macro
+  (lambda (input-stx)
+    (syntax-parse input-stx
+      [(_ x:id)
+       #:with loc input-stx
+       #'(quote (x loc))])))
+------------------------------
+
+
 no-change-test: "define-syntax with syntax-parse and multiple clauses not refactorable"
 ------------------------------
 (define-syntax my-or

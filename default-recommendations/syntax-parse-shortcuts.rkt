@@ -29,8 +29,23 @@ equivalent `define-syntax-parse-rule` macro."
       (syntax-parse-id:id parsed-stx:id
         [(_ . pattern) body ...])))
   
+  #:do [(define stx-id (attribute stx-var))
+        ;; Check if stx-var is referenced in the body
+        (define (has-stx-ref? stx)
+          (syntax-parse stx
+            [id:id
+             #:when (free-identifier=? #'id stx-id)
+             #t]
+            [(head . tail)
+             (or (has-stx-ref? #'head)
+                 (has-stx-ref? #'tail))]
+            [_ #f]))
+        (define body-has-stx-ref?
+          (ormap has-stx-ref? (attribute body)))]
+  
   #:when (and (free-identifier=? (attribute stx-var) (attribute parsed-stx))
-              (equal? (syntax-e (attribute syntax-parse-id)) 'syntax-parse))
+              (equal? (syntax-e (attribute syntax-parse-id)) 'syntax-parse)
+              (not body-has-stx-ref?))
   
   (define-syntax-parse-rule (macro . pattern) body ...))
 
