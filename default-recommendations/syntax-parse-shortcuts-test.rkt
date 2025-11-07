@@ -21,7 +21,7 @@ test: "define-syntax with syntax-parse and one clause refactorable to define-syn
        #'(let ([tmp a]) (if tmp tmp b))])))
 ==============================
 (define-syntax-parse-rule (my-or a b)
-  #'(let ([tmp a]) (if tmp tmp b)))
+  (let ([tmp a]) (if tmp tmp b)))
 ------------------------------
 
 
@@ -32,7 +32,7 @@ test: "define-syntax-parser with one clause refactorable to define-syntax-parse-
    #'(let ([tmp a]) (if tmp tmp b))])
 ==============================
 (define-syntax-parse-rule (my-or a b)
-  #'(let ([tmp a]) (if tmp tmp b)))
+  (let ([tmp a]) (if tmp tmp b)))
 ------------------------------
 
 
@@ -45,11 +45,11 @@ test: "define-syntax with syntax-parse using stx name refactorable to define-syn
        #'(quote x)])))
 ==============================
 (define-syntax-parse-rule (my-macro x:id)
-  #'(quote x))
+  (quote x))
 ------------------------------
 
 
-no-change-test: "define-syntax with syntax-parse using custom name in directives not refactorable"
+test: "define-syntax with syntax-parse using custom name in directives replaced with this-syntax"
 ------------------------------
 (define-syntax my-macro
   (lambda (input-stx)
@@ -57,6 +57,10 @@ no-change-test: "define-syntax with syntax-parse using custom name in directives
       [(_ x:id)
        #:with loc input-stx
        #'(quote (x loc))])))
+==============================
+(define-syntax-parse-rule (my-macro x:id)
+  #:with loc this-syntax
+  (quote (x loc)))
 ------------------------------
 
 
@@ -79,13 +83,4 @@ no-change-test: "define-syntax-parser with multiple clauses not refactorable"
    #'(let ([tmp a]) (if tmp tmp b))]
   [(_ a)
    #'a])
-------------------------------
-
-
-no-change-test: "define-syntax without syntax-parse not refactorable"
-------------------------------
-(define-syntax my-or
-  (syntax-rules ()
-    [(_ a b)
-     (let ([tmp a]) (if tmp tmp b))]))
 ------------------------------
