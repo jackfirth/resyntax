@@ -15,18 +15,24 @@
   [in-expanded-id-table
    (-> expanded-id-table? (sequence/c (entry/c expanded-identifier? any/c)))]
   [in-expanded-id-table-phase
-   (-> expanded-id-table? (or/c exact-nonnegative-integer? #false) (sequence/c (entry/c expanded-identifier? any/c)))]))
+   (-> expanded-id-table? (or/c exact-nonnegative-integer? #false) (sequence/c (entry/c expanded-identifier? any/c)))]
+  [syntax-label-id-phases (-> syntax? syntax?)]
+  [binding-site-identifiers (-> syntax? stream?)]
+  [fully-expanded-syntax-id-table (-> syntax? expanded-id-table?)]))
 
 
 (require guard
          racket/contract/base
          racket/dict
+         racket/list
          racket/match
          racket/sequence
          racket/stream
          rebellion/base/result
          rebellion/collection/entry
-         syntax/id-table)
+         resyntax/private/syntax-traversal
+         syntax/id-table
+         syntax/parse)
 
 
 (module+ test
@@ -87,6 +93,83 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
+;; Label syntax with phase information
+(define (syntax-label-id-phases expanded-stx)
+  (let loop ([expanded-stx expanded-stx] [phase 0] [skip? #false])
+    (syntax-traverse expanded-stx
+      #:skip-root? skip?
+      #:literal-sets ([kernel-literals #:phase phase])
+
+      [:id (syntax-property this-syntax 'phase phase)]
+      [(begin-for-syntax _ ...) (loop this-syntax (add1 phase) #true)]
+
+      [(define-syntaxes-id:define-syntaxes ids expr)
+       (define new-define-syntaxes (loop (attribute define-syntaxes-id) phase #false))
+       (define new-ids (loop (attribute ids) phase #true))
+       (define new-expr (loop (attribute expr) (add1 phase) #false))
+       (define new-datum (list new-define-syntaxes new-ids new-expr))
+       (datum->syntax this-syntax new-datum this-syntax this-syntax)]
+
+      [((~or module module*) _ ...) (loop this-syntax 0 #true)]
+
+      #:parent-context-modifier (λ (stx) stx)
+      #:parent-srcloc-modifier (λ (stx) stx)
+      #:parent-props-modifier (λ (stx) stx))))
+
+
+;; Find all binding sites and return them as a stream of identifiers
+(define (binding-site-identifiers expanded-stx)
+  (let loop ([expanded-stx expanded-stx] [phase 0])
+    (define (recur stx)
+      (loop stx phase))
+    (syntax-search expanded-stx
+      #:literal-sets ([kernel-literals #:phase phase])
+
+      [(id:id _ ...)
+       #:do [(define id-phase (syntax-property (attribute id) 'phase))]
+       #:when (not (equal? id-phase phase))
+       (loop this-syntax id-phase)]
+
+      [(quote-syntax _ ...) (stream)]
+
+      [(define-values (id ...) body)
+       (stream-append (attribute id) (recur (attribute body)))]
+
+      [(define-syntaxes (id ...) body)
+       (stream-append (attribute id) (loop (attribute body) (add1 phase)))]
+
+      [((~or let-values letrec-values) ([(id ...) rhs] ...) body ...)
+       (define inner-exprs (append (attribute rhs) (attribute body)))
+       (define ids (append* (attribute id)))
+       (apply stream-append ids (map recur inner-exprs))]
+
+      [(#%plain-lambda formals body ...)
+       (apply stream-append
+              (syntax-search (attribute formals) [:id])
+              (map recur (attribute body)))]
+
+      [(case-lambda [formals body ...] ...)
+       (apply stream-append
+              (syntax-search #'(formals ...) [:id])
+              (map recur (append* (attribute body))))])))
+
+
+;; Builds an expanded-id-table from phase-labeled syntax.
+;; The input syntax should already have phase labels added via syntax-label-id-phases.
+;; Returns an expanded-id-table mapping expanded-identifiers to empty lists,
+;; with one entry for each binding site in the syntax.
+(define (fully-expanded-syntax-id-table stx)
+  ;; stx is expected to already have phase labels via syntax-label-id-phases
+  (define table (make-expanded-id-table))
+  (for ([id (in-stream (binding-site-identifiers stx))])
+    (define id-phase (syntax-property id 'phase))
+    (expanded-id-table-set! table (expanded-identifier id id-phase) '()))
+  table)
+
+
+;@----------------------------------------------------------------------------------------------------
+
+
 (module+ test
   (test-case "expanded-id-table"
     
@@ -118,4 +201,34 @@
       (expanded-id-table-set! table id2 'val2)
       (expanded-id-table-set! table id3 'val3)
       (define entries (for/list ([e (in-expanded-id-table table)]) e))
-      (check-equal? (length entries) 3))))
+      (check-equal? (length entries) 3)))
+  
+  (test-case "fully-expanded-syntax-id-table"
+    
+    (test-case "creates table with binding sites from expanded module"
+      (define stx #'(module test racket/base (define x 1) (define y 2)))
+      (define expanded-stx (expand stx))
+      (define labeled-stx (syntax-label-id-phases expanded-stx))
+      (define table (fully-expanded-syntax-id-table labeled-stx))
+      (check-pred expanded-id-table? table)
+      ;; The table should contain bindings
+      (define entries (for/list ([e (in-expanded-id-table table)]) e))
+      (check > (length entries) 0))
+    
+    (test-case "creates table with phase 0 bindings"
+      (define stx #'(module test racket/base (define a 1)))
+      (define expanded-stx (expand stx))
+      (define labeled-stx (syntax-label-id-phases expanded-stx))
+      (define table (fully-expanded-syntax-id-table labeled-stx))
+      (define phase0-entries (for/list ([e (in-expanded-id-table-phase table 0)]) e))
+      (check > (length phase0-entries) 0))
+    
+    (test-case "creates table with phase 1 bindings"
+      (define stx #'(module test racket/base
+                      (require (for-syntax racket/base))
+                      (begin-for-syntax (define a 1))))
+      (define expanded-stx (expand stx))
+      (define labeled-stx (syntax-label-id-phases expanded-stx))
+      (define table (fully-expanded-syntax-id-table labeled-stx))
+      (define phase1-entries (for/list ([e (in-expanded-id-table-phase table 1)]) e))
+      (check > (length phase1-entries) 0))))
