@@ -156,7 +156,7 @@
       (check-equal? (single-file-group-ranges group) (range-set (closed-open-range 1 10 #:comparator natural<=>))))
     
     (test-case "file-group-resolve returns single file"
-      (define test-dir (make-temporary-file "resyntax-test-~a" 'directory))
+      (define test-dir (make-temporary-directory "resyntax-test-~a"))
       (define test-file (build-path test-dir "test.rkt"))
       (call-with-output-file test-file
         (λ (out) (displayln "#lang racket/base" out)))
@@ -175,7 +175,7 @@
       (check-equal? (directory-file-group-path group) (simple-form-path "/tmp")))
     
     (test-case "file-group-resolve returns only .rkt files"
-      (define test-dir (make-temporary-file "resyntax-test-~a" 'directory))
+      (define test-dir (make-temporary-directory "resyntax-test-~a"))
       (define rkt-file1 (build-path test-dir "test1.rkt"))
       (define rkt-file2 (build-path test-dir "test2.rkt"))
       (define txt-file (build-path test-dir "test.txt"))
@@ -220,7 +220,7 @@
       (check-equal? (git-repository-file-group-ref group) "HEAD"))
     
     (test-case "file-group-resolve with git repository"
-      (define test-dir (make-temporary-file "resyntax-test-git-~a" 'directory))
+      (define test-dir (make-temporary-directory "resyntax-test-git-~a"))
       (parameterize ([current-directory test-dir])
         (unless (system "git init -q")
           (fail "git init failed"))
@@ -246,7 +246,7 @@
   
   (test-case "file-groups-resolve"
     (test-case "resolves multiple groups into hash"
-      (define test-dir (make-temporary-file "resyntax-test-~a" 'directory))
+      (define test-dir (make-temporary-directory "resyntax-test-~a"))
       (define test-file1 (build-path test-dir "test1.rkt"))
       (define test-file2 (build-path test-dir "test2.rkt"))
       (call-with-output-file test-file1
@@ -263,7 +263,7 @@
       (delete-directory/files test-dir))
     
     (test-case "combines ranges for same file"
-      (define test-dir (make-temporary-file "resyntax-test-~a" 'directory))
+      (define test-dir (make-temporary-directory "resyntax-test-~a"))
       (define test-file (build-path test-dir "test.rkt"))
       (call-with-output-file test-file
         (λ (out) (displayln "#lang racket/base" out)))

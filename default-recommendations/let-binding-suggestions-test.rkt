@@ -7,11 +7,8 @@ require: resyntax/default-recommendations let-binding-suggestions
 header:
 - #lang racket/base
 test: "named lets which don't refer to the name are refactorable to unnamed lets"
-------------------------------
-(let loop ([x 1]) x)
-==============================
-(let ([x 1]) x)
-------------------------------
+- (let loop ([x 1]) x)
+- (let ([x 1]) x)
 
 
 no-change-test: "named lets which do refer to the name aren't refactorable to unnamed lets"

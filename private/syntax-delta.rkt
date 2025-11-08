@@ -83,7 +83,7 @@
       [(empty-syntax-path? start) #false]
       [(empty-syntax-path? next-start) #false]
       [(equal? (syntax-path-parent start) (syntax-path-parent next-start))
-       (<= (+ (syntax-path-last-element start)) (syntax-path-last-element next-start))]
+       (<= (syntax-path-last-element start) (syntax-path-last-element next-start))]
       [else #true]))
   (unless disjoint?
     (raise-arguments-error 'syntax-delta "overlapping splices"

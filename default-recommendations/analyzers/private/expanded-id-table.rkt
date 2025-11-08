@@ -59,11 +59,10 @@
   (define phase (expanded-identifier-phase id))
   (define stx (expanded-identifier-syntax id))
   (define phase-table (hash-ref (expanded-id-table-table table) phase #false))
-  (if phase-table
-      (free-id-table-ref phase-table stx failure-result)
-      (if (procedure? failure-result)
-          (failure-result)
-          failure-result)))
+  (cond
+    [phase-table (free-id-table-ref phase-table stx failure-result)]
+    [(procedure? failure-result) (failure-result)]
+    [else failure-result]))
 
 
 (define (expanded-id-table-set! table id value)

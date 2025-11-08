@@ -277,19 +277,23 @@
      'string->syntax-path
      "syntax path string must not end with / (except for root path)"
      "given" str))
-  (if (equal? str "/")
-      empty-syntax-path
-      (let* ([parts (string-split (substring str 1) "/")]
-             [numbers (for/list ([part (in-list parts)])
-                        (define num (string->number part))
-                        (unless (and num (exact-nonnegative-integer? num))
-                          (raise-arguments-error
-                           'string->syntax-path
-                           "syntax path string contains invalid element (must be nonnegative integer)"
-                           "given" str
-                           "invalid element" part))
-                        num)])
-        (syntax-path numbers))))
+  (cond
+    [(equal? str "/") empty-syntax-path]
+    [else
+     (define parts (string-split (substring str 1) "/"))
+     (define numbers
+       (for/list ([part (in-list parts)])
+         (define num (string->number part))
+         (unless (and num (exact-nonnegative-integer? num))
+           (raise-arguments-error
+            'string->syntax-path
+            "syntax path string contains invalid element (must be nonnegative integer)"
+            "given"
+            str
+            "invalid element"
+            part))
+         num))
+     (syntax-path numbers)]))
 
 
 (module+ test
