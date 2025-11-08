@@ -772,6 +772,15 @@ no-change-test: "when with multiple forms in outer body should not be merged"
 --------------------
 
 
+no-change-test: "single when with and containing 3 conditions should not be refactored"
+--------------------
+(define (f a b c)
+  (when (and (a) (b)
+             (c))
+    (displayln "foo")))
+--------------------
+
+
 test: "ignored and expression refactorable to when expression"
 --------------------
 (define (f c1)
