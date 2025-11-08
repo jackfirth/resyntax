@@ -103,16 +103,10 @@ test: "flat-contract in contract-out refactorable to predicate"
 
 
 test: "contract-struct refactorable to struct"
-------------------------------
-(contract-struct person (name age))
-==============================
-(struct person (name age))
-------------------------------
+- (contract-struct person (name age))
+- (struct person (name age))
 
 
 test: "define-contract-struct refactorable to struct with extra constructor"
-------------------------------
-(define-contract-struct point (x y))
-==============================
-(struct point (x y) #:extra-constructor-name make-point)
-------------------------------
+- (define-contract-struct point (x y))
+- (struct point (x y) #:extra-constructor-name make-point)
