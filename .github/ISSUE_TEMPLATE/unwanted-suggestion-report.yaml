@@ -19,7 +19,7 @@ body:
     value: |
       #lang resyntax/test
 
-      test: "this code should not be refactored"
+      no-change-test: "this code should not be refactored"
       --------------------
       #lang racket
       ;; Put the original code here
