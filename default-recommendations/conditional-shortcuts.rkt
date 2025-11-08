@@ -222,7 +222,8 @@
   "Nested `when` expressions can be merged into a single compound `when` expression."
   when-expr:nested-when-expression
   #:when (or (>= (attribute when-expr.depth) 3)
-             (>= (length (attribute when-expr.condition)) 3)
+             (and (>= (attribute when-expr.depth) 2)
+                  (>= (length (attribute when-expr.condition)) 3))
              (and (equal? (attribute when-expr.depth) 2)
                   (andmap identifier? (attribute when-expr.condition))))
   (when (and when-expr.condition ...) when-expr.body ...))
