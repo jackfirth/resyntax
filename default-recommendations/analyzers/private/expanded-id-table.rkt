@@ -55,7 +55,11 @@
   (expanded-id-table (make-hasheq)))
 
 
-(define (expanded-id-table-ref table id [failure-result (λ () (error 'expanded-id-table-ref "no mapping for ~a" id))])
+(define (expanded-id-table-ref table id [failure-result (λ () (raise-arguments-error
+                                                               'expanded-id-table-ref
+                                                               "no mapping for"
+                                                               "id"
+                                                               id))])
   (define phase (expanded-identifier-phase id))
   (define stx (expanded-identifier-syntax id))
   (define phase-table (hash-ref (expanded-id-table-table table) phase #false))
