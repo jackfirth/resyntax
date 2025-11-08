@@ -302,10 +302,10 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
   (match (resyntax-analyze-options-output-destination options)
     ['console
-     (printf "resyntax: --- displaying results ---\n")
+     (displayln "resyntax: --- displaying results ---")
      (display-results)]
     [(? path? output-path)
-     (printf "resyntax: --- writing results to file ---\n")
+     (displayln "resyntax: --- writing results to file ---")
      (with-output-to-file output-path display-results #:mode 'text)]))
 
 
@@ -347,7 +347,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (define issue-string (if (> total-fixes 1) "issues" "issue"))
   (define file-string (if (> total-files 1) "files" "file"))
   (if (zero? total-fixes)
-      (printf "Resyntax found no issues.\n")
+      (displayln "Resyntax found no issues.")
       (printf "Resyntax fixed ~a ~a in ~a ~a.\n\n" total-fixes issue-string total-files file-string))
   (for ([rule+count (in-list fix-counts-by-rule)])
     (match-define (entry rule count) rule+count)
@@ -358,7 +358,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
 
 (define (resyntax-fix-print-plain-text-summary analysis)
-  (printf "resyntax: --- summary ---\n\n")
+  (displayln "resyntax: --- summary ---\n")
   (define total-fixes (resyntax-analysis-total-fixes analysis))
   (define total-files (resyntax-analysis-total-sources-modified analysis))
   (define message
@@ -399,11 +399,11 @@ For help on these, use 'analyze --help' or 'fix --help'."
         (define issue-string (if (> total-fixes 1) "issues" "issue"))
         (define file-string (if (> total-files 1) "files" "file"))
         (if (zero? total-fixes)
-            (printf "Resyntax found no issues.")
+            (display "Resyntax found no issues.")
             (printf "Resyntax fixed ~a ~a in ~a ~a." 
                     total-fixes issue-string total-files file-string))
         (unless (zero? total-fixes)
-          (printf "\n")
+          (newline)
           (for ([rule+count (in-list fix-counts-by-rule)])
             (match-define (entry rule count) rule+count)
             (define occurrence-string (if (> count 1) "occurrences" "occurrence"))
