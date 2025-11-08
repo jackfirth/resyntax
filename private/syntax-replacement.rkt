@@ -360,7 +360,9 @@
     ;; Without the fix, the formatter would allow the code to exceed the line length limit.
     ;; With the fix, the formatter either keeps it on one line within the limit, or breaks it
     ;; across multiple lines if it cannot fit.
-    (define orig-line "      [`(,(and (or '+ '- '* '/ 'and 'or) op) ,as ..2 ,b) `(,op ,(loop `(,op ,@as) env) ,(loop b env))]")
+    (define orig-line
+      (string-append "      [`(,(and (or '+ '- '* '/ 'and 'or) op) ,as ..2 ,b)"
+                     " `(,op ,(loop `(,op ,@as) env) ,(loop b env))]"))
     (check-equal? (string-length orig-line) 102 "Original line should be 102 characters")
     
     ;; The quasiquote expression starts at position 57 and ends at position 101
@@ -370,9 +372,10 @@
     (define quasiquote-end 101) ; just before the final ]
     
     (define replacement
-      (string-replacement #:start quasiquote-start
-                          #:end quasiquote-end
-                          #:contents (list (inserted-string "(list op (loop `(,op ,@as) env) (loop b env))"))))
+      (string-replacement
+       #:start quasiquote-start
+       #:end quasiquote-end
+       #:contents (list (inserted-string "(list op (loop `(,op ,@as) env) (loop b env))"))))
     
     ;; Test with Racket's standard line width of 102
     (parameterize ([current-width 102])
@@ -383,7 +386,8 @@
       ;; If it's multi-line, each line should not exceed 102 characters
       (for ([line (in-list (string-split result "\n"))])
         (check-true (<= (string-length line) 102)
-                    (format "Line exceeds length limit: ~a chars (should be <= 102)" (string-length line)))))))
+                    (format "Line exceeds length limit: ~a chars (should be <= 102)"
+                            (string-length line)))))))
 
 
 (define (syntax-replacement-introduces-incorrect-bindings? replacement)
@@ -392,7 +396,8 @@
                                     #:introduction-scope intro)
     replacement)
   (for/and ([new-id (in-syntax-identifiers new)]
-            #:unless (bound-identifier=? new-id (intro new-id 'remove)))
+            #:unless (bound-identifier=? new-id (intro new-id 'remove))
+            #:unless (syntax-property new-id 'skip-incorrect-binding-check?))
     (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id)))))
 
 
@@ -403,7 +408,8 @@
     replacement)
   (for/list ([new-id (in-syntax-identifiers new)]
              #:unless (bound-identifier=? new-id (intro new-id 'remove))
-             #:unless (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id))))
+             #:unless (free-identifier=? new-id (datum->syntax orig (syntax->datum new-id)))
+             #:unless (syntax-property new-id 'skip-incorrect-binding-check?))
     new-id))
 
 
