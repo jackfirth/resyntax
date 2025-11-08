@@ -214,7 +214,19 @@
       (refactor-visited-forms
        #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
   
-  (refactoring-result-set #:base-source source #:results results))
+  (define result-set (refactoring-result-set #:base-source source #:results results))
+  
+  ;; Filter out result sets that produce non-compiling code
+  (cond
+    [(and (not (empty? results))
+          (not (refactoring-result-set-compiles? result-set)))
+     (log-resyntax-warning
+      "dropping ~a refactoring suggestion~a for ~a because the modified code does not compile"
+      (length results)
+      (if (equal? (length results) 1) "" "s")
+      (or (source-path source) "string source"))
+     (refactoring-result-set #:base-source source #:results '())]
+    [else result-set]))
 
 
 (define/guard (reysntax-analyze-for-properties-only source #:suite [suite default-recommendations])
@@ -335,6 +347,18 @@
              (grouping into-list)
              (mapping
               (λ (e) (refactoring-result-set #:base-source (entry-key e) #:results (entry-value e))))
+             (filtering
+              (λ (result-set)
+                (define compiles? (refactoring-result-set-compiles? result-set))
+                (unless compiles?
+                  (define source (refactoring-result-set-base-source result-set))
+                  (define num-results (length (refactoring-result-set-results result-set)))
+                  (log-resyntax-warning
+                   "dropping ~a refactoring suggestion~a for ~a because the modified code does not compile"
+                   num-results
+                   (if (equal? num-results 1) "" "s")
+                   (or (source-path source) "string source")))
+                compiles?))
              (indexing refactoring-result-set-base-source)
              #:into into-hash))
 
@@ -478,4 +502,28 @@
     (check-false (set-empty? (refactoring-suite-analyzers test-suite)))
     ;; Verify that all analyzers in the suite are expansion-analyzer?
     (check-true (for/and ([analyzer (in-set (refactoring-suite-analyzers test-suite))])
-                  (expansion-analyzer? analyzer)))))
+                  (expansion-analyzer? analyzer))))
+  
+  (test-case "broken refactoring rules are filtered out"
+    ;; Define a refactoring rule that produces code that doesn't compile
+    (define-refactoring-rule breaking-rule
+      #:description "Breaking refactoring rule"
+      #:datum-literals (foo)
+      #:literals (define)
+      (define foo 42)
+      (if))
+    
+    (define breaking-suite (refactoring-suite #:rules (list breaking-rule)))
+    (define test-source (string-source "#lang racket/base\n\n(define foo 42)\n"))
+    
+    ;; Test with direct analyze
+    (define result-set (resyntax-analyze test-source #:suite breaking-suite))
+    (check-equal? (length (refactoring-result-set-results result-set)) 0
+                  "Breaking suggestions should be filtered from resyntax-analyze")
+    
+    ;; Test with multipass analyze
+    (define analysis
+      (resyntax-analyze-all (hash test-source (range-set (unbounded-range #:comparator natural<=>)))
+                            #:suite breaking-suite))
+    (check-equal? (resyntax-analysis-total-fixes analysis) 0
+                  "Breaking suggestions should be filtered from resyntax-analyze-all")))

@@ -16,6 +16,7 @@
   [source-read-syntax (-> source? syntax?)]
   [source-read-language (-> source? (or/c module-path? #false))]
   [source-expand (-> source? syntax?)]
+  [source-can-expand? (-> source? boolean?)]
   [source-text-of (-> source? syntax? immutable-string?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
@@ -130,6 +131,13 @@
 
 (define (source-expand code)
   (expand (source-read-syntax code)))
+
+
+(define (source-can-expand? code)
+  (with-handlers ([exn:fail? (λ (_) #false)])
+    (parameterize ([current-namespace (make-base-namespace)])
+      (source-expand code))
+    #true))
 
 
 (define/guard (source-path code)

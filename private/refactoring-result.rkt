@@ -31,6 +31,7 @@
   [refactoring-result-set-updated-source (-> refactoring-result-set? modified-source?)]
   [refactoring-result-set-results (-> refactoring-result-set? (listof refactoring-result?))]
   [refactoring-result-set-modified-lines (-> refactoring-result-set? immutable-range-set?)]
+  [refactoring-result-set-compiles? (-> refactoring-result-set? boolean?)]
   [refactoring-result-map-commits
    (-> (hash/c source? refactoring-result-set?) (listof resyntax-commit?))]))
 
@@ -127,6 +128,10 @@
              (mapping refactoring-result-modified-line-range)
              (filtering nonempty-range?)
              #:into (into-range-set natural<=>)))
+
+
+(define (refactoring-result-set-compiles? result-set)
+  (source-can-expand? (refactoring-result-set-updated-source result-set)))
 
 
 (define string-replacement<=> (comparator-map natural<=> string-replacement-start))
