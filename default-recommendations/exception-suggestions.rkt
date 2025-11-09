@@ -6,7 +6,8 @@
 
 (provide
  (contract-out
-  [exception-suggestions refactoring-suite?]))
+  [exception-suggestions refactoring-suite?]
+  [disabled-exception-suggestions refactoring-suite?]))
 
 
 (require racket/string
@@ -68,5 +69,8 @@ conventions."
 
 
 (define-refactoring-suite exception-suggestions
-  #:rules (literal-exception-handler-to-lambda
-           error-to-raise-arguments-error))
+  #:rules (literal-exception-handler-to-lambda))
+
+
+(define-refactoring-suite disabled-exception-suggestions
+  #:rules (error-to-raise-arguments-error))
