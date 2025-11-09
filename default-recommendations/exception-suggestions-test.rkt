@@ -2,6 +2,7 @@
 
 
 require: resyntax/default-recommendations exception-suggestions
+require: resyntax/default-recommendations disabled-exception-suggestions
 
 
 header:
