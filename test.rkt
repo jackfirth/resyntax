@@ -149,19 +149,19 @@
       #:with (id ...) (list #'current-line-mask)
       #:with (value ...) (list #'line-set))
     
-    (pattern (~seq (#:option #:analyzer-timeout-millis timeout:number))
+    (pattern (~seq (#:option #:analyzer-timeout-millis timeout-value:number))
       #:with (id ...) (list #'current-analyzer-timeout-millis)
-      #:with (value ...) (list #'timeout))
+      #:with (value ...) (list #`'#,(syntax-e #'timeout-value)))
     
     (pattern (~seq (#:option #:lines (~and line-set (#:range-set _ ...)))
-                   (#:option #:analyzer-timeout-millis timeout:number))
+                   (#:option #:analyzer-timeout-millis timeout-value:number))
       #:with (id ...) (list #'current-line-mask #'current-analyzer-timeout-millis)
-      #:with (value ...) (list #'line-set #'timeout))
+      #:with (value ...) (list #'line-set #`'#,(syntax-e #'timeout-value)))
     
-    (pattern (~seq (#:option #:analyzer-timeout-millis timeout:number)
+    (pattern (~seq (#:option #:analyzer-timeout-millis timeout-value:number)
                    (#:option #:lines (~and line-set (#:range-set _ ...))))
       #:with (id ...) (list #'current-analyzer-timeout-millis #'current-line-mask)
-      #:with (value ...) (list #'timeout #'line-set)))
+      #:with (value ...) (list #`'#,(syntax-e #'timeout-value) #'line-set)))
   
   (define-splicing-syntax-class code-block-test-args
     #:attributes ([check 1])

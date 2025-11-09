@@ -37,7 +37,7 @@
 
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message json))
 (define-enum-type resyntax-fix-method (modify-files create-multiple-git-commits))
-(define-record-type resyntax-analyze-options (targets suite output-format output-destination))
+(define-record-type resyntax-analyze-options (targets suite output-format output-destination analyzer-timeout-ms))
 
 
 (define-record-type resyntax-fix-options
@@ -48,7 +48,8 @@
    max-fixes
    max-modified-files
    max-modified-lines
-   max-pass-count))
+   max-pass-count
+   analyzer-timeout-ms))
 
 
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
@@ -60,6 +61,7 @@
   (define selected-rule #false)
   (define output-format plain-text)
   (define output-destination 'console)
+  (define analyzer-timeout-ms 10000)
 
   (command-line
    #:program "resyntax analyze"
@@ -105,6 +107,11 @@ changed relative to baseref are analyzed."
     (define rule-sym (string->symbol rule-name))
     (set! selected-rule rule-sym))
 
+   ("--analyzer-timeout"
+    timeout-ms
+    "The timeout in milliseconds for expansion analyzers. Defaults to 10000 (10 seconds)."
+    (set! analyzer-timeout-ms (string->number timeout-ms)))
+
    ("--output-to-file"
     outputpath
     "Store results in a file instead of printing them to the console."
@@ -128,7 +135,8 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
    #:targets (build-vector targets)
    #:suite suite
    #:output-format output-format
-   #:output-destination output-destination))
+   #:output-destination output-destination
+   #:analyzer-timeout-ms analyzer-timeout-ms))
 
 
 (define (resyntax-fix-parse-command-line)
@@ -143,6 +151,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
   (define max-pass-count 10)
   (define max-modified-files +inf.0)
   (define max-modified-lines +inf.0)
+  (define analyzer-timeout-ms 10000)
 
   (command-line
    #:program "resyntax fix"
@@ -197,6 +206,11 @@ changed relative to baseref are analyzed and fixed."
     (define rule-sym (string->symbol rule-name))
     (set! selected-rule rule-sym))
 
+   ("--analyzer-timeout"
+    timeout-ms
+    "The timeout in milliseconds for expansion analyzers. Defaults to 10000 (10 seconds)."
+    (set! analyzer-timeout-ms (string->number timeout-ms)))
+
    ("--max-pass-count"
     passcount
     "The maximum number of times Resyntax will fix each file. By default, Resyntax runs at most 10 \
@@ -235,7 +249,8 @@ are needed when applying a fix unlocks further fixes."
                         #:max-fixes max-fixes
                         #:max-modified-files max-modified-files
                         #:max-modified-lines max-modified-lines
-                        #:max-pass-count max-pass-count))
+                        #:max-pass-count max-pass-count
+                        #:analyzer-timeout-ms analyzer-timeout-ms))
 
 
 (define (resyntax-run)
@@ -273,7 +288,8 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (define analysis
     (resyntax-analyze-all sources
                           #:suite (resyntax-analyze-options-suite options)
-                          #:max-passes 1))
+                          #:max-passes 1
+                          #:timeout-ms (resyntax-analyze-options-analyzer-timeout-ms options)))
   (define results
     (transduce (resyntax-analysis-all-results analysis)
                (append-mapping in-hash-values)
@@ -322,7 +338,8 @@ For help on these, use 'analyze --help' or 'fix --help'."
                           #:max-fixes (resyntax-fix-options-max-fixes options)
                           #:max-passes (resyntax-fix-options-max-pass-count options)
                           #:max-modified-sources max-modified-files
-                          #:max-modified-lines max-modified-lines))
+                          #:max-modified-lines max-modified-lines
+                          #:timeout-ms (resyntax-fix-options-analyzer-timeout-ms options)))
   (match fix-method
     [(== modify-files)
      (resyntax-analysis-write-file-changes! analysis)]
