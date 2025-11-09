@@ -5,6 +5,7 @@
          current-suite-under-test
          current-header
          current-line-mask
+         current-analyzer-timeout-millis
          clear-header!
          set-header!
          clear-suites-under-test!
@@ -127,6 +128,8 @@
 
 (define current-line-mask (make-parameter (range-set (unbounded-range #:comparator natural<=>))))
 
+(define current-analyzer-timeout-millis (make-parameter 100))
+
 
 (define (range-bound-add bound amount)
   (if (unbounded? bound)
@@ -178,7 +181,8 @@
      (λ ()
        (resyntax-analyze (string-source (code-block-raw-string original-program))
                          #:suite suite
-                         #:lines modified-line-mask))))
+                         #:lines modified-line-mask
+                         #:timeout-ms (current-analyzer-timeout-millis)))))
   
   (with-check-info* (make-matched-rules-check-info result-set)
     (λ ()
@@ -227,7 +231,9 @@
   (define result-set
     (call-with-logs-captured
      (λ ()
-       (resyntax-analyze (string-source (code-block-raw-string original-program)) #:suite suite))))
+       (resyntax-analyze (string-source (code-block-raw-string original-program))
+                         #:suite suite
+                         #:timeout-ms (current-analyzer-timeout-millis)))))
   (define refactored-program
     (modified-source-contents (refactoring-result-set-updated-source result-set)))
   (with-check-info* (make-matched-rules-check-info result-set)
@@ -264,7 +270,9 @@
 
   (define actual-props
     (call-with-logs-captured
-     (λ () (reysntax-analyze-for-properties-only program-src #:suite suite))))
+     (λ () (reysntax-analyze-for-properties-only program-src
+                                                 #:suite suite
+                                                 #:timeout-ms (current-analyzer-timeout-millis)))))
 
   (define target-src (string-source (string-trim (code-block-raw-string target))))
   (define context-src-list

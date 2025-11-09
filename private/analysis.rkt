@@ -6,7 +6,7 @@
 
 (provide
  (contract-out
-  [source-analyze (->* (source? #:analyzers (sequence/c expansion-analyzer?))
+  [source-analyze (->* (source? #:analyzers (sequence/c expansion-analyzer?) #:timeout-ms exact-nonnegative-integer?)
                        (#:lines range-set?)
                        source-code-analysis?)]
   [source-code-analysis? (-> any/c boolean?)]
@@ -68,15 +68,9 @@
     (syntax-ref stx path)))
 
 
-;; Timeout for analyzers in seconds
-(define analyzer-timeout-seconds 10)
-
-;; Milliseconds per second (for time conversions)
-(define milliseconds-per-second 1000)
-
 ;; Run an analyzer with a timeout. Returns the result or an empty syntax property bundle
 ;; if timeout occurred or an error was raised.
-(define (run-analyzer-with-timeout analyzer expanded source-name)
+(define (run-analyzer-with-timeout analyzer expanded source-name timeout-ms)
   (define result-box (box #false))
   (define error-box (box #false))
   (define start-time (current-inexact-milliseconds))
@@ -87,8 +81,7 @@
        (with-handlers ([exn:fail? (λ (e) (set-box! error-box e))])
          (set-box! result-box (expansion-analyze analyzer expanded))))))
   
-  (define timeout-evt (alarm-evt (+ (current-inexact-milliseconds) 
-                                    (* analyzer-timeout-seconds milliseconds-per-second))))
+  (define timeout-evt (alarm-evt (+ (current-inexact-milliseconds) timeout-ms)))
   
   ;; Wait for either completion or timeout
   (define final-result
@@ -100,9 +93,9 @@
     [(eq? final-result 'timeout)
      (kill-thread analyzer-thread)
      (log-resyntax-warning
-      "analyzer ~a timed out after ~a seconds while analyzing ~a"
+      "analyzer ~a timed out after ~a ms while analyzing ~a"
       (object-name analyzer)
-      analyzer-timeout-seconds
+      timeout-ms
       source-name)
      (syntax-property-bundle)]
     [else
@@ -125,7 +118,8 @@
 
 (define (source-analyze code
                         #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
-                        #:analyzers analyzers)
+                        #:analyzers analyzers
+                        #:timeout-ms timeout-ms)
   (define ns (make-base-namespace))
   (parameterize ([current-directory (or (source-directory code) (current-directory))]
                  [current-namespace ns])
@@ -245,7 +239,7 @@
       (transduce analyzers
                  (append-mapping
                   (λ (analyzer)
-                    (define result (run-analyzer-with-timeout analyzer expanded program-source-name))
+                    (define result (run-analyzer-with-timeout analyzer expanded program-source-name timeout-ms))
                     (syntax-property-bundle-entries result)))
                  (filtering
                   (λ (prop-entry)
@@ -312,12 +306,12 @@
     (define test-source (string-source "#lang racket/base (define x 1)"))
     
     ;; Test with empty analyzers list
-    (define analysis-empty (source-analyze test-source #:analyzers '()))
+    (define analysis-empty (source-analyze test-source #:analyzers '() #:timeout-ms 10000))
     (check-true (source-code-analysis? analysis-empty))
     
     ;; Test with single analyzer
     (define analysis-single 
-      (source-analyze test-source #:analyzers (list identifier-usage-analyzer)))
+      (source-analyze test-source #:analyzers (list identifier-usage-analyzer) #:timeout-ms 10000))
     (check-true (source-code-analysis? analysis-single))
     
     ;; Test with default analyzers (should match default behavior)
@@ -325,7 +319,8 @@
       (source-analyze test-source
                       #:analyzers (list identifier-usage-analyzer
                                         ignored-result-values-analyzer
-                                        variable-mutability-analyzer)))
+                                        variable-mutability-analyzer)
+                      #:timeout-ms 10000))
     (check-true (source-code-analysis? analysis-default)))
 
   (test-case "source-analyze filters out properties with invalid paths"
@@ -345,7 +340,7 @@
           (syntax-property-entry (syntax-path (list 0 999)) 'another-invalid-prop #true)))))
     
     ;; Run analysis with the bad analyzer - should not crash
-    (define analysis (source-analyze test-source #:analyzers (list bad-analyzer)))
+    (define analysis (source-analyze test-source #:analyzers (list bad-analyzer) #:timeout-ms 10000))
     
     ;; Check that the analysis completed successfully
     (check-true (source-code-analysis? analysis))
@@ -372,13 +367,13 @@
       (make-expansion-analyzer
        #:name 'slow-analyzer
        (λ (expanded)
-         ;; Sleep for 11 seconds - slightly longer than the 10 second timeout
-         (sleep 11)
+         ;; Sleep for 200ms - longer than a 100ms timeout
+         (sleep 0.2)
          (syntax-property-bundle
           (syntax-property-entry empty-syntax-path 'slow-prop #true)))))
     
-    ;; Run analysis with the slow analyzer - should timeout and not crash
-    (define analysis (source-analyze test-source #:analyzers (list slow-analyzer)))
+    ;; Run analysis with the slow analyzer and a short timeout - should timeout and not crash
+    (define analysis (source-analyze test-source #:analyzers (list slow-analyzer) #:timeout-ms 100))
     
     ;; Check that the analysis completed (even though the analyzer timed out)
     (check-true (source-code-analysis? analysis))
@@ -403,7 +398,7 @@
           (syntax-property-entry empty-syntax-path 'fast-prop #true)))))
     
     ;; Run analysis with the fast analyzer - should complete successfully
-    (define analysis (source-analyze test-source #:analyzers (list fast-analyzer)))
+    (define analysis (source-analyze test-source #:analyzers (list fast-analyzer) #:timeout-ms 10000))
     
     ;; Check that the analysis completed
     (check-true (source-code-analysis? analysis))
@@ -427,7 +422,7 @@
          (error "intentional test error"))))
     
     ;; Run analysis with the failing analyzer - should skip it and not crash
-    (define analysis (source-analyze test-source #:analyzers (list failing-analyzer)))
+    (define analysis (source-analyze test-source #:analyzers (list failing-analyzer) #:timeout-ms 10000))
     
     ;; Check that the analysis completed (even though the analyzer failed)
     (check-true (source-code-analysis? analysis))))

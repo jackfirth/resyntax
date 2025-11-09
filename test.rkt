@@ -147,7 +147,21 @@
 
     (pattern (~seq (#:option #:lines (~and line-set (#:range-set _ ...))))
       #:with (id ...) (list #'current-line-mask)
-      #:with (value ...) (list #'line-set)))
+      #:with (value ...) (list #'line-set))
+    
+    (pattern (~seq (#:option #:analyzer-timeout-millis timeout:number))
+      #:with (id ...) (list #'current-analyzer-timeout-millis)
+      #:with (value ...) (list #'timeout))
+    
+    (pattern (~seq (#:option #:lines (~and line-set (#:range-set _ ...)))
+                   (#:option #:analyzer-timeout-millis timeout:number))
+      #:with (id ...) (list #'current-line-mask #'current-analyzer-timeout-millis)
+      #:with (value ...) (list #'line-set #'timeout))
+    
+    (pattern (~seq (#:option #:analyzer-timeout-millis timeout:number)
+                   (#:option #:lines (~and line-set (#:range-set _ ...))))
+      #:with (id ...) (list #'current-analyzer-timeout-millis #'current-line-mask)
+      #:with (value ...) (list #'timeout #'line-set)))
   
   (define-splicing-syntax-class code-block-test-args
     #:attributes ([check 1])

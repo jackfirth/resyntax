@@ -17,7 +17,7 @@
   [resyntax-analysis-write-file-changes! (-> resyntax-analysis? void?)]
   [resyntax-analysis-commit-fixes! (-> resyntax-analysis? void?)]
   [resyntax-analyze
-   (->* (source?) (#:suite refactoring-suite? #:lines range-set?) refactoring-result-set?)]
+   (->* (source?) (#:suite refactoring-suite? #:lines range-set? #:timeout-ms exact-nonnegative-integer?) refactoring-result-set?)]
   [resyntax-analyze-all
    (->* ((hash/c source? range-set? #:flat? #true))
         (#:suite refactoring-suite?
@@ -27,7 +27,7 @@
          #:max-modified-lines (or/c exact-nonnegative-integer? +inf.0))
         resyntax-analysis?)]
   [reysntax-analyze-for-properties-only
-   (->* (source?) (#:suite refactoring-suite?) syntax-property-bundle?)]
+   (->* (source?) (#:suite refactoring-suite? #:timeout-ms exact-nonnegative-integer?) syntax-property-bundle?)]
   [refactor! (-> (sequence/c refactoring-result?) void?)]))
 
 
@@ -167,7 +167,8 @@
 
 (define/guard (resyntax-analyze source
                                 #:suite [suite default-recommendations]
-                                #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
+                                #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
+                                #:timeout-ms [timeout-ms 10000])
   (define comments (with-input-from-source source read-comment-locations))
   (define source-lang (source-read-language source))
   (guard source-lang #:else
@@ -210,7 +211,8 @@
     (with-handlers ([exn:fail? skip])
       (define analysis (source-analyze source
                                        #:lines lines
-                                       #:analyzers (refactoring-suite-analyzers effective-suite)))
+                                       #:analyzers (refactoring-suite-analyzers effective-suite)
+                                       #:timeout-ms timeout-ms))
       (refactor-visited-forms
        #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
   
@@ -229,7 +231,9 @@
     [else result-set]))
 
 
-(define/guard (reysntax-analyze-for-properties-only source #:suite [suite default-recommendations])
+(define/guard (reysntax-analyze-for-properties-only source
+                                                    #:suite [suite default-recommendations]
+                                                    #:timeout-ms [timeout-ms 10000])
   (define comments (with-input-from-source source read-comment-locations))
   (define full-source (source->string source))
   (guard (string-prefix? full-source "#lang racket") #:else
@@ -251,7 +255,8 @@
                   [exn:fail:filesystem:missing-module? skip]
                   [exn:fail:contract:variable? skip])
     (define analysis (source-analyze source
-                                     #:analyzers (refactoring-suite-analyzers suite)))
+                                     #:analyzers (refactoring-suite-analyzers suite)
+                                     #:timeout-ms timeout-ms))
     (source-code-analysis-added-syntax-properties analysis)))
 
 
