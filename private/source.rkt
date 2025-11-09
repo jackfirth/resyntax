@@ -126,7 +126,23 @@
     (check-equal? (source-read-language (string-source "#lang scribble/manual")) 'scribble/manual)
     (check-equal? (source-read-language (string-source "#lang info")) 'info)
     (check-equal? (source-read-language (string-source "#lang setup/infotab")) 'setup/infotab)
-    (check-equal? (source-read-language (string-source "(void)")) #false)))
+    (check-equal? (source-read-language (string-source "(void)")) #false))
+  
+  (test-case "source-can-expand?"
+    ;; Valid racket code should expand successfully
+    (check-true (source-can-expand? (string-source "#lang racket/base\n(define x 42)")))
+    (check-true (source-can-expand? (string-source "#lang racket\n(or 1 2 3)")))
+    
+    ;; Invalid racket code should not expand
+    (check-false (source-can-expand? (string-source "#lang racket/base\n(if)")))
+    (check-false (source-can-expand? (string-source "#lang racket/base\n(define)")))
+    
+    ;; Modified sources should also be testable
+    (define orig (string-source "#lang racket/base\n(define foo 42)"))
+    (define valid-mod (modified-source orig "#lang racket/base\n(define foo 43)"))
+    (define invalid-mod (modified-source orig "#lang racket/base\n(if)"))
+    (check-true (source-can-expand? valid-mod))
+    (check-false (source-can-expand? invalid-mod))))
 
 
 (define (source-expand code)
