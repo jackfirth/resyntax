@@ -17,17 +17,18 @@
   [resyntax-analysis-write-file-changes! (-> resyntax-analysis? void?)]
   [resyntax-analysis-commit-fixes! (-> resyntax-analysis? void?)]
   [resyntax-analyze
-   (->* (source?) (#:suite refactoring-suite? #:lines range-set?) refactoring-result-set?)]
+   (->* (source?) (#:suite refactoring-suite? #:lines range-set? #:timeout-ms exact-nonnegative-integer?) refactoring-result-set?)]
   [resyntax-analyze-all
    (->* ((hash/c source? range-set? #:flat? #true))
         (#:suite refactoring-suite?
          #:max-fixes (or/c exact-nonnegative-integer? +inf.0)
          #:max-passes exact-nonnegative-integer?
          #:max-modified-sources (or/c exact-nonnegative-integer? +inf.0)
-         #:max-modified-lines (or/c exact-nonnegative-integer? +inf.0))
+         #:max-modified-lines (or/c exact-nonnegative-integer? +inf.0)
+         #:timeout-ms exact-nonnegative-integer?)
         resyntax-analysis?)]
   [reysntax-analyze-for-properties-only
-   (->* (source?) (#:suite refactoring-suite?) syntax-property-bundle?)]
+   (->* (source?) (#:suite refactoring-suite? #:timeout-ms exact-nonnegative-integer?) syntax-property-bundle?)]
   [refactor! (-> (sequence/c refactoring-result?) void?)]))
 
 
@@ -167,7 +168,8 @@
 
 (define/guard (resyntax-analyze source
                                 #:suite [suite default-recommendations]
-                                #:lines [lines (range-set (unbounded-range #:comparator natural<=>))])
+                                #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
+                                #:timeout-ms [timeout-ms 10000])
   (define comments (with-input-from-source source read-comment-locations))
   (define source-lang (source-read-language source))
   (guard source-lang #:else
@@ -210,7 +212,8 @@
     (with-handlers ([exn:fail? skip])
       (define analysis (source-analyze source
                                        #:lines lines
-                                       #:analyzers (refactoring-suite-analyzers effective-suite)))
+                                       #:analyzers (refactoring-suite-analyzers effective-suite)
+                                       #:timeout-ms timeout-ms))
       (refactor-visited-forms
        #:analysis analysis #:suite effective-suite #:comments comments #:lines lines)))
   
@@ -229,7 +232,9 @@
     [else result-set]))
 
 
-(define/guard (reysntax-analyze-for-properties-only source #:suite [suite default-recommendations])
+(define/guard (reysntax-analyze-for-properties-only source
+                                                    #:suite [suite default-recommendations]
+                                                    #:timeout-ms [timeout-ms 10000])
   (define comments (with-input-from-source source read-comment-locations))
   (define full-source (source->string source))
   (guard (string-prefix? full-source "#lang racket") #:else
@@ -251,7 +256,8 @@
                   [exn:fail:filesystem:missing-module? skip]
                   [exn:fail:contract:variable? skip])
     (define analysis (source-analyze source
-                                     #:analyzers (refactoring-suite-analyzers suite)))
+                                     #:analyzers (refactoring-suite-analyzers suite)
+                                     #:timeout-ms timeout-ms))
     (source-code-analysis-added-syntax-properties analysis)))
 
 
@@ -260,7 +266,8 @@
                               #:max-fixes [max-fixes +inf.0]
                               #:max-passes [max-passes 10]
                               #:max-modified-sources [max-modified-sources +inf.0]
-                              #:max-modified-lines [max-modified-lines +inf.0])
+                              #:max-modified-lines [max-modified-lines +inf.0]
+                              #:timeout-ms [timeout-ms 10000])
   (log-resyntax-info "--- analyzing code ---")
   (for/fold ([pass-result-lists '()]
              [sources sources]
@@ -274,7 +281,8 @@
                                                 #:suite suite
                                                 #:max-fixes max-fixes
                                                 #:max-modified-sources max-modified-sources
-                                                #:max-modified-lines max-modified-lines))
+                                                #:max-modified-lines max-modified-lines
+                                                #:timeout-ms timeout-ms))
                    (define pass-fix-count (count-total-results pass-results))
                    (define new-max-fixes (- max-fixes pass-fix-count))]
              #:break (hash-empty? pass-results)
@@ -298,7 +306,8 @@
                                    #:suite suite
                                    #:max-fixes max-fixes
                                    #:max-modified-sources max-modified-sources
-                                   #:max-modified-lines max-modified-lines)
+                                   #:max-modified-lines max-modified-lines
+                                   #:timeout-ms timeout-ms)
   (transduce (in-hash-entries sources) ; entries with source keys and line range set values
 
              ;; The following steps perform a kind of layered shuffle: the files to refactor are
@@ -326,7 +335,7 @@
              (append-mapping
               (λ (e)
                 (match-define (entry source lines) e)
-                (define result-set (resyntax-analyze source #:suite suite #:lines lines))
+                (define result-set (resyntax-analyze source #:suite suite #:lines lines #:timeout-ms timeout-ms))
                 (refactoring-result-set-results result-set)))
              (limiting max-modified-lines
                        #:by (λ (result)
@@ -524,6 +533,7 @@
     ;; Test with multipass analyze
     (define analysis
       (resyntax-analyze-all (hash test-source (range-set (unbounded-range #:comparator natural<=>)))
-                            #:suite breaking-suite))
+                            #:suite breaking-suite
+                            #:timeout-ms 10000))
     (check-equal? (resyntax-analysis-total-fixes analysis) 0
                   "Breaking suggestions should be filtered from resyntax-analyze-all")))
