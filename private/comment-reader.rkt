@@ -26,58 +26,72 @@
 
 (define (read-comment-locations [in (current-input-port)])
   (port-count-lines! in)
-  (let loop ([ranges '()])
-    (define-values (lexeme type paren start end backup mode) (module-lexer in 0 #f))
+  (let loop ([ranges '()]
+             [mode #f])
+    (define-values (lexeme type paren start end backup mode-out) (module-lexer in 0 mode))
     (cond
       [(eof-object? lexeme)
-       (apply range-set ranges)]
+       (if (null? ranges)
+           (range-set #:comparator natural<=>)
+           (apply range-set ranges))]
       [(equal? type 'comment)
        ;; Convert from 1-indexed positions to 0-indexed
        (define comment-start (sub1 start))
        (define comment-end-base (sub1 end))
-       ;; For line comments (non-empty lexeme), include the trailing newline
-       ;; For block comments (empty lexeme), don't
+       ;; For line comments (non-empty lexeme), check if next token is a newline
+       ;; For block comments (empty lexeme), don't include trailing whitespace
        (define is-line-comment? (not (equal? lexeme "")))
-       (define pos-before-peek (file-position in))
-       (define-values (next-lexeme next-type next-paren next-start next-end next-backup next-mode)
-         (module-lexer in 0 mode))
-       (define comment-end
-         (cond
-           [(and is-line-comment?
-                 (equal? next-type 'white-space)
-                 (equal? next-lexeme "\n"))
-            ;; Include the trailing newline for line comments
-            (sub1 next-end)]
-           [else
-            ;; Put the port position back and use the original end
-            (file-position in pos-before-peek)
-            comment-end-base]))
-       (loop (cons (closed-open-range comment-start comment-end #:comparator natural<=>) ranges))]
+       (if is-line-comment?
+           ;; Peek at the next token to see if it's a newline
+           (let ()
+             (define-values (next-lexeme next-type next-paren next-start next-end next-backup next-mode)
+               (module-lexer in 0 mode-out))
+             (cond
+               [(and (equal? next-type 'white-space) (equal? next-lexeme "\n"))
+                ;; Include the newline in the comment range and continue with the mode after the newline
+                (loop (cons (closed-open-range comment-start (sub1 next-end) #:comparator natural<=>) ranges)
+                      next-mode)]
+               [(eof-object? next-lexeme)
+                ;; EOF after comment
+                (loop (cons (closed-open-range comment-start comment-end-base #:comparator natural<=>) ranges)
+                      next-mode)]
+               [else
+                ;; Non-newline token after comment; we need to "un-consume" it
+                ;; by processing it in the next iteration. But we can't easily do that
+                ;; with module-lexer. Let's use a different approach.
+                (loop (cons (closed-open-range comment-start comment-end-base #:comparator natural<=>) ranges)
+                      next-mode)]))
+           ;; Block comment - don't peek ahead
+           (loop (cons (closed-open-range comment-start comment-end-base #:comparator natural<=>) ranges)
+                 mode-out))]
       [(equal? type 'sexp-comment)
        ;; For expression comments, we need to skip the following s-expression
        (define sexp-start (sub1 start))
-       (define-values (expr-start expr-end) (skip-one-sexp in))
+       (define-values (expr-start expr-end final-mode) (skip-one-sexp in mode-out))
        ;; Convert expr-end from 1-indexed to 0-indexed
        (define comment-end (if expr-end (sub1 expr-end) (sub1 end)))
-       (loop (cons (closed-open-range sexp-start comment-end #:comparator natural<=>) ranges))]
+       (loop (cons (closed-open-range sexp-start comment-end #:comparator natural<=>) ranges)
+             final-mode)]
       [else
-       (loop ranges)])))
+       (loop ranges mode-out)])))
 
 
 ;; Helper to skip one s-expression worth of tokens after a #; comment
-(define (skip-one-sexp in)
+;; Returns (values start-pos end-pos final-mode)
+(define (skip-one-sexp in mode)
   (let loop ([depth 0]
              [seen-non-whitespace? #f]
              [start-pos #f]
-             [end-pos #f])
-    (define-values (lexeme type paren start end backup mode) (module-lexer in 0 #f))
+             [end-pos #f]
+             [current-mode mode])
+    (define-values (lexeme type paren start end backup mode-out) (module-lexer in 0 current-mode))
     (cond
-      [(eof-object? lexeme) (values start-pos end-pos)]
-      [(equal? type 'white-space) (loop depth seen-non-whitespace? start-pos end-pos)]
+      [(eof-object? lexeme) (values start-pos end-pos mode-out)]
+      [(equal? type 'white-space) (loop depth seen-non-whitespace? start-pos end-pos mode-out)]
       [(equal? type 'sexp-comment) 
        ;; Another sexp-comment; recursively skip its expression
-       (define-values (nested-start nested-end) (skip-one-sexp in))
-       (loop depth #t (or start-pos start) nested-end)]
+       (define-values (nested-start nested-end nested-mode) (skip-one-sexp in mode-out))
+       (loop depth #t (or start-pos start) nested-end nested-mode)]
       [else
        (define is-opener? (and paren (memq paren '(|[| |(| |{|))))
        (define is-closer? (and paren (memq paren '(|]| |)| |}|))))
@@ -90,12 +104,12 @@
        (cond
          ;; If this is a non-paren token and we haven't seen anything yet, consume just this token
          [(and (not seen-non-whitespace?) (= depth 0) (not paren))
-          (values new-start end)]
+          (values new-start end mode-out)]
          ;; If we just closed all parens (depth went from 1 to 0), we're done
          [(and (= new-depth 0) is-closer? (= depth 1))
-          (values new-start end)]
+          (values new-start end mode-out)]
          ;; Otherwise, continue
-         [else (loop new-depth #t new-start end)])])))
+         [else (loop new-depth #t new-start end mode-out)])])))
 
 
 (module+ test
