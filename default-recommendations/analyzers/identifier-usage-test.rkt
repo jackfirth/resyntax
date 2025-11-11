@@ -377,3 +377,16 @@ analysis-test: "twice-used local variable in macro definition"
 @inspect - a
 @property usage-count
 @assert 2
+
+
+analysis-test: "disappeared use of macro"
+--------------------
+(require (for-syntax racket/base))
+(define-syntax (m stx)
+  #'(void))
+(m)
+--------------------
+@within - (m stx)
+@inspect - m
+@property usage-count
+@assert 1
