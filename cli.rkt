@@ -300,18 +300,20 @@ For help on these, use 'analyze --help' or 'fix --help'."
     (match (resyntax-analyze-options-output-format options)
       [(== plain-text)
        (for ([result (in-list results)])
-         (define path
-           (file-source-path
-            (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+         (define source (refactoring-result-source result))
+         (define path (file-source-path source))
          (define line (refactoring-result-original-line result))
          (define column (refactoring-result-original-column result))
          (printf "resyntax: ~a:~a:~a [~a]\n" path line column (refactoring-result-rule-name result))
          (printf "\n\n~a\n" (string-indent (refactoring-result-message result) #:amount 2))
          (define old-code (refactoring-result-original-code result))
          (define new-code (refactoring-result-new-code result))
-         (printf "\n\n~a\n\n\n~a\n\n\n"
-                 (string-indent (~a old-code) #:amount 2)
-                 (string-indent (~a new-code) #:amount 2)))]
+         (if new-code
+             (printf "\n\n~a\n\n\n~a\n\n\n"
+                     (string-indent (~a old-code) #:amount 2)
+                     (string-indent (~a new-code) #:amount 2))
+             (printf "\n\n~a\n\n\n"
+                     (string-indent (~a old-code) #:amount 2))))]
       [(== github-pull-request-review)
        (define req (refactoring-results->github-review results #:file-count (hash-count sources)))
        (write-json (github-review-request-jsexpr req))]))

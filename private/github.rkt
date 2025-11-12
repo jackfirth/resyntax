@@ -93,11 +93,14 @@
 
 
 (define (refactoring-result->github-review-comment result)
-  (define path
-    (file-source-path (syntax-replacement-source (refactoring-result-syntax-replacement result))))
-  (define replacement (refactoring-result-line-replacement result))
-  (define body
-    (format #<<EOS
+  (cond
+    [(refactoring-result-has-fix? result)
+     ;; For results with fixes, generate a suggestion comment
+     (define path
+       (file-source-path (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+     (define replacement (refactoring-result-line-replacement result))
+     (define body
+       (format #<<EOS
 **`~a`:** ~a
 
 ```suggestion
@@ -124,19 +127,35 @@
 </details>
 </details>
 EOS
-            (refactoring-result-rule-name result)
-            (refactoring-result-message result)
-            (line-replacement-new-text replacement)
-            (string-indent (pretty-format replacement) #:amount 2)
-            (string-indent (pretty-format (refactoring-result-syntax-replacement result))
-                           #:amount 2)))
-  (github-review-comment
-   #:path (first (git-path path))
-   #:body body
-   #:start-line (line-replacement-start-line replacement)
-   #:end-line (line-replacement-original-end-line replacement)
-   #:start-side "RIGHT"
-   #:end-side "RIGHT"))
+               (refactoring-result-rule-name result)
+               (refactoring-result-message result)
+               (line-replacement-new-text replacement)
+               (string-indent (pretty-format replacement) #:amount 2)
+               (string-indent (pretty-format (refactoring-result-syntax-replacement result))
+                              #:amount 2)))
+     (github-review-comment
+      #:path (first (git-path path))
+      #:body body
+      #:start-line (line-replacement-start-line replacement)
+      #:end-line (line-replacement-original-end-line replacement)
+      #:start-side "RIGHT"
+      #:end-side "RIGHT")]
+    [else
+     ;; For warning-only results, generate a comment without a suggestion
+     (define source (refactoring-result-source result))
+     (define path (file-source-path source))
+     (define line (refactoring-result-original-line result))
+     (define body
+       (format "**`~a`:** ~a"
+               (refactoring-result-rule-name result)
+               (refactoring-result-message result)))
+     (github-review-comment
+      #:path (first (git-path path))
+      #:body body
+      #:start-line line
+      #:end-line line
+      #:start-side "RIGHT"
+      #:end-side "RIGHT")]))
 
 
 (define branch-ref (getenv "GITHUB_REF"))
