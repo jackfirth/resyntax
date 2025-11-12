@@ -18,6 +18,7 @@
   [source-expand (-> source? syntax?)]
   [source-can-expand? (-> source? boolean?)]
   [source-text-of (-> source? syntax? immutable-string?)]
+  [source-comment-locations (-> source? immutable-range-set?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
   [file-source-path (-> file-source? path?)]
@@ -38,7 +39,13 @@
          rebellion/base/immutable-string
          resyntax/private/syntax-neighbors
          syntax/modread
-         syntax/parse)
+         rebellion/base/comparator
+         rebellion/base/range
+         rebellion/collection/range-set
+         rebellion/collection/vector/builder
+         rebellion/streaming/transducer
+         syntax-color/lexer-contract
+         syntax-color/module-lexer)
 
 
 (module+ test
@@ -179,3 +186,45 @@
   (define start (sub1 (syntax-position stx)))
   (define end (+ start (syntax-span stx)))
   (string->immutable-string (substring (source->string code) start end)))
+
+
+(define (source-comment-locations src)
+  (transduce (source-tokens src)
+             (filtering lexical-token-comment?)
+             (mapping lexical-token-location)
+             #:into (into-range-set natural<=>)))
+
+
+(struct lexical-token (text start end type delimiter-kind attributes) #:transparent)
+
+
+(define (source-tokens src)
+  (with-input-from-source src
+    (λ ()
+      (define tokens (make-vector-builder))
+      (let loop ([offset 0] [mode #false])
+        (define-values (text raw-attributes delimiter-kind start end _ new-mode)
+          (module-lexer* (current-input-port) offset mode))
+        (unless (eof-object? text)
+          (define type
+            (if (symbol? raw-attributes)
+                raw-attributes
+                (hash-ref raw-attributes 'type)))
+          (define attributes
+            (if (symbol? raw-attributes)
+                (hasheq)
+                (hash-remove raw-attributes 'type)))
+          (vector-builder-add tokens (lexical-token text (sub1 start) (sub1 end) type delimiter-kind attributes))
+          (loop (sub1 end) (if (dont-stop? new-mode) (dont-stop-val new-mode) new-mode))))
+      (build-vector tokens))))
+
+
+(define (lexical-token-comment? token)
+  (define type (lexical-token-type token))
+  (or (equal? type 'comment)
+      (equal? type 'sexp-comment)
+      (hash-ref (lexical-token-attributes token) 'comment? #false)))
+
+
+(define (lexical-token-location token)
+  (closed-open-range (lexical-token-start token) (lexical-token-end token) #:comparator natural<=>))
