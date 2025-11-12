@@ -54,7 +54,6 @@
          resyntax/base
          resyntax/default-recommendations
          resyntax/private/analysis
-         resyntax/private/comment-reader
          resyntax/private/git
          resyntax/private/limiting
          resyntax/private/line-replacement
@@ -170,7 +169,7 @@
                                 #:suite [suite default-recommendations]
                                 #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
                                 #:timeout-ms [timeout-ms 10000])
-  (define comments (with-input-from-source source read-comment-locations))
+  (define comments (source-comment-locations source))
   (define source-lang (source-read-language source))
   (guard source-lang #:else
     (log-resyntax-warning "skipping ~a because its #lang could not be determined"
@@ -235,7 +234,7 @@
 (define/guard (reysntax-analyze-for-properties-only source
                                                     #:suite [suite default-recommendations]
                                                     #:timeout-ms [timeout-ms 10000])
-  (define comments (with-input-from-source source read-comment-locations))
+  (define comments (source-comment-locations source))
   (define full-source (source->string source))
   (guard (string-prefix? full-source "#lang racket") #:else
     (log-resyntax-warning "skipping ~a because it does not start with #lang racket"
