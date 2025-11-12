@@ -12,7 +12,8 @@
          add-suite-under-test!
          check-suite-refactors
          check-suite-does-not-refactor
-         check-suite-analysis)
+         check-suite-analysis
+         check-suite-comment-only)
 
 
 (require racket/logging
@@ -310,6 +311,47 @@
                       ['actual actual-value]
                       ['expected expected-value])
       (fail-check "analysis assigned an incorrect value for the given syntax property key"))))
+
+
+(define-check (check-suite-comment-only program context-list target rule-name)
+  (define suite (current-suite-under-test))
+  (set! program (code-block-append (current-header) program))
+  (define program-src (string-source (code-block-raw-string program)))
+  (define-values (call-with-logs-captured build-logs-info) (make-log-capture-utilities))
+
+  (define result-set
+    (call-with-logs-captured
+     (λ () (resyntax-analyze program-src
+                            #:suite suite
+                            #:timeout-ms (current-analyzer-timeout-millis)))))
+
+  (define results (refactoring-result-set-results result-set))
+
+  ;; Find target location
+  (define target-src (string-source (string-trim (code-block-raw-string target))))
+  (define context-src-list
+    (for/list ([ctx (in-list context-list)])
+      (string-source (string-trim (code-block-raw-string ctx)))))
+
+  ;; Try to find a result that matches the target location and rule name
+  (define matching-results
+    (for/list ([result (in-list results)]
+               #:when (and (equal? (refactoring-result-rule-name result) rule-name)
+                          (not (refactoring-result-has-fix? result))))
+      result))
+
+  (with-check-info (['logs (build-logs-info)]
+                    ['program (string-block-info (string-source-contents program-src))]
+                    ['target (string-block-info (string-source-contents target-src))]
+                    ['rule-name rule-name])
+    (when (empty? matching-results)
+      (fail-check "no warning-only result found for the specified rule"))
+    
+    (when (> (length matching-results) 1)
+      (fail-check (format "found ~a warning-only results, expected exactly 1" (length matching-results))))
+    
+    ;; Success - we found exactly one matching warning-only result
+    (void)))
 
 
 (define (source-find-path-of src target-src #:contexts [context-srcs '()])
