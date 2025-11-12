@@ -32,64 +32,101 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
+;; Extract identifiers from the 'origin syntax property
+;; The 'origin property can be either:
+;; - A single syntax object
+;; - A list of syntax objects and/or pairs
+;; - Pairs can contain syntax objects or lists of syntax objects
+;; We extract all identifiers from it recursively and label them with the given phase
+(define (origin-property-identifiers stx phase)
+  (define origin (syntax-property stx 'origin))
+  
+  (define (extract-ids obj)
+    (cond
+      [(not obj) (stream)]
+      [(identifier? obj) 
+       ;; Add the phase property to the identifier so it matches correctly
+       (stream (syntax-property obj 'phase phase))]
+      [(syntax? obj) (stream)]  ; syntax but not identifier
+      [(pair? obj)
+       (stream-append (extract-ids (car obj))
+                      (extract-ids (cdr obj)))]
+      [(list? obj)
+       (apply stream-append (map extract-ids obj))]
+      [else (stream)]))
+  
+  (extract-ids origin))
+
+
 ;; Find all identifier usage sites (not binding sites)
 (define (usage-site-identifiers expanded-stx)
   (let loop ([expanded-stx expanded-stx] [phase 0])
     (define (recur stx)
       (loop stx phase))
-    (syntax-search expanded-stx
-      #:literal-sets ([kernel-literals #:phase phase])
-      
-      ;; Phase mismatch - recurse with correct phase
-      [(id:id _ ...)
-       #:do [(define id-phase (syntax-property (attribute id) 'phase))]
-       #:when (not (equal? id-phase phase))
-       (loop this-syntax id-phase)]
+    
+    ;; Collect identifiers from origin properties of all syntax objects
+    (define origin-ids
+      (apply stream-append
+             (for/list ([stx-node (in-stream (syntax-search-everything expanded-stx))])
+               (origin-property-identifiers stx-node phase))))
+    
+    ;; Collect identifiers from the expanded syntax tree
+    (define expanded-ids
+      (syntax-search expanded-stx
+        #:literal-sets ([kernel-literals #:phase phase])
+        
+        ;; Phase mismatch - recurse with correct phase
+        [(id:id _ ...)
+         #:do [(define id-phase (syntax-property (attribute id) 'phase))]
+         #:when (not (equal? id-phase phase))
+         (loop this-syntax id-phase)]
 
-      ;; Skip quote-syntax - no identifier usages inside
-      [(quote-syntax _ ...) (stream)]
-      
-      ;; define-values: recurse into RHS only (LHS is bindings)
-      [(define-values (_ ...) rhs)
-       (recur (attribute rhs))]
-      
-      ;; define-syntaxes: recurse into RHS at phase+1 (LHS is bindings)
-      [(define-syntaxes (_ ...) rhs)
-       (loop (attribute rhs) (add1 phase))]
-      
-      ;; let-values/letrec-values: recurse into RHS and body (binding ids excluded by pattern)
-      [((~or let-values letrec-values) ([(_ ...) rhs] ...) body ...)
-       (apply stream-append (append (map recur (attribute rhs))
-                                    (map recur (attribute body))))]
-      
-      ;; lambda: formals are bindings, recurse into body only
-      [(#%plain-lambda _ body ...)
-       (apply stream-append (map recur (attribute body)))]
-      
-      ;; case-lambda: formals are bindings, recurse into bodies only
-      [(case-lambda [_ body ...] ...)
-       (apply stream-append (map recur (append* (attribute body))))]
-      
-      ;; set!: the identifier is used, and recurse into RHS
-      [(set! id:id rhs)
-       (stream-cons (attribute id) (recur (attribute rhs)))]
-      
-      ;; #%top: the identifier is used
-      [(#%top . id:id)
-       (stream (attribute id))]
-      
-      ;; #%variable-reference with identifier
-      [(#%variable-reference id:id)
-       (stream (attribute id))]
-      
-      ;; #%variable-reference with #%top
-      [(#%variable-reference (#%top . id:id))
-       (stream (attribute id))]
-      
-      ;; Standalone identifier - this is a usage!
-      [id:id
-       #:when (identifier? this-syntax)
-       (stream (attribute id))])))
+        ;; Skip quote-syntax - no identifier usages inside
+        [(quote-syntax _ ...) (stream)]
+        
+        ;; define-values: recurse into RHS only (LHS is bindings)
+        [(define-values (_ ...) rhs)
+         (recur (attribute rhs))]
+        
+        ;; define-syntaxes: recurse into RHS at phase+1 (LHS is bindings)
+        [(define-syntaxes (_ ...) rhs)
+         (loop (attribute rhs) (add1 phase))]
+        
+        ;; let-values/letrec-values: recurse into RHS and body (binding ids excluded by pattern)
+        [((~or let-values letrec-values) ([(_ ...) rhs] ...) body ...)
+         (apply stream-append (append (map recur (attribute rhs))
+                                      (map recur (attribute body))))]
+        
+        ;; lambda: formals are bindings, recurse into body only
+        [(#%plain-lambda _ body ...)
+         (apply stream-append (map recur (attribute body)))]
+        
+        ;; case-lambda: formals are bindings, recurse into bodies only
+        [(case-lambda [_ body ...] ...)
+         (apply stream-append (map recur (append* (attribute body))))]
+        
+        ;; set!: the identifier is used, and recurse into RHS
+        [(set! id:id rhs)
+         (stream-cons (attribute id) (recur (attribute rhs)))]
+        
+        ;; #%top: the identifier is used
+        [(#%top . id:id)
+         (stream (attribute id))]
+        
+        ;; #%variable-reference with identifier
+        [(#%variable-reference id:id)
+         (stream (attribute id))]
+        
+        ;; #%variable-reference with #%top
+        [(#%variable-reference (#%top . id:id))
+         (stream (attribute id))]
+        
+        ;; Standalone identifier - this is a usage!
+        [id:id
+         #:when (identifier? this-syntax)
+         (stream (attribute id))]))
+    
+    (stream-append origin-ids expanded-ids)))
 
 
 (define (fully-expanded-syntax-binding-table stx)
