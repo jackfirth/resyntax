@@ -382,48 +382,65 @@
                                 syntax
                                 (string-indent (exn-message e) #:amount 3))
             absent)])
-      (guarded-block
-        (guard-match (present replacement)
-          (parameterize ([current-namespace (source-code-analysis-namespace analysis)])
-            (refactoring-rule-refactor rule syntax (source-code-analysis-code analysis)))
-          #:else absent)
-        (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
-          (define bad-ids (syntax-replacement-introduced-incorrect-identifiers replacement))
-          (define orig-stx (syntax-replacement-original-syntax replacement))
-          (define intro (syntax-replacement-introduction-scope replacement))
-          (log-resyntax-warning
-           (string-append
-            "~a: suggestion discarded because it introduces identifiers with incorrect bindings\n"
-            "  incorrect identifiers: ~a\n"
-            "  bindings in original context: ~a\n"
-            "  bindings in syntax replacement: ~a\n"
-            "  replaced syntax: ~a")
-           (object-name rule)
-           bad-ids
-           (for/list ([id (in-list bad-ids)])
-             (identifier-binding (datum->syntax orig-stx (syntax->datum id))))
-           (for/list ([id (in-list bad-ids)])
-             (identifier-binding (intro id 'remove)))
-           orig-stx)
-          absent)
-        (guard (syntax-replacement-preserves-comments? replacement comments) #:else
-          (log-resyntax-warning
-           (string-append "~a: suggestion discarded because it does not preserve all comments\n"
-                          "  dropped comment locations: ~v\n"
-                          "  original syntax:\n"
-                          "   ~v\n"
-                          "  replacement syntax:\n"
-                          "   ~v")
-           (object-name rule)
-           (syntax-replacement-dropped-comment-locations replacement comments)
-           (syntax-replacement-original-syntax replacement)
-           (syntax-replacement-new-syntax replacement))
-          absent)
-        (present
-         (refactoring-result
-          #:rule-name (object-name rule)
-          #:message (refactoring-rule-description rule)
-          #:syntax-replacement replacement)))))
+      ;; Check if this is a warning-only rule
+      (cond
+        [(eq? (refactoring-rule-suggested-fixes rule) 'none)
+         ;; For warning-only rules, try to match the pattern
+         (define match-result
+           (parameterize ([current-namespace (source-code-analysis-namespace analysis)])
+             (refactoring-rule-refactor rule syntax (source-code-analysis-code analysis))))
+         ;; If pattern matched, create a warning result
+         (option-map match-result
+                     (λ (_)
+                       (warning-result
+                        #:rule-name (object-name rule)
+                        #:message (refactoring-rule-description rule)
+                        #:source (source-code-analysis-code analysis)
+                        #:original-syntax syntax)))]
+        [else
+         ;; For rules with fixes, validate and create a regular refactoring result
+         (guarded-block
+           (guard-match (present replacement)
+             (parameterize ([current-namespace (source-code-analysis-namespace analysis)])
+               (refactoring-rule-refactor rule syntax (source-code-analysis-code analysis)))
+             #:else absent)
+           (guard (syntax-replacement-introduces-incorrect-bindings? replacement) #:else
+             (define bad-ids (syntax-replacement-introduced-incorrect-identifiers replacement))
+             (define orig-stx (syntax-replacement-original-syntax replacement))
+             (define intro (syntax-replacement-introduction-scope replacement))
+             (log-resyntax-warning
+              (string-append
+               "~a: suggestion discarded because it introduces identifiers with incorrect bindings\n"
+               "  incorrect identifiers: ~a\n"
+               "  bindings in original context: ~a\n"
+               "  bindings in syntax replacement: ~a\n"
+               "  replaced syntax: ~a")
+              (object-name rule)
+              bad-ids
+              (for/list ([id (in-list bad-ids)])
+                (identifier-binding (datum->syntax orig-stx (syntax->datum id))))
+              (for/list ([id (in-list bad-ids)])
+                (identifier-binding (intro id 'remove)))
+              orig-stx)
+             absent)
+           (guard (syntax-replacement-preserves-comments? replacement comments) #:else
+             (log-resyntax-warning
+              (string-append "~a: suggestion discarded because it does not preserve all comments\n"
+                            "  dropped comment locations: ~v\n"
+                            "  original syntax:\n"
+                            "   ~v\n"
+                            "  replacement syntax:\n"
+                            "   ~v")
+              (object-name rule)
+              (syntax-replacement-dropped-comment-locations replacement comments)
+              (syntax-replacement-original-syntax replacement)
+              (syntax-replacement-new-syntax replacement))
+             absent)
+           (present
+            (refactoring-result
+             #:rule-name (object-name rule)
+             #:message (refactoring-rule-description rule)
+             #:syntax-replacement replacement)))])))
   
   (falsey->option
    (for*/first ([rule (in-list rules)]
