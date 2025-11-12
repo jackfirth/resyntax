@@ -128,7 +128,7 @@
 
 (define current-line-mask (make-parameter (range-set (unbounded-range #:comparator natural<=>))))
 
-(define current-analyzer-timeout-millis (make-parameter 100))
+(define current-analyzer-timeout-millis (make-parameter 1000))
 
 
 (define (range-bound-add bound amount)
