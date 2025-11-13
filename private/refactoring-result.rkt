@@ -76,21 +76,23 @@
 (define (refactoring-result #:rule-name rule-name 
                             #:message message 
                             #:syntax-replacement [replacement #false])
-  (if replacement
-      (let ([str-replacement (syntax-replacement-render replacement)]
-            [full-orig-code (source->string (syntax-replacement-source replacement))])
-        (constructor:refactoring-result
-         #:rule-name rule-name
-         #:message (string->immutable-string message)
-         #:source (syntax-replacement-source replacement)
-         #:original-syntax (syntax-replacement-original-syntax replacement)
-         #:syntax-replacement replacement
-         #:string-replacement str-replacement
-         #:line-replacement (string-replacement->line-replacement str-replacement full-orig-code)))
-      (raise-arguments-error 'refactoring-result
-                            "must provide either #:syntax-replacement"
-                            "rule-name" rule-name
-                            "message" message)))
+  (unless replacement
+    (raise-arguments-error 'refactoring-result
+                           "must provide either #:syntax-replacement"
+                           "rule-name"
+                           rule-name
+                           "message"
+                           message))
+  (let ([str-replacement (syntax-replacement-render replacement)]
+        [full-orig-code (source->string (syntax-replacement-source replacement))])
+    (constructor:refactoring-result
+     #:rule-name rule-name
+     #:message (string->immutable-string message)
+     #:source (syntax-replacement-source replacement)
+     #:original-syntax (syntax-replacement-original-syntax replacement)
+     #:syntax-replacement replacement
+     #:string-replacement str-replacement
+     #:line-replacement (string-replacement->line-replacement str-replacement full-orig-code))))
 
 
 (define (warning-result #:rule-name rule-name #:message message #:source source #:original-syntax original-syntax)
@@ -257,25 +259,29 @@
      (define span (syntax-span orig-stx))
      (define line (or (syntax-line orig-stx) 1))
      (define col (or (syntax-column orig-stx) 0))
-     (if (and pos span)
-         (let* ([start (sub1 pos)]
-                [end (+ start span)]
-                [raw-text (string->immutable-string (substring full-orig-code start end))])
-           (code-snippet raw-text col line))
-         (code-snippet "" col line))]))
+     (cond
+       [(and pos span)
+        (define start (sub1 pos))
+        (define end (+ start span))
+        (define raw-text (string->immutable-string (substring full-orig-code start end)))
+        (code-snippet raw-text col line)]
+       [else (code-snippet "" col line)])]))
 
 
 (define (refactoring-result-new-code result)
-  (and (refactoring-result-has-fix? result)
-       (let* ([replacement (refactoring-result-string-replacement result)]
-              [full-orig-code (source->string (syntax-replacement-source
-                                               (refactoring-result-syntax-replacement result)))]
-              [lmap (string-linemap full-orig-code)]
-              [start (string-replacement-start replacement)]
-              [original-line (linemap-position-to-line lmap (add1 start))]
-              [original-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start)))]
-              [refactored-source-code (string-apply-replacement full-orig-code replacement)]
-              [new-code-string (substring refactored-source-code
-                                          (string-replacement-start replacement)
-                                          (string-replacement-new-end replacement))])
-         (code-snippet new-code-string original-column original-line))))
+  (cond
+    [(refactoring-result-has-fix? result)
+     (define replacement (refactoring-result-string-replacement result))
+     (define full-orig-code
+       (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+     (define lmap (string-linemap full-orig-code))
+     (define start (string-replacement-start replacement))
+     (define original-line (linemap-position-to-line lmap (add1 start)))
+     (define original-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
+     (define refactored-source-code (string-apply-replacement full-orig-code replacement))
+     (define new-code-string
+       (substring refactored-source-code
+                  (string-replacement-start replacement)
+                  (string-replacement-new-end replacement)))
+     (code-snippet new-code-string original-column original-line)]
+    [else #f]))
