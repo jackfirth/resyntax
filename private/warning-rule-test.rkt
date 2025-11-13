@@ -10,10 +10,9 @@
 ;; Define a warning-only rule that matches any (equal? x y)
 (define-refactoring-rule test-warning-rule
   #:description "This is a test warning rule for equal?"
-  #:suggested-fixes 'none
   #:literals (equal?)
   (equal? x y)
-  (void))
+  #:no-suggestion)
 
 ;; Test that the rule works
 (define test-suite (refactoring-suite #:rules (list test-warning-rule)))

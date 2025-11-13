@@ -384,7 +384,7 @@
             absent)])
       ;; Check if this is a warning-only rule
       (cond
-        [(eq? (refactoring-rule-suggested-fixes rule) 'none)
+        [(zero? (refactoring-rule-suggestion-count rule))
          ;; For warning-only rules, try to match the pattern
          (define match-result
            (parameterize ([current-namespace (source-code-analysis-namespace analysis)])

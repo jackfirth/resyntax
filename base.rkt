@@ -15,7 +15,7 @@
   [refactoring-rule? (-> any/c boolean?)]
   [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
   [refactoring-rule-analyzers (-> refactoring-rule? (set/c expansion-analyzer?))]
-  [refactoring-rule-suggested-fixes (-> refactoring-rule? (or/c 'none 'one))]
+  [refactoring-rule-suggestion-count (-> refactoring-rule? exact-nonnegative-integer?)]
   [refactoring-suite? (-> any/c boolean?)]
   [refactoring-suite
    (->* ()
@@ -109,7 +109,7 @@
     [(_ new-stx) (syntax-property #'new-stx 'focus-replacement-on #true)]))
 
 
-(define-object-type refactoring-rule (transformer description uses-universal-tagged-syntax? analyzers suggested-fixes)
+(define-object-type refactoring-rule (transformer description uses-universal-tagged-syntax? analyzers suggestion-count)
   #:omit-root-binding
   #:constructor-name constructor:refactoring-rule)
 
@@ -141,14 +141,12 @@
     #:description description
     (~optional (~seq #:uses-universal-tagged-syntax? uses-universal-tagged-syntax?))
     (~optional (~seq #:analyzers analyzers))
-    (~optional (~seq #:suggested-fixes suggested-fixes))
     parse-option:syntax-parse-option ...
     pattern
     pattern-directive:syntax-parse-pattern-directive ...
-    replacement)
+    (~or (~and #:no-suggestion no-suggestion-kw) replacement))
   #:declare description (expr/c #'string?)
   #:declare analyzers (expr/c #'(sequence/c expansion-analyzer?))
-  #:declare suggested-fixes (expr/c #'(or/c 'none 'one))
 
   #:attr partial-match-log-statement
   (and (not (empty? (attribute pattern-directive)))
@@ -158,6 +156,8 @@
     (syntax-parse directive
       [(#:when condition:expr) #'(#:when (log-resyntax-rule-condition condition))]
       [_ directive]))
+  
+  #:with suggestion-count-val (datum->syntax #'id (if (attribute no-suggestion-kw) 0 1))
 
   (define id
     (constructor:refactoring-rule
@@ -165,14 +165,15 @@
      #:description (string->immutable-string description.c)
      #:uses-universal-tagged-syntax? (~? uses-universal-tagged-syntax? #false)
      #:analyzers (for/set ([analyzer (~? analyzers.c '())]) analyzer)
-     #:suggested-fixes (~? suggested-fixes.c 'one)
+     #:suggestion-count suggestion-count-val
      #:transformer
      (λ (stx)
        (syntax-parse stx
          (~@ . parse-option) ...
          [pattern
            (~? (~@ #:do [partial-match-log-statement]))
-           (~@ . wrapped-pattern-directive) ... (present #'replacement)]
+           (~@ . wrapped-pattern-directive) ... 
+           (~? (present #'replacement) (present #'(void)))]
          [_ absent])))))
 
 
@@ -180,7 +181,6 @@
   (define-definition-context-refactoring-rule id:id
     #:description (~var description (expr/c #'string?))
     (~optional (~seq #:analyzers (~var analyzers (expr/c #'(sequence/c expansion-analyzer?)))))
-    (~optional (~seq #:suggested-fixes (~var suggested-fixes (expr/c #'(or/c 'none 'one)))))
     parse-option:syntax-parse-option ...
     splicing-pattern
     pattern-directive:syntax-parse-pattern-directive ...
@@ -234,7 +234,6 @@
     (define-refactoring-rule id
       #:description description
       (~? (~@ #:analyzers analyzers))
-      (~? (~@ #:suggested-fixes suggested-fixes))
       (~var expression expression-matching-id)
       expression.refactored)))
 
