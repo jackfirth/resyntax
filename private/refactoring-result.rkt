@@ -83,16 +83,16 @@
                            rule-name
                            "message"
                            message))
-  (let ([str-replacement (syntax-replacement-render replacement)]
-        [full-orig-code (source->string (syntax-replacement-source replacement))])
-    (constructor:refactoring-result
-     #:rule-name rule-name
-     #:message (string->immutable-string message)
-     #:source (syntax-replacement-source replacement)
-     #:original-syntax (syntax-replacement-original-syntax replacement)
-     #:syntax-replacement replacement
-     #:string-replacement str-replacement
-     #:line-replacement (string-replacement->line-replacement str-replacement full-orig-code))))
+  (define str-replacement (syntax-replacement-render replacement))
+  (define full-orig-code (source->string (syntax-replacement-source replacement)))
+  (constructor:refactoring-result
+   #:rule-name rule-name
+   #:message (string->immutable-string message)
+   #:source (syntax-replacement-source replacement)
+   #:original-syntax (syntax-replacement-original-syntax replacement)
+   #:syntax-replacement replacement
+   #:string-replacement str-replacement
+   #:line-replacement (string-replacement->line-replacement str-replacement full-orig-code)))
 
 
 (define (warning-result #:rule-name rule-name #:message message #:source source #:original-syntax original-syntax)
