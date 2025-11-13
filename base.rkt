@@ -173,7 +173,7 @@
          [pattern
            (~? (~@ #:do [partial-match-log-statement]))
            (~@ . wrapped-pattern-directive) ... 
-           (~? (present #'replacement) (present #'(void)))]
+           (~? (present #'replacement) (present #t))]
          [_ absent])))))
 
 
