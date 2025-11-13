@@ -109,30 +109,34 @@
 
 
 (define (refactoring-result-modified-range result)
-  (if (refactoring-result-has-fix? result)
-      (let ([replacement (refactoring-result-string-replacement result)])
-        (closed-open-range (add1 (string-replacement-start replacement))
-                          (add1 (string-replacement-original-end replacement))
-                          #:comparator natural<=>))
-      (let* ([orig-stx (refactoring-result-original-syntax result)]
-             [pos (syntax-position orig-stx)]
-             [span (syntax-span orig-stx)])
-        (if (and pos span)
-            (closed-open-range pos (+ pos span) #:comparator natural<=>)
-            (closed-open-range 1 2 #:comparator natural<=>)))))
+  (cond
+    [(refactoring-result-has-fix? result)
+     (define replacement (refactoring-result-string-replacement result))
+     (closed-open-range (add1 (string-replacement-start replacement))
+                        (add1 (string-replacement-original-end replacement))
+                        #:comparator natural<=>)]
+    [else
+     (define orig-stx (refactoring-result-original-syntax result))
+     (define pos (syntax-position orig-stx))
+     (define span (syntax-span orig-stx))
+     (if (and pos span)
+         (closed-open-range pos (+ pos span) #:comparator natural<=>)
+         (closed-open-range 1 2 #:comparator natural<=>))]))
 
 
 (define (refactoring-result-modified-line-range result)
-  (if (refactoring-result-has-fix? result)
-      (let ([replacement (refactoring-result-line-replacement result)])
-        (closed-open-range (line-replacement-start-line replacement)
-                          (line-replacement-original-end-line replacement)
-                          #:comparator natural<=>))
-      (let* ([orig-stx (refactoring-result-original-syntax result)]
-             [line (syntax-line orig-stx)])
-        (if line
-            (closed-range line line #:comparator natural<=>)
-            (closed-range 1 1 #:comparator natural<=>)))))
+  (cond
+    [(refactoring-result-has-fix? result)
+     (define replacement (refactoring-result-line-replacement result))
+     (closed-open-range (line-replacement-start-line replacement)
+                        (line-replacement-original-end-line replacement)
+                        #:comparator natural<=>)]
+    [else
+     (define orig-stx (refactoring-result-original-syntax result))
+     (define line (syntax-line orig-stx))
+     (if line
+         (closed-range line line #:comparator natural<=>)
+         (closed-range 1 1 #:comparator natural<=>))]))
 
 
 (define (refactoring-result-original-line result)
@@ -234,44 +238,44 @@
 
 
 (define (refactoring-result-original-code result)
-  (if (refactoring-result-has-fix? result)
-      (let* ([replacement (refactoring-result-string-replacement result)]
-             [full-orig-code
-              (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result)))]
-             [lmap (string-linemap full-orig-code)]
-             [start (string-replacement-start replacement)]
-             [end (string-replacement-original-end replacement)]
-             [start-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start)))]
-             [raw-text (string->immutable-string (substring full-orig-code start end))])
-        (code-snippet raw-text start-column (linemap-position-to-line lmap (add1 start))))
-      (let* ([orig-stx (refactoring-result-original-syntax result)]
-             [source (refactoring-result-source result)]
-             [full-orig-code (source->string source)]
-             [pos (syntax-position orig-stx)]
-             [span (syntax-span orig-stx)]
-             [line (or (syntax-line orig-stx) 1)]
-             [col (or (syntax-column orig-stx) 0)])
-        (if (and pos span)
-            (let* ([start (sub1 pos)]
-                   [end (+ start span)]
-                   [raw-text (string->immutable-string (substring full-orig-code start end))])
-              (code-snippet raw-text col line))
-            (code-snippet "" col line)))))
+  (cond
+    [(refactoring-result-has-fix? result)
+     (define replacement (refactoring-result-string-replacement result))
+     (define full-orig-code
+       (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+     (define lmap (string-linemap full-orig-code))
+     (define start (string-replacement-start replacement))
+     (define end (string-replacement-original-end replacement))
+     (define start-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
+     (define raw-text (string->immutable-string (substring full-orig-code start end)))
+     (code-snippet raw-text start-column (linemap-position-to-line lmap (add1 start)))]
+    [else
+     (define orig-stx (refactoring-result-original-syntax result))
+     (define source (refactoring-result-source result))
+     (define full-orig-code (source->string source))
+     (define pos (syntax-position orig-stx))
+     (define span (syntax-span orig-stx))
+     (define line (or (syntax-line orig-stx) 1))
+     (define col (or (syntax-column orig-stx) 0))
+     (if (and pos span)
+         (let* ([start (sub1 pos)]
+                [end (+ start span)]
+                [raw-text (string->immutable-string (substring full-orig-code start end))])
+           (code-snippet raw-text col line))
+         (code-snippet "" col line))]))
 
 
 (define (refactoring-result-new-code result)
-  (if (refactoring-result-has-fix? result)
-      (let* ([replacement (refactoring-result-string-replacement result)]
-             [full-orig-code
-              (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result)))]
-             [lmap (string-linemap full-orig-code)]
-             [start (string-replacement-start replacement)]
-             [original-line (linemap-position-to-line lmap (add1 start))]
-             [original-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start)))]
-             [refactored-source-code (string-apply-replacement full-orig-code replacement)]
-             [new-code-string
-              (substring refactored-source-code
-                        (string-replacement-start replacement)
-                        (string-replacement-new-end replacement))])
-        (code-snippet new-code-string original-column original-line))
-      #false))
+  (and (refactoring-result-has-fix? result)
+       (let* ([replacement (refactoring-result-string-replacement result)]
+              [full-orig-code (source->string (syntax-replacement-source
+                                               (refactoring-result-syntax-replacement result)))]
+              [lmap (string-linemap full-orig-code)]
+              [start (string-replacement-start replacement)]
+              [original-line (linemap-position-to-line lmap (add1 start))]
+              [original-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start)))]
+              [refactored-source-code (string-apply-replacement full-orig-code replacement)]
+              [new-code-string (substring refactored-source-code
+                                          (string-replacement-start replacement)
+                                          (string-replacement-new-end replacement))])
+         (code-snippet new-code-string original-column original-line))))
