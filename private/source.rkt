@@ -201,6 +201,7 @@
 (define (source-tokens src)
   (with-input-from-source src
     (λ ()
+      (port-count-lines! (current-input-port))
       (define tokens (make-vector-builder))
       (let loop ([offset 0] [mode #false])
         (define-values (text raw-attributes delimiter-kind start end _ new-mode)
