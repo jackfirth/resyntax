@@ -8,6 +8,7 @@
  ~replacement
  ~splicing-replacement
  ~focus-replacement-on
+ resyntax-suppress
  define-refactoring-suite
  define-refactoring-rule
  define-definition-context-refactoring-rule
@@ -23,7 +24,8 @@
          #:name (or/c interned-symbol? #false))
         refactoring-suite?)]
   [refactoring-suite-rules (-> refactoring-suite? (listof refactoring-rule?))]
-  [refactoring-suite-analyzers (-> refactoring-suite? (set/c expansion-analyzer?))]))
+  [refactoring-suite-analyzers (-> refactoring-suite? (set/c expansion-analyzer?))]
+  [syntax-suppresses-rule? (-> syntax? symbol? boolean?)]))
 
 
 (module+ private
@@ -106,6 +108,70 @@
      (syntax-property (datum->syntax #'new-stx substxs-with-prop #'new-stx #'new-stx)
                       'focus-replacement-on #true)]
     [(_ new-stx) (syntax-property #'new-stx 'focus-replacement-on #true)]))
+
+
+;; Suppression support
+(define-syntax (resyntax-suppress stx)
+  (syntax-parse stx
+    [(_ rule-id:id body:expr ...+)
+     (define rule-symbol (syntax-e #'rule-id))
+     ;; Helper to add suppression property to syntax with preservation
+     (define (add-suppression s)
+       (define existing (syntax-property s 'resyntax-suppressed-rules))
+       (syntax-property s 'resyntax-suppressed-rules
+                        (cons rule-symbol (or existing '()))
+                        #true)) ; #true means preserve during expansion
+     ;; Recursively add suppression to all syntax objects in the tree
+     (define (propagate-suppression s)
+       (cond
+         [(syntax? s)
+          (define updated (add-suppression s))
+          (define datum (syntax-e updated))
+          (cond
+            [(pair? datum)
+             (datum->syntax updated
+                            (cons (propagate-suppression (car datum))
+                                  (propagate-suppression (cdr datum)))
+                            updated
+                            updated)]
+            [(vector? datum)
+             (datum->syntax updated
+                            (for/vector ([elem (in-vector datum)])
+                              (propagate-suppression elem))
+                            updated
+                            updated)]
+            [(box? datum)
+             (datum->syntax updated
+                            (box (propagate-suppression (unbox datum)))
+                            updated
+                            updated)]
+            [(prefab-struct-key datum)
+             (datum->syntax updated
+                            (apply make-prefab-struct
+                                   (prefab-struct-key datum)
+                                   (map propagate-suppression (cdr (vector->list (struct->vector datum)))))
+                            updated
+                            updated)]
+            [else updated])]
+         [(pair? s)
+          (cons (propagate-suppression (car s))
+                (propagate-suppression (cdr s)))]
+         [(vector? s)
+          (for/vector ([elem (in-vector s)])
+            (propagate-suppression elem))]
+         [(box? s)
+          (box (propagate-suppression (unbox s)))]
+         [else s]))
+     ;; Apply to all body expressions
+     (define suppressed-bodies
+       (for/list ([b (in-list (attribute body))])
+         (propagate-suppression b)))
+     ;; Don't add suppression to the begin form itself, just return it
+     #`(begin #,@suppressed-bodies)]))
+
+(define (syntax-suppresses-rule? stx rule-name)
+  (define suppressed-rules (syntax-property stx 'resyntax-suppressed-rules))
+  (and suppressed-rules (member rule-name suppressed-rules) #t))
 
 
 (define-object-type refactoring-rule (transformer description uses-universal-tagged-syntax? analyzers)
