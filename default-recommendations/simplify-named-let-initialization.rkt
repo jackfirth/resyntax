@@ -19,6 +19,7 @@
 
 
 ;@----------------------------------------------------------------------------------------------------
+;; This rule extracts multi-line initialization expressions from named let loops.
 
 
 (define-definition-context-refactoring-rule simplify-named-let-initialization-rule
