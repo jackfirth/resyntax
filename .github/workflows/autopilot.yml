@@ -5,7 +5,7 @@ on:
   schedule:
     # Run at 17:00 UTC every day
     # 17:00 UTC is (usually) 10:00 PDT
-    - cron: "0 17 * * *"
+    - cron: "0 17 * * 1,5"
 
 permissions:
   issues: write
