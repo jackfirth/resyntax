@@ -37,6 +37,7 @@
                resyntax/default-recommendations/mutability-predicates
                resyntax/default-recommendations/numeric-shortcuts
                resyntax/default-recommendations/require-and-provide-suggestions
+               resyntax/default-recommendations/simplify-named-let-initialization
                resyntax/default-recommendations/string-shortcuts
                resyntax/default-recommendations/syntax-shortcuts
                resyntax/default-recommendations/syntax-parse-shortcuts
@@ -79,6 +80,7 @@
          resyntax/default-recommendations/mutability-predicates
          resyntax/default-recommendations/numeric-shortcuts
          resyntax/default-recommendations/require-and-provide-suggestions
+         resyntax/default-recommendations/simplify-named-let-initialization
          resyntax/default-recommendations/string-shortcuts
          resyntax/default-recommendations/syntax-parse-shortcuts
          resyntax/default-recommendations/syntax-rules-shortcuts
@@ -129,6 +131,7 @@
             numeric-shortcuts
             provide-contract-migration
             require-and-provide-suggestions
+            simplify-named-let-initialization
             string-shortcuts
             syntax-shortcuts
             syntax-parse-shortcuts
