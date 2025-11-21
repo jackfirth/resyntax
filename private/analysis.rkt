@@ -7,7 +7,7 @@
 (provide
  (contract-out
   [source-analyze (->* (source? #:analyzers (sequence/c expansion-analyzer?) #:timeout-ms exact-nonnegative-integer?)
-                       (#:lines range-set?)
+                       (#:paths sorted-set?)
                        source-code-analysis?)]
   [source-code-analysis? (-> any/c boolean?)]
   [source-code-analysis-code (-> source-code-analysis? source?)]
@@ -117,7 +117,7 @@
 
 
 (define (source-analyze code
-                        #:lines [lines (range-set (unbounded-range #:comparator natural<=>))]
+                        #:paths [paths (sorted-set #:comparator syntax-path<=>)]
                         #:analyzers analyzers
                         #:timeout-ms timeout-ms)
   (define ns (make-base-namespace))
@@ -141,18 +141,22 @@
     (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
       (guard (syntax-original-and-from-source? stx program-source-name) #:else #false)
       (guard as-visit? #:else #true)
-      (define stx-lines (syntax-line-range stx #:linemap code-linemap))
-      (define overlaps? (range-set-overlaps? lines stx-lines))
-      (unless overlaps?
+      ;; If no paths were specified (empty set), analyze everything
+      (guard (not (sorted-set-empty? paths)) #:else #true)
+      (define stx-path (syntax-original-path stx))
+      (define should-analyze?
+        (and stx-path
+             (sorted-set-contains? paths stx-path)))
+      (unless should-analyze?
         (log-resyntax-debug
-         (string-append "ignoring visited syntax object because it's outside analyzed lines\n"
-                        "  analyzed lines: ~a\n"
-                        "  syntax lines: ~a\n"
+         (string-append "ignoring visited syntax object because it's not in analyzed paths\n"
+                        "  analyzed paths: ~a\n"
+                        "  syntax path: ~a\n"
                         "  syntax: ~a")
-         lines
-         stx-lines
+         paths
+         stx-path
          stx))
-      overlaps?)
+      should-analyze?)
     
     (define/match (observe-event! sig val)
       [('visit (? syntax? visited))
