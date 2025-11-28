@@ -306,6 +306,12 @@ For help on these, use 'analyze --help' or 'fix --help'."
                (append-mapping refactoring-result-set-results)
                #:into into-list))
 
+  (define (pluralize-match count)
+    (if (equal? count 1) "match" "matches"))
+
+  (define (pluralize-rule count)
+    (if (equal? count 1) "rule" "rules"))
+
   (define (display-summary-stats)
     (cond
       [(resyntax-analyze-options-has-rule-filter? options)
@@ -322,8 +328,8 @@ For help on these, use 'analyze --help' or 'fix --help'."
                     #:into into-list))
        (for ([file+count (in-list matches-by-file)])
          (match-define (entry file-path count) file+count)
-         (printf "  ~a: ~a match~a\n" file-path count (if (equal? count 1) "" "es")))
-       (printf "\n  Total: ~a match~a\n" (length results) (if (equal? (length results) 1) "" "es"))]
+         (printf "  ~a: ~a ~a\n" file-path count (pluralize-match count)))
+       (printf "\n  Total: ~a ~a\n" (length results) (pluralize-match (length results)))]
       [else
        ;; When no rule filter is given, print matches per rule
        (displayln "resyntax: --- summary statistics (matches per rule) ---\n")
@@ -335,12 +341,12 @@ For help on these, use 'analyze --help' or 'fix --help'."
                     #:into into-list))
        (for ([rule+count (in-list matches-by-rule)])
          (match-define (entry rule-name count) rule+count)
-         (printf "  ~a: ~a match~a\n" rule-name count (if (equal? count 1) "" "es")))
-       (printf "\n  Total: ~a match~a across ~a rule~a\n"
+         (printf "  ~a: ~a ~a\n" rule-name count (pluralize-match count)))
+       (printf "\n  Total: ~a ~a across ~a ~a\n"
                (length results)
-               (if (equal? (length results) 1) "" "es")
+               (pluralize-match (length results))
                (length matches-by-rule)
-               (if (equal? (length matches-by-rule) 1) "" "s"))]))
+               (pluralize-rule (length matches-by-rule)))]))
 
   (define (display-results)
     (match (resyntax-analyze-options-output-format options)
