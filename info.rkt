@@ -20,6 +20,7 @@
         "fancy-app"
         "fmt"
         "guard"
+        "syntax-color-lib"
         "rackunit-lib"
         "rebellion"))
 
