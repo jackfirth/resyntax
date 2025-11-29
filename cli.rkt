@@ -37,7 +37,8 @@
 
 (define-enum-type resyntax-output-format (plain-text github-pull-request-review git-commit-message json))
 (define-enum-type resyntax-fix-method (modify-files create-multiple-git-commits))
-(define-record-type resyntax-analyze-options (targets suite output-format output-destination analyzer-timeout-ms))
+(define-record-type resyntax-analyze-options
+  (targets suite output-format output-destination analyzer-timeout-ms output-stats-only? has-rule-filter?))
 
 
 (define-record-type resyntax-fix-options
@@ -62,6 +63,7 @@
   (define output-format plain-text)
   (define output-destination 'console)
   (define analyzer-timeout-ms 10000)
+  (define output-stats-only? #false)
 
   (command-line
    #:program "resyntax analyze"
@@ -120,7 +122,13 @@ changed relative to baseref are analyzed."
    ("--output-as-github-review"
     "Report results by leaving a GitHub review on the pull request currently being analyzed, as \
 determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
-    (set! output-format github-pull-request-review)))
+    (set! output-format github-pull-request-review))
+
+   ("--output-summary-stats-only"
+    "Print summary statistics instead of individual refactoring suggestions. When no \
+--refactoring-rule filter is given, prints total matches per rule. When a --refactoring-rule \
+filter is given, prints matches per file."
+    (set! output-stats-only? #true)))
 
   (when selected-rule
     (define filtered-suite
@@ -136,7 +144,9 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
    #:suite suite
    #:output-format output-format
    #:output-destination output-destination
-   #:analyzer-timeout-ms analyzer-timeout-ms))
+   #:analyzer-timeout-ms analyzer-timeout-ms
+   #:output-stats-only? output-stats-only?
+   #:has-rule-filter? (and selected-rule #true)))
 
 
 (define (resyntax-fix-parse-command-line)
@@ -296,6 +306,48 @@ For help on these, use 'analyze --help' or 'fix --help'."
                (append-mapping refactoring-result-set-results)
                #:into into-list))
 
+  (define (pluralize-match count)
+    (if (equal? count 1) "match" "matches"))
+
+  (define (pluralize-rule count)
+    (if (equal? count 1) "rule" "rules"))
+
+  (define (display-summary-stats)
+    (cond
+      [(resyntax-analyze-options-has-rule-filter? options)
+       ;; When a rule filter is given, print matches per file
+       (displayln "resyntax: --- summary statistics (matches per file) ---\n")
+       (define matches-by-file
+         (transduce results
+                    (indexing
+                     (λ (result)
+                       (file-source-path
+                        (syntax-replacement-source (refactoring-result-syntax-replacement result)))))
+                    (grouping into-count)
+                    (sorting #:key entry-value #:descending? #true)
+                    #:into into-list))
+       (for ([file+count (in-list matches-by-file)])
+         (match-define (entry file-path count) file+count)
+         (printf "  ~a: ~a ~a\n" file-path count (pluralize-match count)))
+       (printf "\n  Total: ~a ~a\n" (length results) (pluralize-match (length results)))]
+      [else
+       ;; When no rule filter is given, print matches per rule
+       (displayln "resyntax: --- summary statistics (matches per rule) ---\n")
+       (define matches-by-rule
+         (transduce results
+                    (indexing refactoring-result-rule-name)
+                    (grouping into-count)
+                    (sorting #:key entry-value #:descending? #true)
+                    #:into into-list))
+       (for ([rule+count (in-list matches-by-rule)])
+         (match-define (entry rule-name count) rule+count)
+         (printf "  ~a: ~a ~a\n" rule-name count (pluralize-match count)))
+       (printf "\n  Total: ~a ~a across ~a ~a\n"
+               (length results)
+               (pluralize-match (length results))
+               (length matches-by-rule)
+               (pluralize-rule (length matches-by-rule)))]))
+
   (define (display-results)
     (match (resyntax-analyze-options-output-format options)
       [(== plain-text)
@@ -316,13 +368,17 @@ For help on these, use 'analyze --help' or 'fix --help'."
        (define req (refactoring-results->github-review results #:file-count (hash-count sources)))
        (write-json (github-review-request-jsexpr req))]))
 
-  (match (resyntax-analyze-options-output-destination options)
-    ['console
-     (displayln "resyntax: --- displaying results ---")
-     (display-results)]
-    [(? path? output-path)
-     (displayln "resyntax: --- writing results to file ---")
-     (with-output-to-file output-path display-results #:mode 'text)]))
+  (cond
+    [(resyntax-analyze-options-output-stats-only? options)
+     (display-summary-stats)]
+    [else
+     (match (resyntax-analyze-options-output-destination options)
+       ['console
+        (displayln "resyntax: --- displaying results ---")
+        (display-results)]
+       [(? path? output-path)
+        (displayln "resyntax: --- writing results to file ---")
+        (with-output-to-file output-path display-results #:mode 'text)])]))
 
 
 (define (resyntax-fix-run)
