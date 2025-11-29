@@ -15,6 +15,7 @@
   [refactoring-rule? (-> any/c boolean?)]
   [refactoring-rule-description (-> refactoring-rule? immutable-string?)]
   [refactoring-rule-analyzers (-> refactoring-rule? (set/c expansion-analyzer?))]
+  [refactoring-rule-suggestion-count (-> refactoring-rule? exact-nonnegative-integer?)]
   [refactoring-suite? (-> any/c boolean?)]
   [refactoring-suite
    (->* ()
@@ -108,7 +109,7 @@
     [(_ new-stx) (syntax-property #'new-stx 'focus-replacement-on #true)]))
 
 
-(define-object-type refactoring-rule (transformer description uses-universal-tagged-syntax? analyzers)
+(define-object-type refactoring-rule (transformer description uses-universal-tagged-syntax? analyzers suggestion-count)
   #:omit-root-binding
   #:constructor-name constructor:refactoring-rule)
 
@@ -143,7 +144,7 @@
     parse-option:syntax-parse-option ...
     pattern
     pattern-directive:syntax-parse-pattern-directive ...
-    replacement)
+    (~or (~and #:no-suggestion no-suggestion-kw) replacement))
   #:declare description (expr/c #'string?)
   #:declare analyzers (expr/c #'(sequence/c expansion-analyzer?))
 
@@ -155,6 +156,8 @@
     (syntax-parse directive
       [(#:when condition:expr) #'(#:when (log-resyntax-rule-condition condition))]
       [_ directive]))
+  
+  #:with suggestion-count-val (datum->syntax #'id (if (attribute no-suggestion-kw) 0 1))
 
   (define id
     (constructor:refactoring-rule
@@ -162,13 +165,15 @@
      #:description (string->immutable-string description.c)
      #:uses-universal-tagged-syntax? (~? uses-universal-tagged-syntax? #false)
      #:analyzers (for/set ([analyzer (~? analyzers.c '())]) analyzer)
+     #:suggestion-count suggestion-count-val
      #:transformer
      (λ (stx)
        (syntax-parse stx
          (~@ . parse-option) ...
          [pattern
            (~? (~@ #:do [partial-match-log-statement]))
-           (~@ . wrapped-pattern-directive) ... (present #'replacement)]
+           (~@ . wrapped-pattern-directive) ... 
+           (~? (present #'replacement) (present #t))]
          [_ absent])))))
 
 

@@ -8,7 +8,8 @@
          header
          test
          no-change-test
-         analysis-test)
+         analysis-test
+         comment-only-test)
 
 
 (require (for-syntax racket/base
@@ -228,6 +229,25 @@
                                       'expected-value)))]))))
 
 
+(define-syntax comment-only-test
+  (statement-transformer
+   (λ (stx)
+     (syntax-parse stx
+       #:track-literals
+       #:datum-literals (option @within @inspect @assertMatch)
+       [(#:statement _ name:str
+         code:literal-code
+         (~seq (#:option #:within context-block:literal-code) ...
+               (#:option #:inspect target-block:literal-code)
+               (#:option #:assertMatch rule-name:id)))
+        #`(test-case 'name
+            #,(syntax/loc this-syntax
+                (check-suite-comment-only code
+                                          (list context-block ...)
+                                          target-block
+                                          'rule-name)))]))))
+
+
 ;; Helper function to check if any require: statements are present
 (begin-for-syntax
   (define (has-require-statements? body-stxs)
@@ -400,7 +420,7 @@
 
   (define (add-uts-properties stx)
     (syntax-traverse stx
-      #:datum-literals (require header test no-change-test analysis-test)
+      #:datum-literals (require header test no-change-test analysis-test comment-only-test)
 
       [:id
        (define as-string (symbol->string (syntax-e this-syntax)))
@@ -425,7 +445,7 @@
                (add-uts-properties (attribute code))))
        (datum->syntax #false new-datum this-syntax this-syntax)]
 
-      [((~and tag #:statement) (~and test-id (~or test no-change-test analysis-test)) arg ...)
+      [((~and tag #:statement) (~and test-id (~or test no-change-test analysis-test comment-only-test)) arg ...)
        (define separators (append (list "" ": " "\n") (make-list (length (attribute arg)) "")))
        (define tag-with-prop (syntax-property (attribute tag) 'uts-separators separators))
        (define new-datum
