@@ -18,6 +18,7 @@
                resyntax/default-recommendations/function-definition-shortcuts
                resyntax/default-recommendations/function-shortcuts
                resyntax/default-recommendations/hash-shortcuts
+               resyntax/default-recommendations/keep-sorted-suggestions
                resyntax/default-recommendations/legacy/define-simple-macro-migration
                resyntax/default-recommendations/legacy/legacy-contract-migrations
                resyntax/default-recommendations/legacy/legacy-struct-migrations
@@ -60,6 +61,7 @@
          resyntax/default-recommendations/function-definition-shortcuts
          resyntax/default-recommendations/function-shortcuts
          resyntax/default-recommendations/hash-shortcuts
+         resyntax/default-recommendations/keep-sorted-suggestions
          resyntax/default-recommendations/legacy/define-simple-macro-migration
          resyntax/default-recommendations/legacy/legacy-contract-migrations
          resyntax/default-recommendations/legacy/legacy-struct-migrations
@@ -107,6 +109,7 @@
             function-definition-shortcuts
             function-shortcuts
             hash-shortcuts
+            keep-sorted-suggestions
             legacy-contract-migrations
 
             ;; Excluded for lots of reasons. See the following github issues:
