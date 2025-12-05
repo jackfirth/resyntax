@@ -10,6 +10,7 @@
 
 
 (require resyntax/base
+         racket/list
          resyntax/default-recommendations/analyzers/identifier-usage
          resyntax/default-recommendations/let-replacement/private/let-binding
          resyntax/default-recommendations/private/lambda-by-any-name
@@ -29,8 +30,11 @@
     (_:lambda-by-any-name (x:id)
                           original-body:body-with-refactorable-let-expression)
     #:with (multi-body ...) #'(original-body.refactored ...)
-    #:attr [prefix-forms 1] (attribute original-body.refactored)
-    #:attr result-form #'(begin)
+    #:do [(define refactored-forms (attribute original-body.refactored))
+          (define prefix-list (if (null? refactored-forms) '() (drop-right refactored-forms 1)))
+          (define result (if (null? refactored-forms) #'(begin) (last refactored-forms)))]
+    #:attr [prefix-forms 1] prefix-list
+    #:attr result-form result
     #:attr single-body #'(begin original-body.refactored ...))
 
   ;; Lambdas with multiple body forms (two or more)
