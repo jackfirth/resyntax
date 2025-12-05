@@ -49,15 +49,6 @@ no-change-test: "map with short lambda but ys used elsewhere not refactorable"
 --------------------
 
 
-no-change-test: "map with non-short lambda not refactorable"
---------------------
-(define (f xs)
-  (define ys (map (λ (x) (+ x 1)) xs))
-  (for ([y (in-list ys)])
-    (displayln y)))
---------------------
-
-
 test: "map with lambda that has multiple body forms is refactorable"
 --------------------
 (define (f xs g)

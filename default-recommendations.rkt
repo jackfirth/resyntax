@@ -31,6 +31,7 @@
                resyntax/default-recommendations/let-replacement/match-let-replacement
                resyntax/default-recommendations/list-shortcuts
                resyntax/default-recommendations/loops/for-loop-shortcuts
+               resyntax/default-recommendations/loops/fuse-map-with-for
                resyntax/default-recommendations/loops/list-loopification
                resyntax/default-recommendations/loops/named-let-loopification
                resyntax/default-recommendations/match-shortcuts
@@ -73,6 +74,7 @@
          resyntax/default-recommendations/let-replacement/match-let-replacement
          resyntax/default-recommendations/list-shortcuts
          resyntax/default-recommendations/loops/for-loop-shortcuts
+         resyntax/default-recommendations/loops/fuse-map-with-for
          resyntax/default-recommendations/loops/list-loopification
          resyntax/default-recommendations/loops/named-let-loopification
          resyntax/default-recommendations/match-shortcuts
@@ -104,6 +106,7 @@
             exception-suggestions
             file-io-suggestions
             for-loop-shortcuts
+            fuse-map-with-for
             function-definition-shortcuts
             function-shortcuts
             hash-shortcuts

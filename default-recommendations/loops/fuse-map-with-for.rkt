@@ -19,28 +19,33 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-;; A short lambda suitable for fusing with a for loop. Needs both single-attribute and 
-;; multi-attribute versions of the body for different template contexts.
+;; A short lambda suitable for fusing with a for loop. For multi-body lambdas, we need to
+;; separate the prefix forms (all but last) from the result form (the last).
 (define-syntax-class fuseable-map-lambda
-  #:attributes (x single-body [multi-body 1])
+  #:attributes (x single-body [multi-body 1] [prefix-forms 1] result-form)
 
-  ;; Lambdas with let expressions that can be refactored - must come first as it's most specific
+  ;; Lambdas with let expressions that can be refactored
   (pattern
     (_:lambda-by-any-name (x:id)
                           original-body:body-with-refactorable-let-expression)
-    #:attr [multi-body 1] (attribute original-body.refactored)
-    ;; For single body, we need to wrap multiple forms in a begin
+    #:with (multi-body ...) #'(original-body.refactored ...)
+    #:attr [prefix-forms 1] (attribute original-body.refactored)
+    #:attr result-form #'(begin)
     #:attr single-body #'(begin original-body.refactored ...))
 
   ;; Lambdas with multiple body forms (two or more)
-  (pattern (_:lambda-by-any-name (x:id) first-form second-form rest-form ...)
-    #:attr [multi-body 1] (cons (attribute first-form)
-                                 (cons (attribute second-form) (attribute rest-form)))
-    #:attr single-body #'(begin first-form second-form rest-form ...))
+  (pattern (_:lambda-by-any-name (x:id) prefix-form ... last-form)
+    #:when (not (null? (attribute prefix-form)))
+    #:with (multi-body ...) #'(prefix-form ... last-form)
+    #:attr [prefix-forms 1] (attribute prefix-form)
+    #:attr result-form #'last-form
+    #:attr single-body #'(begin prefix-form ... last-form))
 
   ;; Short lambdas with a single body form
   (pattern (_:lambda-by-any-name (x:id) only-form)
-    #:attr [multi-body 1] (list (attribute only-form))
+    #:with (multi-body ...) #'(only-form)
+    #:attr [prefix-forms 1] '()
+    #:attr result-form #'only-form
     #:attr single-body #'only-form))
 
 
@@ -64,7 +69,7 @@
   ;; Generate the refactored code - fuse as nested clauses
   (body-before ...
    (for-id ([function.x (in-list list-expr)]
-            [y-var (in-list (function.multi-body ...))]
+            [y-var (in-list function.single-body)]
             remaining-clause ...)
            for-body ...)
    body-after ...))
@@ -91,7 +96,8 @@
   ;; Generate the refactored code - use internal definition
   (body-before ...
    (for-id ([function.x (in-list list-expr)])
-           (define y-var function.single-body)
+           function.prefix-forms ...
+           (define y-var function.result-form)
            for-body ...)
    body-after ...))
 
