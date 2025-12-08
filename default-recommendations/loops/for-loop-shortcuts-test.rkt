@@ -341,51 +341,91 @@ test: "nested for/and forms can be flattened to a for*/and form"
 ------------------------------
 
 
-test: "(when ...) in a for loop refactored to #:when clause"
+test: "(when ...) in a for loop refactored to #:when clause when multiple body forms"
 ------------------------------------------------------------
 (for ([x (in-list (list 1 2 'a 3 'b 4))])
   (when (number? x)
-    (displayln x)))
+    (displayln x)
+    (displayln (* x 2))))
 ============================================================
 (for ([x (in-list (list 1 2 'a 3 'b 4))]
       #:when (number? x))
-  (displayln x))
+  (displayln x)
+  (displayln (* x 2)))
 ------------------------------------------------------------
 
 
-test: "(when ...) in a for* loop refactored to #:when clause"
+no-change-test: "(when ...) with single body form in a for loop not refactored"
+------------------------------------------------------------
+(for ([x (in-list (list 1 2 'a 3 'b 4))])
+  (when (number? x)
+    (displayln x)))
+------------------------------------------------------------
+
+
+test: "(when ...) in a for* loop refactored to #:when clause when multiple body forms"
+------------------------------------------------------------
+(for* ([x (in-list (list 1 2 'a 3 'b 4))])
+  (when (number? x)
+    (displayln x)
+    (displayln (* x 2))))
+============================================================
+(for* ([x (in-list (list 1 2 'a 3 'b 4))]
+       #:when (number? x))
+  (displayln x)
+  (displayln (* x 2)))
+------------------------------------------------------------
+
+
+no-change-test: "(when ...) with single body form in a for* loop not refactored"
 ------------------------------------------------------------
 (for* ([x (in-list (list 1 2 'a 3 'b 4))])
   (when (number? x)
     (displayln x)))
-============================================================
-(for* ([x (in-list (list 1 2 'a 3 'b 4))]
-       #:when (number? x))
-  (displayln x))
 ------------------------------------------------------------
 
 
-test: "(unless ...) in a for loop refactored to #:when clause"
+test: "(unless ...) in a for loop refactored to #:unless clause when multiple body forms"
+------------------------------------------------------------
+(for ([x (in-list (list 1 2 'a 3 'b 4))])
+  (unless (number? x)
+    (displayln x)
+    (displayln "non-number")))
+============================================================
+(for ([x (in-list (list 1 2 'a 3 'b 4))]
+      #:unless (number? x))
+  (displayln x)
+  (displayln "non-number"))
+------------------------------------------------------------
+
+
+no-change-test: "(unless ...) with single body form in a for loop not refactored"
 ------------------------------------------------------------
 (for ([x (in-list (list 1 2 'a 3 'b 4))])
   (unless (number? x)
     (displayln x)))
-============================================================
-(for ([x (in-list (list 1 2 'a 3 'b 4))]
-      #:unless (number? x))
-  (displayln x))
 ------------------------------------------------------------
 
 
-test: "(unless ...) in a for* loop refactored to #:when clause"
+test: "(unless ...) in a for* loop refactored to #:unless clause when multiple body forms"
+------------------------------------------------------------
+(for* ([x (in-list (list 1 2 'a 3 'b 4))])
+  (unless (number? x)
+    (displayln x)
+    (displayln "non-number")))
+============================================================
+(for* ([x (in-list (list 1 2 'a 3 'b 4))]
+       #:unless (number? x))
+  (displayln x)
+  (displayln "non-number"))
+------------------------------------------------------------
+
+
+no-change-test: "(unless ...) with single body form in a for* loop not refactored"
 ------------------------------------------------------------
 (for* ([x (in-list (list 1 2 'a 3 'b 4))])
   (unless (number? x)
     (displayln x)))
-============================================================
-(for* ([x (in-list (list 1 2 'a 3 'b 4))]
-       #:unless (number? x))
-  (displayln x))
 ------------------------------------------------------------
 
 

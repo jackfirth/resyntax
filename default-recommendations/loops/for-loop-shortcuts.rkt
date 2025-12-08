@@ -261,6 +261,7 @@ return just that result."
   #:description "Use the `#:when` keyword instead of `when` to reduce loop body indentation."
   #:literals (when for for*)
   ((~or for-id:for for-id:for*) (clause ...) (when condition body ...))
+  #:when (>= (length (attribute body)) 2)
   (for-id (clause ... #:when condition) body ...))
 
 
@@ -268,6 +269,7 @@ return just that result."
   #:description "Use the `#:unless` keyword instead of `unless` to reduce loop body indentation."
   #:literals (unless for for*)
   ((~or for-id:for for-id:for*) (clause ...) (unless condition body ...))
+  #:when (>= (length (attribute body)) 2)
   (for-id (clause ... #:unless condition) body ...))
 
 
