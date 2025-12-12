@@ -159,6 +159,25 @@
   (hash-values h))
 
 
+(define-syntax-class quoted-key
+  #:attributes (key)
+  #:literals (quote)
+  (pattern (quote key:id)))
+
+
+(define-syntax-class hash-pair-with-quoted-key
+  #:attributes (key value)
+  #:literals (unquote)
+  (pattern (key:id unquote value)))
+
+
+(define-refactoring-rule make-immutable-hash-with-quasiquote-to-hash
+  #:description "This `make-immutable-hash` with quasiquoted pairs can be replaced with a simpler `hash` call."
+  #:literals (make-immutable-hash quasiquote)
+  (make-immutable-hash (quasiquote (pair:hash-pair-with-quoted-key ...)))
+  (hash (~@ 'pair.key pair.value) ...))
+
+
 (define-refactoring-suite hash-shortcuts
   #:rules (define-hash-ref-set!-to-hash-update!
             hash-map-to-hash-keys
@@ -169,4 +188,5 @@
            hash-ref-with-constant-lambda-to-hash-ref-without-lambda
            hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
            hash-set!-ref-to-hash-update!
+           make-immutable-hash-with-quasiquote-to-hash
            or-hash-ref-set!-to-hash-ref!))

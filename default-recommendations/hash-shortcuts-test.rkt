@@ -295,3 +295,63 @@ no-change-test:
   (define sum (hash-ref! h1 (cadr term) 0))
   (hash-set! h2 (cadr term) (+ (car term) sum)))
 ------------------------------
+
+
+test: "make-immutable-hash with quasiquoted pairs can be simplified to hash"
+------------------------------
+(define body 'test-body)
+(define event 'test-event)
+(define comments '(c1 c2))
+(make-immutable-hash
+ `((body . ,body)
+   (event . ,event)
+   (comments . ,(map values comments))))
+==============================
+(define body 'test-body)
+(define event 'test-event)
+(define comments '(c1 c2))
+(hash 'body body 'event event 'comments (map values comments))
+------------------------------
+
+
+test: "make-immutable-hash with simple quasiquoted pairs can be simplified to hash"
+------------------------------
+(define x 1)
+(define y 2)
+(make-immutable-hash `((a . ,x) (b . ,y)))
+==============================
+(define x 1)
+(define y 2)
+(hash 'a x 'b y)
+------------------------------
+
+
+test: "make-immutable-hash with single pair can be simplified to hash"
+------------------------------
+(define value 42)
+(make-immutable-hash `((key . ,value)))
+==============================
+(define value 42)
+(hash 'key value)
+------------------------------
+
+
+no-change-test: "make-immutable-hash without quasiquote should not be changed"
+------------------------------
+(make-immutable-hash '((a . 1) (b . 2)))
+------------------------------
+
+
+no-change-test: "make-immutable-hash with variable keys should not be changed"
+------------------------------
+(define k 'key)
+(define v 'value)
+(make-immutable-hash `((,k . ,v)))
+------------------------------
+
+
+no-change-test: "make-immutable-hash with list literal should not be changed"
+------------------------------
+(define pairs '((a . 1) (b . 2)))
+(make-immutable-hash pairs)
+------------------------------
