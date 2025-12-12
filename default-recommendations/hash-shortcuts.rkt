@@ -159,12 +159,6 @@
   (hash-values h))
 
 
-(define-syntax-class quoted-key
-  #:attributes (key)
-  #:literals (quote)
-  (pattern (quote key:id)))
-
-
 (define-syntax-class hash-pair-with-quoted-key
   #:attributes (key value)
   #:literals (unquote)
