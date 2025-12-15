@@ -11,6 +11,7 @@
 
 (require racket/string
          racket/syntax
+         racket/list
          rebellion/private/static-name
          resyntax/base
          syntax/parse)
@@ -103,6 +104,25 @@
   (format-symbol template (~replacement arg.simplified #:original arg) ...))
 
 
+(define-refactoring-rule flatten-apply-append-syntax-template
+  #:description
+  "Flattening nested syntax templates with `apply append` and `map syntax->list` can be simplified\
+ by using a single `syntax->list` call on a flattened template."
+  #:literals (apply append map syntax->list syntax ...)
+
+  (apply append (map syntax->list (syntax->list (syntax ((inner ...) ...)))))
+
+  #:with flattened-template
+  (let* ([inner-attrs (attribute inner)]
+         ; Wrap in list if it's not already a list
+         [inner-list (if (list? inner-attrs) inner-attrs (list inner-attrs))]
+         [ellipsis-sym (datum->syntax #'here '...)])
+    (datum->syntax #'here (append inner-list (list ellipsis-sym ellipsis-sym))))
+  
+  (syntax->list #'flattened-template))
+
+
 (define-refactoring-suite syntax-shortcuts
-  #:rules (format-string-to-format-symbol
+  #:rules (flatten-apply-append-syntax-template
+           format-string-to-format-symbol
            syntax-e-in-format-id-unnecessary))

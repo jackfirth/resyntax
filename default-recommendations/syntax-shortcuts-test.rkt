@@ -53,3 +53,18 @@ test: "making a symbol with format from a keyword can be simplified to format-sy
 test: "making a symbol with format from a keyword syntax object can be simplified to format-symbol"
 - (string->symbol (format "make-~a" (keyword->string (syntax-e #'#:foo))))
 - (format-symbol "make-~a" #'#:foo)
+
+
+test: "flattening nested syntax templates with apply append can be simplified"
+--------------------
+(require racket/syntax)
+(define (f stx)
+  (with-syntax ([((a ...) ...) stx])
+    (apply append
+           (map syntax->list (syntax->list #'((a ...) ...))))))
+====================
+(require racket/syntax)
+(define (f stx)
+  (with-syntax ([((a ...) ...) stx])
+    (syntax->list (syntax (a ... ...)))))
+--------------------
