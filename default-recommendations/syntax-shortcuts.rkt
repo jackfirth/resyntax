@@ -114,10 +114,13 @@
 
   #:with flattened-template
   (let* ([inner-attrs (attribute inner)]
-         ; Wrap in list if it's not already a list
+         ; When matching ((inner ...) ...), the inner attribute contains the elements from
+         ; within each nested list. If there's only one element, inner-attrs will be a single
+         ; syntax object, otherwise it's a list. We need a list for appending the ellipses.
          [inner-list (if (list? inner-attrs) inner-attrs (list inner-attrs))]
          [ellipsis-sym (datum->syntax #'here '...)])
-    (datum->syntax #'here (append inner-list (list ellipsis-sym ellipsis-sym))))
+    ; Construct (inner-elements ... ...) by appending two ellipsis symbols
+    (datum->syntax #'here (append inner-list (make-list 2 ellipsis-sym))))
   
   (syntax->list #'flattened-template))
 
