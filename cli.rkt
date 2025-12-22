@@ -451,7 +451,6 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (define (make-temp-test-dir)
     (make-temporary-file "resyntax-cli-test~a" 'directory))
 
-  
   (define (make-test-racket-file dir [filename "test.rkt"] [content "#lang racket/base\n\n(or 1 (or 2 3))\n"])
     (define filepath (build-path dir filename))
     (display-to-file content filepath #:exists 'replace)
