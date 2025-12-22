@@ -435,3 +435,378 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
 (module+ main
   (resyntax-run))
+
+
+(module+ test
+  (require racket/cmdline
+           racket/file
+           racket/match
+           racket/path
+           racket/port
+           racket/string
+           rackunit)
+
+
+  ;; Helper to create temporary test directories and files
+  (define (make-temp-test-dir)
+    (make-temporary-file "resyntax-cli-test~a" 'directory))
+
+  
+  (define (make-test-racket-file dir [filename "test.rkt"] [content "#lang racket/base\n\n(or 1 (or 2 3))\n"])
+    (define filepath (build-path dir filename))
+    (display-to-file content filepath #:exists 'replace)
+    filepath)
+
+
+  ;; Test helpers for command line parsing
+  (define (call-with-args proc args)
+    (parameterize ([current-command-line-arguments (list->vector args)])
+      (proc)))
+
+
+  (test-case "resyntax-analyze-parse-command-line: parses --file argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-analyze-parse-command-line
+                      (list "--file" (path->string test-file))))
+    
+    (check-equal? (vector-length (resyntax-analyze-options-targets options)) 1)
+    (check-equal? (resyntax-analyze-options-suite options) default-recommendations)
+    (check-equal? (resyntax-analyze-options-output-format options) plain-text)
+    (check-equal? (resyntax-analyze-options-output-destination options) 'console)
+    (check-equal? (resyntax-analyze-options-analyzer-timeout-ms options) 10000)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-analyze-parse-command-line: parses --directory argument"
+    (define test-dir (make-temp-test-dir))
+    (make-test-racket-file test-dir)
+    
+    (define options
+      (call-with-args resyntax-analyze-parse-command-line
+                      (list "--directory" (path->string test-dir))))
+    
+    (check-equal? (vector-length (resyntax-analyze-options-targets options)) 1)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-analyze-parse-command-line: parses --analyzer-timeout argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-analyze-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--analyzer-timeout" "5000")))
+    
+    (check-equal? (resyntax-analyze-options-analyzer-timeout-ms options) 5000)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-analyze-parse-command-line: parses --output-to-file argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    (define output-file (build-path test-dir "output.txt"))
+    
+    (define options
+      (call-with-args resyntax-analyze-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--output-to-file" (path->string output-file))))
+    
+    (check-equal? (resyntax-analyze-options-output-destination options) 
+                  (simple-form-path output-file))
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-analyze-parse-command-line: parses --output-as-github-review flag"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-analyze-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--output-as-github-review")))
+    
+    (check-equal? (resyntax-analyze-options-output-format options) github-pull-request-review)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-analyze-parse-command-line: parses multiple --file arguments"
+    (define test-dir (make-temp-test-dir))
+    (define test-file1 (make-test-racket-file test-dir "test1.rkt"))
+    (define test-file2 (make-test-racket-file test-dir "test2.rkt"))
+    
+    (define options
+      (call-with-args resyntax-analyze-parse-command-line
+                      (list "--file" (path->string test-file1)
+                            "--file" (path->string test-file2))))
+    
+    (check-equal? (vector-length (resyntax-analyze-options-targets options)) 2)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --file argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file))))
+    
+    (check-equal? (vector-length (resyntax-fix-options-targets options)) 1)
+    (check-equal? (resyntax-fix-options-suite options) default-recommendations)
+    (check-equal? (resyntax-fix-options-fix-method options) modify-files)
+    (check-equal? (resyntax-fix-options-output-format options) plain-text)
+    (check-equal? (resyntax-fix-options-max-fixes options) +inf.0)
+    (check-equal? (resyntax-fix-options-max-modified-files options) +inf.0)
+    (check-equal? (resyntax-fix-options-max-modified-lines options) +inf.0)
+    (check-equal? (resyntax-fix-options-max-pass-count options) 10)
+    (check-equal? (resyntax-fix-options-analyzer-timeout-ms options) 10000)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --directory argument"
+    (define test-dir (make-temp-test-dir))
+    (make-test-racket-file test-dir)
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--directory" (path->string test-dir))))
+    
+    (check-equal? (vector-length (resyntax-fix-options-targets options)) 1)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --max-fixes argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--max-fixes" "5")))
+    
+    (check-equal? (resyntax-fix-options-max-fixes options) 5)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --max-modified-files argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--max-modified-files" "3")))
+    
+    (check-equal? (resyntax-fix-options-max-modified-files options) 3)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --max-modified-lines argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--max-modified-lines" "100")))
+    
+    (check-equal? (resyntax-fix-options-max-modified-lines options) 100)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --max-pass-count argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--max-pass-count" "5")))
+    
+    (check-equal? (resyntax-fix-options-max-pass-count options) 5)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --analyzer-timeout argument"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--analyzer-timeout" "5000")))
+    
+    (check-equal? (resyntax-fix-options-analyzer-timeout-ms options) 5000)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --output-as-commit-message flag"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--output-as-commit-message")))
+    
+    (check-equal? (resyntax-fix-options-output-format options) git-commit-message)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --output-as-json flag"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--output-as-json")))
+    
+    (check-equal? (resyntax-fix-options-output-format options) json)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-parse-command-line: parses --create-multiple-commits flag"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir))
+    
+    (define options
+      (call-with-args resyntax-fix-parse-command-line
+                      (list "--file" (path->string test-file)
+                            "--create-multiple-commits")))
+    
+    (check-equal? (resyntax-fix-options-fix-method options) create-multiple-git-commits)
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-analyze-run: analyzes a temporary file with refactoring opportunities"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir "test.rkt" 
+                                              "#lang racket/base\n\n(or 1 (or 2 3))\n"))
+    
+    (define output
+      (with-output-to-string
+        (λ ()
+          (with-input-from-string ""
+            (λ ()
+              (call-with-args resyntax-analyze-run
+                              (list "--file" (path->string test-file))))))))
+    
+    (check-true (string-contains? output "resyntax:")
+                "Output should contain resyntax prefix")
+    (check-true (string-contains? output "test.rkt")
+                "Output should reference the test file")
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-run: fixes a temporary file"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir "test.rkt" 
+                                              "#lang racket/base\n\n(or 1 (or 2 3))\n"))
+    
+    ;; Run fix command
+    (define output
+      (with-output-to-string
+        (λ ()
+          (with-input-from-string ""
+            (λ ()
+              (call-with-args resyntax-fix-run
+                              (list "--file" (path->string test-file))))))))
+    
+    ;; Check that file was modified
+    (define fixed-content (file->string test-file))
+    (check-true (string-contains? fixed-content "(or 1 2 3)")
+                "File should be fixed to have flattened or expression")
+    
+    ;; Check output contains summary
+    (check-true (string-contains? output "summary")
+                "Output should contain summary")
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-run: respects --max-fixes limit"
+    (define test-dir (make-temp-test-dir))
+    ;; Create a file with multiple issues
+    (define test-file (make-test-racket-file test-dir "test.rkt" 
+                                              "#lang racket/base\n\n(or 1 (or 2 3))\n(and 4 (and 5 6))\n"))
+    
+    (define output
+      (with-output-to-string
+        (λ ()
+          (with-input-from-string ""
+            (λ ()
+              (call-with-args resyntax-fix-run
+                              (list "--file" (path->string test-file)
+                                    "--max-fixes" "1")))))))
+    
+    ;; Check that output mentions only 1 fix
+    (check-true (or (string-contains? output "1 issue")
+                    (string-contains? output "Fixed 1"))
+                "Output should indicate 1 fix was applied")
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-run: --output-as-json produces JSON"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir "test.rkt" 
+                                              "#lang racket/base\n\n(or 1 (or 2 3))\n"))
+    
+    (define output
+      (with-output-to-string
+        (λ ()
+          (with-input-from-string ""
+            (λ ()
+              (call-with-args resyntax-fix-run
+                              (list "--file" (path->string test-file)
+                                    "--output-as-json")))))))
+    
+    ;; Check for JSON structure (contains braces and expected keys)
+    (check-true (string-contains? output "commit_message_body")
+                "JSON output should contain commit_message_body key")
+    (check-true (string-contains? output "fix_count")
+                "JSON output should contain fix_count key")
+    
+    (delete-directory/files test-dir))
+
+
+  (test-case "resyntax-fix-run: handles file with no issues"
+    (define test-dir (make-temp-test-dir))
+    (define test-file (make-test-racket-file test-dir "test.rkt" 
+                                              "#lang racket/base\n\n(define x 42)\n"))
+    
+    (define output
+      (with-output-to-string
+        (λ ()
+          (with-input-from-string ""
+            (λ ()
+              (call-with-args resyntax-fix-run
+                              (list "--file" (path->string test-file))))))))
+    
+    ;; Check that it indicates no issues found
+    (check-true (string-contains? output "No issues")
+                "Output should indicate no issues found")
+    
+    (delete-directory/files test-dir)))
