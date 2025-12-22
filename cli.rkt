@@ -75,7 +75,7 @@
 
    ("--directory"
     dirpath
-    "A directory to anaylze, including subdirectories."
+    "A directory to analyze, including subdirectories."
     (vector-builder-add targets (directory-file-group dirpath)))
 
    ("--package"
@@ -760,10 +760,13 @@ For help on these, use 'analyze --help' or 'fix --help'."
                               (list "--file" (path->string test-file)
                                     "--max-fixes" "1")))))))
     
-    ;; Check that output mentions only 1 fix
-    (check-true (or (string-contains? output "1 issue")
-                    (string-contains? output "Fixed 1"))
-                "Output should indicate 1 fix was applied")
+    ;; Check that only one of the two issues was fixed
+    (define fixed-content (file->string test-file))
+    (define fixed-or? (string-contains? fixed-content "(or 1 2 3)"))
+    (define fixed-and? (string-contains? fixed-content "(and 4 5 6)"))
+    (check-true (or (and fixed-or? (not fixed-and?))
+                    (and (not fixed-or?) fixed-and?))
+                "Exactly one of the two issues should be fixed due to --max-fixes 1")
     
     (delete-directory/files test-dir))
 
