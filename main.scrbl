@@ -429,6 +429,38 @@ guide Resyntax's internal comment preservation system when the default behavior 
  because such rules often touch only a small series of forms in a much larger definition context.}
 
 
+@subsection{Suppressing Specific Suggestions}
+
+@defform[(resyntax-suppress rule-id body ...+)]{
+ Suppresses the application of a specific @tech{refactoring rule} to the code in @racket[body]. The
+ @racket[rule-id] must be the name of a refactoring rule. This form is useful when a refactoring
+ suggestion makes sense generally, but is unhelpful in a specific context.
+
+ For example, suppose you have code that maintains visual symmetry by using similar comparisons with
+ zero:
+
+ @(racketblock
+   (and (= (- x y) 0)
+        (> (- x y) 0)
+        (< (- x y) 0)))
+
+ While Resyntax would normally suggest simplifying @racket[(> (- x y) 0)] to @racket[(> x y)], doing
+ so would break the visual pattern. You can suppress this specific suggestion while still allowing
+ other refactorings:
+
+ @(racketblock
+   (resyntax-suppress comparison-of-difference-and-zero-to-direct-comparison
+     (and (= (- x y) 0)
+          (> (- x y) 0)
+          (< (- x y) 0))))
+
+ The suppression applies to all code within the @racket[body] forms. Multiple expressions can be
+ suppressed together, and suppression works with nested forms.
+
+ Note that @racket[resyntax-suppress] must be @racket[require]d from @racket[resyntax/base] before
+ use.}
+
+
 @subsection{Resyntax's Default Rules}
 @defmodule[resyntax/default-recommendations]
 
