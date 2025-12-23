@@ -19,6 +19,7 @@
   [source-can-expand? (-> source? boolean?)]
   [source-text-of (-> source? syntax? immutable-string?)]
   [source-comment-locations (-> source? immutable-range-set?)]
+  [source-syntax-paths (->* (source?) (range-set?) sorted-set?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
   [file-source-path (-> file-source? path?)]
@@ -37,11 +38,14 @@
          racket/path
          racket/port
          rebellion/base/immutable-string
+         resyntax/private/linemap
          resyntax/private/syntax-neighbors
+         resyntax/private/syntax-path
          syntax/modread
          rebellion/base/comparator
          rebellion/base/range
          rebellion/collection/range-set
+         rebellion/collection/sorted-set
          rebellion/collection/vector/builder
          rebellion/streaming/transducer
          syntax-color/lexer-contract
@@ -149,7 +153,32 @@
     (define valid-mod (modified-source orig "#lang racket/base\n(define foo 43)"))
     (define invalid-mod (modified-source orig "#lang racket/base\n(if)"))
     (check-true (source-can-expand? valid-mod))
-    (check-false (source-can-expand? invalid-mod))))
+    (check-false (source-can-expand? invalid-mod)))
+  
+  (test-case "source-syntax-paths"
+    ;; Test with all lines (unbounded range)
+    (define test-source (string-source "#lang racket/base\n(define x 42)\n(define y 99)"))
+    (define all-paths (source-syntax-paths test-source))
+    (check-true (sorted-set? all-paths))
+    ;; Should have multiple paths since there are multiple forms
+    (check-true (> (sorted-set-size all-paths) 0))
+    
+    ;; Test with specific line range - just line 2 which has (define x 42)
+    (define line2-range (range-set (closed-range 2 2 #:comparator natural<=>)))
+    (define line2-paths (source-syntax-paths test-source line2-range))
+    (check-true (sorted-set? line2-paths))
+    ;; Should have fewer paths than all-paths
+    (check-true (< (sorted-set-size line2-paths) (sorted-set-size all-paths)))
+    
+    ;; Test with a line range that includes multiple forms
+    (define lines23-range (range-set (closed-range 2 3 #:comparator natural<=>)))
+    (define lines23-paths (source-syntax-paths test-source lines23-range))
+    (check-true (>= (sorted-set-size lines23-paths) (sorted-set-size line2-paths)))
+    
+    ;; Test with no overlapping lines (e.g., line 100)
+    (define no-overlap-range (range-set (closed-range 100 100 #:comparator natural<=>)))
+    (define no-overlap-paths (source-syntax-paths test-source no-overlap-range))
+    (check-equal? (sorted-set-size no-overlap-paths) 0)))
 
 
 (define (source-expand code)
@@ -193,6 +222,22 @@
              (filtering lexical-token-comment?)
              (mapping lexical-token-location)
              #:into (into-range-set natural<=>)))
+
+
+(define (source-syntax-paths src [lines (range-set (unbounded-range #:comparator natural<=>))])
+  (define program-stx (source-read-syntax src))
+  (define linemap (string-linemap (source->string src)))
+  (sorted-set->immutable-sorted-set
+   (transduce (in-syntax-paths program-stx)
+              (filtering
+               (λ (path)
+                 (define stx (syntax-ref program-stx path))
+                 ;; Only include paths with source location information
+                 (and (syntax-position stx)
+                      (syntax-span stx)
+                      (let ([stx-lines (syntax-line-range stx #:linemap linemap)])
+                        (range-set-overlaps? lines stx-lines)))))
+              #:into (into-sorted-set syntax-path<=>))))
 
 
 (struct lexical-token (text start end type delimiter-kind attributes) #:transparent)
