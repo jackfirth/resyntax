@@ -84,3 +84,29 @@ no-change-test: "define-syntax-parser with multiple clauses not refactorable"
   [(_ a)
    #'a])
 ------------------------------
+
+
+no-change-test: "define-syntax-parser with syntax/loc not refactorable"
+------------------------------
+(define-syntax-parser my-macro
+  [(_ pattern)
+   (syntax/loc this-syntax
+     (some-expr))])
+------------------------------
+
+
+no-change-test: "define-syntax-parser without syntax wrapper not refactorable"
+------------------------------
+(define-syntax-parser my-macro
+  [(_ x:id)
+   (let ([tmp (syntax-e #'x)])
+     #'(quote tmp))])
+------------------------------
+
+
+no-change-test: "define-syntax-parser with quasisyntax not refactorable"
+------------------------------
+(define-syntax-parser my-macro
+  [(_ x:id)
+   #`(quote #,#'x)])
+------------------------------

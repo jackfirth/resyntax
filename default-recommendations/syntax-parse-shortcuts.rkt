@@ -49,21 +49,15 @@ equivalent `define-syntax-parse-rule` macro."
   #:description
   "This `define-syntax-parser` macro with a single clause can be replaced with a simpler, equivalent
 `define-syntax-parse-rule` macro."
-  #:literals (define-syntax-parser)
+  #:literals (define-syntax-parser [syntax-id syntax #:phase 1])
   
   (define-syntax-parser macro:id
-    [(_ . pattern) body ...])
+    [(_ . pattern) directive:syntax-parse-pattern-directive ... (syntax-id last-form)])
   
-  #:do [(define (strip-syntax-wrapper stx)
-          (syntax-parse stx
-            #:literals (syntax)
-            [(syntax body) #'body]
-            [other #'other]))
-        (define new-body (map strip-syntax-wrapper (attribute body)))]
+  #:with (new-body ...)
+  #'((~@ . directive) ... last-form)
   
-  #:with (new-body-part ...) new-body
-  
-  (define-syntax-parse-rule (macro . pattern) new-body-part ...))
+  (define-syntax-parse-rule (macro . pattern) new-body ...))
 
 
 (define-refactoring-suite syntax-parse-shortcuts
