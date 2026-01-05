@@ -53,16 +53,16 @@
     #:attr single-body #'only-form))
 
 
-(define-definition-context-refactoring-rule fuse-map-with-for-rule
+(define-definition-context-refactoring-rule fuse-map-with-for*-rule
   #:description
-  "A `map` expression producing a list for a `for` loop can be fused with the loop."
+  "A `map` expression producing a list for a `for*` loop can be fused with the loop."
   #:analyzers (list identifier-usage-analyzer)
-  #:literals (define map in-list for for*)
+  #:literals (define map in-list for*)
   (~seq body-before ...
         (define ys:id (map function:fuseable-map-lambda list-expr:expr))
-        ((~or for-id:for for-id:for*)
+        (for*-id:for*
          (~and original-clauses
-               ([y-var:id (in-list ys-usage:id)] remaining-clause ...+))
+               ([y-var:id (in-list ys-usage:id)] remaining-clause ...))
          for-body ...)
         body-after ...)
 
@@ -72,22 +72,22 @@
 
   ;; Generate the refactored code - fuse as nested clauses
   (body-before ...
-   (for-id ([function.x (in-list list-expr)]
-            [y-var (in-list function.single-body)]
-            remaining-clause ...)
-           for-body ...)
+   (for*-id ([function.x (in-list list-expr)]
+             [y-var (in-list function.single-body)]
+             remaining-clause ...)
+            for-body ...)
    body-after ...))
 
 
-;; Rule for when there are no remaining clauses - use internal definition
+;; Rule for when there are single-clause for loops (not for*) - use internal definition
 (define-definition-context-refactoring-rule fuse-map-with-for-single-clause-rule
   #:description
-  "A `map` expression producing a list for a `for` loop can be fused with the loop."
+  "A `map` expression producing a list for a single-clause `for` loop can be fused with the loop."
   #:analyzers (list identifier-usage-analyzer)
-  #:literals (define map in-list for for*)
+  #:literals (define map in-list for)
   (~seq body-before ...
         (define ys:id (map function:fuseable-map-lambda list-expr:expr))
-        ((~or for-id:for for-id:for*)
+        (for-id:for
          (~and original-clauses
                ([y-var:id (in-list ys-usage:id)]))
          for-body ...)
@@ -107,5 +107,5 @@
 
 
 (define-refactoring-suite fuse-map-with-for
-  #:rules (fuse-map-with-for-rule
+  #:rules (fuse-map-with-for*-rule
            fuse-map-with-for-single-clause-rule))

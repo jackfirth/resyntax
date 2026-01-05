@@ -24,6 +24,20 @@ test: "map producing list for for* loop can be fused"
 --------------------
 
 
+test: "map producing list for single-clause for* loop can be fused"
+--------------------
+(define (f xs g)
+  (define ys (map (λ (x) (g x)) xs))
+  (for* ([y (in-list ys)])
+    (displayln y)))
+====================
+(define (f xs g)
+  (for* ([x (in-list xs)]
+         [y (in-list (g x))])
+    (displayln y)))
+--------------------
+
+
 test: "map producing list for for loop can be fused"
 --------------------
 (define (f xs g)
@@ -35,6 +49,16 @@ test: "map producing list for for loop can be fused"
   (for ([x (in-list xs)])
     (define y (g x))
     (displayln y)))
+--------------------
+
+
+no-change-test: "multi-clause for loop cannot be fused"
+--------------------
+(define (f xs zs)
+  (define ys (map (λ (x) (+ x 1)) xs))
+  (for ([y (in-list ys)]
+        [z (in-list zs)])
+    (displayln (list y z))))
 --------------------
 
 
