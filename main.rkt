@@ -209,8 +209,9 @@
 
   (define results
     (with-handlers ([exn:fail? skip])
+      (define paths (source-syntax-paths source lines))
       (define analysis (source-analyze source
-                                       #:lines lines
+                                       #:paths paths
                                        #:analyzers (refactoring-suite-analyzers effective-suite)
                                        #:timeout-ms timeout-ms))
       (refactor-visited-forms
