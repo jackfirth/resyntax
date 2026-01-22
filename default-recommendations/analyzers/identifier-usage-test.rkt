@@ -390,3 +390,19 @@ analysis-test: "disappeared use of macro"
 @inspect - m
 @property usage-count
 @assert 1
+
+
+analysis-test: "custom macro with disappeared use"
+--------------------
+(require (for-syntax racket/base))
+(define x 42)
+(define-syntax (use-x stx)
+  (syntax-case stx ()
+    [(_ body)
+     (syntax-property #'body 'disappeared-use (list #'x))]))
+(use-x (void))
+--------------------
+@within - (define x 42)
+@inspect - x
+@property usage-count
+@assert 1

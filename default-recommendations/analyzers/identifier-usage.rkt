@@ -58,6 +58,27 @@
   (extract-ids origin))
 
 
+;; Extract identifiers from the 'disappeared-use syntax property
+;; The 'disappeared-use property can be either:
+;; - A single identifier
+;; - A list of identifiers
+;; We extract all identifiers and label them with the given phase
+(define (disappeared-use-property-identifiers stx phase)
+  (define disappeared (syntax-property stx 'disappeared-use))
+  
+  (define (extract-ids obj)
+    (cond
+      [(not obj) (stream)]
+      [(identifier? obj)
+       ;; Add the phase property to the identifier so it matches correctly
+       (stream (syntax-property obj 'phase phase))]
+      [(list? obj)
+       (apply stream-append (map extract-ids obj))]
+      [else (stream)]))
+  
+  (extract-ids disappeared))
+
+
 ;; Find all identifier usage sites (not binding sites)
 (define (usage-site-identifiers expanded-stx)
   (let loop ([expanded-stx expanded-stx] [phase 0])
@@ -69,6 +90,12 @@
       (apply stream-append
              (for/list ([stx-node (in-stream (syntax-search-everything expanded-stx))])
                (origin-property-identifiers stx-node phase))))
+    
+    ;; Collect identifiers from disappeared-use properties of all syntax objects
+    (define disappeared-ids
+      (apply stream-append
+             (for/list ([stx-node (in-stream (syntax-search-everything expanded-stx))])
+               (disappeared-use-property-identifiers stx-node phase))))
     
     ;; Collect identifiers from the expanded syntax tree
     (define expanded-ids
@@ -126,7 +153,7 @@
          #:when (identifier? this-syntax)
          (stream (attribute id))]))
     
-    (stream-append origin-ids expanded-ids)))
+    (stream-append origin-ids disappeared-ids expanded-ids)))
 
 
 (define (fully-expanded-syntax-binding-table stx)
