@@ -4,9 +4,13 @@
 @(require (for-label racket/base
                      racket/contract/base
                      racket/path
+                     racket/sequence
+                     racket/treelist
+                     rebellion/base/comparator
                      rebellion/base/immutable-string
                      rebellion/collection/range-set
                      resyntax/grimoire/source
+                     resyntax/grimoire/syntax-path
                      syntax/modread))
 
 
@@ -180,3 +184,171 @@ This applies to both modified and unmodified file sources.
  @racketmodname[syntax-color/module-lexer] API. @bold{Warning: the positions are zero-based}, unlike
  the one-based positions returned from @racket[syntax-position]. Additionally, positions are in terms
  of @emph{characters} and not @emph{bytes}.}
+
+
+@section{Syntax Paths}
+@defmodule[resyntax/grimoire/syntax-path]
+
+A @deftech{syntax path} identifies the location of a subform within a syntax object. Syntax paths
+are sequences of zero-based indices: the empty path refers to an entire syntax object, and a path
+whose first element is @racket[_i] refers to a location within the syntax object's @racket[_i]-th
+child. Syntax paths are similar in spirit to filesystem paths, and they print in a filesystem-like
+notation --- the path @racket[(syntax-path (list 1 2 3))] prints as
+@racketresultfont{#<syntax-path:/1/2/3>}. Resyntax uses syntax paths to refer to subforms of a
+program in a way that doesn't depend on source location information or syntax object identity.
+
+The children of a syntax object are determined by the shape of its datum:
+
+@itemlist[
+ @item{The children of a proper list are its elements, in order.}
+
+ @item{Improper lists are @emph{flattened}: the children are the flattened elements, with the
+  trailing atom counting as the final child. For example, @racket[#'(a b . c)] has three children,
+  and @racket[#'c] is the child at index @racket[2]. Dotted forms that flatten to proper lists, such
+  as @racket[#'(a . (b c))], have the same children as their proper equivalents.}
+
+ @item{The children of a vector are its elements, in order.}
+
+ @item{A box has a single child, its contents, at index @racket[0].}
+
+ @item{The children of a prefab struct are its fields, in order.}
+
+ @item{Hash datums @emph{cannot} be traversed by syntax paths. Operations that would need to
+  traverse a hash raise contract errors instead.}
+
+ @item{All other datums have no children.}]
+
+
+@subsection{Basic Syntax Path Operations}
+
+
+@defproc[(syntax-path? [v any/c]) boolean?]{
+ A predicate that recognizes @tech{syntax paths}.}
+
+
+@defproc[(empty-syntax-path? [v any/c]) boolean?]{
+ A predicate that recognizes the empty @tech{syntax path}. Implies @racket[syntax-path?].}
+
+
+@defproc[(nonempty-syntax-path? [v any/c]) boolean?]{
+ A predicate that recognizes nonempty @tech{syntax paths}. Implies @racket[syntax-path?].}
+
+
+@defthing[empty-syntax-path syntax-path?]{
+ The empty @tech{syntax path}, which refers to an entire syntax object rather than to any subform
+ within it.}
+
+
+@defproc[(syntax-path [elements (sequence/c exact-nonnegative-integer?)]) syntax-path?]{
+ Constructs a @tech{syntax path} from a sequence of zero-based child indices.}
+
+
+@defproc[(syntax-path-elements [path syntax-path?]) (treelist/c exact-nonnegative-integer?)]{
+ Returns the child indices that make up @racket[path], as a @tech[#:doc '(lib
+ "scribblings/reference/reference.scrbl")]{treelist}.}
+
+
+@defproc[(syntax-path-add [path syntax-path?] [element exact-nonnegative-integer?])
+         syntax-path?]{
+ Extends @racket[path] with one additional child index. The resulting path refers to the
+ @racket[element]-th child of the subform that @racket[path] refers to.}
+
+
+@defproc[(syntax-path-parent [path nonempty-syntax-path?]) syntax-path?]{
+ Returns the path to the form that encloses the subform @racket[path] refers to.}
+
+
+@defproc[(syntax-path-last-element [path nonempty-syntax-path?]) exact-nonnegative-integer?]{
+ Returns the final child index of @racket[path], which is the position of the subform that
+ @racket[path] refers to within its enclosing form.}
+
+
+@defproc[(syntax-path-next-neighbor [path syntax-path?]) (or/c syntax-path? #false)]{
+ Returns the path to the sibling immediately following @racket[path] within its enclosing form, or
+ @racket[#false] if @racket[path] is empty (the root of a syntax object has no siblings). Note that
+ this is pure path arithmetic: the returned path is not guaranteed to actually exist within any
+ particular syntax object.}
+
+
+@defproc[(syntax-path-neighbors? [leading-path syntax-path?] [trailing-path syntax-path?])
+         boolean?]{
+ Returns @racket[#true] if @racket[leading-path] and @racket[trailing-path] refer to immediately
+ adjacent siblings, meaning they share the same parent path and @racket[trailing-path]'s final
+ child index is one greater than @racket[leading-path]'s.}
+
+
+@defproc[(syntax-path-remove-prefix [path syntax-path?] [prefix syntax-path?]) syntax-path?]{
+ Returns @racket[path] with the leading elements of @racket[prefix] removed, producing a path
+ relative to the subform that @racket[prefix] refers to. Raises a contract error if @racket[path]
+ does not start with @racket[prefix].}
+
+
+@defthing[syntax-path<=> (comparator/c syntax-path?)]{
+ A comparator that orders @tech{syntax paths} lexicographically by their child indices. A path that
+ is a prefix of another path sorts before it, so ancestors precede their descendants and sorting a
+ collection of paths produces a depth-first preorder traversal.}
+
+
+@defproc[(syntax-path->string [path syntax-path?]) immutable-string?]{
+ Returns a string notation for @racket[path] in which each child index is preceded by a slash, like
+ a filesystem path. The empty path is rendered as @racket["/"].}
+
+
+@defproc[(string->syntax-path [str string?]) syntax-path?]{
+ Parses @racket[str] as a @tech{syntax path}. This is the inverse of @racket[syntax-path->string].
+ The string must start with a slash, must not end with a slash (except for the root path
+ @racket["/"]), and must contain only slash-separated nonnegative integers. Raises a contract error
+ otherwise.}
+
+
+@subsection{Operating on Syntax Objects with Syntax Paths}
+
+
+@defproc[(syntax-ref [stx syntax?] [path syntax-path?]) syntax?]{
+ Returns the subform of @racket[stx] that @racket[path] refers to. The empty path returns
+ @racket[stx] itself. Raises a contract error if @racket[path] is inconsistent with the shape of
+ @racket[stx].}
+
+
+@defproc[(syntax-contains-path? [stx syntax?] [path syntax-path?]) boolean?]{
+ Returns @racket[#true] if @racket[path] refers to a subform of @racket[stx], meaning
+ @racket[syntax-ref] would succeed.}
+
+
+@defproc[(syntax-set [stx syntax?] [path syntax-path?] [new-subform syntax?]) syntax?]{
+ Returns a copy of @racket[stx] in which the subform that @racket[path] refers to is replaced with
+ @racket[new-subform]. Passing the empty path returns @racket[new-subform] itself. The lexical
+ context, source locations, and syntax properties of the enclosing forms are preserved.}
+
+
+@defproc[(syntax-remove-splice [stx syntax?]
+                               [path nonempty-syntax-path?]
+                               [children-count exact-nonnegative-integer?])
+         syntax?]{
+ Returns a copy of @racket[stx] with @racket[children-count] consecutive children removed from the
+ form enclosing @racket[path], starting with the child that @racket[path] refers to. The enclosing
+ form must be a proper list. Removing zero children returns @racket[stx] unchanged.}
+
+
+@defproc[(syntax-insert-splice [stx syntax?]
+                               [path nonempty-syntax-path?]
+                               [new-children (sequence/c syntax?)])
+         syntax?]{
+ Returns a copy of @racket[stx] with each syntax object in @racket[new-children] inserted as
+ consecutive children of the form enclosing @racket[path], such that the first inserted child is
+ located at @racket[path]. Existing children at or after @racket[path] are shifted over. The
+ enclosing form must be a proper list. Inserting an empty sequence returns @racket[stx] unchanged.}
+
+
+@defproc[(syntax-label-paths [stx syntax?] [property-name symbol?]) syntax?]{
+ Returns a copy of @racket[stx] in which every subform, including @racket[stx] itself, has a
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{syntax property} named
+ @racket[property-name] whose value is that subform's @tech{syntax path} within @racket[stx].
+ Subforms of hash datums are not labeled, as syntax paths cannot refer to them.}
+
+
+@defproc[(in-syntax-paths [stx syntax?] [#:base-path base-path syntax-path? empty-syntax-path])
+         (sequence/c syntax-path?)]{
+ Returns a sequence of the @tech{syntax paths} of every subform in @racket[stx], in depth-first
+ preorder. Each returned path is prefixed with @racket[base-path], so the first path in the
+ sequence is always @racket[base-path] itself, referring to @racket[stx].}
