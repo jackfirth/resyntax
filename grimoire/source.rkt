@@ -50,6 +50,7 @@
 
 (module+ test
   (require (submod "..")
+           racket/file
            rackunit))
 
 
@@ -103,11 +104,23 @@
   (string->immutable-string (with-input-from-source code port->string)))
 
 
+;; Parameterizes the current directory to the source's parent directory (for file-based sources)
+;; while calling proc, so that reading and expanding sources can resolve relative module paths
+;; regardless of what the current directory was beforehand.
+(define (call-with-source-directory code proc)
+  (define dir (source-directory code))
+  (if dir
+      (parameterize ([current-directory dir])
+        (proc))
+      (proc)))
+
+
 (define (source-read-syntax code)
   (define (read-from-input)
     (port-count-lines! (current-input-port))
     (with-module-reading-parameterization read-syntax))
-  (syntax-label-original-paths (with-input-from-source code read-from-input)))
+  (syntax-label-original-paths
+   (call-with-source-directory code (λ () (with-input-from-source code read-from-input)))))
 
 
 (define (source-read-language code)
@@ -120,7 +133,8 @@
            (parameterize ([current-reader-guard escape])
              (read-syntax))
            #false)))))
-  (define detected-lang (with-input-from-source code read-lang-from-input))
+  (define detected-lang
+    (call-with-source-directory code (λ () (with-input-from-source code read-lang-from-input))))
   (match detected-lang
     [(list 'submod path 'reader) path]
     [_ #false]))
@@ -149,11 +163,26 @@
     (define valid-mod (modified-source orig "#lang racket/base\n(define foo 43)"))
     (define invalid-mod (modified-source orig "#lang racket/base\n(if)"))
     (check-true (source-can-expand? valid-mod))
-    (check-false (source-can-expand? invalid-mod))))
+    (check-false (source-can-expand? invalid-mod)))
+
+  (test-case "source-expand parameterizes the current directory for file sources"
+    ;; Expanding a file source with a relative import should succeed no matter what the current
+    ;; directory is.
+    (define dir (make-temporary-directory))
+    (display-to-file "#lang racket/base\n(provide x)\n(define x 42)\n" (build-path dir "helper.rkt"))
+    (define program-path (build-path dir "program.rkt"))
+    (display-to-file "#lang racket/base\n(require \"helper.rkt\")\nx\n" program-path)
+    (define program-file-source (file-source program-path))
+    (define program-modified-source
+      (modified-source program-file-source "#lang racket/base\n(require \"helper.rkt\")\n(void x)\n"))
+    (parameterize ([current-directory (find-system-path 'temp-dir)])
+      (check-true (source-can-expand? program-file-source))
+      (check-true (source-can-expand? program-modified-source)))
+    (delete-directory/files dir)))
 
 
 (define (source-expand code)
-  (expand (source-read-syntax code)))
+  (call-with-source-directory code (λ () (expand (source-read-syntax code)))))
 
 
 (define (source-can-expand? code)
