@@ -94,7 +94,7 @@
 
 (define (refactoring-result->github-review-comment result)
   (define path
-    (file-source-path (syntax-replacement-source (refactoring-result-syntax-replacement result))))
+    (source-path (syntax-replacement-source (refactoring-result-syntax-replacement result))))
   (define replacement (refactoring-result-line-replacement result))
   (define body
     (format #<<EOS

@@ -301,7 +301,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
       [(== plain-text)
        (for ([result (in-list results)])
          (define path
-           (file-source-path
+           (source-path
             (syntax-replacement-source (refactoring-result-syntax-replacement result))))
          (define line (refactoring-result-original-line result))
          (define column (refactoring-result-original-column result))

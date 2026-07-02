@@ -21,14 +21,10 @@
   [source-comment-locations (-> source? immutable-range-set?)]
   [file-source? (-> any/c boolean?)]
   [file-source (-> path-string? file-source?)]
-  [file-source-path (-> file-source? path?)]
   [string-source? (-> any/c boolean?)]
   [string-source (-> string? string-source?)]
-  [string-source-contents (-> string-source? immutable-string?)]
   [modified-source? (-> any/c boolean?)]
   [modified-source (-> unmodified-source? string? modified-source?)]
-  [modified-source-contents (-> modified-source? immutable-string?)]
-  [modified-source-original (-> modified-source? unmodified-source?)]
   [with-input-from-source (-> source? (-> any) any)]))
 
 

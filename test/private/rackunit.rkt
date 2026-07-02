@@ -197,7 +197,7 @@
                      ['exception e])
                   (fail-check "an error occurred while processing refactoring results")))])
           (call-with-logs-captured
-           (λ () (modified-source-contents (refactoring-result-set-updated-source result-set))))))
+           (λ () (source->string (refactoring-result-set-updated-source result-set))))))
       (with-check-info (['logs (build-logs-info)]
                         ['actual (string-block-info refactored-program)]
                         ['expected (string-block-info (code-block-raw-string expected-program))])
@@ -235,7 +235,7 @@
                          #:suite suite
                          #:timeout-ms (current-analyzer-timeout-millis)))))
   (define refactored-program
-    (modified-source-contents (refactoring-result-set-updated-source result-set)))
+    (source->string (refactoring-result-set-updated-source result-set)))
   (with-check-info* (make-matched-rules-check-info result-set)
     (λ ()
       (with-check-info (['logs (build-logs-info)]
@@ -283,16 +283,16 @@
 
   (unless target-path
     (with-check-info (['logs (build-logs-info)]
-                      ['program (string-block-info (string-source-contents program-src))]
-                      ['target (string-block-info (string-source-contents target-src))])
+                      ['program (string-block-info (source->string program-src))]
+                      ['target (string-block-info (source->string target-src))])
       (fail-check "could not locate target subform within the given program")))
 
   (define (fail-property-lookup)
     (define target-properties
       (syntax-property-bundle-get-immediate-properties actual-props target-path))
     (with-check-info (['logs (build-logs-info)]
-                      ['program (string-block-info (string-source-contents program-src))]
-                      ['target (string-block-info (string-source-contents target-src))]
+                      ['program (string-block-info (source->string program-src))]
+                      ['target (string-block-info (source->string target-src))]
                       ['target-path target-path]
                       ['target-properties target-properties]
                       ['property-key property-key])
@@ -303,8 +303,8 @@
 
   (unless (equal? actual-value expected-value)
     (with-check-info (['logs (build-logs-info)]
-                      ['program (string-block-info (string-source-contents program-src))]
-                      ['target (string-block-info (string-source-contents target-src))]
+                      ['program (string-block-info (source->string program-src))]
+                      ['target (string-block-info (source->string target-src))]
                       ['target-path target-path]
                       ['property-key property-key]
                       ['actual actual-value]
@@ -314,7 +314,7 @@
 
 (define (source-find-path-of src target-src #:contexts [context-srcs '()])
   (define stx (syntax-label-paths (source-read-syntax src) 'source-path))
-  (define target-as-string (string-source-contents target-src))
+  (define target-as-string (source->string target-src))
 
   (define target-stx
     (let loop ([stx stx] [context-srcs context-srcs])
@@ -323,7 +323,7 @@
          (syntax-find-first stx subform
             #:when (equal? (source-text-of src (attribute subform)) target-as-string))]
         [(cons next-context remaining-contexts)
-         (define next-as-string (string-source-contents next-context))
+         (define next-as-string (source->string next-context))
          (define substx
            (syntax-find-first stx subform
              #:when (equal? (source-text-of src (attribute subform)) next-as-string)))
