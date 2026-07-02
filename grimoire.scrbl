@@ -190,9 +190,9 @@ This applies to both modified and unmodified file sources.
 @defmodule[resyntax/grimoire/syntax-path]
 
 A @deftech{syntax path} identifies the location of a subform within a syntax object. Syntax paths
-are sequences of zero-based indices: the empty path refers to an entire syntax object, and a path
-whose first element is @racket[_i] refers to a location within the syntax object's @racket[_i]-th
-child. Syntax paths are similar in spirit to filesystem paths, and they print in a filesystem-like
+are sequences of zero-based indices: the @emph{root} path, which contains no indices, refers to an
+entire syntax object, and a path whose first element is @racket[_i] refers to a location within the
+syntax object's @racket[_i]-th child. Syntax paths are similar in spirit to filesystem paths, and they print in a filesystem-like
 notation --- the path @racket[(syntax-path (list 1 2 3))] prints as
 @racketresultfont{#<syntax-path:/1/2/3>}. Resyntax uses syntax paths to refer to subforms of a
 program in a way that doesn't depend on source location information or syntax object identity.
@@ -226,17 +226,18 @@ The children of a syntax object are determined by the shape of its datum:
  A predicate that recognizes @tech{syntax paths}.}
 
 
-@defproc[(empty-syntax-path? [v any/c]) boolean?]{
- A predicate that recognizes the empty @tech{syntax path}. Implies @racket[syntax-path?].}
+@defproc[(root-syntax-path? [v any/c]) boolean?]{
+ A predicate that recognizes the root @tech{syntax path}. Implies @racket[syntax-path?].}
 
 
-@defproc[(nonempty-syntax-path? [v any/c]) boolean?]{
- A predicate that recognizes nonempty @tech{syntax paths}. Implies @racket[syntax-path?].}
+@defproc[(child-syntax-path? [v any/c]) boolean?]{
+ A predicate that recognizes @tech{syntax paths} that refer to a child of some enclosing form ---
+ that is, any path except the root. Implies @racket[syntax-path?].}
 
 
-@defthing[empty-syntax-path syntax-path?]{
- The empty @tech{syntax path}, which refers to an entire syntax object rather than to any subform
- within it.}
+@defthing[root-syntax-path syntax-path?]{
+ The root @tech{syntax path}, which contains no indices and refers to an entire syntax object
+ rather than to any subform within it.}
 
 
 @defproc[(syntax-path [elements (sequence/c exact-nonnegative-integer?)]) syntax-path?]{
@@ -254,18 +255,19 @@ The children of a syntax object are determined by the shape of its datum:
  @racket[element]-th child of the subform that @racket[path] refers to.}
 
 
-@defproc[(syntax-path-parent [path nonempty-syntax-path?]) syntax-path?]{
+@defproc[(syntax-path-parent [path child-syntax-path?]) syntax-path?]{
  Returns the path to the form that encloses the subform @racket[path] refers to.}
 
 
-@defproc[(syntax-path-last-element [path nonempty-syntax-path?]) exact-nonnegative-integer?]{
+@defproc[(syntax-path-last-element [path child-syntax-path?]) exact-nonnegative-integer?]{
  Returns the final child index of @racket[path], which is the position of the subform that
  @racket[path] refers to within its enclosing form.}
 
 
 @defproc[(syntax-path-next-neighbor [path syntax-path?]) (or/c syntax-path? #false)]{
  Returns the path to the sibling immediately following @racket[path] within its enclosing form, or
- @racket[#false] if @racket[path] is empty (the root of a syntax object has no siblings). Note that
+ @racket[#false] if @racket[path] is the root path (the root of a syntax object has no siblings).
+ Note that
  this is pure path arithmetic: the returned path is not guaranteed to actually exist within any
  particular syntax object.}
 
@@ -291,7 +293,7 @@ The children of a syntax object are determined by the shape of its datum:
 
 @defproc[(syntax-path->string [path syntax-path?]) immutable-string?]{
  Returns a string notation for @racket[path] in which each child index is preceded by a slash, like
- a filesystem path. The empty path is rendered as @racket["/"].}
+ a filesystem path. The root path is rendered as @racket["/"].}
 
 
 @defproc[(string->syntax-path [str string?]) syntax-path?]{
@@ -305,7 +307,7 @@ The children of a syntax object are determined by the shape of its datum:
 
 
 @defproc[(syntax-ref [stx syntax?] [path syntax-path?]) syntax?]{
- Returns the subform of @racket[stx] that @racket[path] refers to. The empty path returns
+ Returns the subform of @racket[stx] that @racket[path] refers to. The root path returns
  @racket[stx] itself. Raises a contract error if @racket[path] is inconsistent with the shape of
  @racket[stx].}
 
@@ -317,12 +319,12 @@ The children of a syntax object are determined by the shape of its datum:
 
 @defproc[(syntax-set [stx syntax?] [path syntax-path?] [new-subform syntax?]) syntax?]{
  Returns a copy of @racket[stx] in which the subform that @racket[path] refers to is replaced with
- @racket[new-subform]. Passing the empty path returns @racket[new-subform] itself. The lexical
+ @racket[new-subform]. Passing the root path returns @racket[new-subform] itself. The lexical
  context, source locations, and syntax properties of the enclosing forms are preserved.}
 
 
 @defproc[(syntax-remove-splice [stx syntax?]
-                               [path nonempty-syntax-path?]
+                               [path child-syntax-path?]
                                [children-count exact-nonnegative-integer?])
          syntax?]{
  Returns a copy of @racket[stx] with @racket[children-count] consecutive children removed from the
@@ -331,7 +333,7 @@ The children of a syntax object are determined by the shape of its datum:
 
 
 @defproc[(syntax-insert-splice [stx syntax?]
-                               [path nonempty-syntax-path?]
+                               [path child-syntax-path?]
                                [new-children (sequence/c syntax?)])
          syntax?]{
  Returns a copy of @racket[stx] with each syntax object in @racket[new-children] inserted as
@@ -347,7 +349,7 @@ The children of a syntax object are determined by the shape of its datum:
  Subforms of hash datums are not labeled, as syntax paths cannot refer to them.}
 
 
-@defproc[(in-syntax-paths [stx syntax?] [#:base-path base-path syntax-path? empty-syntax-path])
+@defproc[(in-syntax-paths [stx syntax?] [#:base-path base-path syntax-path? root-syntax-path])
          (sequence/c syntax-path?)]{
  Returns a sequence of the @tech{syntax paths} of every subform in @racket[stx], in depth-first
  preorder. Each returned path is prefixed with @racket[base-path], so the first path in the
