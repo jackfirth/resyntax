@@ -34,8 +34,8 @@ In Resyntax, @deftech{source code} refers to @racket[source?] values, which come
 
  @item{@emph{Source strings}, constructed with @racket[string-source], which contain the source
   code directly as a string and don't exist anywhere on the local filesystem. (These are useful for
- testing Resyntax, and other scenarios where Resyntax needs to operate on code that doesn't exist on
- disk.)}
+  testing Resyntax, and other scenarios where Resyntax needs to operate on code that doesn't exist on
+  disk.)}
 
  @item{@emph{Modified sources}, constructed by passing another (unmodified) source to
   @racket[modified-source] along with a string representing what to replace the source's contents
@@ -192,10 +192,11 @@ This applies to both modified and unmodified file sources.
 A @deftech{syntax path} identifies the location of a subform within a syntax object. Syntax paths
 are sequences of zero-based indices: the @emph{root} path, which contains no indices, refers to an
 entire syntax object, and a path whose first element is @racket[_i] refers to a location within the
-syntax object's @racket[_i]-th child. Syntax paths are similar in spirit to filesystem paths, and they print in a filesystem-like
-notation --- the path @racket[(syntax-path (list 1 2 3))] prints as
+syntax object's @racket[_i]-th child. Syntax paths are similar in spirit to filesystem paths, and they
+print in a filesystem-like notation --- the path @racket[(syntax-path (list 1 2 3))] prints as
 @racketresultfont{#<syntax-path:/1/2/3>}. Resyntax uses syntax paths to refer to subforms of a
-program in a way that doesn't depend on source location information or syntax object identity.
+program in a way that doesn't depend on exact source locations or syntax object identity, and which is
+relatively stable when structure-preserving edits are made to source text.
 
 The children of a syntax object are determined by the shape of its datum:
 
@@ -215,9 +216,51 @@ The children of a syntax object are determined by the shape of its datum:
  @item{The children of a prefab struct are its fields, in order.}
 
  @item{Hash datums @emph{cannot} be traversed by syntax paths. Operations that would need to
-  traverse a hash raise contract errors instead.}
+  traverse a hash raise contract errors instead. More about this constraint is explained below.}
 
  @item{All other datums have no children.}]
+
+When Resyntax calls the Racket reader to turn @tech{source code} into unexpanded syntax objects using
+@racket[source-read-syntax], Resyntax recurisely labels each syntax object with its
+@deftech{original syntax path}. This label is attached to each syntax object via a
+@tech{syntax property} named @racket['original-syntax-path].
+
+As these syntax objects are expanded by the Racket macro expander and further manipulated by
+@tech{refactoring rules}, subforms get transformed and moved, but they preserve their original syntax
+properties. Resyntax then inspects these properties on the refactored syntax objects produced by rules
+in order to determine where each syntax object originated @emph{structurally}, in addition to
+inspecting source locations to determine where it originated @emph{textually}. Resyntax uses this
+information to determine when refactored code contains unchanged subexpressions whose text should be
+@emph{copied} from the input rather than reproduced wholesale and reformatted.
+
+Unchanged syntax objects have their original text copied by Resyntax, and if two unchanged syntax
+objects start and end adjacent to each other (and without swapping their order) then the original text
+between them is also copied. This allows Resyntax to minimize the amount of text that a refactoring
+has to change. However, in order for this process to work, Resyntax makes a few assumptions about the
+relationship between syntax paths and the source locations of reader-produced syntax objects. These
+assumptions are:
+
+@itemlist[
+ @item{If one syntax path is a prefix of another, then the source location of a syntax object
+  originally at the first path (the prefix path) should @emph{fully contain} the source location of a
+  syntax object originally at the second path. This need not be a @emph{proper subset} relation: it's
+  acceptable for the two syntax objects to have the exact same source location. That allowance doesn't
+  affect code written in @hash-lang[] @racketmodname[racket], but it matters for other languages which
+  sometimes use "invisible" wrappers around syntax objects to reflect grouping implied by how the text
+  was originally parsed by the language's reader.}
+
+ @item{If two syntax paths are disjoint, meaning neither is a prefix of the other, then the source
+  locations of two syntax objects originally at those paths should contain no overlap (but they may
+  be adjacent). Furthermore, the lesser syntax path (in the sense of @racket[syntax-path<=>]) should
+  correspond to the source location that occurs earlier in the source code (by character position).}]
+
+It is the second of these two requirements that prevents Resyntax from traversing literal hash datums.
+A hash datum such as @racket[#hash((a . 1) ("foo" . 2) ('b . 3))], when parsed by the Racket reader,
+@bold{does not preserve source ordering in the resulting hash datum's iteration order}. Two literal
+hash datums with the same keys will always iterate in the same order when inspected with
+@racket[syntax-e]. As a result, Resyntax cannot uphold the assumptions it makes about source locations
+and syntax paths, and cannot preserve text between adjacent hash entries correctly. For this reason,
+Resyntax does not allow editing expressions inside hash datums.
 
 
 @subsection{Basic Syntax Path Operations}
@@ -246,8 +289,8 @@ The children of a syntax object are determined by the shape of its datum:
 
 
 @defproc[(syntax-path-elements [path syntax-path?]) (treelist/c exact-nonnegative-integer?)]{
- Returns the child indices that make up @racket[path], as a @tech[#:doc '(lib
- "scribblings/reference/reference.scrbl")]{treelist}.}
+ Returns the child indices that make up @racket[path], as a
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{treelist}.}
 
 
 @defproc[(syntax-path-add [path syntax-path?] [element exact-nonnegative-integer?])
