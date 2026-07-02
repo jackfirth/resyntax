@@ -35,7 +35,7 @@ In Resyntax, @deftech{source code} refers to @racket[source?] values, which come
 
  @item{@emph{Modified sources}, constructed by passing another (unmodified) source to
   @racket[modified-source] along with a string representing what to replace the source's contents
-  with. A modified source contains both it's new updated contents and a reference to the original
+  with. A modified source contains both its new updated contents and a reference to the original
   source.}]
 
 Resyntax's basic architecture is to recursively take sources of any kind as input, produce
@@ -96,7 +96,7 @@ stack of dependent changes to commit in series without actually mutating the fil
  Constructs a modified source that replaces the contents of @racket[original] with
  @racket[new-contents]. This represents a whole-file replacement --- the @emph{complete} contents of
  @racket[original] are @emph{entirely} swapped out with @racket[new-contents]. Modified sources cannot
- represent partial edits on its own.}
+ represent partial edits on their own.}
 
 
 @defproc[(modified-source-contents [code modified-source?]) immutable-string?]{
@@ -184,7 +184,7 @@ This applies to both modified and unmodified file sources.
 
 
 @defproc[(source-can-expand? [code source?]) boolean?]{
- Attempts to fully expand @racket[code], then returns @racket[#true] if expansion finished without
+ Attempts to fully expand @racket[code], then returns @racket[#true] if expansion finished
  without raising an error and returns @racket[#false] otherwise.}
 
 

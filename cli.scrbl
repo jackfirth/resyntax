@@ -14,7 +14,7 @@ two commands: @exec{resyntax analyze} for analyzing code without changing it, an
 for fixing code by applying Resyntax's suggestions.
 
 Note that at present, Resyntax is limited in what files it can fix. Resyntax only analyzes files with
-the @exec{.rkt} extension where @tt{#lang racket/base} is the first line in file.
+the @exec{.rkt} extension where @tt{#lang racket/base} is the first line in the file.
 
 
 @section[#:tag "install"]{Installation}
@@ -47,9 +47,9 @@ number of times:
 
 @itemlist[
 
- @item{@exec{--file} @nonterm{file-path} --- A file to anaylze.}
+ @item{@exec{--file} @nonterm{file-path} --- A file to analyze.}
 
- @item{@exec{--directory} @nonterm{directory-path} --- A directory to anaylze, including
+ @item{@exec{--directory} @nonterm{directory-path} --- A directory to analyze, including
   subdirectories.}
 
  @item{@exec{--package} @nonterm{package-name} --- An installed package to analyze.}

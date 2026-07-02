@@ -75,7 +75,7 @@
 
    ("--directory"
     dirpath
-    "A directory to anaylze, including subdirectories."
+    "A directory to analyze, including subdirectories."
     (vector-builder-add targets (directory-file-group dirpath)))
 
    ("--package"
