@@ -200,12 +200,12 @@ program in a way that doesn't depend on source location information or syntax ob
 The children of a syntax object are determined by the shape of its datum:
 
 @itemlist[
- @item{The children of a proper list are its elements, in order.}
-
- @item{Improper lists are @emph{flattened}: the children are the flattened elements, with the
-  trailing atom counting as the final child. For example, @racket[#'(a b . c)] has three children,
-  and @racket[#'c] is the child at index @racket[2]. Dotted forms that flatten to proper lists, such
-  as @racket[#'(a . (b c))], have the same children as their proper equivalents.}
+ @item{The children of a pair-based form are the elements of its fully @emph{flattened} shape, in
+  order, with the trailing atom of an improper list counting as the final child. How the underlying
+  pairs and syntax objects nest has no effect on paths: @racket[#'(a b c)],
+  @racket[#'(a . (b . (c . ())))], @racket[#'(a . (b c))], @racket[#'(a b . c)], and
+  @racket[#'(a . (b . c))] all have three children, and in each case the child at index @racket[2]
+  is @racket[#'c].}
 
  @item{The children of a vector are its elements, in order.}
 
