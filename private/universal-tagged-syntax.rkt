@@ -178,4 +178,4 @@
     (define stx (source-read-syntax src))
     (define written-form (universal-tagged-syntax->string stx))
 
-    (check-equal? written-form (string-source-contents src))))
+    (check-equal? written-form (source->string src))))

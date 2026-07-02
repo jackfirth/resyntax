@@ -90,7 +90,7 @@
   (transduce (resyntax-analysis-all-results analysis)
              (append-mapping in-hash-values)
              (mapping refactoring-result-set-updated-source)
-             (indexing modified-source-original)
+             (indexing source-original)
              (grouping nonempty-into-last)
              (mapping entry-value)
              #:into into-list))
@@ -130,7 +130,7 @@
   (for ([source (in-list sources)]
         #:when (source-path source))
     (log-resyntax-info "fixing ~a" (source-path source))
-    (display-to-file (modified-source-contents source) (source-path source)
+    (display-to-file (source->string source) (source-path source)
                      #:mode 'text #:exists 'replace)))
 
 
@@ -465,7 +465,7 @@
     (transduce results
                (bisecting
                 (λ (result)
-                  (file-source-path
+                  (source-path
                    (syntax-replacement-source (refactoring-result-syntax-replacement result))))
                 refactoring-result-string-replacement)
                (grouping union-into-string-replacement)

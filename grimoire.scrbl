@@ -67,23 +67,12 @@ stack of dependent changes to commit in series without actually mutating the fil
  normalized with @racket[simple-form-path] upon construction.}
 
 
-@defproc[(file-source-path [code file-source?]) path?]{
- Returns the filesystem path that @racket[code] refers to.}
-
-
 @defproc[(string-source? [v any/c]) boolean?]{
  A predicate that recognizes source strings.}
 
 
 @defproc[(string-source [contents string?]) string-source?]{
  Constructs a source string containing @racket[contents] directly.}
-
-
-@defproc[(string-source-contents [code string-source?]) immutable-string?]{
- Returns the source code text contained within @racket[code]. Note that this is a distinct operation
- from @racket[source->string] --- the latter returns the current source code text of @emph{any} source
- code, which may involve reading files from disk. This operation, in contrast, cannot perform I/O
- because it only operates on an unmodified @racket[string-source?].}
 
 
 @defproc[(modified-source? [v any/c]) boolean?]{
@@ -97,15 +86,6 @@ stack of dependent changes to commit in series without actually mutating the fil
  @racket[new-contents]. This represents a whole-file replacement --- the @emph{complete} contents of
  @racket[original] are @emph{entirely} swapped out with @racket[new-contents]. Modified sources cannot
  represent partial edits on their own.}
-
-
-@defproc[(modified-source-contents [code modified-source?]) immutable-string?]{
- Returns the new, updated contents of @racket[code], ignoring whatever contents the original source
- of @racket[code] had.}
-
-
-@defproc[(modified-source-original [code modified-source?]) unmodified-source?]{
- Returns the original, unmodified source that @racket[code] was constructed from.}
 
 
 @defproc[(source-name [code source?]) (or/c path? symbol?)]{
