@@ -48,3 +48,4 @@ To see a list of suggestions that Resyntax would apply, use @exec{resyntax analy
 @include-section[(lib "resyntax/cli.scrbl")]
 @include-section[(lib "resyntax/refactoring-rules.scrbl")]
 @include-section[(lib "resyntax/testing.scrbl")]
+@include-section[(lib "resyntax/grimoire.scrbl")]
