@@ -44,7 +44,7 @@
          rebellion/type/record
          resyntax/private/linemap
          resyntax/private/logger
-         resyntax/private/source
+         resyntax/grimoire/source
          resyntax/private/string-indent
          resyntax/private/string-replacement
          resyntax/private/syntax-neighbors

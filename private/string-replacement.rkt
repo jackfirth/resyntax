@@ -75,7 +75,7 @@
          rebellion/streaming/transducer
          rebellion/type/record
          rebellion/type/tuple
-         resyntax/private/source)
+         resyntax/grimoire/source)
 
 
 (module+ test

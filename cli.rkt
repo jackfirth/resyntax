@@ -27,7 +27,7 @@
          resyntax/private/file-group
          resyntax/private/github
          resyntax/private/refactoring-result
-         resyntax/private/source
+         resyntax/grimoire/source
          resyntax/private/string-indent
          resyntax/private/syntax-replacement)
 
@@ -75,7 +75,7 @@
 
    ("--directory"
     dirpath
-    "A directory to anaylze, including subdirectories."
+    "A directory to analyze, including subdirectories."
     (vector-builder-add targets (directory-file-group dirpath)))
 
    ("--package"

@@ -40,7 +40,7 @@
          rebellion/streaming/transducer
          resyntax/private/git
          resyntax/private/logger
-         resyntax/private/source)
+         resyntax/grimoire/source)
 
 
 (module+ test

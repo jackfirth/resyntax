@@ -14,7 +14,7 @@
          racket/mutability
          racket/port
          racket/syntax-srcloc
-         resyntax/private/source)
+         resyntax/grimoire/source)
 
 
 (module+ test

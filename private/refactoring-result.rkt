@@ -52,7 +52,7 @@
          resyntax/private/line-replacement
          resyntax/private/linemap
          resyntax/private/logger
-         resyntax/private/source
+         resyntax/grimoire/source
          resyntax/private/string-replacement
          resyntax/private/syntax-replacement
          (only-in racket/list first))
