@@ -59,7 +59,7 @@
          resyntax/private/line-replacement
          resyntax/private/logger
          resyntax/private/refactoring-result
-         resyntax/private/source
+         resyntax/grimoire/source
          resyntax/private/string-indent
          resyntax/private/string-replacement
          resyntax/private/syntax-property-bundle

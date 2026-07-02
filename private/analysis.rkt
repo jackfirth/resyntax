@@ -44,7 +44,7 @@
          resyntax/private/analyzer
          resyntax/private/linemap
          resyntax/private/logger
-         resyntax/private/source
+         resyntax/grimoire/source
          resyntax/private/string-indent
          resyntax/private/syntax-movement
          resyntax/private/syntax-neighbors

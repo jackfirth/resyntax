@@ -25,7 +25,7 @@
          resyntax/private/line-replacement
          resyntax/private/refactoring-result
          resyntax/private/run-command
-         resyntax/private/source
+         resyntax/grimoire/source
          resyntax/private/string-indent
          resyntax/private/syntax-replacement)
 
