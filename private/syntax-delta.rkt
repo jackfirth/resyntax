@@ -21,7 +21,7 @@
          rebellion/collection/entry
          rebellion/collection/sorted-map
          rebellion/streaming/transducer
-         resyntax/private/syntax-path)
+         resyntax/grimoire/syntax-path)
 
 
 (module+ test

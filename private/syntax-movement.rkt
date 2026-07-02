@@ -17,7 +17,7 @@
          rebellion/collection/sorted-set
          rebellion/streaming/transducer
          resyntax/private/syntax-neighbors
-         resyntax/private/syntax-path
+         resyntax/grimoire/syntax-path
          resyntax/private/syntax-traversal
          syntax/parse)
 

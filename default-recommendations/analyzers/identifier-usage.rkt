@@ -15,7 +15,7 @@
          rebellion/streaming/transducer
          resyntax/default-recommendations/analyzers/private/expanded-id-table
          resyntax/private/analyzer
-         resyntax/private/syntax-path
+         resyntax/grimoire/syntax-path
          resyntax/private/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/id-table

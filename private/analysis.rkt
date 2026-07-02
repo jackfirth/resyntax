@@ -48,7 +48,7 @@
          resyntax/private/string-indent
          resyntax/private/syntax-movement
          resyntax/private/syntax-neighbors
-         resyntax/private/syntax-path
+         resyntax/grimoire/syntax-path
          resyntax/private/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/parse)
