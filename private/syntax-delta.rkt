@@ -101,7 +101,12 @@
         (match added
           [(new-syntax new-stx) new-stx]
           [(copied-syntax orig-path) (syntax-ref stx orig-path)])))
-    (syntax-insert-splice (syntax-remove-splice stx start children-count) start new-stxs)))
+    ;; Pure insertions skip the removal step: their start path may be one past the end of the
+    ;; enclosing form, which syntax-remove-splice rejects because it only accepts paths of children
+    ;; that actually exist.
+    (define stx-with-removals
+      (if (zero? children-count) stx (syntax-remove-splice stx start children-count)))
+    (syntax-insert-splice stx-with-removals start new-stxs)))
 
 
 

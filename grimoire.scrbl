@@ -419,4 +419,4 @@ Resyntax does not allow editing expressions inside hash datums.
  preorder. Each returned path is prefixed with @racket[base-path], so the first path in the
  sequence is always @racket[base-path] itself. The @racket[base-path] argument is useful when
  @racket[stx] is itself a subform of some larger syntax object, such as the root syntax object for the
- entire source file that @racket[stx] originates from.
+ entire source file that @racket[stx] originates from.}

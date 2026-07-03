@@ -877,6 +877,11 @@
 
 
 (define/guard (syntax-remove-splice stx path children-count)
+  (unless (syntax-contains-path? stx path)
+    (raise-arguments-error 'syntax-remove-splice
+                           "syntax path does not exist within the given syntax object"
+                           "syntax" stx
+                           "path" path))
   (guard (positive? children-count) #:else stx)
   (define parent (syntax-ref stx (syntax-path-parent path)))
   (define updated
