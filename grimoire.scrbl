@@ -209,7 +209,7 @@ The children of a syntax object are determined by the shape of its datum:
   proper list obtained by treating the trailing atom of an improper list, if any, as a final
   element. Only the form's own pair structure is normalized --- nested forms remain distinct
   children --- but how the underlying pairs and syntax objects nest has no effect on paths:
-  @racket[#'(a b c)], @racket[#'(a . (b . (c . ())))], @racket[#'(a . (b c))], @racket[#'(a b . c)],
+  @tt{#'(a b c)}, @tt{#'(a . (b . (c . ())))}, @tt{#'(a . (b c))}, @tt{#'(a b . c)},
   and @racket[#'(a . (b . c))] all have three children, and in each case the child at index
   @racket[2] is @racket[#'c].}
 
