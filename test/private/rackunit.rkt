@@ -41,7 +41,7 @@
          resyntax/grimoire/source
          resyntax/private/string-indent
          resyntax/private/string-replacement
-         resyntax/private/syntax-path
+         resyntax/grimoire/syntax-path
          resyntax/private/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/modread

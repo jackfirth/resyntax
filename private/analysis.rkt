@@ -48,7 +48,7 @@
          resyntax/private/string-indent
          resyntax/private/syntax-movement
          resyntax/private/syntax-neighbors
-         resyntax/private/syntax-path
+         resyntax/grimoire/syntax-path
          resyntax/private/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/parse)
@@ -333,7 +333,7 @@
        (λ (expanded)
          (syntax-property-bundle
           ;; Valid path - the root
-          (syntax-property-entry empty-syntax-path 'valid-prop #true)
+          (syntax-property-entry root-syntax-path 'valid-prop #true)
           ;; Invalid path - way out of bounds
           (syntax-property-entry (syntax-path (list 999)) 'invalid-prop #true)
           ;; Another invalid path
@@ -350,7 +350,7 @@
     (check-true (syntax-property-bundle? props))
     
     ;; The valid property at the root should be present
-    (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+    (define root-props (syntax-property-bundle-get-immediate-properties props root-syntax-path))
     (check-equal? (hash-ref root-props 'valid-prop #false) #true)
     
     ;; The invalid properties should NOT be present
@@ -370,7 +370,7 @@
          ;; Sleep for 200ms - longer than a 100ms timeout
          (sleep 0.2)
          (syntax-property-bundle
-          (syntax-property-entry empty-syntax-path 'slow-prop #true)))))
+          (syntax-property-entry root-syntax-path 'slow-prop #true)))))
     
     ;; Run analysis with the slow analyzer and a short timeout - should timeout and not crash
     (define analysis (source-analyze test-source #:analyzers (list slow-analyzer) #:timeout-ms 100))
@@ -381,7 +381,7 @@
     ;; Check that no properties were added from the timed-out analyzer
     (define props (source-code-analysis-added-syntax-properties analysis))
     (check-true (syntax-property-bundle? props))
-    (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+    (define root-props (syntax-property-bundle-get-immediate-properties props root-syntax-path))
     ;; The slow-prop should NOT be present since the analyzer timed out
     (check-false (hash-has-key? root-props 'slow-prop)))
   
@@ -395,7 +395,7 @@
        (λ (expanded)
          ;; This should complete quickly, well within the timeout
          (syntax-property-bundle
-          (syntax-property-entry empty-syntax-path 'fast-prop #true)))))
+          (syntax-property-entry root-syntax-path 'fast-prop #true)))))
     
     ;; Run analysis with the fast analyzer - should complete successfully
     (define analysis (source-analyze test-source #:analyzers (list fast-analyzer) #:timeout-ms 10000))
@@ -406,7 +406,7 @@
     ;; Check that properties were added from the successful analyzer
     (define props (source-code-analysis-added-syntax-properties analysis))
     (check-true (syntax-property-bundle? props))
-    (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+    (define root-props (syntax-property-bundle-get-immediate-properties props root-syntax-path))
     ;; The fast-prop should be present since the analyzer completed successfully
     (check-equal? (hash-ref root-props 'fast-prop #false) #true))
   

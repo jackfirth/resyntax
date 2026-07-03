@@ -17,7 +17,7 @@
          rebellion/collection/sorted-set
          rebellion/streaming/transducer
          resyntax/private/syntax-neighbors
-         resyntax/private/syntax-path
+         resyntax/grimoire/syntax-path
          resyntax/private/syntax-traversal
          syntax/parse)
 
@@ -70,8 +70,8 @@
        #:key-comparator syntax-path<=>
        
        ; (module ...)
-       empty-syntax-path
-       (sorted-set empty-syntax-path (syntax-path (list 3)) #:comparator syntax-path<=>)
+       root-syntax-path
+       (sorted-set root-syntax-path (syntax-path (list 3)) #:comparator syntax-path<=>)
 
        ; module
        (syntax-path (list 0))

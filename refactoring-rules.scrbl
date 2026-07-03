@@ -178,7 +178,7 @@ refactoring rules.
     (void)))}
 
 
-@section{Exercising Fine Control Over Comments}
+@section[#:tag "comment-preservation"]{Exercising Fine Control Over Comments}
 
 
 Writing a rule with @racket[define-refactoring-rule] is usually enough for Resyntax to handle
@@ -248,6 +248,8 @@ Based on this observation, Resyntax decides to preserve whatever text was origin
 @racket[(foo ...)] and the nested @racket[or] expression. This mechanism, exposed via
 @racket[~replacement] and @racket[~splicing-replacement], offers a means for refactoring rules to
 guide Resyntax's internal comment preservation system when the default behavior is not sufficient.
+For an explanation of how that system works under the hood, see @secref["original-syntax-paths"] in
+The Resyntax Grimoire.
 
 @defform[#:kind "template metafunction"
          (~replacement replacement-form original)

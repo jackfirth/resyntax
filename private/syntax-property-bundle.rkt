@@ -37,7 +37,7 @@
          rebellion/collection/sorted-map
          rebellion/streaming/reducer
          rebellion/streaming/transducer
-         resyntax/private/syntax-path)
+         resyntax/grimoire/syntax-path)
 
 
 (module+ test
@@ -204,7 +204,7 @@
 
 
 (define/guard (syntax-property-bundle-get-all-properties prop-bundle path)
-  (guard (nonempty-syntax-path? path) #:else prop-bundle)
+  (guard (child-syntax-path? path) #:else prop-bundle)
   (define next-neighbor (syntax-path-next-neighbor path))
   (define path-range
     (if next-neighbor
@@ -246,7 +246,7 @@
   (syntax-set stx path new-subform))
 
 
-(define (syntax-immediate-properties stx #:base-path [base-path empty-syntax-path])
+(define (syntax-immediate-properties stx #:base-path [base-path root-syntax-path])
   (define keys (syntax-property-symbol-keys stx))
   (transduce keys
              (mapping (λ (key)
@@ -255,7 +255,7 @@
              #:into into-syntax-property-bundle))
 
 
-(define (syntax-all-properties stx #:base-path [base-path empty-syntax-path])
+(define (syntax-all-properties stx #:base-path [base-path root-syntax-path])
   (transduce (in-syntax-paths stx #:base-path base-path)
              (append-mapping
               (λ (path)
@@ -272,7 +272,7 @@
     (define stx #'(a (b c) d))
     (define props
       (syntax-property-bundle
-       (syntax-property-entry empty-syntax-path 'size 3)
+       (syntax-property-entry root-syntax-path 'size 3)
        (syntax-property-entry (syntax-path (list 0)) 'headphone-shaped? #false)
        (syntax-property-entry (syntax-path (list 1)) 'size 2)
        (syntax-property-entry (syntax-path (list 1 0)) 'headphone-shaped? #true)
@@ -298,14 +298,14 @@
       (define stx #'(a b c))
       (define props (syntax-immediate-properties stx))
       (check-true (syntax-property-bundle? props))
-      (check-equal? (syntax-property-bundle-get-immediate-properties props empty-syntax-path)
+      (check-equal? (syntax-property-bundle-get-immediate-properties props root-syntax-path)
                     (hash)))
 
     (test-case "syntax with single property"
       (define stx (syntax-property #'(a b c) 'foo 42))
       (define props (syntax-immediate-properties stx))
       (check-true (syntax-property-bundle? props))
-      (define immediate (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (define immediate (syntax-property-bundle-get-immediate-properties props root-syntax-path))
       (check-equal? (hash-ref immediate 'foo) 42))
 
     (test-case "syntax with multiple properties"
@@ -317,7 +317,7 @@
          'baz "hello"))
       (define props (syntax-immediate-properties stx))
       (check-true (syntax-property-bundle? props))
-      (define immediate (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (define immediate (syntax-property-bundle-get-immediate-properties props root-syntax-path))
       (check-equal? (hash-ref immediate 'foo) 42)
       (check-equal? (hash-ref immediate 'bar) #true)
       (check-equal? (hash-ref immediate 'baz) "hello"))
@@ -329,7 +329,7 @@
          (datum->syntax #f (list inner-stx #'y) #f)
          'outer-prop 456))
       (define props (syntax-immediate-properties outer-stx))
-      (define immediate (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (define immediate (syntax-property-bundle-get-immediate-properties props root-syntax-path))
       (check-equal? (hash-ref immediate 'outer-prop #false) 456)
       (check-equal? (hash-ref immediate 'inner-prop #false) #false))))
 
@@ -347,7 +347,7 @@
       (define stx (syntax-property #'(a b c) 'root-prop 42))
       (define props (syntax-all-properties stx))
       (check-true (syntax-property-bundle? props))
-      (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (define root-props (syntax-property-bundle-get-immediate-properties props root-syntax-path))
       (check-equal? (hash-ref root-props 'root-prop) 42))
 
     (test-case "syntax with properties on multiple subforms"
@@ -359,7 +359,7 @@
       (define props (syntax-all-properties stx-with-root))
       (check-true (syntax-property-bundle? props))
       
-      (define root-props (syntax-property-bundle-get-immediate-properties props empty-syntax-path))
+      (define root-props (syntax-property-bundle-get-immediate-properties props root-syntax-path))
       (check-equal? (hash-ref root-props 'root-prop) 0)
       
       (define a-props (syntax-property-bundle-get-immediate-properties props (syntax-path (list 0))))

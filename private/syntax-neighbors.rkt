@@ -27,7 +27,7 @@
          racket/struct
          racket/syntax-srcloc
          resyntax/private/logger
-         resyntax/private/syntax-path
+         resyntax/grimoire/syntax-path
          syntax/parse
          syntax/parse/experimental/template)
 

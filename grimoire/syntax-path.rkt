@@ -8,14 +8,14 @@
  (contract-out
   [syntax-path? (-> any/c boolean?)]
   [syntax-path<=> (comparator/c syntax-path?)]
-  [empty-syntax-path? (-> any/c boolean?)]
-  [nonempty-syntax-path? (-> any/c boolean?)]
-  [empty-syntax-path syntax-path?]
+  [root-syntax-path? (-> any/c boolean?)]
+  [child-syntax-path? (-> any/c boolean?)]
+  [root-syntax-path syntax-path?]
   [syntax-path (-> (sequence/c exact-nonnegative-integer?) syntax-path?)]
   [syntax-path-elements (-> syntax-path? (treelist/c exact-nonnegative-integer?))]
-  [syntax-path-parent (-> nonempty-syntax-path? syntax-path?)]
+  [syntax-path-parent (-> child-syntax-path? syntax-path?)]
   [syntax-path-next-neighbor (-> syntax-path? (or/c syntax-path? #false))]
-  [syntax-path-last-element (-> nonempty-syntax-path? exact-nonnegative-integer?)]
+  [syntax-path-last-element (-> child-syntax-path? exact-nonnegative-integer?)]
   [syntax-path-add (-> syntax-path? exact-nonnegative-integer? syntax-path?)]
   [syntax-path-remove-prefix (-> syntax-path? syntax-path? syntax-path?)]
   [syntax-path-neighbors? (-> syntax-path? syntax-path? boolean?)]
@@ -24,8 +24,8 @@
   [syntax-ref (-> syntax? syntax-path? syntax?)]
   [syntax-contains-path? (-> syntax? syntax-path? boolean?)]
   [syntax-set (-> syntax? syntax-path? syntax? syntax?)]
-  [syntax-remove-splice (-> syntax? nonempty-syntax-path? exact-nonnegative-integer? syntax?)]
-  [syntax-insert-splice (-> syntax? nonempty-syntax-path? (sequence/c syntax?) syntax?)]
+  [syntax-remove-splice (-> syntax? child-syntax-path? exact-nonnegative-integer? syntax?)]
+  [syntax-insert-splice (-> syntax? child-syntax-path? (sequence/c syntax?) syntax?)]
   [syntax-label-paths (-> syntax? symbol? syntax?)]
   [in-syntax-paths (->* (syntax?) (#:base-path syntax-path?) (sequence/c syntax-path?))]))
 
@@ -73,16 +73,16 @@
      (write-string ">" out))])
 
 
-(define empty-syntax-path (syntax-path (treelist)))
+(define root-syntax-path (syntax-path (treelist)))
 
 
 (module+ test
   (test-case "syntax-path custom printing"
     
-    (test-case "empty path prints as #<syntax-path:/>"
-      (check-equal? (~a empty-syntax-path) "#<syntax-path:/>")
-      (check-equal? (~v empty-syntax-path) "#<syntax-path:/>")
-      (check-equal? (~s empty-syntax-path) "#<syntax-path:/>"))
+    (test-case "root path prints as #<syntax-path:/>"
+      (check-equal? (~a root-syntax-path) "#<syntax-path:/>")
+      (check-equal? (~v root-syntax-path) "#<syntax-path:/>")
+      (check-equal? (~s root-syntax-path) "#<syntax-path:/>"))
     
     (test-case "single element path prints compactly"
       (define path (syntax-path (list 0)))
@@ -99,26 +99,26 @@
       (check-equal? (~a path) "#<syntax-path:/42/99/1000>"))))
 
 
-(define (empty-syntax-path? v)
+(define (root-syntax-path? v)
   (and (syntax-path? v) (treelist-empty? (syntax-path-elements v))))
 
 
 (module+ test
-  (test-case "empty-syntax-path?"
-    (check-true (empty-syntax-path? empty-syntax-path))
-    (check-false (empty-syntax-path? (syntax-path (list 0))))
-    (check-false (empty-syntax-path? 42))))
+  (test-case "root-syntax-path?"
+    (check-true (root-syntax-path? root-syntax-path))
+    (check-false (root-syntax-path? (syntax-path (list 0))))
+    (check-false (root-syntax-path? 42))))
 
 
-(define (nonempty-syntax-path? v)
+(define (child-syntax-path? v)
   (and (syntax-path? v) (not (treelist-empty? (syntax-path-elements v)))))
 
 
 (module+ test
-  (test-case "nonempty-syntax-path?"
-    (check-false (nonempty-syntax-path? empty-syntax-path))
-    (check-true (nonempty-syntax-path? (syntax-path (list 0))))
-    (check-false (nonempty-syntax-path? 42))))
+  (test-case "child-syntax-path?"
+    (check-false (child-syntax-path? root-syntax-path))
+    (check-true (child-syntax-path? (syntax-path (list 0))))
+    (check-false (child-syntax-path? 42))))
 
 
 
@@ -130,7 +130,7 @@
 
 (module+ test
   (test-case "syntax-path-add"
-    (check-equal? (syntax-path-add empty-syntax-path 0) (syntax-path (list 0)))
+    (check-equal? (syntax-path-add root-syntax-path 0) (syntax-path (list 0)))
     (check-equal? (syntax-path-add (syntax-path (list 0)) 1)
                   (syntax-path (list 0 1)))))
 
@@ -141,11 +141,11 @@
 
 (module+ test
   (test-case "syntax-path-parent"
-    (check-equal? (syntax-path-parent (syntax-path (list 0))) empty-syntax-path)
+    (check-equal? (syntax-path-parent (syntax-path (list 0))) root-syntax-path)
     (check-equal? (syntax-path-parent (syntax-path (list 0 1)))
                   (syntax-path (list 0)))
-    (check-exn exn:fail:contract? (λ () (syntax-path-parent empty-syntax-path)))
-    (check-exn #rx"expected: nonempty-syntax-path?" (λ () (syntax-path-parent empty-syntax-path)))))
+    (check-exn exn:fail:contract? (λ () (syntax-path-parent root-syntax-path)))
+    (check-exn #rx"expected: child-syntax-path?" (λ () (syntax-path-parent root-syntax-path)))))
 
 
 (define/guard (syntax-path-next-neighbor path)
@@ -159,8 +159,8 @@
 (module+ test
   (test-case "syntax-path-next-neighbor"
 
-    (test-case "empty path"
-      (check-false (syntax-path-next-neighbor empty-syntax-path)))
+    (test-case "root path"
+      (check-false (syntax-path-next-neighbor root-syntax-path)))
 
     (test-case "first child"
       (define path (syntax-path (list 0)))
@@ -197,9 +197,9 @@
 (module+ test
   (test-case "syntax-path-remove-prefix"
 
-    (test-case "remove empty"
+    (test-case "remove root prefix"
       (define path (syntax-path (list 1 2 3)))
-      (check-equal? (syntax-path-remove-prefix path empty-syntax-path) path))
+      (check-equal? (syntax-path-remove-prefix path root-syntax-path) path))
 
     (test-case "remove one elem"
       (define path (syntax-path (list 1 2 3)))
@@ -223,14 +223,14 @@
     (check-equal? (syntax-path-last-element (syntax-path (list 0))) 0)
     (check-equal? (syntax-path-last-element (syntax-path (list 0 1)))
                   1)
-    (check-exn exn:fail:contract? (λ () (syntax-path-last-element empty-syntax-path)))
-    (check-exn #rx"expected: nonempty-syntax-path?"
-               (λ () (syntax-path-last-element empty-syntax-path)))))
+    (check-exn exn:fail:contract? (λ () (syntax-path-last-element root-syntax-path)))
+    (check-exn #rx"expected: child-syntax-path?"
+               (λ () (syntax-path-last-element root-syntax-path)))))
 
 
 (define (syntax-path-neighbors? leading-path trailing-path)
-  (and (nonempty-syntax-path? leading-path)
-       (nonempty-syntax-path? trailing-path)
+  (and (child-syntax-path? leading-path)
+       (child-syntax-path? trailing-path)
        (equal? (syntax-path-parent leading-path) (syntax-path-parent trailing-path))
        (syntax-path-element-neighbors?
         (syntax-path-last-element leading-path) (syntax-path-last-element trailing-path))))
@@ -253,8 +253,8 @@
 
 (module+ test
   (test-case "syntax-path->string"
-    (test-case "empty path"
-      (check-equal? (syntax-path->string empty-syntax-path) "/"))
+    (test-case "root path"
+      (check-equal? (syntax-path->string root-syntax-path) "/"))
     
     (test-case "single element"
       (check-equal? (syntax-path->string (syntax-path (list 0))) "/0"))
@@ -278,7 +278,7 @@
      "syntax path string must not end with / (except for root path)"
      "given" str))
   (cond
-    [(equal? str "/") empty-syntax-path]
+    [(equal? str "/") root-syntax-path]
     [else
      (define parts (string-split (substring str 1) "/"))
      (define numbers
@@ -298,8 +298,8 @@
 
 (module+ test
   (test-case "string->syntax-path"
-    (test-case "empty path"
-      (check-equal? (string->syntax-path "/") empty-syntax-path))
+    (test-case "root path"
+      (check-equal? (string->syntax-path "/") root-syntax-path))
     
     (test-case "single element"
       (check-equal? (string->syntax-path "/0") (syntax-path (list 0))))
@@ -371,9 +371,9 @@
 
 (module+ test
   (test-case "round-trip conversion"
-    (test-case "empty path"
-      (check-equal? (string->syntax-path (syntax-path->string empty-syntax-path))
-                    empty-syntax-path))
+    (test-case "root path"
+      (check-equal? (string->syntax-path (syntax-path->string root-syntax-path))
+                    root-syntax-path))
     
     (test-case "single element path"
       (define path (syntax-path (list 5)))
@@ -522,9 +522,9 @@
 (module+ test
   (test-case "syntax-ref"
 
-    (test-case "empty path"
+    (test-case "root path"
       (define stx #'a)
-      (define actual (syntax-ref stx empty-syntax-path))
+      (define actual (syntax-ref stx root-syntax-path))
       (check-equal? actual stx))
 
     (test-case "list element path"
@@ -654,9 +654,9 @@
 (module+ test
   (test-case "syntax-contains-path?"
 
-    (test-case "empty path on any syntax"
+    (test-case "root path on any syntax"
       (define stx #'a)
-      (check-true (syntax-contains-path? stx empty-syntax-path)))
+      (check-true (syntax-contains-path? stx root-syntax-path)))
 
     (test-case "valid path in list"
       (define stx #'(a b c))
@@ -822,9 +822,9 @@
 
     (define new-subform #'FOO)
 
-    (test-case "empty path"
+    (test-case "root path"
       (define stx #'a)
-      (define actual (syntax-set stx empty-syntax-path new-subform))
+      (define actual (syntax-set stx root-syntax-path new-subform))
       (check-equal? actual new-subform))
 
     (test-case "list element path"
@@ -877,6 +877,11 @@
 
 
 (define/guard (syntax-remove-splice stx path children-count)
+  (unless (syntax-contains-path? stx path)
+    (raise-arguments-error 'syntax-remove-splice
+                           "syntax path does not exist within the given syntax object"
+                           "syntax" stx
+                           "path" path))
   (guard (positive? children-count) #:else stx)
   (define parent (syntax-ref stx (syntax-path-parent path)))
   (define updated
@@ -917,6 +922,11 @@
       (check-exn exn:fail?
                  (λ () (syntax-remove-splice stx (syntax-path (list 1)) 10))))
 
+    (test-case "remove zero children from out of bounds path - should still error"
+      (define stx #'(a b c))
+      (define bad-path (syntax-path (list 42)))
+      (check-exn exn:fail? (λ () (syntax-remove-splice stx bad-path 0))))
+
     (test-case "nested list removal"
       (define stx #'(a (x y z) b))
       (define actual (syntax-remove-splice stx (syntax-path (list 1 1)) 1))
@@ -927,10 +937,10 @@
       (check-exn exn:fail?
                  (λ () (syntax-remove-splice stx (syntax-path (list 0)) 1))))
 
-    (test-case "error on empty path with non-zero count"
+    (test-case "error on root path with non-zero count"
       (define stx #'(a b c))
       (check-exn exn:fail:contract?
-                 (λ () (syntax-remove-splice stx empty-syntax-path 1))))
+                 (λ () (syntax-remove-splice stx root-syntax-path 1))))
 
     (test-case "error on non-list target"
       (define stx #'#(a b c))
@@ -989,10 +999,10 @@
       (define actual (syntax-insert-splice stx (syntax-path (list 0)) (list #'x)))
       (check-equal? (syntax->datum actual) '(x)))
 
-    (test-case "error on empty path"
+    (test-case "error on root path"
       (define stx #'(a b c))
       (check-exn exn:fail:contract?
-                 (λ () (syntax-insert-splice stx empty-syntax-path (list #'x)))))
+                 (λ () (syntax-insert-splice stx root-syntax-path (list #'x)))))
 
     (test-case "error on non-list target"
       (define stx #'#(a b c))
@@ -1228,7 +1238,7 @@
     [_ (in-list (list))]))
 
 
-(define (in-syntax-paths stx #:base-path [base-path empty-syntax-path])
+(define (in-syntax-paths stx #:base-path [base-path root-syntax-path])
   (in-generator
    (let traverse ([stx stx]
                   [parent-elems (syntax-path-elements base-path)])
