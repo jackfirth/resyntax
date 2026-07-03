@@ -225,8 +225,8 @@ The children of a syntax object are determined by the shape of its datum:
 
  @item{All other datums have no children.}]
 
-@subsection[#:tag "original-syntax-paths"]{Original Syntax Paths and Formatting Preservation}
 
+@subsection[#:tag "original-syntax-paths"]{Original Syntax Paths and Formatting Preservation}
 
 When Resyntax calls the Racket reader to turn @tech{source code} into unexpanded syntax objects using
 @racket[source-read-syntax], Resyntax recursively labels each syntax object with its
@@ -311,7 +311,8 @@ Resyntax does not allow editing expressions inside hash datums.
 
 
 @defproc[(syntax-path-parent [path child-syntax-path?]) syntax-path?]{
- Returns the path to the form that encloses the subform @racket[path] refers to.}
+ Returns the path to the parent of @racket[path], which refers to the form that immediately encloses
+ the form referred to by @racket[path].}
 
 
 @defproc[(syntax-path-last-element [path child-syntax-path?]) exact-nonnegative-integer?]{
@@ -322,16 +323,18 @@ Resyntax does not allow editing expressions inside hash datums.
 @defproc[(syntax-path-next-neighbor [path syntax-path?]) (or/c syntax-path? #false)]{
  Returns the path to the sibling immediately following @racket[path] within its enclosing form, or
  @racket[#false] if @racket[path] is the root path (the root of a syntax object has no siblings).
- Note that
- this is pure path arithmetic: the returned path is not guaranteed to actually exist within any
- particular syntax object.}
+ Note that this is pure path arithmetic: the returned path is not guaranteed to actually exist within
+ any particular syntax object.}
 
 
 @defproc[(syntax-path-neighbors? [leading-path syntax-path?] [trailing-path syntax-path?])
          boolean?]{
  Returns @racket[#true] if @racket[leading-path] and @racket[trailing-path] refer to immediately
  adjacent siblings, meaning they share the same parent path and @racket[trailing-path]'s final
- child index is one greater than @racket[leading-path]'s.}
+ child index is one greater than @racket[leading-path]'s. The order of @racket[leading-path] and
+ @racket[trailing-path] is significant: this operation does @emph{not} return @racket[#true] if
+ @racket[leading-path] and @racket[trailing-path] are adjacent siblings, but the @emph{trailing} path
+ comes first.}
 
 
 @defproc[(syntax-path-remove-prefix [path syntax-path?] [prefix syntax-path?]) syntax-path?]{
@@ -364,7 +367,9 @@ Resyntax does not allow editing expressions inside hash datums.
 @defproc[(syntax-ref [stx syntax?] [path syntax-path?]) syntax?]{
  Returns the subform of @racket[stx] that @racket[path] refers to. The root path returns
  @racket[stx] itself. Raises a contract error if @racket[path] is inconsistent with the shape of
- @racket[stx].}
+ @racket[stx], which can occur if @racket[path] refers to children of an atomic subform that has no
+ children, or if @racket[path] contains a child index that's too large for the number of children
+ actually contained by the parent subform of that index.}
 
 
 @defproc[(syntax-contains-path? [stx syntax?] [path syntax-path?]) boolean?]{
@@ -384,7 +389,9 @@ Resyntax does not allow editing expressions inside hash datums.
          syntax?]{
  Returns a copy of @racket[stx] with @racket[children-count] consecutive children removed from the
  form enclosing @racket[path], starting with the child that @racket[path] refers to. The enclosing
- form must be a proper list. Removing zero children returns @racket[stx] unchanged.}
+ form must be a proper list. Removing zero children returns @racket[stx] unchanged. Removing one child
+ removes @emph{only} the subform referred to by @racket[path]. If @racket[stx] does not contain
+ @racket[path] (in the sense of @racket[syntax-contains-path?]) a contract error is raised.}
 
 
 @defproc[(syntax-insert-splice [stx syntax?]
@@ -393,19 +400,24 @@ Resyntax does not allow editing expressions inside hash datums.
          syntax?]{
  Returns a copy of @racket[stx] with each syntax object in @racket[new-children] inserted as
  consecutive children of the form enclosing @racket[path], such that the first inserted child is
- located at @racket[path]. Existing children at or after @racket[path] are shifted over. The
- enclosing form must be a proper list. Inserting an empty sequence returns @racket[stx] unchanged.}
+ located at @racket[path]. Existing children at or after @racket[path] are shifted over ---
+ @racket[new-children] are inserted @emph{just before} @racket[path]. The enclosing form must be a
+ proper list. Inserting an empty sequence returns @racket[stx] unchanged.}
 
 
 @defproc[(syntax-label-paths [stx syntax?] [property-name symbol?]) syntax?]{
  Returns a copy of @racket[stx] in which every subform, including @racket[stx] itself, has a
  @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{syntax property} named
  @racket[property-name] whose value is that subform's @tech{syntax path} within @racket[stx].
- Subforms of hash datums are not labeled, as syntax paths cannot refer to them.}
+ Subforms of hash datums are not labeled, as syntax paths cannot refer to them --- see
+ @secref["original-syntax-paths"] for further explanation.}
 
 
 @defproc[(in-syntax-paths [stx syntax?] [#:base-path base-path syntax-path? root-syntax-path])
          (sequence/c syntax-path?)]{
  Returns a sequence of the @tech{syntax paths} of every subform in @racket[stx], in depth-first
  preorder. Each returned path is prefixed with @racket[base-path], so the first path in the
- sequence is always @racket[base-path] itself, referring to @racket[stx].}
+ sequence is always @racket[base-path] itself. The @racket[base-path] argument is useful when
+ @racket[stx] is itself assumed to be a subform of some larger syntax object. In Resyntax's case,
+ that's usually the root syntax object for the entire source file as returned by
+ @racket[source-read-syntax].}
