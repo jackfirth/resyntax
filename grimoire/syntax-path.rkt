@@ -917,6 +917,11 @@
       (check-exn exn:fail?
                  (λ () (syntax-remove-splice stx (syntax-path (list 1)) 10))))
 
+    (test-case "remove zero children from out of bounds path - should still error"
+      (define stx #'(a b c))
+      (define bad-path (syntax-path (list 42)))
+      (check-exn exn:fail? (λ () (syntax-remove-splice stx bad-path 0))))
+
     (test-case "nested list removal"
       (define stx #'(a (x y z) b))
       (define actual (syntax-remove-splice stx (syntax-path (list 1 1)) 1))
