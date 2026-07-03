@@ -210,7 +210,7 @@ The children of a syntax object are determined by the shape of its datum:
   element. Only the form's own pair structure is normalized --- nested forms remain distinct
   children --- but how the underlying pairs and syntax objects nest has no effect on paths:
   @tt{#'(a b c)}, @tt{#'(a . (b . (c . ())))}, @tt{#'(a . (b c))}, @tt{#'(a b . c)},
-  and @racket[#'(a . (b . c))] all have three children, and in each case the child at index
+  and @tt{#'(a . (b . c))} all have three children, and in each case the child at index
   @racket[2] is @racket[#'c].}
 
  @item{The children of a vector are its elements, in order.}
@@ -331,10 +331,10 @@ Resyntax does not allow editing expressions inside hash datums.
          boolean?]{
  Returns @racket[#true] if @racket[leading-path] and @racket[trailing-path] refer to immediately
  adjacent siblings, meaning they share the same parent path and @racket[trailing-path]'s final
- child index is one greater than @racket[leading-path]'s. The order of @racket[leading-path] and
- @racket[trailing-path] is significant: this operation does @emph{not} return @racket[#true] if
- @racket[leading-path] and @racket[trailing-path] are adjacent siblings, but the @emph{trailing} path
- comes first.}
+ child index is one greater than @racket[leading-path]'s. @bold{Warning:} the order of
+ @racket[leading-path] and @racket[trailing-path] is significant --- this operation returns
+ @racket[#false] if @racket[leading-path] and @racket[trailing-path] are adjacent siblings where the
+ @emph{trailing} path comes first.}
 
 
 @defproc[(syntax-path-remove-prefix [path syntax-path?] [prefix syntax-path?]) syntax-path?]{
@@ -418,6 +418,5 @@ Resyntax does not allow editing expressions inside hash datums.
  Returns a sequence of the @tech{syntax paths} of every subform in @racket[stx], in depth-first
  preorder. Each returned path is prefixed with @racket[base-path], so the first path in the
  sequence is always @racket[base-path] itself. The @racket[base-path] argument is useful when
- @racket[stx] is itself assumed to be a subform of some larger syntax object. In Resyntax's case,
- that's usually the root syntax object for the entire source file as returned by
- @racket[source-read-syntax].}
+ @racket[stx] is itself a subform of some larger syntax object, such as the root syntax object for the
+ entire source file that @racket[stx] originates from.
