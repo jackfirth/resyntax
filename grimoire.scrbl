@@ -160,11 +160,15 @@ This applies to both modified and unmodified file sources.
 
 @defproc[(source-read-syntax [code source?]) syntax?]{
  Reads @racket[code] as a syntax object, using the module reading parameterization to allow the
- source's @hash-lang[] to control the reader.}
+ source's @hash-lang[] to control the reader. Every syntax object within the result is labeled with
+ its @tech{original syntax path} using the @racket['original-syntax-path] syntax property, as
+ described in @secref["original-syntax-paths"].}
 
 
 @defproc[(source-expand [code source?]) syntax?]{
- Reads @racket[code] and fully expands it, as in @racket[expand].}
+ Reads @racket[code] and fully expands it, as in @racket[expand]. Because the program is read with
+ @racket[source-read-syntax], its subforms are labeled with @racket['original-syntax-path]
+ properties before expansion occurs.}
 
 
 @defproc[(source-can-expand? [code source?]) boolean?]{
@@ -216,14 +220,19 @@ The children of a syntax object are determined by the shape of its datum:
  @item{The children of a prefab struct are its fields, in order.}
 
  @item{Hash datums @emph{cannot} be traversed by syntax paths. Operations that would need to
-  traverse a hash raise contract errors instead. More about this constraint is explained below.}
+  traverse a hash raise contract errors instead. More about this constraint is explained in
+  @secref["original-syntax-paths"].}
 
  @item{All other datums have no children.}]
 
+@subsection[#:tag "original-syntax-paths"]{Original Syntax Paths and Formatting Preservation}
+
+
 When Resyntax calls the Racket reader to turn @tech{source code} into unexpanded syntax objects using
-@racket[source-read-syntax], Resyntax recurisely labels each syntax object with its
+@racket[source-read-syntax], Resyntax recursively labels each syntax object with its
 @deftech{original syntax path}. This label is attached to each syntax object via a
-@tech{syntax property} named @racket['original-syntax-path].
+@tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{syntax property} named
+@indexed-racket['original-syntax-path].
 
 As these syntax objects are expanded by the Racket macro expander and further manipulated by
 @tech{refactoring rules}, subforms get transformed and moved, but they preserve their original syntax
@@ -231,7 +240,9 @@ properties. Resyntax then inspects these properties on the refactored syntax obj
 in order to determine where each syntax object originated @emph{structurally}, in addition to
 inspecting source locations to determine where it originated @emph{textually}. Resyntax uses this
 information to determine when refactored code contains unchanged subexpressions whose text should be
-@emph{copied} from the input rather than reproduced wholesale and reformatted.
+@emph{copied} from the input rather than reproduced wholesale and reformatted. This mechanism is what
+powers the automatic comment preservation described in @secref["comment-preservation"], and the
+template metafunctions described in that section give rule authors a way to guide it.
 
 Unchanged syntax objects have their original text copied by Resyntax, and if two unchanged syntax
 objects start and end adjacent to each other (and without swapping their order) then the original text
@@ -255,7 +266,7 @@ assumptions are:
   correspond to the source location that occurs earlier in the source code (by character position).}]
 
 It is the second of these two requirements that prevents Resyntax from traversing literal hash datums.
-A hash datum such as @racket[#hash((a . 1) ("foo" . 2) ('b . 3))], when parsed by the Racket reader,
+A hash datum such as @racket[#hash((a . 1) ("foo" . 2) (b . 3))], when parsed by the Racket reader,
 @bold{does not preserve source ordering in the resulting hash datum's iteration order}. Two literal
 hash datums with the same keys will always iterate in the same order when inspected with
 @racket[syntax-e]. As a result, Resyntax cannot uphold the assumptions it makes about source locations
