@@ -24,7 +24,7 @@
          resyntax
          resyntax/base
          resyntax/default-recommendations
-         resyntax/private/file-group
+         resyntax/grimoire/file-group
          resyntax/private/github
          resyntax/private/refactoring-result
          resyntax/grimoire/source
