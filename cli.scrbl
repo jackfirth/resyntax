@@ -16,6 +16,10 @@ for fixing code by applying Resyntax's suggestions.
 Note that at present, Resyntax is limited in what files it can fix. Resyntax only analyzes files with
 the @exec{.rkt} extension where @tt{#lang racket/base} is the first line in the file.
 
+Each of the target flags accepted by these commands constructs a @tech{file group} describing which
+files to operate on. See @secref["file-group"] in The Resyntax Grimoire for the API underlying these
+flags.
+
 
 @section[#:tag "install"]{Installation}
 
