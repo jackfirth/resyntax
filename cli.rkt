@@ -24,7 +24,7 @@
          resyntax
          resyntax/base
          resyntax/default-recommendations
-         resyntax/grimoire/file-group
+         resyntax/grimoire/source-group
          resyntax/private/github
          resyntax/private/refactoring-result
          resyntax/grimoire/source
@@ -71,17 +71,17 @@
    ("--file"
     filepath
     "A file to analyze."
-    (vector-builder-add targets (single-file-group filepath all-lines)))
+    (vector-builder-add targets (single-source-group filepath all-lines)))
 
    ("--directory"
     dirpath
     "A directory to analyze, including subdirectories."
-    (vector-builder-add targets (directory-file-group dirpath)))
+    (vector-builder-add targets (directory-source-group dirpath)))
 
    ("--package"
     pkgname
     "An installed package to analyze."
-    (vector-builder-add targets (package-file-group pkgname)))
+    (vector-builder-add targets (package-source-group pkgname)))
 
    ("--local-git-repository"
     repopath baseref
@@ -89,7 +89,7 @@
 path to the root of a Git repository, and the baseref argument is a Git reference (in the form \
 \"remotename/branchname\") to use as the base state of the repository. Any files that have been \
 changed relative to baseref are analyzed."
-    (vector-builder-add targets (git-repository-file-group repopath baseref)))
+    (vector-builder-add targets (git-repository-source-group repopath baseref)))
 
    #:once-each
 
@@ -158,17 +158,17 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
 
    #:multi
 
-   ("--file" filepath "A file to fix." (add-target! (single-file-group filepath all-lines)))
+   ("--file" filepath "A file to fix." (add-target! (single-source-group filepath all-lines)))
 
    ("--directory"
     dirpath
     "A directory to fix, including subdirectories."
-    (add-target! (directory-file-group dirpath)))
+    (add-target! (directory-source-group dirpath)))
    
    ("--package"
     pkgname
     "An installed package to fix."
-    (add-target! (package-file-group pkgname)))
+    (add-target! (package-source-group pkgname)))
    
    ("--local-git-repository"
     repopath baseref
@@ -176,7 +176,7 @@ determined by the GITHUB_REPOSITORY and GITHUB_REF environment variables."
 path to the root of a Git repository, and the baseref argument is a Git reference (in the form \
 \"remotename/branchname\") to use as the base state of the repository. Any files that have been \
 changed relative to baseref are analyzed and fixed."
-    (add-target! (git-repository-file-group repopath baseref)))
+    (add-target! (git-repository-source-group repopath baseref)))
 
    #:once-each
 
@@ -284,7 +284,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
 (define (resyntax-analyze-run)
   (define options (resyntax-analyze-parse-command-line))
-  (define sources (file-groups-resolve (resyntax-analyze-options-targets options)))
+  (define sources (source-groups-resolve (resyntax-analyze-options-targets options)))
   (define analysis
     (resyntax-analyze-all sources
                           #:suite (resyntax-analyze-options-suite options)
@@ -329,7 +329,7 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (define options (resyntax-fix-parse-command-line))
   (define fix-method (resyntax-fix-options-fix-method options))
   (define output-format (resyntax-fix-options-output-format options))
-  (define sources (file-groups-resolve (resyntax-fix-options-targets options)))
+  (define sources (source-groups-resolve (resyntax-fix-options-targets options)))
   (define max-modified-files (resyntax-fix-options-max-modified-files options))
   (define max-modified-lines (resyntax-fix-options-max-modified-lines options))
   (define analysis
