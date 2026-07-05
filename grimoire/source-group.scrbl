@@ -55,11 +55,11 @@ to produce the actual @tech{source code} values that Resyntax analyzes. Resoluti
 filesystem, the local package system, or the local Git repository is actually consulted. Resolution
 does not consult external networked sources; only local information is considered. After resolution,
 Resyntax "locks in" the set of sources it's editing. If, after this point, new files are added to a
-directory group (or a similar edit is made to the files described by a different kind of source group)
-they will be ignored by Resyntax. However, edits to files that @emph{were} included in the source set,
-but which Resyntax has @emph{not} started to analyze, will be perceived by Resyntax. This is because
-source group resolution does not read the @emph{contents} of each source file into memory yet. That
-occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
+directory group (or a similar addition is made to the files described by a different kind of source
+group) they will be ignored by Resyntax. However, edits to the @emph{contents} of files that were
+included in the source set, but which Resyntax has @emph{not} started to analyze, will be perceived by
+Resyntax. This is because source group resolution does not read the contents of each source file into
+memory yet. That occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
 
 
 @defproc[(source-group? [v any/c]) boolean?]{
@@ -131,7 +131,9 @@ occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
  three lines before and after each modified region. The three-line margin matches what GitHub
  allows in pull request reviews: comments may only be placed on modified lines and the three lines
  of context surrounding them, so suggestions within the margin can still be posted as review
- comments.}
+ comments. More generally, a three-line margin is the standard default behavior of the unified diff
+ format that many Unix tools interoperate with, particularly the
+ @hyperlink["https://en.wikipedia.org/wiki/Diff"]{diff} tool.}
 
 
 @defproc[(source-group-resolve [group source-group?])
@@ -142,4 +144,3 @@ occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
 
  Resolution discards all files that don't have the @exec{.rkt} extension. This is where the
  @seclink["cli"]{command-line interface}'s restriction to @exec{.rkt} files is implemented.}
-
