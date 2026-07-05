@@ -9,15 +9,12 @@
   [source-group? (-> any/c boolean?)]
   [empty-source-group source-group?]
   [source-group-union (-> source-group? ... source-group?)]
+  [source-group-union-all (-> (sequence/c source-group?) source-group?)]
   [source-group-resolve (-> source-group? (hash/c file-source? immutable-range-set?))]
-  [single-source-group? (-> any/c boolean?)]
-  [single-source-group (-> path-string? immutable-range-set? single-source-group?)]
-  [directory-source-group? (-> any/c boolean?)]
-  [directory-source-group (-> path-string? directory-source-group?)]
-  [package-source-group? (-> any/c boolean?)]
-  [package-source-group (-> string? package-source-group?)]
-  [git-repository-source-group? (-> any/c boolean?)]
-  [git-repository-source-group (-> path-string? string? git-repository-source-group?)]))
+  [single-source-group (-> path-string? immutable-range-set? source-group?)]
+  [directory-source-group (-> path-string? source-group?)]
+  [package-source-group (-> string? source-group?)]
+  [git-repository-source-group (-> path-string? string? source-group?)]))
 
 
 (require fancy-app
@@ -25,6 +22,7 @@
          racket/file
          racket/match
          racket/path
+         racket/sequence
          racket/set
          racket/string
          rebellion/base/comparator
@@ -86,15 +84,19 @@
 (define empty-source-group (union-source-group (set)))
 
 
-(define (source-group-union . groups)
+(define (source-group-union-all groups)
   (define combined
-    (for*/set ([group (in-list groups)]
+    (for*/set ([group groups]
                [basic (in-set (source-group-basic-subgroups group))])
       basic))
   (cond
     [(set-empty? combined) empty-source-group]
     [(equal? (set-count combined) 1) (set-first combined)]
     [else (union-source-group combined)]))
+
+
+(define (source-group-union . groups)
+  (source-group-union-all groups))
 
 
 (define (source-group-basic-subgroups group)
@@ -292,7 +294,12 @@
       (check-equal? (source-group-union empty-source-group empty-source-group) empty-source-group))
 
     (test-case "unioning a single group produces that group"
-      (check-equal? (source-group-union g1) g1)))
+      (check-equal? (source-group-union g1) g1))
+
+    (test-case "source-group-union-all accepts any sequence and agrees with source-group-union"
+      (check-equal? (source-group-union-all (list g1 g2)) (source-group-union g1 g2))
+      (check-equal? (source-group-union-all (vector g1 g2)) (source-group-union g1 g2))
+      (check-equal? (source-group-union-all '()) empty-source-group)))
 
   (test-case "source-group-resolve"
     (test-case "resolving the empty group produces an empty hash"

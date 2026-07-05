@@ -5,6 +5,7 @@
                      racket/base
                      racket/contract/base
                      racket/path
+                     racket/sequence
                      rebellion/collection/range-set
                      resyntax/grimoire/source-group
                      resyntax/grimoire/source))
@@ -87,47 +88,40 @@ occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
    @racket[(source-group-union _g1 (source-group-union _g2 _g3))].}
 
   @item{@racket[(source-group-union _g _g)] and @racket[(source-group-union _g empty-source-group)]
-   are both always @racket[equal?] to @racket[_g].}]}
+   are both always @racket[equal?] to @racket[_g].}]
+
+ This operation is a convenience wrapper around @racket[source-group-union-all].}
 
 
-@defproc[(single-source-group? [v any/c]) boolean?]{
- A predicate that recognizes single-source groups.}
+@defproc[(source-group-union-all [groups (sequence/c source-group?)]) source-group?]{
+ Combines every source group in @racket[groups] into a single @tech{source group}, exactly as
+ @racket[source-group-union] does for its arguments, but accepting the groups as a single sequence
+ of any kind. An empty sequence produces @racket[empty-source-group]. This is how the
+ @seclink["cli"]{command-line interface} combines its collection of target flags into one group.}
 
 
 @defproc[(single-source-group [path path-string?] [lines immutable-range-set?])
-         single-source-group?]{
+         source-group?]{
  Constructs a @tech{source group} containing only the file at @racket[path], with suggestions
  restricted to the line numbers in @racket[lines]. The path is normalized with
  @racket[simple-form-path] upon construction.}
 
 
-@defproc[(directory-source-group? [v any/c]) boolean?]{
- A predicate that recognizes directory groups.}
-
-
-@defproc[(directory-source-group [path path-string?]) directory-source-group?]{
+@defproc[(directory-source-group [path path-string?]) source-group?]{
  Constructs a @tech{source group} containing every file within the directory at @racket[path],
  including files within subdirectories, with all lines of each file eligible for suggestions. The
  path is normalized with @racket[simple-form-path] upon construction.}
 
 
-@defproc[(package-source-group? [v any/c]) boolean?]{
- A predicate that recognizes package groups.}
-
-
-@defproc[(package-source-group [package-name string?]) package-source-group?]{
+@defproc[(package-source-group [package-name string?]) source-group?]{
  Constructs a @tech{source group} containing every file of the installed Racket package named
  @racket[package-name], with all lines of each file eligible for suggestions. The package's
  installation directory is located with @racket[pkg-directory] during resolution, and resolution
  raises a user error if no such package is installed.}
 
 
-@defproc[(git-repository-source-group? [v any/c]) boolean?]{
- A predicate that recognizes Git repository groups.}
-
-
 @defproc[(git-repository-source-group [repository-path path-string?] [base-ref string?])
-         git-repository-source-group?]{
+         source-group?]{
  Constructs a @tech{source group} containing the files of the Git repository at
  @racket[repository-path] that have changed relative to @racket[base-ref], as determined by
  @exec{git diff} during resolution. The repository path is normalized with
