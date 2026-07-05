@@ -131,9 +131,9 @@ memory yet. That occurs at a later step, on a per-file basis, as Resyntax is ana
  three lines before and after each modified region. The three-line margin matches what GitHub
  allows in pull request reviews: comments may only be placed on modified lines and the three lines
  of context surrounding them, so suggestions within the margin can still be posted as review
- comments. More generally, a three-line margin is the standard default behavior of the unified diff
- format that many Unix tools interoperate with, particularly the
- @hyperlink["https://en.wikipedia.org/wiki/Diff"]{diff} tool.}
+ comments. More generally, a three-line margin is the default amount of extra context that many Unix
+ tools choose when interoperating via the unified diff format, particularly the
+ @hyperlink["https://en.wikipedia.org/wiki/Diff#Unified_format"]{diff} tool.}
 
 
 @defproc[(source-group-resolve [group source-group?])
