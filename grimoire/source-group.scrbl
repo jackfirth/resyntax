@@ -20,12 +20,12 @@ four kinds, each corresponding to one of the target flags accepted by the
 @seclink["cli"]{command-line interface}:
 
 @itemlist[
- @item{@emph{Single sources}, constructed with @racket[single-source-group], containing one file
-  restricted to a given set of lines. The @exec{--file} flag constructs these, with all lines
+ @item{@emph{Single-source groups}, constructed with @racket[single-source-group], containing one
+  file restricted to a given set of lines. The @exec{--file} flag constructs these, with all lines
   allowed. Note that the CLI doesn't include a way to specify which lines should be modified at this
  time, despite the fact that the @racket[single-source-group] constructor accepts that information.
- The only difference between a single source group and a @racket[source?] value is that the source
- group may contain information about which lines to analyze.}
+ The only difference between a single-source group and a @racket[file-source?] value is that the
+ source group may contain information about which lines to analyze.}
 
  @item{@emph{Directory groups}, constructed with @racket[directory-source-group], containing every
   source file within a directory, including files in subdirectories. The @exec{--directory} flag
@@ -38,11 +38,12 @@ four kinds, each corresponding to one of the target flags accepted by the
 
  @item{@emph{Git repository groups}, constructed with @racket[git-repository-source-group],
   containing the files of a @emph{local} Git repository that have changed relative to some base
-  reference. The @exec{--local-git-repository} flag constructs these. Like package groups, Resyntax
-  can only install Git repositories that have already been cloned onto the current machine. Git
-  repository groups are the only source groups that take advantage of Resyntax's ability to restrict
-  which lines are analyzed --- only the lines actually touched in the diff against the specified base
-  reference will be included.}]
+  reference. The @exec{--local-git-repository} flag constructs these. As with package groups,
+  Resyntax can only analyze Git repositories that have already been cloned onto the current machine.
+  Git repository groups are the only source groups that take advantage of Resyntax's ability to
+  restrict which lines are analyzed --- only the lines actually touched in the diff against the
+  specified base reference, plus a small margin of surrounding context lines (see
+  @racket[git-repository-source-group]), will be included.}]
 
 A source group is only a description: it must be @emph{resolved} with @racket[source-groups-resolve]
 to produce the actual @tech{source code} values that Resyntax analyzes. Resolution is when the
