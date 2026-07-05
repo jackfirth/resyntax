@@ -14,30 +14,46 @@
 @title[#:tag "source-group"]{Source Groups}
 @defmodule[resyntax/grimoire/source-group]
 
-A @deftech{source group} is a specification of a set of files that Resyntax should analyze, along with
-which lines within those files Resyntax is allowed to suggest changes to. File groups come in four
-kinds, each corresponding to one of the target flags accepted by the @seclink["cli"]{command-line
- interface}:
+A @deftech{source group} is a specification of what @tech{source code} Resyntax should analyze, along
+with which lines within those sources Resyntax is allowed to suggest changes to. Source groups come in
+four kinds, each corresponding to one of the target flags accepted by the
+@seclink["cli"]{command-line interface}:
 
 @itemlist[
- @item{@emph{Single-source groups}, constructed with @racket[single-source-group], containing one file
+ @item{@emph{Single sources}, constructed with @racket[single-source-group], containing one file
   restricted to a given set of lines. The @exec{--file} flag constructs these, with all lines
-  allowed.}
+  allowed. Note that the CLI doesn't include a way to specify which lines should be modified at this
+ time, despite the fact that the @racket[single-source-group] constructor accepts that information.
+ The only difference between a single source group and a @racket[source?] value is that the source
+ group may contain information about which lines to analyze.}
 
  @item{@emph{Directory groups}, constructed with @racket[directory-source-group], containing every
-  file within a directory, including files in subdirectories. The @exec{--directory} flag
+  source file within a directory, including files in subdirectories. The @exec{--directory} flag
   constructs these.}
 
  @item{@emph{Package groups}, constructed with @racket[package-source-group], containing every file
-  of an installed Racket package. The @exec{--package} flag constructs these.}
+  of a @emph{locally installed} Racket package. The @exec{--package} flag constructs these. This does
+ @bold{not} refer to remote packages on the package catalog; Resyntax cannot analyze a package unless
+ it's currently installed.}
 
  @item{@emph{Git repository groups}, constructed with @racket[git-repository-source-group],
-  containing the files of a Git repository that have changed relative to some base reference. The
-  @exec{--local-git-repository} flag constructs these.}]
+  containing the files of a @emph{local} Git repository that have changed relative to some base
+  reference. The @exec{--local-git-repository} flag constructs these. Like package groups, Resyntax
+  can only install Git repositories that have already been cloned onto the current machine. Git
+  repository groups are the only source groups that take advantage of Resyntax's ability to restrict
+  which lines are analyzed --- only the lines actually touched in the diff against the specified base
+  reference will be included.}]
 
-A source group is only a description: it must be @emph{resolved} with @racket[source-groups-resolve] to
-produce the actual @tech{source code} values that Resyntax analyzes. Resolution is when the
-filesystem, the package catalog, or the Git repository is actually consulted.
+A source group is only a description: it must be @emph{resolved} with @racket[source-groups-resolve]
+to produce the actual @tech{source code} values that Resyntax analyzes. Resolution is when the
+filesystem, the local package system, or the local Git repository is actually consulted. Resolution
+does not consult external networked sources; only local information is considered. After resolution,
+Resyntax "locks in" the set of sources it's editing. If, after this point, new files are added to a
+directory group (or a similar edit is made to the files described by a different kind of source group)
+they will be ignored by Resyntax. However, edits to files that @emph{were} included in the source set,
+but which Resyntax has @emph{not} started to analyze, will be perceived by Resyntax. This is because
+source group resolution does not read the @emph{contents} of each source file into memory yet. That
+occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
 
 
 @defproc[(source-group? [v any/c]) boolean?]{
