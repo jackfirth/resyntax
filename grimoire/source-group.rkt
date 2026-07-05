@@ -6,8 +6,10 @@
 
 (provide
  (contract-out
-  [source-groups-resolve (-> (sequence/c source-group?) (hash/c file-source? immutable-range-set?))]
   [source-group? (-> any/c boolean?)]
+  [empty-source-group source-group?]
+  [source-group-union (-> source-group? ... source-group?)]
+  [source-group-resolve (-> source-group? (hash/c file-source? immutable-range-set?))]
   [single-source-group? (-> any/c boolean?)]
   [single-source-group (-> path-string? immutable-range-set? single-source-group?)]
   [directory-source-group? (-> any/c boolean?)]
@@ -23,7 +25,7 @@
          racket/file
          racket/match
          racket/path
-         racket/sequence
+         racket/set
          racket/string
          rebellion/base/comparator
          rebellion/base/range
@@ -74,18 +76,45 @@
     (values (simple-form-path repository-path) (string->immutable-string ref))))
 
 
+;; A union of any number of the other kinds of source groups. Union groups are always normalized:
+;; the subgroups set never contains union groups, so that equal? on source groups treats
+;; source-group-union as commutative, associative, and idempotent, with empty-source-group as the
+;; identity element.
+(struct union-source-group source-group (subgroups) #:transparent)
+
+
+(define empty-source-group (union-source-group (set)))
+
+
+(define (source-group-union . groups)
+  (define combined
+    (for*/set ([group (in-list groups)]
+               [basic (in-set (source-group-basic-subgroups group))])
+      basic))
+  (cond
+    [(set-empty? combined) empty-source-group]
+    [(equal? (set-count combined) 1) (set-first combined)]
+    [else (union-source-group combined)]))
+
+
+(define (source-group-basic-subgroups group)
+  (match group
+    [(union-source-group subgroups) subgroups]
+    [_ (set group)]))
+
+
 (define all-lines (range-set (unbounded-range #:comparator natural<=>)))
 
 
-(define (source-groups-resolve groups)
-  (transduce groups
-             (append-mapping source-group-resolve)
+(define (source-group-resolve group)
+  (transduce (source-group-basic-subgroups group)
+             (append-mapping basic-source-group-entries)
              (grouping (make-fold-reducer range-set-add-all (range-set #:comparator natural<=>)))
              #:into into-hash))
 
 
-;; Resolves a single group into a list of entries mapping file sources to line range sets.
-(define (source-group-resolve group)
+;; Resolves a single non-union group into a list of entries mapping file sources to line range sets.
+(define (basic-source-group-entries group)
   (define path-entries
     (match group
       [(single-source-group path lines)
@@ -152,7 +181,7 @@
       (call-with-output-file test-file
         (λ (out) (displayln "#lang racket/base" out)))
       (define group (single-source-group test-file (range-set (closed-open-range 1 5 #:comparator natural<=>))))
-      (define resolved (source-groups-resolve (list group)))
+      (define resolved (source-group-resolve group))
       (check-equal? (hash-count resolved) 1)
       (check-equal? (hash-ref resolved (file-source test-file))
                     (range-set (closed-open-range 1 5 #:comparator natural<=>)))
@@ -177,7 +206,7 @@
       (call-with-output-file txt-file
         (λ (out) (displayln "not racket" out)))
       (define group (directory-source-group test-dir))
-      (define resolved (source-groups-resolve (list group)))
+      (define resolved (source-group-resolve group))
       (check-equal? (hash-count resolved) 2)
       (check-true (hash-has-key? resolved (file-source rkt-file1)))
       (check-true (hash-has-key? resolved (file-source rkt-file2)))
@@ -192,7 +221,7 @@
     
     (test-case "resolution returns files from installed package"
       (define group (package-source-group "rackunit"))
-      (define resolved (source-groups-resolve (list group)))
+      (define resolved (source-group-resolve group))
       (check-true (hash? resolved))
       (check-true (> (hash-count resolved) 0))
       (for ([src (in-hash-keys resolved)])
@@ -202,7 +231,7 @@
     (test-case "resolution raises error for non-existent package"
       (define group (package-source-group "this-package-does-not-exist-xyz"))
       (check-exn exn:fail:user?
-                 (λ () (source-groups-resolve (list group))))))
+                 (λ () (source-group-resolve group)))))
   
   (test-case "git-repository-source-group"
     (test-case "constructor and predicates"
@@ -231,15 +260,45 @@
         (call-with-output-file test-file #:exists 'append
           (λ (out) (displayln "(define x 1)" out)))
         (define group (git-repository-source-group test-dir "HEAD"))
-        (define resolved (source-groups-resolve (list group)))
+        (define resolved (source-group-resolve group))
         (check-true (hash? resolved))
         (check-true (> (hash-count resolved) 0))
         (for ([src (in-hash-keys resolved)])
           (check-pred file-source? src)))
       (delete-directory/files test-dir)))
   
-  (test-case "source-groups-resolve"
-    (test-case "resolves multiple groups into hash"
+  (test-case "source-group-union"
+
+    (define g1 (directory-source-group "/tmp/dir1"))
+    (define g2 (package-source-group "some-package"))
+    (define g3 (single-source-group "/tmp/foo.rkt" (range-set #:comparator natural<=>)))
+
+    (test-case "commutative"
+      (check-equal? (source-group-union g1 g2) (source-group-union g2 g1)))
+
+    (test-case "associative"
+      (check-equal? (source-group-union (source-group-union g1 g2) g3)
+                    (source-group-union g1 (source-group-union g2 g3))))
+
+    (test-case "empty group is the identity"
+      (check-equal? (source-group-union g1 empty-source-group) g1)
+      (check-equal? (source-group-union empty-source-group g1) g1))
+
+    (test-case "idempotent"
+      (check-equal? (source-group-union g1 g1) g1))
+
+    (test-case "no groups produce the empty group"
+      (check-equal? (source-group-union) empty-source-group)
+      (check-equal? (source-group-union empty-source-group empty-source-group) empty-source-group))
+
+    (test-case "unioning a single group produces that group"
+      (check-equal? (source-group-union g1) g1)))
+
+  (test-case "source-group-resolve"
+    (test-case "resolving the empty group produces an empty hash"
+      (check-equal? (source-group-resolve empty-source-group) (hash)))
+
+    (test-case "resolves unioned groups into hash"
       (define test-dir (make-temporary-directory "resyntax-test-~a"))
       (define test-file1 (build-path test-dir "test1.rkt"))
       (define test-file2 (build-path test-dir "test2.rkt"))
@@ -249,7 +308,7 @@
         (λ (out) (displayln "#lang racket" out)))
       (define group1 (single-source-group test-file1 (range-set (closed-open-range 1 5 #:comparator natural<=>))))
       (define group2 (single-source-group test-file2 (range-set (closed-open-range 3 8 #:comparator natural<=>))))
-      (define result (source-groups-resolve (list group1 group2)))
+      (define result (source-group-resolve (source-group-union group1 group2)))
       (check-true (hash? result))
       (check-equal? (hash-count result) 2)
       (check-true (hash-has-key? result (file-source test-file1)))
@@ -263,7 +322,7 @@
         (λ (out) (displayln "#lang racket/base" out)))
       (define group1 (single-source-group test-file (range-set (closed-open-range 1 3 #:comparator natural<=>))))
       (define group2 (single-source-group test-file (range-set (closed-open-range 5 7 #:comparator natural<=>))))
-      (define result (source-groups-resolve (list group1 group2)))
+      (define result (source-group-resolve (source-group-union group1 group2)))
       (check-equal? (hash-count result) 1)
       (define combined-ranges (hash-ref result (file-source test-file)))
       (check-true (range-set-contains? combined-ranges 1))

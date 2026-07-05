@@ -284,7 +284,9 @@ For help on these, use 'analyze --help' or 'fix --help'."
 
 (define (resyntax-analyze-run)
   (define options (resyntax-analyze-parse-command-line))
-  (define sources (source-groups-resolve (resyntax-analyze-options-targets options)))
+  (define target-group
+    (apply source-group-union (vector->list (resyntax-analyze-options-targets options))))
+  (define sources (source-group-resolve target-group))
   (define analysis
     (resyntax-analyze-all sources
                           #:suite (resyntax-analyze-options-suite options)
@@ -329,7 +331,9 @@ For help on these, use 'analyze --help' or 'fix --help'."
   (define options (resyntax-fix-parse-command-line))
   (define fix-method (resyntax-fix-options-fix-method options))
   (define output-format (resyntax-fix-options-output-format options))
-  (define sources (source-groups-resolve (resyntax-fix-options-targets options)))
+  (define target-group
+    (apply source-group-union (vector->list (resyntax-fix-options-targets options))))
+  (define sources (source-group-resolve target-group))
   (define max-modified-files (resyntax-fix-options-max-modified-files options))
   (define max-modified-lines (resyntax-fix-options-max-modified-lines options))
   (define analysis

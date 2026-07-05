@@ -5,7 +5,6 @@
                      racket/base
                      racket/contract/base
                      racket/path
-                     racket/sequence
                      rebellion/collection/range-set
                      resyntax/grimoire/source-group
                      resyntax/grimoire/source))
@@ -45,7 +44,12 @@ four kinds, each corresponding to one of the target flags accepted by the
   specified base reference, plus a small margin of surrounding context lines (see
   @racket[git-repository-source-group]), will be included.}]
 
-A source group is only a description: it must be @emph{resolved} with @racket[source-groups-resolve]
+Additionally, any number of source groups can be combined into a single group with
+@racket[source-group-union]. This is how the command-line interface handles multiple target flags:
+each flag becomes a source group, and all of them are unioned into one group describing the entire
+analysis.
+
+A source group is only a description: it must be @emph{resolved} with @racket[source-group-resolve]
 to produce the actual @tech{source code} values that Resyntax analyzes. Resolution is when the
 filesystem, the local package system, or the local Git repository is actually consulted. Resolution
 does not consult external networked sources; only local information is considered. After resolution,
@@ -59,6 +63,31 @@ occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
 
 @defproc[(source-group? [v any/c]) boolean?]{
  A predicate that recognizes @tech{source groups} of any kind.}
+
+
+@defthing[empty-source-group source-group?]{
+ The empty @tech{source group}, which specifies no sources at all. Resolving it produces an empty
+ hash, and unioning it with any other source group has no effect --- it is the identity element of
+ @racket[source-group-union].}
+
+
+@defproc[(source-group-union [group source-group?] ...) source-group?]{
+ Combines each @racket[group] into a single @tech{source group} specifying all of their sources.
+ Given no groups, the result is @racket[empty-source-group].
+
+ Unioning is commutative, associative, and idempotent, and @racket[empty-source-group] is its
+ identity element: source groups form a commutative monoid under union (in fact, a bounded
+ join-semilattice, thanks to idempotence). These laws hold up to @racket[equal?]:
+
+ @itemlist[
+  @item{@racket[(source-group-union _g1 _g2)] is always @racket[equal?] to
+   @racket[(source-group-union _g2 _g1)].}
+
+  @item{@racket[(source-group-union (source-group-union _g1 _g2) _g3)] is always @racket[equal?] to
+   @racket[(source-group-union _g1 (source-group-union _g2 _g3))].}
+
+  @item{@racket[(source-group-union _g _g)] and @racket[(source-group-union _g empty-source-group)]
+   are both always @racket[equal?] to @racket[_g].}]}
 
 
 @defproc[(single-source-group? [v any/c]) boolean?]{
@@ -111,11 +140,11 @@ occurs at a later step, on a per-file basis, as Resyntax is analyzing each file.
  comments.}
 
 
-@defproc[(source-groups-resolve [groups (sequence/c source-group?)])
+@defproc[(source-group-resolve [group source-group?])
          (hash/c file-source? immutable-range-set?)]{
- Resolves each @tech{source group} in @racket[groups] into concrete files, returning a hash whose
- keys are @racket[file-source?] values and whose values are the line numbers eligible for
- suggestions in each file. When multiple groups include the same file, their line sets are unioned.
+ Resolves @racket[group] into concrete files, returning a hash whose keys are @racket[file-source?]
+ values and whose values are the line numbers eligible for suggestions in each file. When the same
+ file is included multiple times by a unioned group, its line sets are unioned.
 
  Resolution discards all files that don't have the @exec{.rkt} extension. This is where the
  @seclink["cli"]{command-line interface}'s restriction to @exec{.rkt} files is implemented.}
