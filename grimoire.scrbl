@@ -15,3 +15,4 @@ programmatically on anything found here.
 @include-section[(lib "resyntax/grimoire/source.scrbl")]
 @include-section[(lib "resyntax/grimoire/source-group.scrbl")]
 @include-section[(lib "resyntax/grimoire/syntax-path.scrbl")]
+@include-section[(lib "resyntax/grimoire/string-replacement.scrbl")]
