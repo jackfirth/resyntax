@@ -142,14 +142,14 @@ of a @racket[copied-string] piece.
  Returns the new text of @racket[replacement]'s replaced region --- just the rendered contents, not
  the entire edited string. The original string is needed to render the contents of
  @racket[copied-string] pieces. Raises a contract error if @racket[original-string] is too short to
- contain the positions that the replacement's copied pieces refer to.}
+ contain the replaced region or the positions that the replacement's copied pieces refer to.}
 
 
 @defproc[(string-apply-replacement [string string?] [replacement string-replacement?])
          immutable-string?]{
  Applies @racket[replacement] to @racket[string], returning the entire edited string. Text outside
  the replaced region is unchanged. Raises a contract error if @racket[string] is too short to
- contain the positions that the replacement's copied pieces refer to.}
+ contain the replaced region or the positions that the replacement's copied pieces refer to.}
 
 
 @defproc[(file-apply-string-replacement! [path path-string?] [replacement string-replacement?])

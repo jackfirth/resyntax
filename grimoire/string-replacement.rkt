@@ -119,7 +119,7 @@
    #:original-span (- end start)
    #:new-end (+ start new-span)
    #:new-span new-span
-   #:required-length (option-get max-end end)
+   #:required-length (max end (option-get max-end 0))
    #:contents content-list))
 
 
@@ -242,7 +242,7 @@
   (define original-length (string-length immutable-original-string))
   (unless (>= original-length required-length)
     (raise-arguments-error
-     (name string-apply-replacement)
+     (name string-replacement-render)
      "string is not long enough"
      "string" immutable-original-string
      "string length" original-length
@@ -320,7 +320,21 @@
         (string-replacement #:start 0
                             #:end (string-length s)
                             #:contents (list (inserted-string "hi there"))))
-      (check-equal? (string-apply-replacement s replacement) "hi there"))))
+      (check-equal? (string-apply-replacement s replacement) "hi there"))
+
+    (test-case "string shorter than the replaced region"
+      (define replacement
+        (string-replacement #:start 0 #:end 10 #:contents (list (copied-string 0 2))))
+      (check-exn #rx"string-apply-replacement:" (λ () (string-apply-replacement "abc" replacement)))
+      (check-exn #rx"string is not long enough"
+                 (λ () (string-apply-replacement "abc" replacement)))))
+
+  (test-case (name-string string-replacement-render)
+    (test-case "errors are reported under the right name"
+      (define replacement
+        (string-replacement #:start 0 #:end 2 #:contents (list (copied-string 10 20))))
+      (check-exn #rx"string-replacement-render:"
+                 (λ () (string-replacement-render replacement "ab"))))))
 
 
 (define (file-apply-string-replacement! path replacement)
