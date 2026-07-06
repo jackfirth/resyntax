@@ -46,7 +46,7 @@
          resyntax/private/logger
          resyntax/grimoire/source
          resyntax/private/string-indent
-         resyntax/private/string-replacement
+         resyntax/grimoire/string-replacement
          resyntax/private/syntax-neighbors
          (only-in resyntax/private/syntax-traversal syntax-search-everything)
          syntax/parse

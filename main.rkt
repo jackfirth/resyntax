@@ -61,7 +61,7 @@
          resyntax/private/refactoring-result
          resyntax/grimoire/source
          resyntax/private/string-indent
-         resyntax/private/string-replacement
+         resyntax/grimoire/string-replacement
          resyntax/private/syntax-property-bundle
          resyntax/private/syntax-range
          resyntax/private/syntax-replacement
