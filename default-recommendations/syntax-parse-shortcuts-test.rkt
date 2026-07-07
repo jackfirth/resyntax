@@ -84,3 +84,34 @@ no-change-test: "define-syntax-parser with multiple clauses not refactorable"
   [(_ a)
    #'a])
 ------------------------------
+
+
+test: "define-syntax-parser with pattern directives refactorable to define-syntax-parse-rule"
+------------------------------
+(define-syntax-parser my-macro
+  [(_ x:id)
+   #:with y #'(x x)
+   #'(quote y)])
+==============================
+(define-syntax-parse-rule (my-macro x:id)
+  #:with y #'(x x)
+  (quote y))
+------------------------------
+
+
+no-change-test: "define-syntax-parser with syntax/loc on the output not refactorable"
+------------------------------
+(define-syntax-parser my-or
+  [(_ a b)
+   (syntax/loc this-syntax
+     (let ([tmp a]) (if tmp tmp b)))])
+------------------------------
+
+
+no-change-test: "define-syntax-parser with non-directive body forms not refactorable"
+------------------------------
+(define-syntax-parser my-or
+  [(_ a b)
+   (printf "expanding my-or\n")
+   #'(let ([tmp a]) (if tmp tmp b))])
+------------------------------
