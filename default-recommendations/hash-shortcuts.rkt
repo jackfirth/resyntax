@@ -17,6 +17,7 @@
          resyntax/default-recommendations/private/lambda-by-any-name
          resyntax/default-recommendations/private/literal-constant
          resyntax/default-recommendations/private/pure-expression
+         resyntax/default-recommendations/private/self-quoting-literal
          resyntax/default-recommendations/private/syntax-equivalence
          resyntax/default-recommendations/private/syntax-identifier-sets
          resyntax/private/syntax-neighbors
@@ -141,10 +142,6 @@
    (~focus-replacement-on
     (~replacement (hash-update! h1 k1 (λ (v) update-expr) (~? failure-result))
                   #:original-splice (orig-definition orig-hash-set!)))))
-
-
-(define-syntax-class self-quoting-literal
-  (pattern (~or _:boolean _:character _:number _:regexp _:byte-regexp _:string _:bytes)))
 
 
 ;; A datum within a quasiquoted expression that can be lifted directly into expression position,

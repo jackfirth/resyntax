@@ -135,6 +135,27 @@ no-change-test: "quasiquotation with only constants not refactorable to list"
 - `(1 2 3)
 
 
+no-change-test: "quasiquotation with quoted datums not refactorable to list"
+------------------------------
+(define (f y)
+  `(1 ,y 'x))
+------------------------------
+
+
+no-change-test: "quasiquotation with symbols not refactorable to list"
+------------------------------
+(define (f y)
+  `(1 ,y x))
+------------------------------
+
+
+no-change-test: "quasiquotation with nested lists not refactorable to list"
+------------------------------
+(define (f y)
+  `(1 ,y (2 3)))
+------------------------------
+
+
 test: "unnecessary splicing quasiquotation refactorable to append"
 ------------------------------
 (define (f xs ys zs)
