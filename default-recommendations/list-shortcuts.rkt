@@ -18,7 +18,7 @@
          resyntax/base
          resyntax/default-recommendations/analyzers/ignored-result-values
          resyntax/default-recommendations/private/lambda-by-any-name
-         resyntax/default-recommendations/private/literal-constant
+         resyntax/default-recommendations/private/self-quoting-literal
          resyntax/default-recommendations/private/syntax-identifier-sets
          syntax/parse)
 
@@ -106,15 +106,18 @@
   (sort lst less-than #:key f1))
 
 
+;; Elements that aren't unquoted must be self-quoting to lift them out of the quasiquote unchanged.
+;; Quoted datums like (quote x) are quasiquoted as plain data, so `(1 'x) is the list (1 (quote x)),
+;; not the list (1 x) that a lifted 'x expression would produce.
 (define-syntax-class unquoted
   #:attributes (expr literal?)
   #:literals (unquote)
-  (pattern expr:literal-constant #:attr literal? #true)
+  (pattern expr:self-quoting-literal #:attr literal? #true)
   (pattern (unquote expr) #:attr literal? #false))
 
 
 (define-refactoring-rule quasiquote-to-list
-  #:description "This quasiquotation is equialent to a simple `list` call."
+  #:description "This quasiquotation is equivalent to a simple `list` call."
   #:literals (quasiquote)
   (quasiquote (arg:unquoted ...))
   #:when (for/or ([literal? (in-list (attribute arg.literal?))])
@@ -123,7 +126,7 @@
 
 
 (define-refactoring-rule quasiquote-to-append
-  #:description "This quasiquotation is equialent to calling `append`."
+  #:description "This quasiquotation is equivalent to calling `append`."
   #:literals (quasiquote unquote-splicing)
   (quasiquote ((unquote-splicing arg) ...))
   (append arg ...))
