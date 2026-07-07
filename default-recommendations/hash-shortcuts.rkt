@@ -143,6 +143,46 @@
                   #:original-splice (orig-definition orig-hash-set!)))))
 
 
+(define-syntax-class self-quoting-literal
+  (pattern (~or _:boolean _:character _:number _:regexp _:byte-regexp _:string _:bytes)))
+
+
+;; A datum within a quasiquoted expression that can be lifted directly into expression position,
+;; either because it's self-quoting or because it's a symbol that can be wrapped in a quote. Quoted
+;; datums like (quote x) are excluded because quasiquote treats them as plain data: the quasiquoted
+;; pair (a . 'x) maps the key a to the two-element list (quote x), not to the symbol x.
+(define-syntax-class liftable-quasiquoted-datum
+  #:attributes (as-expr)
+  (pattern sym:id
+    #:when (not (memq (syntax-e #'sym) '(unquote unquote-splicing quasiquote)))
+    #:with as-expr #'(quote sym))
+  (pattern datum:self-quoting-literal
+    #:with as-expr #'datum))
+
+
+(define-syntax-class quasiquoted-hash-pair
+  #:attributes (key-expr value-expr unquoted-value?)
+  #:literals (unquote)
+  (pattern (key:liftable-quasiquoted-datum . (unquote value-expr:expr))
+    #:with key-expr #'key.as-expr
+    #:attr unquoted-value? #true)
+  (pattern (key:liftable-quasiquoted-datum . value:liftable-quasiquoted-datum)
+    #:with key-expr #'key.as-expr
+    #:with value-expr #'value.as-expr
+    #:attr unquoted-value? #false))
+
+
+(define-refactoring-rule make-immutable-hash-with-quasiquote-to-hash
+  #:description
+  "This `make-immutable-hash` call with statically known keys can be replaced with a simpler,
+equivalent `hash` call."
+  #:literals (make-immutable-hash quasiquote)
+  (make-immutable-hash (quasiquote (pair:quasiquoted-hash-pair ...)))
+  #:when (for/or ([unquoted? (in-list (attribute pair.unquoted-value?))])
+           unquoted?)
+  (hash (~@ pair.key-expr pair.value-expr) ...))
+
+
 (define-refactoring-rule hash-map-to-hash-keys
   #:description "This `hash-map` expression is equivalent to the `hash-keys` function."
   #:literals (hash-map)
@@ -169,4 +209,5 @@
            hash-ref-with-constant-lambda-to-hash-ref-without-lambda
            hash-ref!-with-constant-lambda-to-hash-ref!-without-lambda
            hash-set!-ref-to-hash-update!
+           make-immutable-hash-with-quasiquote-to-hash
            or-hash-ref-set!-to-hash-ref!))
