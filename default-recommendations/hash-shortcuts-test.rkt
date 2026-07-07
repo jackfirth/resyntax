@@ -295,3 +295,71 @@ no-change-test:
   (define sum (hash-ref! h1 (cadr term) 0))
   (hash-set! h2 (cadr term) (+ (car term) sum)))
 ------------------------------
+
+
+test: "make-immutable-hash with quasiquoted alist refactorable to hash"
+------------------------------
+(define (f body event)
+  (make-immutable-hash
+   `((body . ,body)
+     (event . ,event))))
+==============================
+(define (f body event)
+  (hash 'body body 'event event))
+------------------------------
+
+
+test: "make-immutable-hash with self-quoting keys and values refactorable to hash"
+------------------------------
+(define (f x)
+  (make-immutable-hash
+   `(("a" . ,x)
+     (b . 5))))
+==============================
+(define (f x)
+  (hash "a" x 'b 5))
+------------------------------
+
+
+no-change-test: "make-immutable-hash with fully quoted alist not refactorable to hash"
+------------------------------
+(make-immutable-hash `((a . 1) (b . 2)))
+------------------------------
+
+
+no-change-test: "make-immutable-hash with dynamic keys not refactorable to hash"
+------------------------------
+(define (f k v)
+  (make-immutable-hash `((,k . ,v))))
+------------------------------
+
+
+no-change-test: "make-immutable-hash with unquote-splicing not refactorable to hash"
+------------------------------
+(define (f pairs)
+  (make-immutable-hash `(,@pairs (a . 1))))
+------------------------------
+
+
+no-change-test: "make-immutable-hash with quoted datum values not refactorable to hash"
+------------------------------
+(define (f x)
+  (make-immutable-hash `((a . ,x) (b . 'c))))
+------------------------------
+
+
+test: "make-immutable-hash with symbol values refactorable to hash"
+------------------------------
+(define (f x)
+  (make-immutable-hash `((a . ,x) (b . c))))
+==============================
+(define (f x)
+  (hash 'a x 'b 'c))
+------------------------------
+
+
+no-change-test: "make-immutable-hash with list keys not refactorable to hash"
+------------------------------
+(define (f x)
+  (make-immutable-hash `(((a b) . ,x))))
+------------------------------
