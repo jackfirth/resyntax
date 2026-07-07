@@ -257,18 +257,22 @@ return just that result."
    (~@ . (~splicing-replacement (last-condition.refactored ...) #:original original-body))))
 
 
+;; The following two rules require multiple body forms because rewriting a single-body when/unless
+;; expression doesn't meaningfully reduce indentation or improve the code.
+
+
 (define-refactoring-rule when-expression-in-for-loop-to-when-keyword
   #:description "Use the `#:when` keyword instead of `when` to reduce loop body indentation."
   #:literals (when for for*)
-  ((~or for-id:for for-id:for*) (clause ...) (when condition body ...))
-  (for-id (clause ... #:when condition) body ...))
+  ((~or for-id:for for-id:for*) (clause ...) (when condition first-body remaining-body ...+))
+  (for-id (clause ... #:when condition) first-body remaining-body ...))
 
 
 (define-refactoring-rule unless-expression-in-for-loop-to-unless-keyword
   #:description "Use the `#:unless` keyword instead of `unless` to reduce loop body indentation."
   #:literals (unless for for*)
-  ((~or for-id:for for-id:for*) (clause ...) (unless condition body ...))
-  (for-id (clause ... #:unless condition) body ...))
+  ((~or for-id:for for-id:for*) (clause ...) (unless condition first-body remaining-body ...+))
+  (for-id (clause ... #:unless condition) first-body remaining-body ...))
 
 
 (define-refactoring-rule in-hash-to-in-hash-keys
