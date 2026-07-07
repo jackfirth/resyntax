@@ -200,12 +200,12 @@
     (+ start
        (for/sum ([piece (in-list contents-with-possible-focus)]
                  #:break (focus? piece))
-         (replacement-string-span piece))))
+         (string-piece-span piece))))
   (define focused-end
     (- end
        (for/sum ([piece (in-list (reverse contents-with-possible-focus))]
                  #:break (focus? piece))
-         (replacement-string-span piece))))
+         (string-piece-span piece))))
   (define raw-contents
     (append-map (λ (piece) (if (focus? piece) (focus-contents piece) (list piece)))
                 contents-with-possible-focus))

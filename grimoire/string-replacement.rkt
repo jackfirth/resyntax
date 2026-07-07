@@ -15,17 +15,17 @@
     #:chaperone
     (#:start [start natural?]
      #:end [end natural?]
-     #:contents [contents (sequence/c (or/c inserted-string? copied-string?))])
+     #:contents [contents (sequence/c string-piece?)])
     #:pre/name (start end) "end cannot be before start" (<= start end)
     [_ string-replacement?])]
-  [replacement-string-span (-> (or/c inserted-string? copied-string?) exact-nonnegative-integer?)]
+  [string-piece? (-> any/c boolean?)]
+  [string-piece-span (-> string-piece? exact-nonnegative-integer?)]
   [string-replacement-start (-> string-replacement? natural?)]
   [string-replacement-original-end (-> string-replacement? natural?)]
   [string-replacement-original-span (-> string-replacement? natural?)]
   [string-replacement-new-end (-> string-replacement? natural?)]
   [string-replacement-new-span (-> string-replacement? natural?)]
-  [string-replacement-contents
-   (-> string-replacement? (listof (or/c inserted-string? copied-string?)))]
+  [string-replacement-contents (-> string-replacement? (listof string-piece?))]
   [string-replacement-preserved-locations (-> string-replacement? range-set?)]
   [string-replacement-overlaps? (-> string-replacement? string-replacement? boolean?)]
   [string-replacement-normalize
@@ -74,7 +74,6 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
-         rebellion/type/tuple
          resyntax/grimoire/source)
 
 
@@ -98,7 +97,7 @@
                #:result
                (reverse (append (if previous (list previous) (list)) accumulated)))
               ([piece contents]
-               #:when (positive? (replacement-string-span piece)))
+               #:when (positive? (string-piece-span piece)))
       (match (list previous piece)
         [(list #false _) (values accumulated piece)]
         [(list (inserted-string s1) (inserted-string s2))
@@ -107,7 +106,7 @@
          #:when (equal? end1 start2)
          (values accumulated (copied-string start1 end2))]
         [(list _ _) (values (cons previous accumulated) piece)])))
-  (define new-span (transduce content-list (mapping replacement-string-span) #:into into-sum))
+  (define new-span (transduce content-list (mapping string-piece-span) #:into into-sum))
   (define max-end
     (transduce content-list
                (filtering copied-string?)
@@ -207,15 +206,19 @@
    (string-replacement-range replacement) (string-replacement-range other-replacement)))
 
 
-(struct inserted-string (contents) #:transparent
+(struct string-piece () #:transparent)
+
+
+(struct inserted-string string-piece (contents) #:transparent
   #:guard (λ (contents _) (string->immutable-string contents))
   #:property prop:custom-print-quotable 'never)
 
 
-(define-tuple-type copied-string (start end))
+(struct copied-string string-piece (start end) #:transparent
+  #:property prop:custom-print-quotable 'never)
 
 
-(define (replacement-string-span piece)
+(define (string-piece-span piece)
   (match piece
     [(inserted-string inserted-string) (string-length inserted-string)]
     [(copied-string start end) (- end start)]))
@@ -372,7 +375,7 @@
       (guarded-block
         (guard (< pos actual-start) #:else pieces)
         (guard-match (cons next-piece remaining) pieces #:else (list))
-        (define piece-span (replacement-string-span next-piece))
+        (define piece-span (string-piece-span next-piece))
         (if (< (+ pos piece-span) actual-start)
             (loop remaining (+ pos piece-span))
             (cons (replacement-string-drop-left next-piece (- actual-start pos)) remaining)))))

@@ -17,8 +17,8 @@
 
 A @deftech{string replacement} is a value describing an edit to a string. A replacement identifies a
 region of the string to replace --- the characters between a start position and an end position ---
-and describes the new contents of that region as a list of @tech{replacement pieces}. There are two
-kinds of pieces:
+and describes the new contents of that region as a list of @tech{string pieces}. There are two kinds
+of pieces:
 
 @itemlist[
  @item{@emph{Inserted strings}, constructed with @racket[inserted-string], containing brand new text
@@ -48,7 +48,7 @@ of a @racket[copied-string] piece.
 @defproc[(string-replacement
           [#:start start natural?]
           [#:end end natural?]
-          [#:contents contents (sequence/c (or/c inserted-string? copied-string?))])
+          [#:contents contents (sequence/c string-piece?)])
          string-replacement?]{
  Constructs a @tech{string replacement} that replaces the characters between @racket[start] and
  @racket[end] with the given @racket[contents]. Raises a contract error if @racket[end] is before
@@ -86,8 +86,8 @@ of a @racket[copied-string] piece.
 
 
 @defproc[(string-replacement-contents [replacement string-replacement?])
-         (listof (or/c inserted-string? copied-string?))]{
- Returns the @tech{replacement pieces} making up the new contents of @racket[replacement]'s replaced
+         (listof string-piece?)]{
+ Returns the @tech{string pieces} making up the new contents of @racket[replacement]'s replaced
  region, in normalized form.}
 
 
@@ -158,18 +158,23 @@ of a @racket[copied-string] piece.
  @racket[string-apply-replacement], and overwrites the file with the result.}
 
 
-@section{Replacement Pieces}
+@section{String Pieces}
 
-A @deftech{replacement piece} describes one segment of the new contents of a @tech{string
- replacement}'s replaced region.
+A @deftech{string piece} describes a segment of text, either brand new or copied from some original
+string. String pieces primarily serve as the contents of a @tech{string replacement}'s replaced
+region, but they are also occasionally useful on their own as standalone descriptions of text.
+
+
+@defproc[(string-piece? [v any/c]) boolean?]{
+ A predicate that recognizes @tech{string pieces} of either kind.}
 
 
 @defproc[(inserted-string? [v any/c]) boolean?]{
- A predicate that recognizes inserted-string @tech{replacement pieces}.}
+ A predicate that recognizes inserted-string @tech{string pieces}. Implies @racket[string-piece?].}
 
 
 @defproc[(inserted-string [contents string?]) inserted-string?]{
- Constructs a @tech{replacement piece} containing @racket[contents] as brand new text.}
+ Constructs a @tech{string piece} containing @racket[contents] as brand new text.}
 
 
 @defproc[(inserted-string-contents [piece inserted-string?]) immutable-string?]{
@@ -177,11 +182,11 @@ A @deftech{replacement piece} describes one segment of the new contents of a @te
 
 
 @defproc[(copied-string? [v any/c]) boolean?]{
- A predicate that recognizes copied-string @tech{replacement pieces}.}
+ A predicate that recognizes copied-string @tech{string pieces}. Implies @racket[string-piece?].}
 
 
 @defproc[(copied-string [start natural?] [end natural?]) copied-string?]{
- Constructs a @tech{replacement piece} that copies the characters between @racket[start] and
+ Constructs a @tech{string piece} that copies the characters between @racket[start] and
  @racket[end] from the original string. The copied range may lie anywhere within the original
  string, including entirely outside the replaced region. Raises a contract error if @racket[end] is
  before @racket[start].}
@@ -195,7 +200,6 @@ A @deftech{replacement piece} describes one segment of the new contents of a @te
  Returns the position just past the last character that @racket[piece] copies.}
 
 
-@defproc[(replacement-string-span [piece (or/c inserted-string? copied-string?)])
-         exact-nonnegative-integer?]{
+@defproc[(string-piece-span [piece string-piece?]) exact-nonnegative-integer?]{
  Returns the number of characters that @racket[piece] spans: the length of an inserted string's
  text, or the size of a copied string's range.}
