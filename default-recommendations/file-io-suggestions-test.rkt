@@ -19,13 +19,6 @@ test: "call-with-output-file displaying a value refactorable to display-to-file"
       (display s out))))
 ========================================
 (define (f path s)
-  (display-to-file s path))
-----------------------------------------
-
-
-test: "call-with-output-file with λ displaying a value refactorable to display-to-file"
-----------------------------------------
-(define (f path s)
   (call-with-output-file path
     (λ (out)
       (display s out))))
