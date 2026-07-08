@@ -36,6 +36,7 @@
          guard
          racket/file
          racket/match
+         racket/pretty
          racket/sequence
          racket/set
          racket/string
@@ -73,6 +74,7 @@
   (require racket/list
            rackunit
            resyntax/private/analyzer
+           resyntax/private/logger
            (submod "..")))
 
 
@@ -371,7 +373,10 @@
              #:into into-hash))
 
 
-(define (refactoring-rules-refactor rules syntax #:comments comments #:analysis analysis)
+(define (refactoring-rules-refactor rules syntax
+                                    #:comments comments
+                                    #:analysis analysis
+                                    #:rule-timings rule-timings)
 
   (define (refactor rule)
     (with-handlers
@@ -424,26 +429,54 @@
           #:rule-name (object-name rule)
           #:message (refactoring-rule-description rule)
           #:syntax-replacement replacement)))))
-  
+
+  ;; Timing is only recorded when debug logging is enabled, since that's the only time the
+  ;; measurements are used. This avoids paying the timing and hash update costs in normal usage.
+  (define (refactor/timed rule)
+    (cond
+      [(log-level? resyntax-logger 'debug)
+       (define start-ms (current-inexact-monotonic-milliseconds))
+       (define result (refactor rule))
+       (define elapsed-ms (- (current-inexact-monotonic-milliseconds) start-ms))
+       (hash-update! rule-timings (object-name rule) (+ _ elapsed-ms) 0)
+       result]
+      [else (refactor rule)]))
+
   (falsey->option
    (for*/first ([rule (in-list rules)]
-                [result (in-option (refactor rule))])
+                [result (in-option (refactor/timed rule))])
      result)))
 
 
 (define (refactor-visited-forms #:analysis analysis #:suite suite #:comments comments #:lines lines)
   (define rule-list (refactoring-suite-rules suite))
-  (for*/fold ([results '()]
-              [modified-positions (range-set #:comparator natural<=>)]
-              #:result (reverse results))
-             ([stx (in-list (source-code-analysis-visited-forms analysis))]
-              #:unless (range-set-intersects? modified-positions (syntax-source-range stx))
-              [result
-               (in-option
-                (refactoring-rules-refactor rule-list stx #:comments comments #:analysis analysis))]
-              #:when (check-lines-enclose-refactoring-result lines result))
-    (values (cons result results)
-            (range-set-add modified-positions (refactoring-result-modified-range result)))))
+  (define rule-timings (make-hash))
+  (begin0
+    (for*/fold ([results '()]
+                [modified-positions (range-set #:comparator natural<=>)]
+                #:result (reverse results))
+               ([stx (in-list (source-code-analysis-visited-forms analysis))]
+                #:unless (range-set-intersects? modified-positions (syntax-source-range stx))
+                [result
+                 (in-option
+                  (refactoring-rules-refactor rule-list stx
+                                              #:comments comments
+                                              #:analysis analysis
+                                              #:rule-timings rule-timings))]
+                #:when (check-lines-enclose-refactoring-result lines result))
+      (values (cons result results)
+              (range-set-add modified-positions (refactoring-result-modified-range result))))
+    (log-rule-timings rule-timings (source-code-analysis-code analysis))))
+
+
+;; Logs a table of the total time in milliseconds spent checking each rule against a source, where
+;; each rule's total is the sum of the time spent testing it on each individual syntax object.
+(define (log-rule-timings rule-timings source)
+  (when (log-level? resyntax-logger 'debug)
+    (define timings-str (string-indent (pretty-format rule-timings) #:amount 2))
+    (log-resyntax-debug "total time spent checking each rule against ~a (in milliseconds):\n~a"
+                        (or (source-path source) "string source")
+                        timings-str)))
 
 
 (define (check-lines-enclose-refactoring-result lines result)
@@ -504,6 +537,21 @@
                                       #:end 28
                                       #:contents (list (inserted-string "(or 1 2 3)")))))
   
+  (test-case "resyntax-analyze logs rule application timings"
+    (define receiver (make-log-receiver resyntax-logger 'debug))
+    (resyntax-analyze (string-source "#lang racket (or 1 (or 2 3))"))
+    (define timing-messages
+      (let loop ([messages '()])
+        (define log-event (sync/timeout 0 receiver))
+        (cond
+          [log-event
+           (define message (vector-ref log-event 1))
+           (if (regexp-match? #rx"total time spent checking each rule" message)
+               (loop (cons message messages))
+               (loop messages))]
+          [else messages])))
+    (check-equal? (length timing-messages) 1))
+
   (test-case "resyntax-analyze uses suite analyzers"
     (define test-suite default-recommendations)
     (check-true (set? (refactoring-suite-analyzers test-suite)))
