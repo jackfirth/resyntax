@@ -53,3 +53,17 @@ test: "making a symbol with format from a keyword can be simplified to format-sy
 test: "making a symbol with format from a keyword syntax object can be simplified to format-symbol"
 - (string->symbol (format "make-~a" (keyword->string (syntax-e #'#:foo))))
 - (format-symbol "make-~a" #'#:foo)
+
+
+test: "flattening a nested ellipsis template can be simplified to a flat template"
+------------------------------------------------------------------------------------------------------
+(define (f stx)
+  (with-syntax ([((a ...) ...) stx])
+    (apply append
+           (map syntax->list (syntax->list #'((a ...) ...))))))
+------------------------------------------------------------------------------------------------------
+------------------------------------------------------------------------------------------------------
+(define (f stx)
+  (with-syntax ([((a ...) ...) stx])
+    (syntax->list #'(a ... ...))))
+------------------------------------------------------------------------------------------------------
