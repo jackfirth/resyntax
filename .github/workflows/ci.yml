@@ -1,6 +1,16 @@
 name: CI
 
-on: [push, pull_request]
+# Changes that only touch the README or the .github directory can't affect the build or test
+# results, so there's no need to run CI for pull requests and pushes that only modify those files.
+on:
+  push:
+    paths-ignore:
+      - README.md
+      - .github/**
+  pull_request:
+    paths-ignore:
+      - README.md
+      - .github/**
 
 jobs:
 
