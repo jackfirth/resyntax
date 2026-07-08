@@ -103,6 +103,20 @@
   (format-symbol template (~replacement arg.simplified #:original arg) ...))
 
 
+(define-refactoring-rule flatten-apply-append-syntax-template
+  #:description
+  "Flattening a nested ellipsis syntax template with `apply`, `append`, and `map` can be expressed\
+ more directly with a single flattened ellipsis template."
+  #:literals (apply append map syntax->list syntax)
+
+  (apply append
+         (map syntax->list
+              (syntax->list (syntax ((elem (~datum ...)) (~datum ...))))))
+
+  (syntax->list #'(elem (... ...) (... ...))))
+
+
 (define-refactoring-suite syntax-shortcuts
-  #:rules (format-string-to-format-symbol
+  #:rules (flatten-apply-append-syntax-template
+           format-string-to-format-symbol
            syntax-e-in-format-id-unnecessary))

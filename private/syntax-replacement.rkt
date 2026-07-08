@@ -141,12 +141,14 @@
       (define end (+ start (syntax-span stx)))
       (list (copied-string start end)))
     (syntax-parse stx
-      #:literals (quote)
+      #:literals (quote syntax)
 
       [(~or v:id v:boolean v:char v:keyword v:number v:regexp v:byte-regexp v:string v:bytes)
        (list (inserted-string (string->immutable-string (~s (syntax-e #'v)))))]
-      
+
       [(quote datum) (cons (inserted-string "'") (pieces #'datum #:focused? focused?))]
+
+      [(syntax datum) (cons (inserted-string "#'") (pieces #'datum #:focused? focused?))]
       
       [(subform ...)
        (define shape (syntax-property stx 'paren-shape))
