@@ -430,12 +430,17 @@
           #:message (refactoring-rule-description rule)
           #:syntax-replacement replacement)))))
 
+  ;; Timing is only recorded when debug logging is enabled, since that's the only time the
+  ;; measurements are used. This avoids paying the timing and hash update costs in normal usage.
   (define (refactor/timed rule)
-    (define start-ms (current-inexact-monotonic-milliseconds))
-    (define result (refactor rule))
-    (define elapsed-ms (- (current-inexact-monotonic-milliseconds) start-ms))
-    (hash-update! rule-timings (object-name rule) (+ _ elapsed-ms) 0)
-    result)
+    (cond
+      [(log-level? resyntax-logger 'debug)
+       (define start-ms (current-inexact-monotonic-milliseconds))
+       (define result (refactor rule))
+       (define elapsed-ms (- (current-inexact-monotonic-milliseconds) start-ms))
+       (hash-update! rule-timings (object-name rule) (+ _ elapsed-ms) 0)
+       result]
+      [else (refactor rule)]))
 
   (falsey->option
    (for*/first ([rule (in-list rules)]
