@@ -17,6 +17,13 @@ on:
       - reopened
       - synchronize
       - ready_for_review
+    # Analyzing changed files requires installing and building the package, so there's no point
+    # running this for pull requests that only touch the README or the .github directory. Unlike the
+    # "Build and Test" check, this workflow isn't a required status check, so skipping it entirely is
+    # safe and won't block merges.
+    paths-ignore:
+      - README.md
+      - .github/**
 
 jobs:
   analyze:

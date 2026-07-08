@@ -4,21 +4,70 @@ on: [push, pull_request]
 
 jobs:
 
+  # Changes that only touch the README or the .github directory can't affect the build or test
+  # results. This job detects that situation so the expensive build and test steps below can be
+  # skipped. Note that the "Build and Test" job itself always runs to completion (reporting success)
+  # even when there's nothing to build, because it's a required status check and a skipped required
+  # check blocks pull requests from merging.
+  detect-changes:
+    name: Detect relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      run: ${{ steps.filter.outputs.run }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Check whether any files outside README / .github changed
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+          else
+            base="${{ github.event.before }}"
+            head="${{ github.sha }}"
+          fi
+          # If the base commit isn't available (e.g. a brand new branch), build to be safe.
+          if ! git cat-file -e "$base" 2>/dev/null; then
+            echo "Base commit unavailable; running the build."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$base" "$head")"
+          echo "Changed files:"
+          echo "$changed"
+          relevant="$(echo "$changed" | grep -vE '^(README\.md|\.github/)' || true)"
+          if [ -n "$relevant" ]; then
+            echo "Relevant changes found; running the build."
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Only README / .github changes found; skipping the build."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    needs: detect-changes
     if: ${{ github.event_name == 'pull_request' || github.actor != 'Copilot' }}
     steps:
-      - uses: actions/checkout@master
-      - uses: Bogdanp/setup-racket@v1.5
+      - if: needs.detect-changes.outputs.run == 'true'
+        uses: actions/checkout@master
+      - if: needs.detect-changes.outputs.run == 'true'
+        uses: Bogdanp/setup-racket@v1.5
         with:
           version: stable
-      - run: raco pkg install --batch --auto --link --name resyntax
-      - run: raco test --drdr --package resyntax
+      - if: needs.detect-changes.outputs.run == 'true'
+        run: raco pkg install --batch --auto --link --name resyntax
+      - if: needs.detect-changes.outputs.run == 'true'
+        run: raco test --drdr --package resyntax
 
   code-coverage:
     name: Code Coverage
     runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.run == 'true'
     steps:
       - uses: actions/checkout@master
       - uses: Bogdanp/setup-racket@v1.5
