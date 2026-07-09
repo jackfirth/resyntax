@@ -348,6 +348,11 @@
 (define/guard (string-replacement-focus replacement original-string
                                             #:preserve-start [preserve-start #false]
                                             #:preserve-end [preserve-end #false])
+  (guard (not (equal? (string-replacement-apply replacement original-string) original-string))
+    #:else
+    (string-replacement-shrink-no-op replacement
+                                     #:preserve-start preserve-start
+                                     #:preserve-end preserve-end))
   (define left-normalized
     (string-replacement-left-focus replacement original-string #:preserve-start preserve-start))
   (define left-reversed (string-replacement-reverse left-normalized original-string))
@@ -358,6 +363,26 @@
      reversed-original-string
      #:preserve-start (and preserve-end (- (string-length original-string) preserve-end))))
   (string-replacement-reverse reversed reversed-original-string))
+
+
+;; Shrinks a replacement that makes no changes down to the smallest no-op replacement that still
+;; satisfies the preservation constraints: the shrunk region must start at or before preserve-start
+;; and end at or after preserve-end, so the smallest choice is the region between them (clamped to
+;; the original replaced region), or an empty region when a bound is absent.
+(define (string-replacement-shrink-no-op replacement
+                                         #:preserve-start preserve-start
+                                         #:preserve-end preserve-end)
+  (define start (string-replacement-start replacement))
+  (define end (string-replacement-original-end replacement))
+  (define (clamp pos #:at-least [lower start]) (max lower (min pos end)))
+  (define new-start
+    (cond
+      [preserve-start (clamp preserve-start)]
+      [preserve-end (clamp preserve-end)]
+      [else start]))
+  (define new-end (if preserve-end (clamp preserve-end #:at-least new-start) new-start))
+  (define contents (if (< new-start new-end) (list (copied-string new-start new-end)) (list)))
+  (string-replacement #:start new-start #:end new-end #:contents contents))
 
 
 (define/guard (string-replacement-left-focus replacement original-string
@@ -483,6 +508,35 @@
          #:end 13
          #:contents replacement-pieces))
       (check-equal? (string-replacement-focus replacement s) replacement))
+
+    (test-case "complete no-op replacement shrinks to empty"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-apply replacement s) s)
+      (check-equal? (string-replacement-focus replacement s)
+                    (string-replacement #:start 5 #:end 5 #:contents (list))))
+
+    (test-case "complete no-op replacement shrinks to the preserved region"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-focus replacement s #:preserve-start 7 #:preserve-end 9)
+                    (string-replacement #:start 7 #:end 9 #:contents (list (copied-string 7 9)))))
+
+    (test-case "complete no-op replacement with only preserve-start shrinks to empty"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-focus replacement s #:preserve-start 7)
+                    (string-replacement #:start 7 #:end 7 #:contents (list))))
+
+    (test-case "complete no-op replacement with only preserve-end shrinks to empty"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-focus replacement s #:preserve-end 9)
+                    (string-replacement #:start 9 #:end 9 #:contents (list))))
 
     (test-case "redundant copied string before insertion"
       (define s "good morning and hello world")

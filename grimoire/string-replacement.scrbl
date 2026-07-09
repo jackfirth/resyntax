@@ -204,7 +204,7 @@ possible and discard suggestions that can't preserve them; see
  @racket[preserve-end]. Replacements that don't change @racket[original-string] at all are shrunk to
  the smallest no-op replacements possible given the constraints of @racket[preserve-start] and
  @racket[preserve-end], and shrunk to empty replacements starting at their original start if those
- constraints are not provided. @;TODO: claude, double-check this behavior
+ constraints are not provided.
 
  This operation is called @deftech{replacement focusing}, and is more aggressive than the
  normalization performed automatically by the @racket[string-replacement] constructor. This is the
