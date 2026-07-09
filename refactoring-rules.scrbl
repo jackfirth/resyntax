@@ -282,7 +282,7 @@ The Resyntax Grimoire.
  Resyntax uses this information to preserve comments and formatting near the original form(s).}
 
 
-@section{Narrowing the Focus of Replacements}
+@section[#:tag "replacement-focusing"]{Narrowing the Focus of Replacements}
 
 @defform[#:kind "template metafunction"
          (~focus-replacement-on replacement-form)]{

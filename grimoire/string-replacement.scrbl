@@ -124,8 +124,9 @@ possible and discard suggestions that can't preserve them; see
  position within the source range of one of the replacement's @racket[copied-string] pieces.
 
  This is used by Resyntax to determine whether or not a replacement preserves comments: if a
- replacement's @emph{unpreserved} locations has any overlap with @racket[source-comment-locations] for
- the source being edited, then the replacement @emph{drops comments} and is discarded by Resyntax.}
+ replacement's @emph{unpreserved} locations have any overlap with @racket[source-comment-locations]
+ for the source being edited, then the replacement @emph{drops comments} and is discarded by
+ Resyntax.}
 
 
 @defproc[(string-replacement-overlaps? [replacement string-replacement?]
@@ -159,7 +160,7 @@ possible and discard suggestions that can't preserve them; see
  deficiencies of @racket[string-replacement-overlaps?], this could be fixed by using a range map
  representation for string replacements instead of a single range representation.
 
- Note that even for non-overlapping replacements, appying the union of two string replacements is
+ Note that even for non-overlapping replacements, applying the union of two string replacements is
  @bold{not} the same as applying one replacement and then applying the other. This is because of
  copied strings --- the first replacement may change the size of the string, which can cause the
  character positions referenced by copied string pieces in the second replacement to refer to
@@ -204,7 +205,7 @@ possible and discard suggestions that can't preserve them; see
  are trimmed away. If @racket[preserve-start] is provided, the normalized region is never trimmed
  past it: the region always starts at or before @racket[preserve-start]. Likewise, if
  @racket[preserve-end] is provided, the normalized region always ends at or after
- @racket[preserve-end]. Replacements that don't change @racket[original-string] at all are shrunk td
+ @racket[preserve-end]. Replacements that don't change @racket[original-string] at all are shrunk to
  the smallest no-op replacements possible given the constraints of @racket[preserve-start] and
  @racket[preserve-end], and shrunk to empty replacements starting at their original start if those
  constraints are not provided. @;TODO: claude, double-check this behavior
@@ -212,7 +213,7 @@ possible and discard suggestions that can't preserve them; see
  This form of normalization is called @deftech{replacement focusing normalization}, and is more
  aggressive than the @tech{replacement construction normalization} performed automatically by
  @racket[string-replacement]. This is the low-level mechanism used by Resyntax to implement the
- replacement focusing behavior described in @secref[#|TODO: claude|#].}
+ replacement focusing behavior described in @secref["replacement-focusing"].}
 
 @;TODO: string-replacement-render + string-apply-replacement is confusing API split with weird naming.
 @;  should they be named differently? string-replacement-apply + -apply-partial maybe?
