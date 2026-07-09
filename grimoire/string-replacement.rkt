@@ -15,20 +15,20 @@
     #:chaperone
     (#:start [start natural?]
      #:end [end natural?]
-     #:contents [contents (sequence/c (or/c inserted-string? copied-string?))])
+     #:contents [contents (sequence/c string-piece?)])
     #:pre/name (start end) "end cannot be before start" (<= start end)
     [_ string-replacement?])]
-  [replacement-string-span (-> (or/c inserted-string? copied-string?) exact-nonnegative-integer?)]
+  [string-piece? (-> any/c boolean?)]
+  [string-piece-span (-> string-piece? exact-nonnegative-integer?)]
   [string-replacement-start (-> string-replacement? natural?)]
   [string-replacement-original-end (-> string-replacement? natural?)]
   [string-replacement-original-span (-> string-replacement? natural?)]
   [string-replacement-new-end (-> string-replacement? natural?)]
   [string-replacement-new-span (-> string-replacement? natural?)]
-  [string-replacement-contents
-   (-> string-replacement? (listof (or/c inserted-string? copied-string?)))]
+  [string-replacement-contents (-> string-replacement? (listof string-piece?))]
   [string-replacement-preserved-locations (-> string-replacement? range-set?)]
   [string-replacement-overlaps? (-> string-replacement? string-replacement? boolean?)]
-  [string-replacement-normalize
+  [string-replacement-focus
    (->* (string-replacement? string?)
         (#:preserve-start (or/c exact-nonnegative-integer? #false)
          #:preserve-end (or/c exact-nonnegative-integer? #false))
@@ -41,9 +41,9 @@
         (not (string-replacement-overlaps? replacement1 replacement2))
         [_ string-replacement?])]
   [union-into-string-replacement (reducer/c string-replacement? string-replacement?)]
-  [string-replacement-render (-> string-replacement? string? immutable-string?)]
-  [string-apply-replacement (-> string? string-replacement? immutable-string?)]
-  [file-apply-string-replacement! (-> path-string? string-replacement? void?)]
+  [string-replacement-new-text (-> string-replacement? string? immutable-string?)]
+  [string-replacement-apply (-> string-replacement? string? immutable-string?)]
+  [string-replacement-apply-to-file! (-> string-replacement? path-string? void?)]
   [inserted-string? (-> any/c boolean?)]
   [inserted-string (-> string? inserted-string?)]
   [inserted-string-contents (-> inserted-string? immutable-string?)]
@@ -74,7 +74,6 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
-         rebellion/type/tuple
          resyntax/grimoire/source)
 
 
@@ -98,7 +97,7 @@
                #:result
                (reverse (append (if previous (list previous) (list)) accumulated)))
               ([piece contents]
-               #:when (positive? (replacement-string-span piece)))
+               #:when (positive? (string-piece-span piece)))
       (match (list previous piece)
         [(list #false _) (values accumulated piece)]
         [(list (inserted-string s1) (inserted-string s2))
@@ -107,7 +106,7 @@
          #:when (equal? end1 start2)
          (values accumulated (copied-string start1 end2))]
         [(list _ _) (values (cons previous accumulated) piece)])))
-  (define new-span (transduce content-list (mapping replacement-string-span) #:into into-sum))
+  (define new-span (transduce content-list (mapping string-piece-span) #:into into-sum))
   (define max-end
     (transduce content-list
                (filtering copied-string?)
@@ -119,7 +118,7 @@
    #:original-span (- end start)
    #:new-end (+ start new-span)
    #:new-span new-span
-   #:required-length (option-get max-end end)
+   #:required-length (max end (option-get max-end 0))
    #:contents content-list))
 
 
@@ -207,15 +206,19 @@
    (string-replacement-range replacement) (string-replacement-range other-replacement)))
 
 
-(struct inserted-string (contents) #:transparent
+(struct string-piece () #:transparent)
+
+
+(struct inserted-string string-piece (contents) #:transparent
   #:guard (λ (contents _) (string->immutable-string contents))
   #:property prop:custom-print-quotable 'never)
 
 
-(define-tuple-type copied-string (start end))
+(struct copied-string string-piece (start end) #:transparent
+  #:property prop:custom-print-quotable 'never)
 
 
-(define (replacement-string-span piece)
+(define (string-piece-span piece)
   (match piece
     [(inserted-string inserted-string) (string-length inserted-string)]
     [(copied-string start end) (- end start)]))
@@ -236,13 +239,13 @@
     [(copied-string start end) (copied-string start (- end amount))]))
 
 
-(define (string-replacement-render replacement original-string)
+(define (string-replacement-new-text replacement original-string)
   (define immutable-original-string (string->immutable-string original-string))
   (define required-length (string-replacement-required-length replacement))
   (define original-length (string-length immutable-original-string))
   (unless (>= original-length required-length)
     (raise-arguments-error
-     (name string-apply-replacement)
+     (name string-replacement-new-text)
      "string is not long enough"
      "string" immutable-original-string
      "string length" original-length
@@ -261,7 +264,7 @@
   (string->immutable-string edited))
 
 
-(define (string-apply-replacement string replacement)
+(define (string-replacement-apply replacement string)
   (define immutable-string (string->immutable-string string))
   (define start (string-replacement-start replacement))
   (define end (string-replacement-original-end replacement))
@@ -271,7 +274,7 @@
   (define original-length (string-length immutable-string))
   (unless (>= original-length required-length)
     (raise-arguments-error
-     (name string-apply-replacement)
+     (name string-replacement-apply)
      "string is not long enough"
      "string" immutable-string
      "string length" original-length
@@ -293,7 +296,7 @@
 
 
 (module+ test
-  (test-case (name-string string-apply-replacement)
+  (test-case (name-string string-replacement-apply)
 
     (test-case "replace middle part"
       (define s "good morning and hello world")
@@ -311,8 +314,8 @@
       (check-equal? (string-replacement-new-span replacement) 19)
       (check-equal? (string-replacement-length-change replacement) 2)
       (check-equal? (string-replacement-new-end replacement) 24)
-      (check-equal? (string-replacement-render replacement s) "evening and goodbye")
-      (check-equal? (string-apply-replacement s replacement) "good evening and goodbye world"))
+      (check-equal? (string-replacement-new-text replacement s) "evening and goodbye")
+      (check-equal? (string-replacement-apply replacement s) "good evening and goodbye world"))
 
     (test-case "replace entire string"
       (define s "good morning and hello world")
@@ -320,32 +323,71 @@
         (string-replacement #:start 0
                             #:end (string-length s)
                             #:contents (list (inserted-string "hi there"))))
-      (check-equal? (string-apply-replacement s replacement) "hi there"))))
+      (check-equal? (string-replacement-apply replacement s) "hi there"))
+
+    (test-case "string shorter than the replaced region"
+      (define replacement
+        (string-replacement #:start 0 #:end 10 #:contents (list (copied-string 0 2))))
+      (check-exn #rx"string-replacement-apply:" (λ () (string-replacement-apply replacement "abc")))
+      (check-exn #rx"string is not long enough"
+                 (λ () (string-replacement-apply replacement "abc")))))
+
+  (test-case (name-string string-replacement-new-text)
+    (test-case "errors are reported under the right name"
+      (define replacement
+        (string-replacement #:start 0 #:end 2 #:contents (list (copied-string 10 20))))
+      (check-exn #rx"string-replacement-new-text:"
+                 (λ () (string-replacement-new-text replacement "ab"))))))
 
 
-(define (file-apply-string-replacement! path replacement)
-  (define replacement-text (string-apply-replacement (source->string (file-source path)) replacement))
+(define (string-replacement-apply-to-file! replacement path)
+  (define replacement-text (string-replacement-apply replacement (source->string (file-source path))))
   (display-to-file replacement-text path #:mode 'text #:exists 'replace))
 
 
-(define/guard (string-replacement-normalize replacement original-string
+(define/guard (string-replacement-focus replacement original-string
                                             #:preserve-start [preserve-start #false]
                                             #:preserve-end [preserve-end #false])
+  (guard (not (equal? (string-replacement-apply replacement original-string) original-string))
+    #:else
+    (string-replacement-shrink-no-op replacement
+                                     #:preserve-start preserve-start
+                                     #:preserve-end preserve-end))
   (define left-normalized
-    (string-replacement-left-normalize replacement original-string #:preserve-start preserve-start))
+    (string-replacement-left-focus replacement original-string #:preserve-start preserve-start))
   (define left-reversed (string-replacement-reverse left-normalized original-string))
   (define reversed-original-string (string-reverse original-string))
   (define reversed
-    (string-replacement-left-normalize
+    (string-replacement-left-focus
      left-reversed
      reversed-original-string
      #:preserve-start (and preserve-end (- (string-length original-string) preserve-end))))
   (string-replacement-reverse reversed reversed-original-string))
 
 
-(define/guard (string-replacement-left-normalize replacement original-string
+;; Shrinks a replacement that makes no changes down to the smallest no-op replacement that still
+;; satisfies the preservation constraints: the shrunk region must start at or before preserve-start
+;; and end at or after preserve-end, so the smallest choice is the region between them (clamped to
+;; the original replaced region), or an empty region when a bound is absent.
+(define (string-replacement-shrink-no-op replacement
+                                         #:preserve-start preserve-start
+                                         #:preserve-end preserve-end)
+  (define start (string-replacement-start replacement))
+  (define end (string-replacement-original-end replacement))
+  (define (clamp pos #:at-least [lower start]) (max lower (min pos end)))
+  (define new-start
+    (cond
+      [preserve-start (clamp preserve-start)]
+      [preserve-end (clamp preserve-end)]
+      [else start]))
+  (define new-end (if preserve-end (clamp preserve-end #:at-least new-start) new-start))
+  (define contents (if (< new-start new-end) (list (copied-string new-start new-end)) (list)))
+  (string-replacement #:start new-start #:end new-end #:contents contents))
+
+
+(define/guard (string-replacement-left-focus replacement original-string
                                                  #:preserve-start [preserve-start #false])
-  (define replaced (string-apply-replacement original-string replacement))
+  (define replaced (string-replacement-apply replacement original-string))
   (guard (not (equal? original-string replaced)) #:else replacement)
   (define actual-start
     (inexact->exact
@@ -358,7 +400,7 @@
       (guarded-block
         (guard (< pos actual-start) #:else pieces)
         (guard-match (cons next-piece remaining) pieces #:else (list))
-        (define piece-span (replacement-string-span next-piece))
+        (define piece-span (string-piece-span next-piece))
         (if (< (+ pos piece-span) actual-start)
             (loop remaining (+ pos piece-span))
             (cons (replacement-string-drop-left next-piece (- actual-start pos)) remaining)))))
@@ -445,7 +487,7 @@
                                    "good morning friend and hello world")
                   12))
 
-  (test-case "string-replacement-normalize"
+  (test-case "string-replacement-focus"
 
     (test-case "empty replacement"
       (define s "good morning and hello world")
@@ -455,7 +497,7 @@
          #:start 5
          #:end 5
          #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s) replacement))
+      (check-equal? (string-replacement-focus replacement s) replacement))
 
     (test-case "insertion-only replacement"
       (define s "good morning and hello world")
@@ -465,7 +507,36 @@
          #:start 13
          #:end 13
          #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s) replacement))
+      (check-equal? (string-replacement-focus replacement s) replacement))
+
+    (test-case "complete no-op replacement shrinks to empty"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-apply replacement s) s)
+      (check-equal? (string-replacement-focus replacement s)
+                    (string-replacement #:start 5 #:end 5 #:contents (list))))
+
+    (test-case "complete no-op replacement shrinks to the preserved region"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-focus replacement s #:preserve-start 7 #:preserve-end 9)
+                    (string-replacement #:start 7 #:end 9 #:contents (list (copied-string 7 9)))))
+
+    (test-case "complete no-op replacement with only preserve-start shrinks to empty"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-focus replacement s #:preserve-start 7)
+                    (string-replacement #:start 7 #:end 7 #:contents (list))))
+
+    (test-case "complete no-op replacement with only preserve-end shrinks to empty"
+      (define s "good morning and hello world")
+      (define replacement
+        (string-replacement #:start 5 #:end 13 #:contents (list (copied-string 5 13))))
+      (check-equal? (string-replacement-focus replacement s #:preserve-end 9)
+                    (string-replacement #:start 9 #:end 9 #:contents (list))))
 
     (test-case "redundant copied string before insertion"
       (define s "good morning and hello world")
@@ -475,7 +546,7 @@
          #:start 5
          #:end 13
          #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
+      (check-equal? (string-replacement-focus replacement s)
                     (string-replacement #:start 13
                                         #:end 13
                                         #:contents (list (inserted-string "friend ")))))
@@ -488,7 +559,7 @@
          #:start 5
          #:end 13
          #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
+      (check-equal? (string-replacement-focus replacement s)
                     (string-replacement #:start 13
                                         #:end 13
                                         #:contents (list (inserted-string "friend ")))))
@@ -501,7 +572,7 @@
          #:start 13
          #:end 16
          #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
+      (check-equal? (string-replacement-focus replacement s)
                     (string-replacement #:start 13
                                         #:end 13
                                         #:contents (list (inserted-string "friend ")))))
@@ -514,7 +585,7 @@
          #:start 13
          #:end 16
          #:contents replacement-pieces))
-      (check-equal? (string-replacement-normalize replacement s)
+      (check-equal? (string-replacement-focus replacement s)
                     (string-replacement #:start 13
                                         #:end 13
                                         #:contents (list (inserted-string "friend ")))))
@@ -524,13 +595,13 @@
       (define s2 "hello my little friend")
       (define replacement-pieces (list (inserted-string "my little")))
       (define replacement (string-replacement #:start 6 #:end 12 #:contents replacement-pieces))
-      (check-equal? (string-apply-replacement s replacement) s2)
+      (check-equal? (string-replacement-apply replacement s) s2)
 
-      (define normalized (string-replacement-normalize replacement s))
+      (define normalized (string-replacement-focus replacement s))
 
       (define expected
         (string-replacement #:start 9 #:end 12 #:contents (list (inserted-string "little"))))
-      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? (string-replacement-apply expected s) s2)
       (check-equal? normalized expected))
 
     (test-case "normalizing by left-trimming a single size-decreasing insertion"
@@ -538,13 +609,13 @@
       (define s2 "hello my big friend")
       (define replacement-pieces (list (inserted-string "my big")))
       (define replacement (string-replacement #:start 6 #:end 15 #:contents replacement-pieces))
-      (check-equal? (string-apply-replacement s replacement) s2)
+      (check-equal? (string-replacement-apply replacement s) s2)
 
-      (define normalized (string-replacement-normalize replacement s))
+      (define normalized (string-replacement-focus replacement s))
 
       (define expected
         (string-replacement #:start 9 #:end 15 #:contents (list (inserted-string "big"))))
-      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? (string-replacement-apply expected s) s2)
       (check-equal? normalized expected))
 
     (test-case "normalizing by right-trimming a single size-increasing insertion"
@@ -552,13 +623,13 @@
       (define s2 "hello my little friend")
       (define replacement-pieces (list (inserted-string "little friend")))
       (define replacement (string-replacement #:start 9 #:end 19 #:contents replacement-pieces))
-      (check-equal? (string-apply-replacement s replacement) s2)
+      (check-equal? (string-replacement-apply replacement s) s2)
 
-      (define normalized (string-replacement-normalize replacement s))
+      (define normalized (string-replacement-focus replacement s))
 
       (define expected
         (string-replacement #:start 9 #:end 12 #:contents (list (inserted-string "little"))))
-      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? (string-replacement-apply expected s) s2)
       (check-equal? normalized expected))
 
     (test-case "normalizing by right-trimming a single size-decreasing insertion"
@@ -566,13 +637,13 @@
       (define s2 "hello my big friend")
       (define replacement-pieces (list (inserted-string "big friend")))
       (define replacement (string-replacement #:start 9 #:end 22 #:contents replacement-pieces))
-      (check-equal? (string-apply-replacement s replacement) s2)
+      (check-equal? (string-replacement-apply replacement s) s2)
 
-      (define normalized (string-replacement-normalize replacement s))
+      (define normalized (string-replacement-focus replacement s))
 
       (define expected
         (string-replacement #:start 9 #:end 15 #:contents (list (inserted-string "big"))))
-      (check-equal? (string-apply-replacement s expected) s2)
+      (check-equal? (string-replacement-apply expected s) s2)
       (check-equal? normalized expected))))
 
 
