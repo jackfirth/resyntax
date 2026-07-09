@@ -72,7 +72,7 @@
 
 
 (define (string-replacement->line-replacement replacement original-string)
-  (define new-string (string-apply-replacement original-string replacement))
+  (define new-string (string-replacement-apply replacement original-string))
   (define orig-lmap (string-linemap original-string))
   (define new-lmap (string-linemap new-string))
   

@@ -119,7 +119,7 @@
                (mapping refactoring-result-string-replacement)
                #:into union-into-string-replacement))
   (define base (refactoring-result-set-base-source result-set))
-  (define new-contents (string-apply-replacement (source->string base) replacement))
+  (define new-contents (string-replacement-apply replacement (source->string base)))
   (modified-source (source-original base) new-contents))
 
 
@@ -171,7 +171,7 @@
         (define replacement
           (transduce (hash-ref new-committed-replacements source '())
                      #:into union-into-string-replacement))
-        (values (source-path source) (string-apply-replacement old-contents replacement))))
+        (values (source-path source) (string-replacement-apply replacement old-contents))))
     (define description
       (refactoring-result-message (first rule-results)))
     (define num-fixes (length rule-results))
@@ -205,7 +205,7 @@
   (define start (string-replacement-start replacement))
   (define original-line (linemap-position-to-line lmap (add1 start)))
   (define original-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
-  (define refactored-source-code (string-apply-replacement full-orig-code replacement))
+  (define refactored-source-code (string-replacement-apply replacement full-orig-code))
   (define new-code-string
     (substring refactored-source-code
                (string-replacement-start replacement)
