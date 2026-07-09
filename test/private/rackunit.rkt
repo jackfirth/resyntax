@@ -270,7 +270,7 @@
 
   (define actual-props
     (call-with-logs-captured
-     (λ () (reysntax-analyze-for-properties-only program-src
+     (λ () (resyntax-analyze-for-properties-only program-src
                                                  #:suite suite
                                                  #:timeout-ms (current-analyzer-timeout-millis)))))
 

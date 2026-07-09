@@ -27,7 +27,7 @@
          #:max-modified-lines (or/c exact-nonnegative-integer? +inf.0)
          #:timeout-ms exact-nonnegative-integer?)
         resyntax-analysis?)]
-  [reysntax-analyze-for-properties-only
+  [resyntax-analyze-for-properties-only
    (->* (source?) (#:suite refactoring-suite? #:timeout-ms exact-nonnegative-integer?) syntax-property-bundle?)]
   [refactor! (-> (sequence/c refactoring-result?) void?)]))
 
@@ -233,7 +233,7 @@
     [else result-set]))
 
 
-(define/guard (reysntax-analyze-for-properties-only source
+(define/guard (resyntax-analyze-for-properties-only source
                                                     #:suite [suite default-recommendations]
                                                     #:timeout-ms [timeout-ms 10000])
   (define comments (source-comment-locations source))
