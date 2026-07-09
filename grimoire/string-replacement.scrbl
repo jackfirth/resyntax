@@ -29,16 +29,27 @@ of pieces:
   original string, not just from within the replaced region, so a replacement can move text around
   in addition to inserting and deleting it.}]
 
-All positions are zero-based character offsets, and regions are half-open: a replacement from
+All positions are zero-based @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{character}
+offsets, and regions are half-open: a replacement from
 position @racket[_start] to position @racket[_end] covers the characters at positions
-@racket[_start] through @racket[(sub1 _end)].
+@racket[_start] through @racket[(sub1 _end)]. @bold{Beware that string replacements do NOT use
+ one-based position indices}, unlike positions in syntax object source locations such as those
+returned by @racket[syntax-position].
+
+When applied to a string, a string replacement first deletes everything in the range it describes.
+Then it inserts and copies text into that range, according to the string replacement's piece list.
+The replacement is applied atomically: character positions in copied strings always refer to the
+positions of characters in the original, unedited string, prior to any deletions, insertions, or
+copying operations being applied.
 
 String replacements are the final, lowest-level form that Resyntax's refactoring suggestions take
 before being written to files. The distinction between inserted and copied pieces is the string-level
 end of the formatting preservation mechanism described in @secref["original-syntax-paths"]: when
 Resyntax decides that a piece of refactored code is unchanged from the original program, the
 suggestion copies its text rather than regenerating it, and that decision ultimately takes the form
-of a @racket[copied-string] piece.
+of a @racket[copied-string] piece. This mechanism is also used by Resyntax to preserve comments where
+possible and discard suggestions that can't preserve them; see
+@racket[string-replacement-preserved-locations] for details.
 
 
 @defproc[(string-replacement? [v any/c]) boolean?]{
@@ -54,12 +65,23 @@ of a @racket[copied-string] piece.
  @racket[end] with the given @racket[contents]. Raises a contract error if @racket[end] is before
  @racket[start].
 
- The contents are normalized during construction: pieces that span zero characters are dropped,
- adjacent inserted strings are merged into one, and adjacent copied strings that copy contiguous
- regions are merged into one. As a consequence, two replacements constructed from differently
- divided piece lists describing the same content are @racket[equal?], and
+ The contents are lightly normalized during construction: pieces that span zero characters are
+ dropped, adjacent inserted strings are merged into one, and adjacent copied strings that copy
+ contiguous regions are merged into one. As a consequence, two replacements constructed from
+ differently divided piece lists describing the same content are @racket[equal?], and
  @racket[string-replacement-contents] may return a different list than the one the replacement was
- constructed with.}
+ constructed with.
+
+ Beware that this light form of normalization, called
+ @deftech{replacement construction normalization}, does @bold{not} remove redundant no-op
+ @racket[copied-string] operations at the start or end of the replacement. This is in contrast to
+ the stricter @tech{replacement focusing normalization} implemented by
+ @racket[string-replacement-normalize]. For example, consider a replacement that starts at position
+ @racket[0], ends at position @racket[_n], and contains a single @racket[(copied-string 0 _n)] piece.
+ This replacement is functionally a no-op that makes no changes at all to the string. However,
+ construction normalization does not remove the @racket[copied-string] piece, even though it behaves
+ identically to an empty string replacement. Focusing normalization, on the other hand, @emph{does}
+ remove the copied string piece --- see @racket[string-replacement-normalize] for details.}
 
 
 @defproc[(string-replacement-start [replacement string-replacement?]) natural?]{
@@ -68,11 +90,14 @@ of a @racket[copied-string] piece.
 
 @defproc[(string-replacement-original-end [replacement string-replacement?]) natural?]{
  Returns the position just past the last character replaced by @racket[replacement], in terms of
- positions within the @emph{original} string.}
+ positions within the @emph{original} string. Note that this is a zero-indexed position, with zero
+ being before the first character.}
 
 
 @defproc[(string-replacement-original-span [replacement string-replacement?]) natural?]{
- Returns the number of characters of the original string that @racket[replacement] replaces.}
+ Returns the size in characters of the range of the original string that @racket[replacement]
+ replaces. This is always equal to @racket[string-replacement-start] subtracted from
+ @racket[string-replacement-original-end].}
 
 
 @defproc[(string-replacement-new-end [replacement string-replacement?]) natural?]{
@@ -82,7 +107,9 @@ of a @racket[copied-string] piece.
 
 @defproc[(string-replacement-new-span [replacement string-replacement?]) natural?]{
  Returns the total number of characters that @racket[replacement]'s contents span, which is the
- length of the text that the replaced region contains after the replacement is applied.}
+ length of the text that the replaced region contains after the replacement is applied. This is
+ always equal to @racket[string-replacement-start] subtracted from
+ @racket[string-replacement-new-end].}
 
 
 @defproc[(string-replacement-contents [replacement string-replacement?])
@@ -94,7 +121,11 @@ of a @racket[copied-string] piece.
 @defproc[(string-replacement-preserved-locations [replacement string-replacement?]) range-set?]{
  Returns a range set of the positions in the original string whose characters are preserved by
  @racket[replacement]: every position before the replaced region, every position after it, and every
- position within the source range of one of the replacement's @racket[copied-string] pieces.}
+ position within the source range of one of the replacement's @racket[copied-string] pieces.
+
+ This is used by Resyntax to determine whether or not a replacement preserves comments: if a
+ replacement's @emph{unpreserved} locations has any overlap with @racket[source-comment-locations] for
+ the source being edited, then the replacement @emph{drops comments} and is discarded by Resyntax.}
 
 
 @defproc[(string-replacement-overlaps? [replacement string-replacement?]
@@ -102,7 +133,13 @@ of a @racket[copied-string] piece.
          boolean?]{
  Returns @racket[#true] if the replaced regions of @racket[replacement] and
  @racket[other-replacement] overlap. Replacements whose regions merely touch at a boundary do not
- overlap, since regions are half-open.}
+ overlap, since regions are half-open character ranges.
+
+ Overlap detection is conservatively imperfect. There exist string replacements that can be applied
+ together safely, but which @racket[string-replacement-overlaps?] reports @racket[#true] for. However,
+ there are @emph{never} cases where @racket[string-replacement-overlaps?] issues a false negative ---
+ only false positives. Further improvement here would likely require adjusting the representation of
+ string replacements using a range map structure instead of a single range and a list of pieces.}
 
 
 @defproc[(string-replacement-union [replacement1 string-replacement?]
@@ -111,15 +148,49 @@ of a @racket[copied-string] piece.
  Combines @racket[replacement1] and @racket[replacement2] into a single @tech{string replacement}
  whose replaced region covers both of their regions. The text between the two regions is copied from
  the original string unchanged. The order of the arguments doesn't matter. Raises a contract error
- if the two replacements overlap (in the sense of @racket[string-replacement-overlaps?]).}
+ if the two replacements overlap (in the sense of @racket[string-replacement-overlaps?]).
+
+ A quirk of the current implementation is that empty replacements are not treated specially. The union
+ of an empty replacement at position @racket[0] and a replacement at position @racket[_n] will produce
+ an expanded replacement that starts at position @racket[0]. A no-op @racket[copied-string] piece that
+ copies the contents between @racket[0] and @racket[_n] will be included. This results in a
+ replacement that behaves identically, but which reports an earlier start position and larger spans
+ from @racket[string-replacement-original-span] and @racket[string-replacement-new-span]. Like the
+ deficiencies of @racket[string-replacement-overlaps?], this could be fixed by using a range map
+ representation for string replacements instead of a single range representation.
+
+ Note that even for non-overlapping replacements, appying the union of two string replacements is
+ @bold{not} the same as applying one replacement and then applying the other. This is because of
+ copied strings --- the first replacement may change the size of the string, which can cause the
+ character positions referenced by copied string pieces in the second replacement to refer to
+ different text than it would have if the replacements were applied in the opposite order. This is
+ because although individual string replacements can be applied atomically, @emph{multiple}
+ replacements cannot.
+
+ When Resyntax wants to apply multiple string replacements at once, it always combines their
+ replacements into a single union replacement. Conflicting replacements are dropped; rather than try
+ to apply them in a second stage, Resyntax throws them out and re-analyzes the entire modified source
+ file instead to generate fresh suggested replacements. As a result, Resyntax has to decide which
+ replacements it wants to apply in each analysis round @emph{before} it can begin the next analysis
+ round. The result of each analysis round edits the source code in-memory using
+ @racket[modified-source] so that Resyntax can interleave editing and analysis in this manner without
+ actually committing its edits to the filesystem.}
 
 
 @defthing[union-into-string-replacement (reducer/c string-replacement? string-replacement?)]{
  A @tech[#:doc '(lib "rebellion/main.scrbl")]{reducer} that combines a sequence of pairwise
  non-overlapping @tech{string replacements} into one, as with @racket[string-replacement-union], for
  use with @racket[transduce]. The reduction starts from an empty replacement at position @racket[0],
- so the combined replacement's region always starts at position @racket[0].}
+ so the combined replacement's region always starts at position @racket[0].
 
+ Note that because of the quirk with how @racket[string-replacement-union] handles empty replacements,
+ this implies that a replacement produced by @racket[union-into-string-replacement] @bold{always}
+ starts at position @racket[0] and includes a large no-op @racket[copied-string] piece between
+ position @racket[0] and the lowest-position replacement that was included in the union.}
+
+
+@; TODO: maybe this should be named string-replacement-normalize-by-focusing or something? it's weird
+@;   that there's two forms of normalization and none of the names draw attention to that.
 
 @defproc[(string-replacement-normalize
           [replacement string-replacement?]
@@ -133,9 +204,18 @@ of a @racket[copied-string] piece.
  are trimmed away. If @racket[preserve-start] is provided, the normalized region is never trimmed
  past it: the region always starts at or before @racket[preserve-start]. Likewise, if
  @racket[preserve-end] is provided, the normalized region always ends at or after
- @racket[preserve-end]. Replacements that don't change @racket[original-string] at all are returned
- unchanged.}
+ @racket[preserve-end]. Replacements that don't change @racket[original-string] at all are shrunk td
+ the smallest no-op replacements possible given the constraints of @racket[preserve-start] and
+ @racket[preserve-end], and shrunk to empty replacements starting at their original start if those
+ constraints are not provided. @;TODO: claude, double-check this behavior
 
+ This form of normalization is called @deftech{replacement focusing normalization}, and is more
+ aggressive than the @tech{replacement construction normalization} performed automatically by
+ @racket[string-replacement]. This is the low-level mechanism used by Resyntax to implement the
+ replacement focusing behavior described in @secref[#|TODO: claude|#].}
+
+@;TODO: string-replacement-render + string-apply-replacement is confusing API split with weird naming.
+@;  should they be named differently? string-replacement-apply + -apply-partial maybe?
 
 @defproc[(string-replacement-render [replacement string-replacement?] [original-string string?])
          immutable-string?]{
