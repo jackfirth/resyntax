@@ -278,7 +278,7 @@
 (module+ test
   (require rackunit
            resyntax/private/analyzer
-           resyntax/private/syntax-property-bundle)
+           resyntax/grimoire/syntax-property-bundle)
 
   (test-case "refactoring-rule stores analyzers"
     (define-refactoring-rule test-rule

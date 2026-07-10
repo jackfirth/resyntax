@@ -14,7 +14,7 @@
 
 
 (require rebellion/custom-write
-         resyntax/private/syntax-property-bundle)
+         resyntax/grimoire/syntax-property-bundle)
 
 
 ;@----------------------------------------------------------------------------------------------------

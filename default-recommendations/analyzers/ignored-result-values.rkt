@@ -12,7 +12,7 @@
 (require racket/stream
          resyntax/private/analyzer
          resyntax/grimoire/syntax-path
-         resyntax/private/syntax-property-bundle
+         resyntax/grimoire/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/parse)
 

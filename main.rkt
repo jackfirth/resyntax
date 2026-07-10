@@ -63,7 +63,7 @@
          resyntax/grimoire/source
          resyntax/private/string-indent
          resyntax/grimoire/string-replacement
-         resyntax/private/syntax-property-bundle
+         resyntax/grimoire/syntax-property-bundle
          resyntax/private/syntax-range
          resyntax/private/syntax-replacement
          (except-in racket/list range)
