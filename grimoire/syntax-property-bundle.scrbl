@@ -24,7 +24,7 @@ key. A bundle contains at most one value for each path and key combination.
 Ordinarily, syntax properties live directly on syntax objects. Representing them separately as plain
 data lets Resyntax manipulate the properties themselves: bundles can be filtered, merged, translated
 from one syntax object's paths to another's, and inspected without ever touching a syntax object.
-Resyntax's expansion analyzers work this way --- each analyzer examines a fully expanded program and
+Resyntax's @tech{expansion analyzers} work this way --- each analyzer examines a fully expanded program and
 reports its findings as a syntax property bundle whose paths refer to subforms of the expanded
 program. Resyntax then translates those paths back to the corresponding locations in the original
 unexpanded program and grafts the translated bundle onto the unexpanded syntax object with
