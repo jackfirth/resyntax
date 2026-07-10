@@ -32,6 +32,11 @@
          resyntax/private/syntax-replacement)
 
 
+(module+ test
+  (require racket/file
+           rackunit))
+
+
 ;@----------------------------------------------------------------------------------------------------
 
 
@@ -433,6 +438,126 @@ For help on these, use 'analyze --help' or 'fix --help'."
    (hasheq 'commit_message_body commit-message
            'fix_count total-fixes))
   (newline))
+
+
+(module+ test
+
+  (define (parse-analyze-command-line . args)
+    (parameterize ([current-command-line-arguments (list->vector args)])
+      (resyntax-analyze-parse-command-line)))
+
+  (define (parse-fix-command-line . args)
+    (parameterize ([current-command-line-arguments (list->vector args)])
+      (resyntax-fix-parse-command-line)))
+
+  (define (suite-rule-names suite)
+    (for/list ([rule (in-list (refactoring-suite-rules suite))])
+      (object-name rule)))
+
+  (test-case "resyntax analyze command line parsing"
+
+    (test-case "defaults"
+      (define options (parse-analyze-command-line))
+      (check-equal? (resyntax-analyze-options-targets options) (vector))
+      (check-equal? (resyntax-analyze-options-suite options) default-recommendations)
+      (check-equal? (resyntax-analyze-options-output-format options) plain-text)
+      (check-equal? (resyntax-analyze-options-output-destination options) 'console)
+      (check-equal? (resyntax-analyze-options-analyzer-timeout-ms options) 10000))
+
+    (test-case "targets"
+      (define options
+        (parse-analyze-command-line "--file" "foo.rkt"
+                                    "--file" "bar.rkt"
+                                    "--directory" "subdir"
+                                    "--package" "somepkg"
+                                    "--local-git-repository" "somerepo" "origin/master"))
+      (check-equal? (resyntax-analyze-options-targets options)
+                    (vector (single-source-group "foo.rkt" all-lines)
+                            (single-source-group "bar.rkt" all-lines)
+                            (directory-source-group "subdir")
+                            (package-source-group "somepkg")
+                            (git-repository-source-group "somerepo" "origin/master"))))
+
+    (test-case "--analyzer-timeout"
+      (define options (parse-analyze-command-line "--analyzer-timeout" "250"))
+      (check-equal? (resyntax-analyze-options-analyzer-timeout-ms options) 250))
+
+    (test-case "--output-to-file"
+      (define options (parse-analyze-command-line "--output-to-file" "results.txt"))
+      (check-equal? (resyntax-analyze-options-output-destination options)
+                    (simple-form-path "results.txt")))
+
+    (test-case "--output-as-github-review"
+      (define options (parse-analyze-command-line "--output-as-github-review"))
+      (check-equal? (resyntax-analyze-options-output-format options) github-pull-request-review))
+
+    (test-case "--refactoring-rule"
+      (define options (parse-analyze-command-line "--refactoring-rule" "nested-and-to-flat-and"))
+      (check-equal? (suite-rule-names (resyntax-analyze-options-suite options))
+                    (list 'nested-and-to-flat-and))))
+
+  (test-case "resyntax fix command line parsing"
+
+    (test-case "defaults"
+      (define options (parse-fix-command-line))
+      (check-equal? (resyntax-fix-options-targets options) (vector))
+      (check-equal? (resyntax-fix-options-suite options) default-recommendations)
+      (check-equal? (resyntax-fix-options-fix-method options) modify-files)
+      (check-equal? (resyntax-fix-options-output-format options) plain-text)
+      (check-equal? (resyntax-fix-options-max-fixes options) +inf.0)
+      (check-equal? (resyntax-fix-options-max-modified-files options) +inf.0)
+      (check-equal? (resyntax-fix-options-max-modified-lines options) +inf.0)
+      (check-equal? (resyntax-fix-options-max-pass-count options) 10)
+      (check-equal? (resyntax-fix-options-analyzer-timeout-ms options) 10000))
+
+    (test-case "targets"
+      (define options (parse-fix-command-line "--file" "foo.rkt" "--directory" "subdir"))
+      (check-equal? (resyntax-fix-options-targets options)
+                    (vector (single-source-group "foo.rkt" all-lines)
+                            (directory-source-group "subdir"))))
+
+    (test-case "limits"
+      (define options
+        (parse-fix-command-line "--max-fixes" "3"
+                                "--max-modified-files" "2"
+                                "--max-modified-lines" "20"
+                                "--max-pass-count" "4"
+                                "--analyzer-timeout" "250"))
+      (check-equal? (resyntax-fix-options-max-fixes options) 3)
+      (check-equal? (resyntax-fix-options-max-modified-files options) 2)
+      (check-equal? (resyntax-fix-options-max-modified-lines options) 20)
+      (check-equal? (resyntax-fix-options-max-pass-count options) 4)
+      (check-equal? (resyntax-fix-options-analyzer-timeout-ms options) 250))
+
+    (test-case "--create-multiple-commits"
+      (define options (parse-fix-command-line "--create-multiple-commits"))
+      (check-equal? (resyntax-fix-options-fix-method options) create-multiple-git-commits))
+
+    (test-case "--output-as-commit-message"
+      (define options (parse-fix-command-line "--output-as-commit-message"))
+      (check-equal? (resyntax-fix-options-output-format options) git-commit-message))
+
+    (test-case "--output-as-json"
+      (define options (parse-fix-command-line "--output-as-json"))
+      (check-equal? (resyntax-fix-options-output-format options) json))
+
+    (test-case "--refactoring-rule"
+      (define options (parse-fix-command-line "--refactoring-rule" "nested-and-to-flat-and"))
+      (check-equal? (suite-rule-names (resyntax-fix-options-suite options))
+                    (list 'nested-and-to-flat-and))))
+
+  (test-case "resyntax fix modifies files"
+    (define test-dir (make-temporary-directory "resyntax-test-~a"))
+    (define test-file (build-path test-dir "test.rkt"))
+    (display-to-file "#lang racket/base\n(define (f a b c)\n  (and a (and b c)))\n" test-file)
+    (parameterize ([current-command-line-arguments
+                    (vector "--file" (path->string test-file)
+                            "--refactoring-rule" "nested-and-to-flat-and")]
+                   [current-output-port (open-output-nowhere)])
+      (resyntax-fix-run))
+    (check-equal? (file->string test-file)
+                  "#lang racket/base\n(define (f a b c)\n  (and a b c))\n")
+    (delete-directory/files test-dir)))
 
 
 (module+ main
