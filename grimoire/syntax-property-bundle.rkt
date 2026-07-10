@@ -12,7 +12,7 @@
   [syntax-property-bundle-as-map (-> syntax-property-bundle? immutable-sorted-map?)]
   [syntax-property-bundle-entries (-> syntax-property-bundle? (sequence/c syntax-property-entry?))]
   [syntax-property-bundle-get-property
-   (->* (syntax-property-bundle? syntax-path? any/c) (failure-result/c) any/c)]
+   (->* (syntax-property-bundle? syntax-path? interned-symbol?) (failure-result/c) any/c)]
   [syntax-property-bundle-get-immediate-properties
    (-> syntax-property-bundle? syntax-path? immutable-hash?)]
   [syntax-property-bundle-get-all-properties
@@ -20,7 +20,8 @@
   [sequence->syntax-property-bundle (-> (sequence/c syntax-property-entry?) syntax-property-bundle?)]
   [into-syntax-property-bundle (reducer/c syntax-property-entry? syntax-property-bundle?)]
   [property-hashes-into-syntax-property-bundle
-   (reducer/c (entry/c syntax-path? immutable-hash?) syntax-property-bundle?)]
+   (reducer/c (entry/c syntax-path? (hash/c interned-symbol? any/c #:immutable #true #:flat? #true))
+              syntax-property-bundle?)]
   [syntax-add-all-properties (-> syntax? syntax-property-bundle? syntax?)]
   [syntax-immediate-properties (->* (syntax?) (#:base-path syntax-path?) syntax-property-bundle?)]
   [syntax-all-properties (->* (syntax?) (#:base-path syntax-path?) syntax-property-bundle?)]))
@@ -32,6 +33,7 @@
          racket/sequence
          racket/stream
          rebellion/base/range
+         rebellion/base/symbol
          rebellion/collection/entry
          (except-in rebellion/collection/hash mutable-hash? immutable-hash?)
          rebellion/collection/sorted-map
@@ -55,7 +57,7 @@
   #:transparent)
 
 (struct syntax-property-entry (path key value)
-  #:guard (struct-guard/c syntax-path? any/c any/c)
+  #:guard (struct-guard/c syntax-path? interned-symbol? any/c)
   #:transparent)
 
 

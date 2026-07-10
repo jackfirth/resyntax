@@ -5,6 +5,7 @@
                      racket/contract/base
                      racket/mutability
                      racket/sequence
+                     rebellion/base/symbol
                      rebellion/collection/entry
                      rebellion/collection/sorted-map
                      rebellion/streaming/reducer
@@ -31,11 +32,10 @@ unexpanded program and grafts the translated bundle onto the unexpanded syntax o
 @racket[syntax-add-all-properties], making the analyzers' findings visible to
 @tech{refactoring rules}.
 
-Note that while a bundle may hold entries with arbitrary property keys, the functions that extract
-bundles from syntax objects (@racket[syntax-immediate-properties] and
-@racket[syntax-all-properties]) only discover properties whose keys are interned symbols, as that is
-the only part of a syntax object's property table that Racket exposes via
-@racket[syntax-property-symbol-keys].
+Although syntax objects themselves permit arbitrary property keys, property keys in a bundle are
+required to be interned symbols. The interned-symbol-keyed portion of a syntax object's property
+table is the only portion that Racket exposes via @racket[syntax-property-symbol-keys], so it is
+the only portion that bundles can faithfully represent.
 
 
 @section{Constructing Syntax Property Bundles}
@@ -45,7 +45,7 @@ the only part of a syntax object's property table that Racket exposes via
  A predicate that recognizes @tech{syntax property bundles}.}
 
 
-@defstruct*[syntax-property-entry ([path syntax-path?] [key any/c] [value any/c])
+@defstruct*[syntax-property-entry ([path syntax-path?] [key interned-symbol?] [value any/c])
             #:transparent]{
  A @deftech{syntax property entry} pairs a syntax property key and value with the
  @tech{syntax path} of the subform that the property belongs to. Bundles are built out of these
@@ -71,7 +71,8 @@ the only part of a syntax object's property table that Racket exposes via
 
 
 @defthing[property-hashes-into-syntax-property-bundle
-          (reducer/c (entry/c syntax-path? immutable-hash?) syntax-property-bundle?)]{
+          (reducer/c (entry/c syntax-path? (hash/c interned-symbol? any/c #:immutable #true))
+                     syntax-property-bundle?)]{
  A @tech[#:doc '(lib "rebellion/main.scrbl")]{reducer} that collects a sequence of
  @racket[entry] values, each mapping a @tech{syntax path} to a hash of the properties at that path,
  into a @tech{syntax property bundle}. Entries with empty property
@@ -85,7 +86,7 @@ the only part of a syntax object's property table that Racket exposes via
 
 @defproc[(syntax-property-bundle-get-property [bundle syntax-property-bundle?]
                                               [path syntax-path?]
-                                              [key any/c]
+                                              [key interned-symbol?]
                                               [failure-result failure-result/c #false])
          any/c]{
  Returns the value of the property with key @racket[key] at @racket[path] within @racket[bundle].
