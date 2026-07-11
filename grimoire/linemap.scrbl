@@ -20,8 +20,8 @@ perspectives:
  @item{A @emph{human} perspective, either reader or writer, who looks at code as a 2D grid composed of
   lines and columns.}
 
- @item{A @emph{machine} perspective, that looks at code as one line sequence of characters (or perhaps
-  even just plain bytes).}]
+ @item{A @emph{machine} perspective, that looks at code as one linear sequence of characters (or
+  perhaps even just plain bytes).}]
 
 Tools that serve as a human-machine interface for code often have to juggle these two perspectives.
 Linemaps are Resyntax's tool for doing so. They are used in various places where human concerns
