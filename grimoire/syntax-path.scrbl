@@ -2,6 +2,7 @@
 
 
 @(require pict
+          pict/tree-layout
           (for-label racket/base
                      racket/contract/base
                      racket/sequence
@@ -19,10 +20,14 @@
    (let ()
      (define node-diameter 42)
      (define (node #:label [label #false] #:highlight? [highlight? #false])
-       (define base
+       (define outline
          (if highlight?
              (cc-superimpose (circle node-diameter) (circle (- node-diameter 8)))
              (circle node-diameter)))
+       ; The opaque fill hides the edge lines, which tree layouts draw from node center to node
+       ; center underneath the node picts.
+       (define base
+         (cc-superimpose (disk node-diameter #:color "white" #:draw-border? #false) outline))
        (if label
            (cc-superimpose base (text label '(bold . modern) 10))
            base))
@@ -34,27 +39,35 @@
      (define grandchild11 (node))
      (define grandchild20 (node #:label "/2/0" #:highlight? #true))
      (define grandchild21 (node))
-     (define level-gap 45)
-     (define sibling-gap 25)
-     (define subtree1
-       (vc-append level-gap child1 (ht-append sibling-gap grandchild10 grandchild11)))
-     (define subtree2
-       (vc-append level-gap child2 (ht-append sibling-gap grandchild20 grandchild21)))
-     (define bottom-row (ht-append 45 child0 subtree1 subtree2))
-     (define tree (vc-append level-gap root bottom-row))
-     (define (connect base parent child i #:x-adjust [x-adjust 0])
-       (pin-line base parent cb-find child ct-find
-                 #:label (text (number->string i) 'modern 11)
-                 #:x-adjust-label x-adjust))
+     (define layout
+       (tree-layout #:pict root
+                    (tree-layout #:pict child0)
+                    (tree-layout #:pict child1
+                                 (tree-layout #:pict grandchild10)
+                                 (tree-layout #:pict grandchild11))
+                    (tree-layout #:pict child2
+                                 (tree-layout #:pict grandchild20)
+                                 (tree-layout #:pict grandchild21))))
+     (define tree (naive-layered layout #:x-spacing 25 #:y-spacing 45))
+     ; Tree layouts can't label edges, so each child's index is pinned onto the finished tree at
+     ; the midpoint of the edge leading to that child, nudged sideways off the line by x-adjust.
+     (define (label-edge base parent child i #:x-adjust [x-adjust 0])
+       (define-values (parent-x parent-y) (cc-find base parent))
+       (define-values (child-x child-y) (cc-find base child))
+       (define label (text (number->string i) 'modern 11))
+       (pin-over base
+                 (+ (/ (+ parent-x child-x) 2) x-adjust (- (/ (pict-width label) 2)))
+                 (- (/ (+ parent-y child-y) 2) (/ (pict-height label) 2))
+                 label))
      (define diagram
        (let* ([p tree]
-              [p (connect p root child0 0 #:x-adjust -8)]
-              [p (connect p root child1 1 #:x-adjust -8)]
-              [p (connect p root child2 2 #:x-adjust 8)]
-              [p (connect p child1 grandchild10 0 #:x-adjust -8)]
-              [p (connect p child1 grandchild11 1 #:x-adjust 8)]
-              [p (connect p child2 grandchild20 0 #:x-adjust -8)]
-              [p (connect p child2 grandchild21 1 #:x-adjust 8)])
+              [p (label-edge p root child0 0 #:x-adjust -8)]
+              [p (label-edge p root child1 1 #:x-adjust -8)]
+              [p (label-edge p root child2 2 #:x-adjust 8)]
+              [p (label-edge p child1 grandchild10 0 #:x-adjust -8)]
+              [p (label-edge p child1 grandchild11 1 #:x-adjust 8)]
+              [p (label-edge p child2 grandchild20 0 #:x-adjust -8)]
+              [p (label-edge p child2 grandchild21 1 #:x-adjust 8)])
          p))
      (inset diagram 10)))
 
