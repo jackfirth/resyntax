@@ -41,13 +41,6 @@ consists of a single empty line.
  treated as line separators.}
 
 
-@defproc[(linemap-lines [map linemap?])
-         (vectorof (and/c string? immutable?) #:immutable #true)]{
- Returns a vector of the lines of the string that @racket[map] was built from, without their
- terminating newlines. Note that because line numbers are one-based and vector indices are
- zero-based, line @racket[_n] is at index @racket[_n] minus one in the returned vector.}
-
-
 @defproc[(linemap-position-to-line [map linemap?] [position exact-positive-integer?])
          exact-positive-integer?]{
  Returns the line number of the line containing @racket[position]. The position of a newline
@@ -55,17 +48,11 @@ consists of a single empty line.
  end of the string do not raise an error; they are all treated as belonging to the last line.}
 
 
-@defproc[(linemap-line-start-position [map linemap?] [line exact-positive-integer?])
-         exact-positive-integer?]{
- Returns the position of the first character of @racket[line]. If the string ends with a newline,
- the start position of its final, empty line is one past the end of the string. Raises an error if
- @racket[line] is greater than the number of lines in the string.}
-
-
 @defproc[(linemap-position-to-start-of-line [map linemap?] [position exact-positive-integer?])
          exact-positive-integer?]{
- Returns the position of the first character of the line containing @racket[position]. Equivalent
- to composing @racket[linemap-position-to-line] with @racket[linemap-line-start-position].}
+ Returns the position of the first character of the line containing @racket[position]. If the
+ string ends with a newline and @racket[position] is on the final, empty line after it, that
+ line's start position is one past the end of the string.}
 
 
 @defproc[(linemap-position-to-end-of-line [map linemap?] [position exact-positive-integer?])
@@ -75,22 +62,8 @@ consists of a single empty line.
  end of the string if the line is the last one.}
 
 
-@defproc[(syntax-start-line-position [stx syntax?] [#:linemap map linemap?])
-         exact-positive-integer?]{
- Returns the position of the start of the line on which @racket[stx] begins. The
- @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{source location} of @racket[stx] must
- refer to positions within the string that @racket[map] was built from.}
-
-
-@defproc[(syntax-end-line-position [stx syntax?] [#:linemap map linemap?])
-         exact-positive-integer?]{
- Returns the position of the end of the line on which @racket[stx] ends, in the same sense as
- @racket[linemap-position-to-end-of-line]. The source location of @racket[stx] must refer to
- positions within the string that @racket[map] was built from.}
-
-
 @defproc[(syntax-line-range [stx syntax?] [#:linemap map linemap?]) range?]{
  Returns a closed range (with @racket[natural<=>] as its comparator) containing the line numbers
  of every line that @racket[stx] spans, from the line on which it begins to the line on which it
- ends. The source location of @racket[stx] must refer to positions within the string that
- @racket[map] was built from.}
+ ends. The @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{source location} of
+ @racket[stx] must refer to positions within the string that @racket[map] was built from.}

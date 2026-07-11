@@ -8,13 +8,9 @@
  (contract-out
   [string-linemap (-> string? linemap?)]
   [linemap? (-> any/c boolean?)]
-  [linemap-lines (-> linemap? (vectorof (and/c string? immutable?) #:immutable #true #:flat? #true))]
   [linemap-position-to-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
-  [linemap-line-start-position (-> linemap? exact-positive-integer? exact-positive-integer?)]
   [linemap-position-to-start-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
   [linemap-position-to-end-of-line (-> linemap? exact-positive-integer? exact-positive-integer?)]
-  [syntax-start-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
-  [syntax-end-line-position (-> syntax? #:linemap linemap? exact-positive-integer?)]
   [syntax-line-range (-> syntax? #:linemap linemap? range?)]))
 
 
@@ -86,14 +82,6 @@
 
 (define (linemap-position-to-end-of-line map position)
   (linemap-line-end-position map (linemap-position-to-line map position)))
-
-
-(define (syntax-start-line-position stx #:linemap map)
-  (linemap-position-to-start-of-line map (syntax-position stx)))
-
-
-(define (syntax-end-line-position stx #:linemap map)
-  (linemap-position-to-end-of-line map (+ (syntax-position stx) (syntax-span stx))))
 
 
 (define (syntax-line-range stx #:linemap map)
