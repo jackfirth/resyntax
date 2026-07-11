@@ -30,9 +30,11 @@
   #:attributes ([leaf 1] rank)
   #:commit
 
-  (pattern (id:id subtree ...)
+  ;; The head identifier is checked before the subtrees are recursively parsed, so that forms whose
+  ;; head isn't the branch identifier fail fast instead of paying to descend the entire subtree only
+  ;; to be rejected afterward (see issue #800).
+  (pattern ((~and id:id (~fail #:unless (free-identifier=? #'id branch-identifier))) subtree ...)
     #:declare subtree (syntax-tree branch-identifier)
-    #:when (free-identifier=? #'id branch-identifier)
     #:cut
     #:with (leaf ...) #'(subtree.leaf ... ...)
     #:attr rank (add1 (option-get (transduce (attribute subtree.rank) #:into (into-max)) 0)))
