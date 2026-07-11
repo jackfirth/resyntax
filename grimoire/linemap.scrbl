@@ -13,27 +13,40 @@
 @defmodule[resyntax/grimoire/linemap]
 
 A @deftech{linemap} is a precomputed index of a string's line structure that supports converting
-between character positions and line numbers. Resyntax straddles two views of source code: the
-line-oriented view, used by @tech{source groups} and the command-line interface (see
-@secref["cli"]) to select which code to analyze, and the character-oriented view, used by
-@tech{string replacements} and syntax object source locations. Linemaps are the bridge between them --- Resyntax uses linemaps to compute which
-lines a refactoring suggestion modifies, to render string replacements as line-based diffs, and to
-restrict analysis to the requested lines.
+between character positions and line numbers. Source code is frequently viewed from one of two
+perspectives:
 
-@bold{Positions in a linemap are zero-based, but line numbers are one-based.} Positions are
-character indices into the string, following the same convention as Racket's string operations and
-as @tech{string replacements}: the first character of a string is at position @racket[0]. Line
-numbers instead begin at line @racket[1], matching @racket[syntax-line] and the conventions of
-code editors --- line numbers are almost exclusively useful in user interfaces, where one-based
-numbering is expected. Beware that @racket[syntax-position] and file port positions are
-@emph{one-based}, unlike linemap positions. The @racket[syntax-line-range] operation performs that
-conversion itself, but positions obtained from syntax objects by other means must be converted
-before use with a linemap.
+@itemlist[
+ @item{A @emph{human} perspective, either reader or writer, who looks at code as a 2D grid composed of
+  lines and columns.}
+
+ @item{A @emph{machine} perspective, that looks at code as one line sequence of characters (or perhaps
+  even just plain bytes).}]
+
+Tools that serve as a human-machine interface for code often have to juggle these two perspectives.
+Linemaps are Resyntax's tool for doing so. They are used in various places where human concerns
+related to viewing and describing source code and source edits come up, such as displaying or
+consuming line-based diffs in the command-line interface. See @secref["cli"] for further details on
+that matter.
+
+@bold{Positions in a linemap are zero-based, but line numbers are one-based.} Positions
+are character indices into the string. This follows the same convention as Racket's string operations
+such as @racket[string-ref], as well as Resyntax's conventions for @tech{string replacements}. Line
+numbers, however, follow the conventions outlined in
+@secref["linecol" #:doc '(lib "scribblings/reference/reference.scrbl")]: source files begin at line
+@racket[1]. This matches @racket[syntax-line] and the conventions of code editors --- line numbers
+are almost exclusively useful in user interfaces, where one-based numbering is expected.
+
+@bold{Beware that @racket[syntax-position] and file port positions are @emph{one-based}, unlike
+ linemap positions.} The @racket[syntax-line-range] operation performs that conversion itself, but
+positions obtained from syntax objects by other means must be converted before use with a linemap.
 
 The lines of a string are the segments separated by newline characters. The terminating newline is
 not part of a line's contents, but positions of newline characters belong to the lines they
 terminate. A string that ends with a newline has a final empty line after it, and the empty string
-consists of a single empty line.
+consists of a single empty line. Note that there are multiple distinct byte sequences that Racket
+treats as a newline when reading source code --- for further details on how Resyntax handles these
+cases, see the notes in @racket[with-input-from-source].
 
 
 @defproc[(linemap? [v any/c]) boolean?]{
