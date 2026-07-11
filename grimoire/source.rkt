@@ -53,6 +53,19 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
+;; Matches every newline sequence that reencode-input-port's newline conversion recognizes.
+(define newline-sequence-pattern
+  (let ([cr (string #\return)]
+        [lf (string #\newline)]
+        [nel (string (integer->char #x85))]
+        [ls (string (integer->char #x2028))])
+    (regexp (string-append cr lf "|" cr nel "|" cr "|" nel "|" ls))))
+
+
+(define (string-normalize-newlines str)
+  (regexp-replace* newline-sequence-pattern str (string #\newline)))
+
+
 (struct source () #:transparent)
 
 
@@ -66,12 +79,13 @@
 
 (struct string-source unmodified-source (contents)
   #:transparent
-  #:guard (λ (contents _) (string->immutable-string contents)))
+  #:guard (λ (contents _) (string->immutable-string (string-normalize-newlines contents))))
 
 
 (struct modified-source source (original contents)
   #:transparent
-  #:guard (λ (original contents _) (values original (string->immutable-string contents))))
+  #:guard (λ (original contents _)
+            (values original (string->immutable-string (string-normalize-newlines contents)))))
 
 
 (define (source-name src)
@@ -137,6 +151,20 @@
 
 
 (module+ test
+  (test-case "string and modified sources normalize newlines upon construction"
+    (define cr (string #\return))
+    (define lf (string #\newline))
+    (define nel (string (integer->char #x85)))
+    (define ls (string (integer->char #x2028)))
+    (define normalized (string-source (string-append "a" lf "b" lf "c")))
+    (check-equal? (string-source (string-append "a" cr lf "b" cr lf "c")) normalized)
+    (check-equal? (string-source (string-append "a" cr "b" cr "c")) normalized)
+    (check-equal? (string-source (string-append "a" nel "b" cr nel "c")) normalized)
+    (check-equal? (string-source (string-append "a" ls "b" ls "c")) normalized)
+    (define base (string-source "base"))
+    (check-equal? (modified-source base (string-append "a" cr lf "b"))
+                  (modified-source base (string-append "a" lf "b"))))
+
   (test-case "source-read-language"
     (check-equal? (source-read-language (string-source "#lang racket")) 'racket)
     (check-equal? (source-read-language (string-source "#lang at-exp racket")) 'at-exp)

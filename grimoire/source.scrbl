@@ -64,7 +64,10 @@ stack of dependent changes to commit in series without actually mutating the fil
 
 
 @defproc[(string-source [contents string?]) string-source?]{
- Constructs a source string containing @racket[contents] directly.}
+ Constructs a source string containing @racket[contents] directly. The newlines of
+ @racket[contents] are normalized at construction time, in the same manner described in
+ @racket[with-input-from-source]. Normalizing eagerly ensures that two string sources denoting the
+ same text are @racket[equal?] even if they were constructed with different newline conventions.}
 
 
 @defproc[(modified-source? [v any/c]) boolean?]{
@@ -77,7 +80,8 @@ stack of dependent changes to commit in series without actually mutating the fil
  Constructs a modified source that replaces the contents of @racket[original] with
  @racket[new-contents]. This represents a whole-file replacement --- the @emph{complete} contents of
  @racket[original] are @emph{entirely} swapped out with @racket[new-contents]. Modified sources cannot
- represent partial edits on their own.}
+ represent partial edits on their own. Like @racket[string-source], the newlines of
+ @racket[new-contents] are normalized at construction time.}
 
 
 @defproc[(source-name [code source?]) (or/c path? symbol?)]{
@@ -124,7 +128,10 @@ stack of dependent changes to commit in series without actually mutating the fil
  with the character indices of that source's text. Resyntax relies on the assumption that a syntax
  object's position and span identify exactly the range of characters it was read from. Analyzing
  code with Windows-style newlines used to violate that assumption and break Resyntax in
- hard-to-diagnose ways.}
+ hard-to-diagnose ways.
+
+ String sources and modified sources also apply this normalization eagerly, when the source value
+ is constructed, so the port-level conversion only has a visible effect for file sources.}
 
 
 @section{Parsing, Expanding, and Compiling Sources}
