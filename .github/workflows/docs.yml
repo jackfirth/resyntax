@@ -1,0 +1,85 @@
+name: Docs
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+# All three jobs below deploy to the same Wisp site by pulling its current
+# tree, editing one subpath, and redeploying the whole thing (see
+# script/publish-docs.sh) — they must not run concurrently or they'll race
+# and clobber each other's changes.
+concurrency:
+  group: docs-wisp-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  publish:
+    name: Publish docs (master)
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: Bogdanp/setup-racket@v1.5
+        with:
+          version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: raco pkg install --batch --auto --link --name resyntax
+      - run: npm install -g wispctl@latest
+      - run: script/publish-docs.sh publish ""
+        env:
+          WISP_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
+
+  preview:
+    name: Publish PR preview
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: Bogdanp/setup-racket@v1.5
+        with:
+          version: stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: raco pkg install --batch --auto --link --name resyntax
+      - run: npm install -g wispctl@latest
+      - run: script/publish-docs.sh publish "preview/${{ github.event.pull_request.number }}"
+        env:
+          WISP_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
+      - name: Comment preview link on PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          MARKER="<!-- docs-preview-link -->"
+          BODY="$MARKER
+          Docs preview: https://resyntax.notjack.space/preview/${PR_NUMBER}/"
+          existing_id="$(gh api "repos/$REPO/issues/$PR_NUMBER/comments" --jq ".[] | select(.body | startswith(\"$MARKER\")) | .id" | head -n1)"
+          if [ -n "$existing_id" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$existing_id" -f body="$BODY"
+          else
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$BODY"
+          fi
+
+  preview-cleanup:
+    name: Remove PR preview
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g wispctl@latest
+      - run: script/publish-docs.sh delete "preview/${{ github.event.pull_request.number }}"
+        env:
+          WISP_APP_PASSWORD: ${{ secrets.WISP_APP_PASSWORD }}
