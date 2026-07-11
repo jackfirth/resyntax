@@ -48,6 +48,23 @@ case "$ACTION" in
     BUILD_DIR="$WORKDIR/build"
     raco scribble ++main-xref-in --redirect-main https://docs.racket-lang.org/ \
       --htmls --dest "$BUILD_DIR" main.scrbl
+    # Wisp serves directory URLs that lack a trailing slash by returning the
+    # index page directly instead of redirecting to the slash form, which
+    # breaks the page's relative links (the browser resolves them one
+    # directory too high). Scribble has no option for this, so inject a
+    # snippet that bounces slash-less directory URLs to the slash form.
+    python3 - "$BUILD_DIR/main/index.html" <<'EOF'
+import sys
+path = sys.argv[1]
+snippet = ('<script>(function(){var p=location.pathname;'
+           'if(!/\\/$|\\.[^\\/]*$/.test(p))'
+           'location.replace(p+"/"+location.search+location.hash);})();</script>')
+with open(path, encoding="utf-8") as f:
+    html = f.read()
+assert "<head>" in html, "no <head> tag found in " + path
+with open(path, "w", encoding="utf-8") as f:
+    f.write(html.replace("<head>", "<head>" + snippet, 1))
+EOF
     rm -rf "$TARGET_DIR"
     mkdir -p "$TARGET_DIR"
     cp -r "$BUILD_DIR/main/." "$TARGET_DIR/"
