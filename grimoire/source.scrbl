@@ -4,6 +4,7 @@
 @(require (for-label racket/base
                      racket/contract/base
                      racket/path
+                     racket/port
                      rebellion/base/immutable-string
                      rebellion/collection/range-set
                      resyntax/grimoire/source
@@ -104,13 +105,26 @@ stack of dependent changes to commit in series without actually mutating the fil
 @defproc[(source->string [code source?]) immutable-string?]{
  Returns the full text of @racket[code], reading it from the filesystem if necessary. For
  @racket[modified-source?] values, this returns the new, updated text rather than the original
- unmodified text.}
+ unmodified text. The returned text has its newlines normalized, as described in
+ @racket[with-input-from-source].}
 
 
 @defproc[(with-input-from-source [code source?] [proc (-> any)]) any]{
  Calls @racket[proc] with @racket[current-input-port] set to a freshly opened input port reading
  the contents of @racket[code]. For unmodified file sources, this opens a file port. For modified
- sources and string sources, this opens a string port without interacting with the filesystem.}
+ sources and string sources, this opens a string port without interacting with the filesystem.
+
+ The opened port decodes the source as UTF-8 and @bold{normalizes newlines}, as in
+ @racket[reencode-input-port]: Windows-style @racket["\r\n"] sequences (and other newline
+ conventions) are converted into single @racket[#\newline] characters. Every operation that reads
+ a source goes through this normalization, including @racket[source->string] and
+ @racket[source-read-syntax]. Normalizing consistently is load-bearing: when line counting is
+ enabled on a port, Racket counts a @racket["\r\n"] sequence as a @emph{single} position, so
+ without normalization the source locations of syntax objects read from a source would disagree
+ with the character indices of that source's text. Resyntax relies on the assumption that a syntax
+ object's position and span identify exactly the range of characters it was read from. Analyzing
+ code with Windows-style newlines used to violate that assumption and break Resyntax in
+ hard-to-diagnose ways.}
 
 
 @section{Parsing, Expanding, and Compiling Sources}

@@ -5,7 +5,8 @@
                      racket/contract/base
                      rebellion/base/comparator
                      rebellion/base/range
-                     resyntax/grimoire/linemap))
+                     resyntax/grimoire/linemap
+                     resyntax/grimoire/source))
 
 
 @title[#:tag "linemap"]{Linemaps}
@@ -41,7 +42,10 @@ consists of a single empty line.
 
 @defproc[(string-linemap [str string?]) linemap?]{
  Constructs a @tech{linemap} of the lines in @racket[str]. Only @racket[#\newline] characters are
- treated as line separators.}
+ treated as line separators. In particular, Windows-style @racket["\r\n"] line endings are not
+ understood. This never arises in practice, because Resyntax normalizes all newlines to
+ @racket[#\newline] when reading @tech{source code} --- see @racket[with-input-from-source] for
+ details on that normalization and why it matters.}
 
 
 @defproc[(linemap-position-to-line [map linemap?] [position exact-nonnegative-integer?])
