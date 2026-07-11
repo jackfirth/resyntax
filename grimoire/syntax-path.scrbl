@@ -1,7 +1,9 @@
 #lang scribble/manual
 
 
-@(require (for-label racket/base
+@(require pict
+          pict/tree-layout
+          (for-label racket/base
                      racket/contract/base
                      racket/sequence
                      racket/treelist
@@ -9,6 +11,65 @@
                      rebellion/base/immutable-string
                      resyntax/grimoire/source
                      resyntax/grimoire/syntax-path))
+
+
+@; A tree diagram showing how the syntax path /2/0 addresses a node: labeled
+@; nodes show their own paths, and the doubly-circled node is the one the
+@; path refers to.
+@(define syntax-path-tree-diagram
+   (let ()
+     (define node-diameter 42)
+     (define (node #:label [label #false] #:highlight? [highlight? #false])
+       (define outline
+         (if highlight?
+             (cc-superimpose (circle node-diameter) (circle (- node-diameter 8)))
+             (circle node-diameter)))
+       ; The opaque fill hides the edge lines, which tree layouts draw from node center to node
+       ; center underneath the node picts.
+       (define base
+         (cc-superimpose (disk node-diameter #:color "white" #:draw-border? #false) outline))
+       (if label
+           (cc-superimpose base (text label '(bold . modern) 10))
+           base))
+     (define root (node #:label "/"))
+     (define child0 (node))
+     (define child1 (node))
+     (define child2 (node #:label "/2"))
+     (define grandchild10 (node))
+     (define grandchild11 (node))
+     (define grandchild20 (node #:label "/2/0" #:highlight? #true))
+     (define grandchild21 (node))
+     (define layout
+       (tree-layout #:pict root
+                    (tree-layout #:pict child0)
+                    (tree-layout #:pict child1
+                                 (tree-layout #:pict grandchild10)
+                                 (tree-layout #:pict grandchild11))
+                    (tree-layout #:pict child2
+                                 (tree-layout #:pict grandchild20)
+                                 (tree-layout #:pict grandchild21))))
+     (define tree (naive-layered layout #:x-spacing 25 #:y-spacing 45))
+     ; Tree layouts can't label edges, so each child's index is pinned onto the finished tree at
+     ; the midpoint of the edge leading to that child, nudged sideways off the line by x-adjust.
+     (define (label-edge base parent child i #:x-adjust [x-adjust 0])
+       (define-values (parent-x parent-y) (cc-find base parent))
+       (define-values (child-x child-y) (cc-find base child))
+       (define label (text (number->string i) 'modern 11))
+       (pin-over base
+                 (+ (/ (+ parent-x child-x) 2) x-adjust (- (/ (pict-width label) 2)))
+                 (- (/ (+ parent-y child-y) 2) (/ (pict-height label) 2))
+                 label))
+     (define diagram
+       (let* ([p tree]
+              [p (label-edge p root child0 0 #:x-adjust -8)]
+              [p (label-edge p root child1 1 #:x-adjust -8)]
+              [p (label-edge p root child2 2 #:x-adjust 8)]
+              [p (label-edge p child1 grandchild10 0 #:x-adjust -8)]
+              [p (label-edge p child1 grandchild11 1 #:x-adjust 8)]
+              [p (label-edge p child2 grandchild20 0 #:x-adjust -8)]
+              [p (label-edge p child2 grandchild21 1 #:x-adjust 8)])
+         p))
+     (inset diagram 10)))
 
 
 @title[#:tag "syntax-path"]{Syntax Paths}
@@ -22,6 +83,13 @@ print in a filesystem-like notation --- the path @racket[(syntax-path (list 1 2 
 @racketresultfont{#<syntax-path:/1/2/3>}. Resyntax uses syntax paths to refer to subforms of a
 program in a way that doesn't depend on exact source locations or syntax object identity, and which is
 relatively stable when structure-preserving edits are made to source text.
+
+For example, the path @racket[(syntax-path (list 2 0))] refers to the doubly-circled node in the
+syntax tree below: starting from the root, it descends into the root's child at index @racket[2],
+then into that form's child at index @racket[0]. Each labeled node is annotated with the syntax
+path that refers to it.
+
+@centered[syntax-path-tree-diagram]
 
 The children of a syntax object are determined by the shape of its datum:
 
