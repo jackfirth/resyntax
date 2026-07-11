@@ -49,7 +49,7 @@ one specific and one general:
   between macros that implement some library abstraction. Exposing such keys directly would allow
   intermediate macros in client code using that library to violate its abstractions. These sorts of
   opaque keys are often @racket[gensym]s or similar unserializable unique values, and the Racket macro
-  system takes care to make sure no API exists that provides uncontrollable access to them.}]
+  system takes care to make sure no API exists that provides uncontrolled access to them.}]
 
 
 @section{Constructing Syntax Property Bundles}
@@ -135,9 +135,6 @@ one specific and one general:
  @racket[path]. Passing @racket[root-syntax-path] returns @racket[bundle] unchanged.}
 
 
-@;TODO: claude, since keys are always interned symbols, should they maybe be represented with a sorted
-@; map instead of a hash? Would there be a point to that? I don't think I have any use cases where I
-@; care about "all syntax properties with key names less than or greater than key 'foo"
 @defproc[(syntax-property-bundle-entries [bundle syntax-property-bundle?])
          (sequence/c syntax-property-entry?)]{
  Returns a lazy sequence of every @tech{syntax property entry} in @racket[bundle]. Entries are
