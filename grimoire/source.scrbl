@@ -122,13 +122,15 @@ stack of dependent changes to commit in series without actually mutating the fil
  @racket[reencode-input-port]: Windows-style @racket["\r\n"] sequences (and other newline
  conventions) are converted into single @racket[#\newline] characters. Every operation that reads
  a source goes through this normalization, including @racket[source->string] and
- @racket[source-read-syntax]. Normalizing consistently is load-bearing: when line counting is
- enabled on a port, Racket counts a @racket["\r\n"] sequence as a @emph{single} position, so
- without normalization the source locations of syntax objects read from a source would disagree
- with the character indices of that source's text. Resyntax relies on the assumption that a syntax
- object's position and span identify exactly the range of characters it was read from. Analyzing
- code with Windows-style newlines used to violate that assumption and break Resyntax in
- hard-to-diagnose ways.
+ @racket[source-read-syntax]. Normalizing consistently is load-bearing: as described in
+ @secref["linecol" #:doc '(lib "scribblings/reference/reference.scrbl")], Racket performs this
+ same conversion whenever it counts line and column numbers, treating a @racket["\r\n"] sequence
+ as a @emph{single} position --- and line counting must be enabled for syntax objects to receive
+ line numbers in their source locations. Without normalization, then, the source locations of
+ syntax objects read from a source would disagree with the character indices of that source's
+ text. Resyntax relies on the assumption that a syntax object's position and span identify exactly
+ the range of characters it was read from. Analyzing code with Windows-style newlines used to
+ violate that assumption and break Resyntax in hard-to-diagnose ways.
 
  String sources and modified sources also apply this normalization eagerly, when the source value
  is constructed, so the port-level conversion only has a visible effect for file sources.}
