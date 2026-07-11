@@ -1,7 +1,8 @@
 #lang scribble/manual
 
 
-@(require (for-label racket/base
+@(require pict
+          (for-label racket/base
                      racket/contract/base
                      racket/sequence
                      racket/treelist
@@ -9,6 +10,53 @@
                      rebellion/base/immutable-string
                      resyntax/grimoire/source
                      resyntax/grimoire/syntax-path))
+
+
+@; A tree diagram showing how the syntax path /2/0 addresses a node: labeled
+@; nodes show their own paths, and the doubly-circled node is the one the
+@; path refers to.
+@(define syntax-path-tree-diagram
+   (let ()
+     (define node-diameter 42)
+     (define (node #:label [label #false] #:highlight? [highlight? #false])
+       (define base
+         (if highlight?
+             (cc-superimpose (circle node-diameter) (circle (- node-diameter 8)))
+             (circle node-diameter)))
+       (if label
+           (cc-superimpose base (text label '(bold . modern) 10))
+           base))
+     (define root (node #:label "/"))
+     (define child0 (node))
+     (define child1 (node))
+     (define child2 (node #:label "/2"))
+     (define grandchild10 (node))
+     (define grandchild11 (node))
+     (define grandchild20 (node #:label "/2/0" #:highlight? #true))
+     (define grandchild21 (node))
+     (define level-gap 45)
+     (define sibling-gap 25)
+     (define subtree1
+       (vc-append level-gap child1 (ht-append sibling-gap grandchild10 grandchild11)))
+     (define subtree2
+       (vc-append level-gap child2 (ht-append sibling-gap grandchild20 grandchild21)))
+     (define bottom-row (ht-append 45 child0 subtree1 subtree2))
+     (define tree (vc-append level-gap root bottom-row))
+     (define (connect base parent child i #:x-adjust [x-adjust 0])
+       (pin-line base parent cb-find child ct-find
+                 #:label (text (number->string i) 'modern 11)
+                 #:x-adjust-label x-adjust))
+     (define diagram
+       (let* ([p tree]
+              [p (connect p root child0 0 #:x-adjust -8)]
+              [p (connect p root child1 1 #:x-adjust -8)]
+              [p (connect p root child2 2 #:x-adjust 8)]
+              [p (connect p child1 grandchild10 0 #:x-adjust -8)]
+              [p (connect p child1 grandchild11 1 #:x-adjust 8)]
+              [p (connect p child2 grandchild20 0 #:x-adjust -8)]
+              [p (connect p child2 grandchild21 1 #:x-adjust 8)])
+         p))
+     (inset diagram 10)))
 
 
 @title[#:tag "syntax-path"]{Syntax Paths}
@@ -22,6 +70,13 @@ print in a filesystem-like notation --- the path @racket[(syntax-path (list 1 2 
 @racketresultfont{#<syntax-path:/1/2/3>}. Resyntax uses syntax paths to refer to subforms of a
 program in a way that doesn't depend on exact source locations or syntax object identity, and which is
 relatively stable when structure-preserving edits are made to source text.
+
+For example, the path @racket[(syntax-path (list 2 0))] refers to the doubly-circled node in the
+syntax tree below: starting from the root, it descends into the root's child at index @racket[2],
+then into that form's child at index @racket[0]. Each labeled node is annotated with the syntax
+path that refers to it.
+
+@centered[syntax-path-tree-diagram]
 
 The children of a syntax object are determined by the shape of its datum:
 

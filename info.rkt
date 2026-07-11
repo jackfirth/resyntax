@@ -26,7 +26,8 @@
 
 
 (define build-deps
-  (list "racket-doc"
+  (list "pict-lib"
+        "racket-doc"
         "rackunit-lib"
         "scribble-lib"))
 
