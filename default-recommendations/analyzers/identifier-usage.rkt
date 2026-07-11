@@ -16,7 +16,7 @@
          resyntax/default-recommendations/analyzers/private/expanded-id-table
          resyntax/private/analyzer
          resyntax/grimoire/syntax-path
-         resyntax/private/syntax-property-bundle
+         resyntax/grimoire/syntax-property-bundle
          resyntax/private/syntax-traversal
          syntax/id-table
          syntax/parse)
