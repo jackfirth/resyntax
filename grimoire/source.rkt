@@ -53,17 +53,13 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-;; Matches every newline sequence that reencode-input-port's newline conversion recognizes.
-(define newline-sequence-pattern
-  (let ([cr (string #\return)]
-        [lf (string #\newline)]
-        [nel (string (integer->char #x85))]
-        [ls (string (integer->char #x2028))])
-    (regexp (string-append cr lf "|" cr nel "|" cr "|" nel "|" ls))))
-
-
+;; Reads str back out through a newline-converting reencoded port, guaranteeing that this
+;; normalization can never disagree with the one performed by with-input-from-source.
 (define (string-normalize-newlines str)
-  (regexp-replace* newline-sequence-pattern str (string #\newline)))
+  (define reencoded-in
+    (reencode-input-port
+     (open-input-string str) "UTF-8" #false #false 'string-normalize-newlines #true))
+  (port->string reencoded-in))
 
 
 (struct source () #:transparent)
