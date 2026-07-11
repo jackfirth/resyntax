@@ -132,7 +132,10 @@
     (check-equal? actual expected)))
 
 
-(define (syntax-property-bundle-get-property prop-bundle path key [failure-result #false])
+(define absent-property (gensym 'absent-property))
+
+
+(define (syntax-property-bundle-get-property prop-bundle path key [failure-result absent-property])
   (define props-at-path (sorted-map-get (syntax-property-bundle-as-map prop-bundle) path (hash)))
 
   (define (fail)
@@ -143,7 +146,7 @@
      "property key" key
      "properties at path" props-at-path))
 
-  (hash-ref props-at-path key (or failure-result fail)))
+  (hash-ref props-at-path key (if (eq? failure-result absent-property) fail failure-result)))
 
 
 (module+ test
@@ -177,7 +180,12 @@
       (define path (syntax-path (list 1 2 3)))
       (define actual
         (syntax-property-bundle-get-property (syntax-property-bundle) path 'foo (λ () 42)))
-      (check-equal? actual 42))))
+      (check-equal? actual 42))
+
+    (test-case "empty bundle with false failure value provided"
+      (define path (syntax-path (list 1 2 3)))
+      (define actual (syntax-property-bundle-get-property (syntax-property-bundle) path 'foo #false))
+      (check-equal? actual #false))))
 
 
 (define (syntax-property-bundle-get-immediate-properties prop-bundle path)
@@ -222,7 +230,32 @@
 
 (module+ test
   (test-case "syntax-property-bundle-get-all-properties"
-    (void)))
+    (define props
+      (syntax-property-bundle
+       (syntax-property-entry root-syntax-path 'root-prop 0)
+       (syntax-property-entry (syntax-path (list 1)) 'list-prop 1)
+       (syntax-property-entry (syntax-path (list 1 0)) 'leaf-prop 2)
+       (syntax-property-entry (syntax-path (list 2)) 'other-prop 3)))
+
+    (test-case "properties at and under path are re-rooted relative to it"
+      (define actual (syntax-property-bundle-get-all-properties props (syntax-path (list 1))))
+      (define expected
+        (syntax-property-bundle
+         (syntax-property-entry root-syntax-path 'list-prop 1)
+         (syntax-property-entry (syntax-path (list 0)) 'leaf-prop 2)))
+      (check-equal? actual expected))
+
+    (test-case "root path returns the bundle unchanged"
+      (check-equal? (syntax-property-bundle-get-all-properties props root-syntax-path) props))
+
+    (test-case "path with no properties at or under it returns the empty bundle"
+      (define actual (syntax-property-bundle-get-all-properties props (syntax-path (list 5))))
+      (check-equal? actual (syntax-property-bundle)))
+
+    (test-case "empty bundle"
+      (define actual
+        (syntax-property-bundle-get-all-properties (syntax-property-bundle) (syntax-path (list 1))))
+      (check-equal? actual (syntax-property-bundle)))))
 
 
 (define (syntax-property-bundle-entries prop-bundle)

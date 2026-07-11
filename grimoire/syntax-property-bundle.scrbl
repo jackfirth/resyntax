@@ -101,43 +101,38 @@ one specific and one general:
 @section{Querying Syntax Property Bundles}
 
 
-@;TODO: claude, that failure-result behavior is definitely not what I intended. Please fix
-@; it with a hidden sentinel value (i.e. a gensym).
-@defproc[(syntax-property-bundle-get-property [bundle syntax-property-bundle?]
-                                              [path syntax-path?]
-                                              [key interned-symbol?]
-                                              [failure-result failure-result/c #false])
+@defproc[(syntax-property-bundle-get-property
+          [bundle syntax-property-bundle?]
+          [path syntax-path?]
+          [key interned-symbol?]
+          [failure-result failure-result/c
+                          (λ () (raise (make-exn:fail:contract ....)))])
          any/c]{
  Returns the value of the property with key @racket[key] at @racket[path] within @racket[bundle].
  If no such property exists, then @racket[failure-result] determines the result: if it's a
  procedure, it's called with no arguments to produce the result, and otherwise it's returned
- directly, following the same protocol as @racket[hash-ref]. If @racket[failure-result] is omitted
- or @racket[#false], a contract error is raised instead. Note that this means @racket[#false]
- cannot be used directly as a failure result --- use @racket[(λ () #false)] to make a missing
- property produce @racket[#false].}
+ directly, following the same protocol as @racket[hash-ref]. If @racket[failure-result] is omitted,
+ a contract error is raised instead.}
 
 
-@;TODO: claude, what does this do if the bundle doesn't contain path? I think it should return an
-@; empty hash rather than error, similar to how I handle this case in Rebellion's multimaps. That
-@; should be documented explicitly too.
 @defproc[(syntax-property-bundle-get-immediate-properties [bundle syntax-property-bundle?]
                                                           [path syntax-path?])
          immutable-hash?]{
  Returns a hash of every property in @racket[bundle] located at exactly @racket[path], mapping
  property keys to property values. Properties located at @bold{descendants} of @racket[path] are
- @bold{not} included. Returns an empty hash if @racket[bundle] contains no properties at
- @racket[path].}
+ @bold{not} included. Returns an empty hash, rather than raising an error, if @racket[bundle]
+ contains no properties at @racket[path].}
 
 
-@;TODO: claude, same question as above.
 @defproc[(syntax-property-bundle-get-all-properties [bundle syntax-property-bundle?]
                                                     [path syntax-path?])
          syntax-property-bundle?]{
  Returns a @tech{syntax property bundle} of every property in @racket[bundle] located at
  @racket[path] or at any descendant of @racket[path]. The paths of the returned bundle are made
  relative to @racket[path], as though by @racket[syntax-path-remove-prefix]: properties located at
- exactly @racket[path] appear at @racket[root-syntax-path] in the returned bundle. Passing
- @racket[root-syntax-path] returns @racket[bundle] unchanged.}
+ exactly @racket[path] appear at @racket[root-syntax-path] in the returned bundle. Returns the
+ empty bundle, rather than raising an error, if @racket[bundle] contains no properties at or under
+ @racket[path]. Passing @racket[root-syntax-path] returns @racket[bundle] unchanged.}
 
 
 @;TODO: claude, since keys are always interned symbols, should they maybe be represented with a sorted
