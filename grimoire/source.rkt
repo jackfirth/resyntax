@@ -53,13 +53,14 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
-;; Reads str back out through a newline-converting reencoded port, guaranteeing that this
-;; normalization can never disagree with the one performed by with-input-from-source.
+;; All source text flows through this port wrapper, which decodes it as UTF-8 and converts
+;; newline sequences like \r\n into single \n characters.
+(define (reencoded-source-input-port in)
+  (reencode-input-port in "UTF-8" #false #false (object-name in) #true))
+
+
 (define (string-normalize-newlines str)
-  (define reencoded-in
-    (reencode-input-port
-     (open-input-string str) "UTF-8" #false #false 'string-normalize-newlines #true))
-  (port->string reencoded-in))
+  (port->string (reencoded-source-input-port (open-input-string str))))
 
 
 (struct source () #:transparent)
@@ -93,8 +94,7 @@
 (define (with-input-from-source code proc)
 
   (define (call-proc-with-reencoded-input in)
-    (define reencoded-in (reencode-input-port in "UTF-8" #false #false (object-name in) #true))
-    (parameterize ([current-input-port reencoded-in])
+    (parameterize ([current-input-port (reencoded-source-input-port in)])
       (proc)))
 
   (match code
