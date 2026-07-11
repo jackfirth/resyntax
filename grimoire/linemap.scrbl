@@ -19,12 +19,15 @@ line-oriented view, used by @tech{source groups} and the command-line interface 
 lines a refactoring suggestion modifies, to render string replacements as line-based diffs, and to
 restrict analysis to the requested lines.
 
-@bold{All positions and line numbers in a linemap are one-based}, matching the conventions of
-@racket[syntax-position] and @racket[syntax-line]: the first character of a string is at position
-@racket[1], on line @racket[1]. Beware that this is the @emph{opposite} of the convention used by
-@tech{string replacements}, which address characters with @emph{zero-based} indices. Converting
-between the two worlds requires adding or subtracting one, as discussed in
-@secref["string-replacement"].
+@bold{Positions in a linemap are zero-based, but line numbers are one-based.} Positions are
+character indices into the string, following the same convention as Racket's string operations and
+as @tech{string replacements}: the first character of a string is at position @racket[0]. Line
+numbers instead begin at line @racket[1], matching @racket[syntax-line] and the conventions of
+code editors --- line numbers are almost exclusively useful in user interfaces, where one-based
+numbering is expected. Beware that @racket[syntax-position] and file port positions are
+@emph{one-based}, unlike linemap positions. The @racket[syntax-line-range] operation performs that
+conversion itself, but positions obtained from syntax objects by other means must be converted
+before use with a linemap.
 
 The lines of a string are the segments separated by newline characters. The terminating newline is
 not part of a line's contents, but positions of newline characters belong to the lines they
@@ -41,25 +44,25 @@ consists of a single empty line.
  treated as line separators.}
 
 
-@defproc[(linemap-position-to-line [map linemap?] [position exact-positive-integer?])
+@defproc[(linemap-position-to-line [map linemap?] [position exact-nonnegative-integer?])
          exact-positive-integer?]{
  Returns the line number of the line containing @racket[position]. The position of a newline
  character is considered contained by the line that the newline terminates. Positions beyond the
  end of the string do not raise an error; they are all treated as belonging to the last line.}
 
 
-@defproc[(linemap-position-to-start-of-line [map linemap?] [position exact-positive-integer?])
-         exact-positive-integer?]{
+@defproc[(linemap-position-to-start-of-line [map linemap?] [position exact-nonnegative-integer?])
+         exact-nonnegative-integer?]{
  Returns the position of the first character of the line containing @racket[position]. If the
  string ends with a newline and @racket[position] is on the final, empty line after it, that
- line's start position is one past the end of the string.}
+ line's start position is equal to the length of the string.}
 
 
-@defproc[(linemap-position-to-end-of-line [map linemap?] [position exact-positive-integer?])
-         exact-positive-integer?]{
+@defproc[(linemap-position-to-end-of-line [map linemap?] [position exact-nonnegative-integer?])
+         exact-nonnegative-integer?]{
  Returns the position just past the last character of the contents of the line containing
- @racket[position] --- that is, the position of the line's terminating newline, or one past the
- end of the string if the line is the last one.}
+ @racket[position] --- that is, the position of the line's terminating newline, or the length of
+ the string if the line is the last one.}
 
 
 @defproc[(syntax-line-range [stx syntax?] [#:linemap map linemap?]) range?]{

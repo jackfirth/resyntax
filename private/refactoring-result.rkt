@@ -192,9 +192,9 @@
   (define lmap (string-linemap full-orig-code))
   (define start (string-replacement-start replacement))
   (define end (string-replacement-original-end replacement))
-  (define start-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
+  (define start-column (- start (linemap-position-to-start-of-line lmap start)))
   (define raw-text (string->immutable-string (substring full-orig-code start end)))
-  (code-snippet raw-text start-column (linemap-position-to-line lmap (add1 start))))
+  (code-snippet raw-text start-column (linemap-position-to-line lmap start)))
 
 
 (define (refactoring-result-new-code result)
@@ -203,8 +203,8 @@
     (source->string (syntax-replacement-source (refactoring-result-syntax-replacement result))))
   (define lmap (string-linemap full-orig-code))
   (define start (string-replacement-start replacement))
-  (define original-line (linemap-position-to-line lmap (add1 start)))
-  (define original-column (- (add1 start) (linemap-position-to-start-of-line lmap (add1 start))))
+  (define original-line (linemap-position-to-line lmap start))
+  (define original-column (- start (linemap-position-to-start-of-line lmap start)))
   (define refactored-source-code (string-replacement-apply replacement full-orig-code))
   (define new-code-string
     (substring refactored-source-code

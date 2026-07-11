@@ -267,10 +267,9 @@
   (define trailing-text-length
     (let ([linemap (string-linemap original)]
           [orig-end (string-replacement-original-end replacement)])
-      ;; Convert from 0-based string indices to 1-based positions for linemap
-      (if (= (linemap-position-to-line linemap (add1 start))
-             (linemap-position-to-line linemap (add1 orig-end)))
-          (- (linemap-position-to-end-of-line linemap (add1 orig-end)) (add1 orig-end))
+      (if (= (linemap-position-to-line linemap start)
+             (linemap-position-to-line linemap orig-end))
+          (- (linemap-position-to-end-of-line linemap orig-end) orig-end)
           0)))
   
   (define allowed-width (- base-allowed-width trailing-text-length))
