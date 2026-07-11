@@ -45,12 +45,12 @@
   (let loop ([line-number 1] [line-start-index 0] [index 0])
     (cond
       [(= index char-count)
-       (define last-line (substring str line-start-index index))
+       (define last-line (string->immutable-string (substring str line-start-index index)))
        (vector-builder-add lines last-line)
        (sorted-map-builder-put line-numbers-by-start-position (add1 line-start-index) line-number)
        (vector-builder-add start-positions-by-line-number (add1 line-start-index))]
       [(equal? (string-ref str index) #\newline)
-       (define next-line (substring str line-start-index index))
+       (define next-line (string->immutable-string (substring str line-start-index index)))
        (vector-builder-add lines next-line)
        (sorted-map-builder-put line-numbers-by-start-position (add1 line-start-index) line-number)
        (vector-builder-add start-positions-by-line-number (add1 line-start-index))
