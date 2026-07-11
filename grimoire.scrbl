@@ -18,3 +18,4 @@ programmatically on anything found here.
 @include-section[(lib "resyntax/grimoire/syntax-property-bundle.scrbl")]
 @include-section[(lib "resyntax/grimoire/expansion-analyzers.scrbl")]
 @include-section[(lib "resyntax/grimoire/string-replacement.scrbl")]
+@include-section[(lib "resyntax/grimoire/linemap.scrbl")]
