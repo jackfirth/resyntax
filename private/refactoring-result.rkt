@@ -50,7 +50,7 @@
          resyntax/private/code-snippet
          resyntax/private/commit
          resyntax/private/line-replacement
-         resyntax/private/linemap
+         resyntax/grimoire/linemap
          resyntax/private/logger
          resyntax/grimoire/source
          resyntax/grimoire/string-replacement

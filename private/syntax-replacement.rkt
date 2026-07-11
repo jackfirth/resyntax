@@ -42,7 +42,7 @@
          rebellion/collection/range-set
          rebellion/private/static-name
          rebellion/type/record
-         resyntax/private/linemap
+         resyntax/grimoire/linemap
          resyntax/private/logger
          resyntax/grimoire/source
          resyntax/private/string-indent

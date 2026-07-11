@@ -27,7 +27,7 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
-         resyntax/private/linemap
+         resyntax/grimoire/linemap
          resyntax/grimoire/string-replacement)
 
 
