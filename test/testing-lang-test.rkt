@@ -4,7 +4,7 @@
 header: - #lang resyntax/test
 
 
-; Comments are allowed between statements (see issue #350).
+// Comments are allowed between statements (see issue #350).
 test: "unnecessary multi-line code blocks in tests refactorable to single-line code blocks"
 |-------------------
 | test: "foo"

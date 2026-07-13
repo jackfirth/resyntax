@@ -27,7 +27,7 @@
 (define-lex-abbrev rest-of-line
   (concatenation (complement (concatenation any-string #\newline any-string)) #\newline))
 
-(define-lex-abbrev comment-line (concatenation ";" rest-of-line))
+(define-lex-abbrev comment-line (concatenation "//" rest-of-line))
 
 (define-lex-abbrev dash-line (concatenation (repetition 3 +inf.0 #\-) #\newline))
 (define-lex-abbrev equals-line (concatenation (repetition 3 +inf.0 #\=) #\newline))
@@ -170,15 +170,15 @@
       (check-equal? (tokenize-until-eof tokenizer) expected-tokens))
 
     (test-case "comments between statements"
-      (define input (open-input-string "header:\n; a comment\n- #lang racket\n"))
+      (define input (open-input-string "header:\n// a comment\n- #lang racket\n"))
       (port-count-lines! input)
       (define tokenizer (make-refactoring-test-tokenizer input))
       (define expected-tokens
         (list
          (position-token (token-IDENTIFIER 'header) (position 1 1 0) (position 7 1 6))
          (position-token (token-COLON) (position 7 1 6) (position 8 1 7))
-         (position-token (token-SINGLE-DASH) (position 21 3 0) (position 23 3 2))
-         (position-token (token-CODE-LINE "#lang racket\n") (position 23 3 2) (position 36 4 0))))
+         (position-token (token-SINGLE-DASH) (position 22 3 0) (position 24 3 2))
+         (position-token (token-CODE-LINE "#lang racket\n") (position 24 3 2) (position 37 4 0))))
       (check-equal? (tokenize-until-eof tokenizer) expected-tokens))
 
     (test-case "code blocks"
