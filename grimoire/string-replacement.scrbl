@@ -9,7 +9,17 @@
                      rebellion/collection/range-set
                      rebellion/streaming/reducer
                      rebellion/streaming/transducer
-                     resyntax/grimoire/string-replacement))
+                     resyntax/grimoire/string-replacement)
+          scribble/example
+          (submod resyntax/private/scribble-evaluator-factory doc))
+
+
+@(define make-evaluator
+   (make-module-sharing-evaluator-factory
+    #:public (list 'resyntax/grimoire/string-replacement
+                   'rebellion/streaming/reducer
+                   'rebellion/streaming/transducer)
+    #:private (list 'racket/base)))
 
 
 @title[#:tag "string-replacement"]{String Replacements}
@@ -80,7 +90,19 @@ possible and discard suggestions that can't preserve them; see
  no-op that makes no changes at all to the string. Construction does not remove the
  @racket[copied-string] piece, even though it behaves identically to an empty string replacement.
  Focusing the replacement, on the other hand, @emph{does} remove the copied string piece --- see
- @racket[string-replacement-focus] for details.}
+ @racket[string-replacement-focus] for details.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (define replacement
+      (string-replacement #:start 0 #:end 5 #:contents (list (inserted-string "hello")))))
+   (string-replacement-contents replacement)
+   (code:comment "Adjacent inserted strings are merged, so these two are equal?.")
+   (equal? (string-replacement #:start 0 #:end 3
+                               #:contents (list (inserted-string "foo") (inserted-string "bar")))
+           (string-replacement #:start 0 #:end 3
+                               #:contents (list (inserted-string "foobar")))))}
 
 
 @defproc[(string-replacement-start [replacement string-replacement?]) natural?]{
@@ -174,7 +196,18 @@ possible and discard suggestions that can't preserve them; see
  replacements it wants to apply in each analysis round @emph{before} it can begin the next analysis
  round. The result of each analysis round edits the source code in-memory using
  @racket[modified-source] so that Resyntax can interleave editing and analysis in this manner without
- actually committing its edits to the filesystem.}
+ actually committing its edits to the filesystem.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (define first-replacement
+      (string-replacement #:start 0 #:end 2 #:contents (list (inserted-string "AB"))))
+    (define second-replacement
+      (string-replacement #:start 5 #:end 7 #:contents (list (inserted-string "YZ")))))
+   (string-replacement-apply
+    (string-replacement-union first-replacement second-replacement)
+    "0123456789"))}
 
 
 @defthing[union-into-string-replacement (reducer/c string-replacement? string-replacement?)]{
@@ -209,7 +242,16 @@ possible and discard suggestions that can't preserve them; see
  This operation is called @deftech{replacement focusing}, and is more aggressive than the
  normalization performed automatically by the @racket[string-replacement] constructor. This is the
  low-level mechanism used by Resyntax to implement the replacement focusing behavior described in
- @secref["replacement-focusing"].}
+ @secref["replacement-focusing"].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (code:comment "A leading copied piece that leaves text unchanged is trimmed away.")
+   (eval:no-prompt
+    (define replacement
+      (string-replacement #:start 0 #:end 5
+                          #:contents (list (copied-string 0 3) (inserted-string "XY")))))
+   (string-replacement-focus replacement "abcde"))}
 
 @defproc[(string-replacement-new-text [replacement string-replacement?] [original-string string?])
          immutable-string?]{
@@ -226,7 +268,18 @@ possible and discard suggestions that can't preserve them; see
          immutable-string?]{
  Applies @racket[replacement] to @racket[string], returning the entire edited string. Text outside
  the replaced region is unchanged. Raises a contract error if @racket[string] is too short to
- contain the replaced region or the positions that the replacement's copied pieces refer to.}
+ contain the replaced region or the positions that the replacement's copied pieces refer to.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (string-replacement-apply
+    (string-replacement #:start 0 #:end 5 #:contents (list (inserted-string "Goodbye")))
+    "Hello, world")
+   (code:comment "Copied pieces can pull text from anywhere in the original string.")
+   (string-replacement-apply
+    (string-replacement #:start 0 #:end 5
+                        #:contents (list (copied-string 7 12) (inserted-string ", hello")))
+    "hello, world"))}
 
 
 @defproc[(string-replacement-apply-to-file! [replacement string-replacement?]
@@ -280,4 +333,9 @@ region, but they are also occasionally useful on their own as standalone descrip
 
 @defproc[(string-piece-span [piece string-piece?]) exact-nonnegative-integer?]{
  Returns the number of characters that @racket[piece] spans: the length of an inserted string's
- text, or the size of a copied string's range.}
+ text, or the size of a copied string's range.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (string-piece-span (inserted-string "hello"))
+   (string-piece-span (copied-string 3 10)))}
