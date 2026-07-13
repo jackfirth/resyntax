@@ -3,6 +3,7 @@
 
 @(require pict
           pict/tree-layout
+          scribble/example
           (for-label racket/base
                      racket/contract/base
                      racket/sequence
@@ -10,7 +11,14 @@
                      rebellion/base/comparator
                      rebellion/base/immutable-string
                      resyntax/grimoire/source
-                     resyntax/grimoire/syntax-path))
+                     resyntax/grimoire/syntax-path)
+          (submod resyntax/private/scribble-evaluator-factory doc))
+
+
+@(define make-evaluator
+   (make-module-sharing-evaluator-factory
+    #:public (list 'resyntax/grimoire/syntax-path)
+    #:private (list 'racket/base)))
 
 
 @; A tree diagram showing how the syntax path /2/0 addresses a node: labeled
@@ -185,35 +193,64 @@ Resyntax does not allow editing expressions inside hash datums.
 
 
 @defproc[(syntax-path [elements (sequence/c exact-nonnegative-integer?)]) syntax-path?]{
- Constructs a @tech{syntax path} from a sequence of zero-based child indices.}
+ Constructs a @tech{syntax path} from a sequence of zero-based child indices.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path (list 1 2 3))
+   (syntax-path (list)))}
 
 
 @defproc[(syntax-path-elements [path syntax-path?]) (treelist/c exact-nonnegative-integer?)]{
  Returns the child indices that make up @racket[path], as a
- @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{treelist}.}
+ @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{treelist}.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path-elements (syntax-path (list 1 2 3)))
+   (syntax-path-elements root-syntax-path))}
 
 
 @defproc[(syntax-path-add [path syntax-path?] [element exact-nonnegative-integer?])
          syntax-path?]{
  Extends @racket[path] with one additional child index. The resulting path refers to the
- @racket[element]-th child of the subform that @racket[path] refers to.}
+ @racket[element]-th child of the subform that @racket[path] refers to.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path-add (syntax-path (list 1 2)) 3)
+   (syntax-path-add root-syntax-path 0))}
 
 
 @defproc[(syntax-path-parent [path child-syntax-path?]) syntax-path?]{
  Returns the path to the parent of @racket[path], which refers to the form that immediately encloses
- the form referred to by @racket[path].}
+ the form referred to by @racket[path].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path-parent (syntax-path (list 1 2 3)))
+   (syntax-path-parent (syntax-path (list 0))))}
 
 
 @defproc[(syntax-path-last-element [path child-syntax-path?]) exact-nonnegative-integer?]{
  Returns the final child index of @racket[path], which is the position of the subform that
- @racket[path] refers to within its enclosing form.}
+ @racket[path] refers to within its enclosing form.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path-last-element (syntax-path (list 1 2 3))))}
 
 
 @defproc[(syntax-path-next-neighbor [path syntax-path?]) (or/c syntax-path? #false)]{
  Returns the path to the sibling immediately following @racket[path] within its enclosing form, or
  @racket[#false] if @racket[path] is the root path (the root of a syntax object has no siblings).
  Note that this is pure path arithmetic: the returned path is not guaranteed to actually exist within
- any particular syntax object.}
+ any particular syntax object.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path-next-neighbor (syntax-path (list 1 2 3)))
+   (syntax-path-next-neighbor root-syntax-path))}
 
 
 @defproc[(syntax-path-neighbors? [leading-path syntax-path?] [trailing-path syntax-path?])
@@ -223,13 +260,27 @@ Resyntax does not allow editing expressions inside hash datums.
  child index is one greater than @racket[leading-path]'s. @bold{Warning:} the order of
  @racket[leading-path] and @racket[trailing-path] is significant --- this operation returns
  @racket[#false] if @racket[leading-path] and @racket[trailing-path] are adjacent siblings where the
- @emph{trailing} path comes first.}
+ @emph{trailing} path comes first.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path-neighbors? (syntax-path (list 0 1)) (syntax-path (list 0 2)))
+   (code:comment "Order matters: the trailing path must come second.")
+   (syntax-path-neighbors? (syntax-path (list 0 2)) (syntax-path (list 0 1)))
+   (code:comment "Paths with different parents are never neighbors.")
+   (syntax-path-neighbors? (syntax-path (list 0 1)) (syntax-path (list 1 2))))}
 
 
 @defproc[(syntax-path-remove-prefix [path syntax-path?] [prefix syntax-path?]) syntax-path?]{
  Returns @racket[path] with the leading elements of @racket[prefix] removed, producing a path
  relative to the subform that @racket[prefix] refers to. Raises a contract error if @racket[path]
- does not start with @racket[prefix].}
+ does not start with @racket[prefix].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path-remove-prefix (syntax-path (list 1 2 3 4)) (syntax-path (list 1 2)))
+   (eval:error
+    (syntax-path-remove-prefix (syntax-path (list 1 2 3)) (syntax-path (list 9)))))}
 
 
 @defthing[syntax-path<=> (comparator/c syntax-path?)]{
@@ -240,14 +291,25 @@ Resyntax does not allow editing expressions inside hash datums.
 
 @defproc[(syntax-path->string [path syntax-path?]) immutable-string?]{
  Returns a string notation for @racket[path] in which each child index is preceded by a slash, like
- a filesystem path. The root path is rendered as @racket["/"].}
+ a filesystem path. The root path is rendered as @racket["/"].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-path->string (syntax-path (list 1 2 3)))
+   (syntax-path->string root-syntax-path))}
 
 
 @defproc[(string->syntax-path [str string?]) syntax-path?]{
  Parses @racket[str] as a @tech{syntax path}. This is the inverse of @racket[syntax-path->string].
  The string must start with a slash, must not end with a slash (except for the root path
  @racket["/"]), and must contain only slash-separated nonnegative integers. Raises a contract error
- otherwise.}
+ otherwise.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (string->syntax-path "/1/2/3")
+   (string->syntax-path "/")
+   (eval:error (string->syntax-path "1/2/3")))}
 
 
 @section{Operating on Syntax Objects with Syntax Paths}
@@ -258,7 +320,14 @@ Resyntax does not allow editing expressions inside hash datums.
  @racket[stx] itself. Raises a contract error if @racket[path] is inconsistent with the shape of
  @racket[stx], which can occur if @racket[path] refers to children of an atomic subform that has no
  children, or if @racket[path] contains a child index that's too large for the number of children
- actually contained by the parent subform of that index.}
+ actually contained by the parent subform of that index.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax->datum (syntax-ref #'(a b (c d)) (syntax-path (list 2 1))))
+   (code:comment "Pair structure is normalized, so these dotted forms agree with #'(a b c).")
+   (syntax->datum (syntax-ref #'(a . (b . (c . ()))) (syntax-path (list 2))))
+   (eval:error (syntax-ref #'(a b c) (syntax-path (list 5)))))}
 
 
 @defproc[(syntax-contains-path? [stx syntax?] [path syntax-path?]) boolean?]{
@@ -269,7 +338,11 @@ Resyntax does not allow editing expressions inside hash datums.
 @defproc[(syntax-set [stx syntax?] [path syntax-path?] [new-subform syntax?]) syntax?]{
  Returns a copy of @racket[stx] in which the subform that @racket[path] refers to is replaced with
  @racket[new-subform]. Passing the root path returns @racket[new-subform] itself. The lexical
- context, source locations, and syntax properties of the enclosing forms are preserved.}
+ context, source locations, and syntax properties of the enclosing forms are preserved.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax->datum (syntax-set #'(a b (c d)) (syntax-path (list 2 1)) #'X)))}
 
 
 @defproc[(syntax-remove-splice [stx syntax?]
@@ -308,4 +381,9 @@ Resyntax does not allow editing expressions inside hash datums.
  preorder. Each returned path is prefixed with @racket[base-path], so the first path in the
  sequence is always @racket[base-path] itself. The @racket[base-path] argument is useful when
  @racket[stx] is itself a subform of some larger syntax object, such as the root syntax object for the
- entire source file that @racket[stx] originates from.}
+ entire source file that @racket[stx] originates from.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (for/list ([path (in-syntax-paths #'(a (b c)))])
+     (syntax-path->string path)))}
