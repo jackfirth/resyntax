@@ -211,3 +211,73 @@
                (string-replacement-start replacement)
                (string-replacement-new-end replacement)))
   (code-snippet new-code-string original-column original-line))
+
+
+(module+ test
+  (require racket/list
+           racket/port
+           rackunit
+           resyntax/private/code-snippet
+           resyntax/private/commit
+           resyntax/private/syntax-neighbors
+           syntax/parse
+           (submod ".."))
+
+  ;; Builds a refactoring result that flattens a nested `(+ x (+ y z))` into `(+ x y z)`.
+  (define (flatten-plus-result orig-code
+                               #:rule-name [rule-name 'flatten-plus]
+                               #:message [message "Flatten nested `+`"])
+    (define orig-stx (syntax-label-original-paths (with-input-from-string orig-code read-syntax)))
+    (define flip (make-syntax-introducer))
+    (define new-stx
+      (flip
+       (syntax-parse (flip orig-stx)
+         #:datum-literals (+)
+         [((~and + +_1) x (+ y z)) #'(+_1 x y z)])))
+    (define replacement
+      (syntax-replacement #:original-syntax orig-stx
+                          #:new-syntax new-stx
+                          #:source (string-source orig-code)
+                          #:introduction-scope flip
+                          #:uses-universal-tagged-syntax? #false))
+    (refactoring-result #:rule-name rule-name #:message message #:syntax-replacement replacement))
+
+  (test-case "refactoring-result-original-code and refactoring-result-new-code"
+    (define result (flatten-plus-result "(+ 1 (+ 2 3))"))
+    (define original (refactoring-result-original-code result))
+    (check-equal? (code-snippet-raw-text original) "(+ 1 (+ 2 3))")
+    (check-equal? (code-snippet-start-column original) 0)
+    (check-equal? (code-snippet-start-line original) 1)
+    (define new (refactoring-result-new-code result))
+    (check-equal? (code-snippet-raw-text new) "(+ 1 2 3)")
+    (check-equal? (code-snippet-start-column new) 0)
+    (check-equal? (code-snippet-start-line new) 1)
+    (check-equal? (refactoring-result-original-line result) 1)
+    (check-equal? (refactoring-result-original-column result) 0))
+
+  (test-case "refactoring-result-map-commits builds one commit per rule"
+    (define code "(+ 1 (+ 2 3))")
+    (define src (string-source code))
+    (define result-set
+      (refactoring-result-set #:base-source src #:results (list (flatten-plus-result code))))
+    (define commits (refactoring-result-map-commits (hash src result-set)))
+    (check-equal? (length commits) 1)
+    (define commit (first commits))
+    (check-equal? (resyntax-commit-message commit)
+                  "Fix 1 occurrence of `flatten-plus`\n\nFlatten nested `+`")
+    (check-equal? (resyntax-commit-changes commit) (hash #false "(+ 1 2 3)")))
+
+  (test-case "refactoring-result-map-commits counts occurrences across sources"
+    (define code1 "(+ 1 (+ 2 3))")
+    (define code2 "(+ 4 (+ 5 6))")
+    (define src1 (string-source code1))
+    (define src2 (string-source code2))
+    (define result-map
+      (hash src1 (refactoring-result-set #:base-source src1
+                                         #:results (list (flatten-plus-result code1)))
+            src2 (refactoring-result-set #:base-source src2
+                                         #:results (list (flatten-plus-result code2)))))
+    (define commits (refactoring-result-map-commits result-map))
+    (check-equal? (length commits) 1)
+    (check-equal? (resyntax-commit-message (first commits))
+                  "Fix 2 occurrences of `flatten-plus`\n\nFlatten nested `+`")))
