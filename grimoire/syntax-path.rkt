@@ -214,6 +214,18 @@
       (check-equal? (syntax-path-remove-prefix path prefix) expected))))
 
 
+(module+ test
+  (test-case "syntax-path-remove-prefix errors"
+
+    (test-case "path shorter than prefix"
+      (check-exn #rx"path is shorter than prefix"
+                 (λ () (syntax-path-remove-prefix (syntax-path (list 1)) (syntax-path (list 1 2 3))))))
+
+    (test-case "path does not start with prefix"
+      (check-exn #rx"path does not start with given prefix"
+                 (λ () (syntax-path-remove-prefix (syntax-path (list 1 2 3)) (syntax-path (list 9))))))))
+
+
 (define (syntax-path-last-element path)
   (treelist-last (syntax-path-elements path)))
 
@@ -592,6 +604,30 @@
       (check-regexp-match #rx"path is inconsistent" (exn-message thrown)))))
 
 
+(module+ test
+  (test-case "syntax-ref errors"
+
+    (test-case "vector index out of bounds"
+      (check-exn #rx"path is inconsistent"
+                 (λ () (syntax-ref #'#[a b c] (syntax-path (list 5))))))
+
+    (test-case "box index out of bounds"
+      (check-exn #rx"path is inconsistent"
+                 (λ () (syntax-ref #'#&a (syntax-path (list 1))))))
+
+    (test-case "prefab field index out of bounds"
+      (check-exn #rx"path is inconsistent"
+                 (λ () (syntax-ref #'#s(point 10 20) (syntax-path (list 5))))))
+
+    (test-case "improper list index out of bounds"
+      (check-exn #rx"path is inconsistent"
+                 (λ () (syntax-ref #'(a b . c) (syntax-path (list 5))))))
+
+    (test-case "path into non-compound datum"
+      (check-exn #rx"path is inconsistent"
+                 (λ () (syntax-ref #'(a b c) (syntax-path (list 0 0))))))))
+
+
 (define (syntax-contains-path? init-stx path)
   (let/ec return
     (for/fold ([stx init-stx])
@@ -874,6 +910,14 @@
       (define stx #'(a b . (c OLD e)))
       (define actual (syntax-set stx (syntax-path (list 3)) new-subform))
       (check-equal? (syntax->datum actual) '(a b c FOO e)))))
+
+
+(module+ test
+  (test-case "syntax-set errors"
+
+    (test-case "path into non-compound datum"
+      (check-exn #rx"path is inconsistent"
+                 (λ () (syntax-set #'(a b c) (syntax-path (list 0 0)) #'FOO))))))
 
 
 (define/guard (syntax-remove-splice stx path children-count)
