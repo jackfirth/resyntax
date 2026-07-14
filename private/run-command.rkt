@@ -49,3 +49,26 @@
                            "command" (string-join (cons cmd-name stringified-args) " ")
                            "stderr" stderr-string))
   stdout-string)
+
+
+(module+ test
+  (require rackunit)
+
+  ;; Use the running Racket executable so these tests need no platform-specific commands on $PATH.
+  (define racket-exe
+    (path->string (find-executable-path (find-system-path 'exec-file))))
+
+  (test-case "run-command returns the subprocess's stdout"
+    (check-equal? (run-command racket-exe "-e" "(display \"hello\")") "hello"))
+
+  (test-case "run-command raises when the executable isn't in $PATH"
+    (check-exn #rx"couldn't find executable in \\$PATH"
+               (λ () (run-command "resyntax-nonexistent-executable-a1b2c3"))))
+
+  (test-case "run-command raises when the command exits with a nonzero code"
+    (check-exn #rx"command exited with a nonzero exit code"
+               (λ () (run-command racket-exe "-e" "(exit 1)"))))
+
+  (test-case "run-command raises when the command writes to stderr"
+    (check-exn #rx"command exited successfully, but wrote to stderr"
+               (λ () (run-command racket-exe "-e" "(eprintf \"oops\")")))))
