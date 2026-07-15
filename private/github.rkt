@@ -161,7 +161,86 @@ EOS
 
 
 (module+ test
-  (require rackunit)
+  (require racket/file
+           racket/port
+           racket/system
+           rackunit
+           resyntax/private/syntax-neighbors
+           resyntax/grimoire/source
+           syntax/parse)
+
+  (define (git-quietly! . args)
+    (parameterize ([current-output-port (open-output-nowhere)]
+                   [current-error-port (open-output-nowhere)])
+      (unless (apply system* (find-executable-path "git") args)
+        (error 'git-quietly! "git command failed: git ~a" (string-join args " ")))))
+
+  ;; Runs body in a temporary git repository containing a single committed file, `example.rkt`,
+  ;; whose contents flatten a nested `(+ x (+ y z))`. Passes a flatten-plus refactoring result for
+  ;; that file to body.
+  (define (call-with-committed-flatten-plus-result body)
+    (define repo-dir (make-temporary-directory "resyntax-github-test-~a"))
+    (dynamic-wind
+     void
+     (λ ()
+       (parameterize ([current-directory repo-dir])
+         (git-quietly! "init")
+         (git-quietly! "config" "user.name" "Resyntax Tests")
+         (git-quietly! "config" "user.email" "resyntax-tests@example.com")
+         (git-quietly! "config" "commit.gpgsign" "false")
+         (define code "(+ 1 (+ 2 3))")
+         (display-to-file code "example.rkt")
+         (git-quietly! "add" "--all")
+         (git-quietly! "commit" "--message" "initial commit")
+         (define orig-stx
+           (syntax-label-original-paths (with-input-from-string code read-syntax)))
+         (define flip (make-syntax-introducer))
+         (define new-stx
+           (flip
+            (syntax-parse (flip orig-stx)
+              #:datum-literals (+)
+              [((~and + +_1) x (+ y z)) #'(+_1 x y z)])))
+         (define replacement
+           (syntax-replacement #:original-syntax orig-stx
+                               #:new-syntax new-stx
+                               #:source (file-source "example.rkt")
+                               #:introduction-scope flip
+                               #:uses-universal-tagged-syntax? #false))
+         (define result
+           (refactoring-result #:rule-name 'flatten-plus
+                               #:message "Flatten nested `+`"
+                               #:syntax-replacement replacement))
+         (body result)))
+     (λ () (delete-directory/files repo-dir))))
+
+  (test-case "refactoring-result->github-review-comment"
+    (call-with-committed-flatten-plus-result
+     (λ (result)
+       (define comment (refactoring-result->github-review-comment result))
+       (define jsexpr (github-review-comment-jsexpr comment))
+       (check-equal? (hash-ref jsexpr 'path) "example.rkt")
+       (check-equal? (hash-ref jsexpr 'line) 1)
+       (check-equal? (hash-ref jsexpr 'side) "RIGHT")
+       (define body (hash-ref jsexpr 'body))
+       (check-regexp-match #rx"flatten-plus" body)
+       (check-regexp-match #rx"Flatten nested" body)
+       (check-regexp-match #rx"```suggestion\n\\(\\+ 1 2 3\\)" body))))
+
+  (test-case "refactoring-results->github-review with a comment"
+    (call-with-committed-flatten-plus-result
+     (λ (result)
+       (define env (environment-variables-copy (current-environment-variables)))
+       (environment-variables-set! env #"GITHUB_REF" #"refs/pull/7/merge")
+       (environment-variables-set! env #"GITHUB_REPOSITORY" #"owner/repo")
+       (parameterize ([current-environment-variables env])
+         (define review (refactoring-results->github-review (list result) #:file-count 1))
+         (define jsexpr (github-review-request-jsexpr review))
+         (check-equal? (hash-ref jsexpr 'owner) "owner")
+         (check-equal? (hash-ref jsexpr 'repo) "repo")
+         (check-equal? (hash-ref jsexpr 'pull_number) 7)
+         (check-equal? (hash-ref jsexpr 'event) "COMMENT")
+         (check-equal? (length (hash-ref jsexpr 'comments)) 1)
+         (check-equal? (hash-ref jsexpr 'body) (github-review-body #true 1))))))
 
   (test-case "github-review-comment-jsexpr"
     (test-case "single-line comment"
