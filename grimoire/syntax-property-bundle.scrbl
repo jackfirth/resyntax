@@ -1,7 +1,8 @@
 #lang scribble/manual
 
 
-@(require (for-label racket/base
+@(require scribble/example
+          (for-label racket/base
                      racket/contract/base
                      racket/mutability
                      racket/sequence
@@ -10,7 +11,16 @@
                      rebellion/collection/sorted-map
                      rebellion/streaming/reducer
                      resyntax/grimoire/syntax-path
-                     resyntax/grimoire/syntax-property-bundle))
+                     resyntax/grimoire/syntax-property-bundle)
+          (submod resyntax/private/scribble-evaluator-factory doc))
+
+
+@(define make-evaluator
+   (make-module-sharing-evaluator-factory
+    #:public (list 'resyntax/grimoire/syntax-property-bundle
+                   'resyntax/grimoire/syntax-path
+                   'racket/sequence)
+    #:private (list 'racket/base)))
 
 
 @title[#:tag "syntax-property-bundle"]{Syntax Property Bundles}
@@ -69,7 +79,18 @@ one specific and one general:
 @defproc[(syntax-property-bundle [entry syntax-property-entry?] ...) syntax-property-bundle?]{
  Constructs a @tech{syntax property bundle} containing each @racket[entry]. The entries may be given
  in any order, but no two entries may share both a path and a key --- a contract error is raised if
- they do.}
+ they do.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax-property-bundle
+    (syntax-property-entry root-syntax-path 'color 'red)
+    (syntax-property-entry (syntax-path (list 2 0)) 'shape 'circle))
+   (code:comment "Two entries at the same path and key are not allowed.")
+   (eval:error
+    (syntax-property-bundle
+     (syntax-property-entry root-syntax-path 'color 'red)
+     (syntax-property-entry root-syntax-path 'color 'blue))))}
 
 
 @defproc[(sequence->syntax-property-bundle [entries (sequence/c syntax-property-entry?)])
@@ -112,7 +133,18 @@ one specific and one general:
  If no such property exists, then @racket[failure-result] determines the result: if it's a
  procedure, it's called with no arguments to produce the result, and otherwise it's returned
  directly, following the same protocol as @racket[hash-ref]. If @racket[failure-result] is omitted,
- a contract error is raised instead.}
+ a contract error is raised instead.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (define bundle
+      (syntax-property-bundle
+       (syntax-property-entry root-syntax-path 'color 'red)
+       (syntax-property-entry (syntax-path (list 2 0)) 'shape 'circle))))
+   (syntax-property-bundle-get-property bundle root-syntax-path 'color)
+   (syntax-property-bundle-get-property bundle root-syntax-path 'size 'unknown)
+   (eval:error (syntax-property-bundle-get-property bundle root-syntax-path 'size)))}
 
 
 @defproc[(syntax-property-bundle-get-immediate-properties [bundle syntax-property-bundle?]
@@ -121,7 +153,18 @@ one specific and one general:
  Returns a hash of every property in @racket[bundle] located at exactly @racket[path], mapping
  property keys to property values. Properties located at @bold{descendants} of @racket[path] are
  @bold{not} included. Returns an empty hash, rather than raising an error, if @racket[bundle]
- contains no properties at @racket[path].}
+ contains no properties at @racket[path].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (define bundle
+      (syntax-property-bundle
+       (syntax-property-entry root-syntax-path 'color 'red)
+       (syntax-property-entry (syntax-path (list 2 0)) 'shape 'circle))))
+   (syntax-property-bundle-get-immediate-properties bundle (syntax-path (list 2 0)))
+   (code:comment "Descendant properties are excluded, and a path with none gives an empty hash.")
+   (syntax-property-bundle-get-immediate-properties bundle (syntax-path (list 2))))}
 
 
 @defproc[(syntax-property-bundle-get-all-properties [bundle syntax-property-bundle?]
@@ -132,14 +175,35 @@ one specific and one general:
  relative to @racket[path], as though by @racket[syntax-path-remove-prefix]: properties located at
  exactly @racket[path] appear at @racket[root-syntax-path] in the returned bundle. Returns the
  empty bundle, rather than raising an error, if @racket[bundle] contains no properties at or under
- @racket[path]. Passing @racket[root-syntax-path] returns @racket[bundle] unchanged.}
+ @racket[path]. Passing @racket[root-syntax-path] returns @racket[bundle] unchanged.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (define bundle
+      (syntax-property-bundle
+       (syntax-property-entry (syntax-path (list 2)) 'a 1)
+       (syntax-property-entry (syntax-path (list 2 0)) 'b 2))))
+   (code:comment "Paths are made relative to /2: the /2 property lands at the root, /2/0 at /0.")
+   (sequence->list
+    (syntax-property-bundle-entries
+     (syntax-property-bundle-get-all-properties bundle (syntax-path (list 2))))))}
 
 
 @defproc[(syntax-property-bundle-entries [bundle syntax-property-bundle?])
          (sequence/c syntax-property-entry?)]{
  Returns a lazy sequence of every @tech{syntax property entry} in @racket[bundle]. Entries are
  produced in ascending order of their paths, in the sense of @racket[syntax-path<=>]. The relative
- order of multiple entries at the same path is unspecified.}
+ order of multiple entries at the same path is unspecified.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (code:comment "Entries come out in ascending path order, regardless of construction order.")
+   (sequence->list
+    (syntax-property-bundle-entries
+     (syntax-property-bundle
+      (syntax-property-entry (syntax-path (list 2 0)) 'shape 'circle)
+      (syntax-property-entry root-syntax-path 'color 'red)))))}
 
 
 @defproc[(syntax-property-bundle-as-map [bundle syntax-property-bundle?]) immutable-sorted-map?]{
@@ -169,7 +233,15 @@ one specific and one general:
  @racket[syntax-property-symbol-keys]. Each extracted property is located at the @tech{syntax path}
  of the subform it was attached to, prefixed with @racket[base-path]. Subforms of hash datums are
  not traversed, as syntax paths cannot refer to them --- see @secref["original-syntax-paths"] for
- further explanation.}
+ further explanation.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (define stx
+      (datum->syntax #false (list (syntax-property #'inner 'note 'here) #'outer))))
+   (code:comment "Every interned-symbol property, from stx and its subforms, is collected.")
+   (sequence->list (syntax-property-bundle-entries (syntax-all-properties stx))))}
 
 
 @defproc[(syntax-add-all-properties [stx syntax?] [bundle syntax-property-bundle?]) syntax?]{
@@ -178,4 +250,14 @@ one specific and one general:
  @racket[syntax-property]. Properties already attached to @racket[stx] and its subforms are
  retained, except where an entry in @racket[bundle] overwrites them. Every path in @racket[bundle]
  must refer to a subform of @racket[stx], in the sense of @racket[syntax-contains-path?] ---
- otherwise a contract error is raised.}
+ otherwise a contract error is raised.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (eval:no-prompt
+    (define stx #'(a b c))
+    (define bundle
+      (syntax-property-bundle
+       (syntax-property-entry (syntax-path (list 0)) 'note 'here))))
+   (code:comment "The property is grafted onto the subform at path /0, which is #'a.")
+   (syntax-property (car (syntax->list (syntax-add-all-properties stx bundle))) 'note))}
