@@ -139,8 +139,8 @@ EOS
    #:end-side "RIGHT"))
 
 
-(define branch-ref (getenv "GITHUB_REF"))
-(define github-repository (getenv "GITHUB_REPOSITORY"))
+(define (branch-ref) (getenv "GITHUB_REF"))
+(define (github-repository) (getenv "GITHUB_REPOSITORY"))
 
 
 (define (github-review-body comments? file-count)
@@ -153,8 +153,8 @@ EOS
   (define comments
     (transduce results (mapping refactoring-result->github-review-comment) #:into into-list))
   (github-review-request
-   #:owner-repo github-repository
-   #:pull-number (git-ref->pr-number branch-ref)
+   #:owner-repo (github-repository)
+   #:pull-number (git-ref->pr-number (branch-ref))
    #:body (github-review-body (not (null? comments)) file-count)
    #:event (if (empty? comments) "APPROVE" "COMMENT")
    #:comments comments))
@@ -236,6 +236,19 @@ EOS
       (check-exn exn:fail? (lambda () (git-ref->pr-number "refs/heads/main")))
       (check-exn exn:fail? (lambda () (git-ref->pr-number "refs/pull/42/head")))
       (check-exn exn:fail? (lambda () (git-ref->pr-number "invalid")))))
+  (test-case "refactoring-results->github-review reads GITHUB_REF and GITHUB_REPOSITORY lazily"
+    (parameterize ([current-environment-variables
+                    (make-environment-variables
+                     #"GITHUB_REF" #"refs/pull/42/merge"
+                     #"GITHUB_REPOSITORY" #"owner/repo")])
+      (define review (refactoring-results->github-review '() #:file-count 3))
+      (define jsexpr (github-review-request-jsexpr review))
+      (check-equal? (hash-ref jsexpr 'owner) "owner")
+      (check-equal? (hash-ref jsexpr 'repo) "repo")
+      (check-equal? (hash-ref jsexpr 'pull_number) 42)
+      (check-equal? (hash-ref jsexpr 'event) "APPROVE")
+      (check-equal? (hash-ref jsexpr 'comments) '())
+      (check-equal? (hash-ref jsexpr 'body) (github-review-body #false 3))))
   (test-case "github-review-body"
     (test-case "with comments"
       (check-equal? (github-review-body #t 1)
