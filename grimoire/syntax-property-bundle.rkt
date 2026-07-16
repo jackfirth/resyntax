@@ -61,20 +61,45 @@
   #:transparent)
 
 
+(define empty-property-map (sorted-map #:key-comparator syntax-path<=>))
+
+
 (define into-syntax-property-bundle
-  (into-transduced
-   (mapping
-    (λ (prop-entry)
+  (reducer-map
+   (make-fold-reducer
+    (λ (prop-map prop-entry)
       (match-define (syntax-property-entry path k v) prop-entry)
-      (entry path (entry k v))))
-   (grouping into-hash)
-   #:into (reducer-map (into-sorted-map syntax-path<=>) #:range constructor:syntax-property-bundle)))
+      (define props (sorted-map-get prop-map path (hash)))
+      (when (hash-has-key? props k)
+        (raise-arguments-error
+         'syntax-property-bundle
+         "multiple values for the same property key at the same path"
+         "path" path
+         "property key" k
+         "value" (hash-ref props k)
+         "other value" v))
+      (sorted-map-put prop-map path (hash-set props k v)))
+    empty-property-map)
+   #:range constructor:syntax-property-bundle))
 
 
 (define property-hashes-into-syntax-property-bundle
-  (into-transduced
-   (filtering-values (λ (prop-hash) (not (hash-empty? prop-hash))))
-   #:into (reducer-map (into-sorted-map syntax-path<=>) #:range constructor:syntax-property-bundle)))
+  (reducer-map
+   (make-fold-reducer
+    (λ (prop-map prop-hash-entry)
+      (match-define (entry path props) prop-hash-entry)
+      (cond
+        [(hash-empty? props) prop-map]
+        [(sorted-map-contains-key? prop-map path)
+         (raise-arguments-error
+          'syntax-property-bundle
+          "multiple property hashes for the same path"
+          "path" path
+          "properties" (sorted-map-get prop-map path)
+          "other properties" props)]
+        [else (sorted-map-put prop-map path props)]))
+    empty-property-map)
+   #:range constructor:syntax-property-bundle))
 
 
 (define (sequence->syntax-property-bundle prop-entry-seq)
@@ -129,7 +154,31 @@
        (syntax-property-entry (syntax-path (list 0 1)) 'foo 1)
        (syntax-property-entry (syntax-path (list 0 2)) 'bar 2)
        (syntax-property-entry (syntax-path (list 0 2)) 'baz 3)))
-    (check-equal? actual expected)))
+    (check-equal? actual expected))
+
+  (test-case "syntax-property-bundle with duplicate path and key"
+    (define thrown
+      (with-handlers ([any/c values])
+        (syntax-property-bundle
+         (syntax-property-entry (syntax-path (list 0 1)) 'quoted? #true)
+         (syntax-property-entry (syntax-path (list 0 1)) 'quoted? #false))
+        #false))
+    (check-pred exn:fail:contract? thrown)
+    (check-regexp-match #rx"^syntax-property-bundle:" (exn-message thrown))
+    (check-regexp-match #rx"property key: 'quoted\\?" (exn-message thrown))
+    (check-regexp-match #rx"value: #t" (exn-message thrown))
+    (check-regexp-match #rx"other value: #f" (exn-message thrown)))
+
+  (test-case "property-hashes-into-syntax-property-bundle with duplicate path"
+    (define thrown
+      (with-handlers ([any/c values])
+        (transduce (list (entry (syntax-path (list 0 1)) (hash 'foo 1))
+                         (entry (syntax-path (list 0 1)) (hash 'bar 2)))
+                   #:into property-hashes-into-syntax-property-bundle)
+        #false))
+    (check-pred exn:fail:contract? thrown)
+    (check-regexp-match #rx"^syntax-property-bundle:" (exn-message thrown))
+    (check-regexp-match #rx"multiple property hashes for the same path" (exn-message thrown))))
 
 
 (define absent-property (gensym 'absent-property))
