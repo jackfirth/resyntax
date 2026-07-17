@@ -65,6 +65,7 @@
 
 
 (define (linemap-position-to-line map position)
+  (check-position-within-string 'linemap-position-to-line map position)
   (define line-numbers (linemap-line-numbers-by-start-position map))
   (entry-value (present-value (sorted-map-entry-at-most line-numbers position))))
 
@@ -78,19 +79,43 @@
      (string-length (linemap-line map line))))
 
 
+(define (linemap-string-length map)
+  (linemap-line-end-position map (vector-length (linemap-lines map))))
+
+
+;; The position equal to the string's length is within bounds: it's the exclusive end position of
+;; the string, and it refers to the last line.
+(define (check-position-within-string who map position)
+  (define length (linemap-string-length map))
+  (when (> position length)
+    (raise-arguments-error who
+                           "position is past the end of the string"
+                           "position" position
+                           "string length" length)))
+
+
 (define (linemap-position-to-start-of-line map position)
+  (check-position-within-string 'linemap-position-to-start-of-line map position)
   (linemap-line-start-position map (linemap-position-to-line map position)))
 
 
 (define (linemap-position-to-end-of-line map position)
+  (check-position-within-string 'linemap-position-to-end-of-line map position)
   (linemap-line-end-position map (linemap-position-to-line map position)))
 
 
 (define (syntax-line-range stx #:linemap map)
   (define first-line (syntax-line stx))
   ;; Syntax object positions are one-indexed, unlike linemap positions.
-  (define last-line
-    (linemap-position-to-line map (+ (sub1 (syntax-position stx)) (syntax-span stx))))
+  (define end-position (+ (sub1 (syntax-position stx)) (syntax-span stx)))
+  (when (> end-position (linemap-string-length map))
+    (raise-arguments-error 'syntax-line-range
+                           "syntax object's source location is out of bounds for the linemap"
+                           "syntax" stx
+                           "syntax position" (syntax-position stx)
+                           "syntax span" (syntax-span stx)
+                           "string length" (linemap-string-length map)))
+  (define last-line (linemap-position-to-line map end-position))
   (unless (<= first-line last-line)
     (raise-arguments-error 'syntax-line-range
                            "syntax object's last line number is before its first line number"
@@ -146,6 +171,24 @@
       (check-equal? (linemap-position-to-line map 2) 2)
       (check-equal? (linemap-position-to-line map 3) 3)
       (check-equal? (linemap-position-to-line map 4) 3)))
+
+  (test-case "positions past the end of the string raise errors"
+    (define map (string-linemap "a\n\nb"))
+    (check-exn #rx"position is past the end" (λ () (linemap-position-to-line map 5)))
+    (check-exn #rx"position is past the end" (λ () (linemap-position-to-start-of-line map 5)))
+    (check-exn #rx"position is past the end" (λ () (linemap-position-to-end-of-line map 5))))
+
+  (test-case "syntax-line-range"
+    (define src "(define (f x)\n  (* x 2))\n")
+    (define in (open-input-string src))
+    (port-count-lines! in)
+    (define stx (read-syntax 'example in))
+    (check-equal? (syntax-line-range stx #:linemap (string-linemap src))
+                  (closed-range 1 2 #:comparator natural<=>))
+
+    (test-case "out-of-bounds syntax"
+      (check-exn #rx"out of bounds"
+                 (λ () (syntax-line-range stx #:linemap (string-linemap "short"))))))
 
   (test-case (name-string linemap-line-start-position)
 

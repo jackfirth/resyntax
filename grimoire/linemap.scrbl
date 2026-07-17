@@ -79,8 +79,9 @@ cases, see the notes in @racket[with-input-from-source].
 @defproc[(linemap-position-to-line [map linemap?] [position exact-nonnegative-integer?])
          exact-positive-integer?]{
  Returns the line number of the line containing @racket[position]. The position of a newline
- character is considered contained by the line that the newline terminates. Positions beyond the
- end of the string do not raise an error; they are all treated as belonging to the last line.
+ character is considered contained by the line that the newline terminates. The position equal to
+ the length of the string --- the string's exclusive end position --- is allowed, and belongs to
+ the last line. Positions greater than that raise a contract error.
 
  @(examples
    #:eval (make-evaluator) #:once
@@ -88,15 +89,17 @@ cases, see the notes in @racket[with-input-from-source].
    (code:comment "Position 5 is line 1's terminating newline, so it belongs to line 1.")
    (linemap-position-to-line lines 5)
    (linemap-position-to-line lines 6)
-   (code:comment "Positions past the end of the string belong to the last line.")
-   (linemap-position-to-line lines 100))}
+   (code:comment "Positions past the end of the string are out of bounds.")
+   (eval:error (linemap-position-to-line lines 100)))}
 
 
 @defproc[(linemap-position-to-start-of-line [map linemap?] [position exact-nonnegative-integer?])
          exact-nonnegative-integer?]{
  Returns the position of the first character of the line containing @racket[position]. If the
  string ends with a newline and @racket[position] is on the final, empty line after it, that
- line's start position is equal to the length of the string.
+ line's start position is equal to the length of the string. Like
+ @racket[linemap-position-to-line], positions greater than the length of the string raise a
+ contract error.
 
  @(examples
    #:eval (make-evaluator) #:once
@@ -110,7 +113,8 @@ cases, see the notes in @racket[with-input-from-source].
          exact-nonnegative-integer?]{
  Returns the position just past the last character of the contents of the line containing
  @racket[position] --- that is, the position of the line's terminating newline, or the length of
- the string if the line is the last one.
+ the string if the line is the last one. Like @racket[linemap-position-to-line], positions greater
+ than the length of the string raise a contract error.
 
  @(examples
    #:eval (make-evaluator) #:once
@@ -124,7 +128,10 @@ cases, see the notes in @racket[with-input-from-source].
  Returns a closed range (with @racket[natural<=>] as its comparator) containing the line numbers
  of every line that @racket[stx] spans, from the line on which it begins to the line on which it
  ends. The @tech[#:doc '(lib "scribblings/reference/reference.scrbl")]{source location} of
- @racket[stx] must refer to positions within the string that @racket[map] was built from.
+ @racket[stx] must refer to positions within the string that @racket[map] was built from. If the
+ source location extends past the end of that string, a contract error is raised. This is only
+ partial protection against accidentally pairing a syntax object with a linemap built from some
+ other, unrelated string, but it's better than nothing.
 
  @(examples
    #:eval (make-evaluator) #:once
@@ -133,4 +140,6 @@ cases, see the notes in @racket[with-input-from-source].
     (define in (open-input-string src))
     (port-count-lines! in)
     (define stx (read-syntax 'example in)))
-   (syntax-line-range stx #:linemap (string-linemap src)))}
+   (syntax-line-range stx #:linemap (string-linemap src))
+   (code:comment "Pairing a syntax object with the wrong linemap is caught (sometimes).")
+   (eval:error (syntax-line-range stx #:linemap (string-linemap "some other string"))))}
