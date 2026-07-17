@@ -122,18 +122,19 @@ stack of dependent changes to commit in series without actually mutating the fil
  @racket[reencode-input-port]: Windows-style @racket["\r\n"] sequences (and other newline
  conventions) are converted into single @racket[#\newline] characters. Every operation that reads
  a source goes through this normalization, including @racket[source->string] and
- @racket[source-read-syntax]. Normalizing consistently is load-bearing: as described in
- @secref["linecol" #:doc '(lib "scribblings/reference/reference.scrbl")], Racket performs this
- same conversion whenever it counts line and column numbers, treating a @racket["\r\n"] sequence
- as a @emph{single} position --- and line counting must be enabled for syntax objects to receive
- line numbers in their source locations. Without normalization, then, the source locations of
- syntax objects read from a source would disagree with the character indices of that source's
- text. Resyntax relies on the assumption that a syntax object's position and span identify exactly
- the range of characters it was read from. Analyzing code with Windows-style newlines used to
- violate that assumption and break Resyntax in hard-to-diagnose ways.
+ @racket[source-read-syntax]. This normalization mirrors the normalization Racket performs when
+ reading from ports with line counting enabled, as described in
+ @secref["linecol" #:doc '(lib "scribblings/reference/reference.scrbl")].
 
- String sources and modified sources also apply this normalization eagerly, when the source value
- is constructed, so the port-level conversion only has a visible effect for file sources.}
+ Newline normalization avoids various problems in Resyntax. Primarily, it ensures that the character
+ positions of source text strings match with the position numbers in syntax object source locations.
+ Without normalization, replacements could be misapplied in files if they contain Windows-style
+ newlines --- an especially difficult problem to diagnose given that newline characters are invisible
+ and their conventions platform-specific. See @hyperlink["TODO(claude)"]{this motivating bug report}
+ for an example.
+
+ Note that string sources and modified sources apply this normalization eagerly, when the source value
+ is constructed, so the port-level conversion only has a visible effect for unmodified file sources.}
 
 
 @section{Parsing, Expanding, and Compiling Sources}
