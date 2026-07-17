@@ -53,6 +53,16 @@
 ;@----------------------------------------------------------------------------------------------------
 
 
+;; All source text flows through this port wrapper, which decodes it as UTF-8 and converts
+;; newline sequences like \r\n into single \n characters.
+(define (reencoded-source-input-port in)
+  (reencode-input-port in "UTF-8" #false #false (object-name in) #true))
+
+
+(define (string-normalize-newlines str)
+  (port->string (reencoded-source-input-port (open-input-string str))))
+
+
 (struct source () #:transparent)
 
 
@@ -66,12 +76,13 @@
 
 (struct string-source unmodified-source (contents)
   #:transparent
-  #:guard (λ (contents _) (string->immutable-string contents)))
+  #:guard (λ (contents _) (string->immutable-string (string-normalize-newlines contents))))
 
 
 (struct modified-source source (original contents)
   #:transparent
-  #:guard (λ (original contents _) (values original (string->immutable-string contents))))
+  #:guard (λ (original contents _)
+            (values original (string->immutable-string (string-normalize-newlines contents)))))
 
 
 (define (source-name src)
@@ -83,8 +94,7 @@
 (define (with-input-from-source code proc)
 
   (define (call-proc-with-reencoded-input in)
-    (define reencoded-in (reencode-input-port in "UTF-8" #false #false (object-name in) #true))
-    (parameterize ([current-input-port reencoded-in])
+    (parameterize ([current-input-port (reencoded-source-input-port in)])
       (proc)))
 
   (match code
@@ -137,6 +147,20 @@
 
 
 (module+ test
+  (test-case "string and modified sources normalize newlines upon construction"
+    (define cr (string #\return))
+    (define lf (string #\newline))
+    (define nel (string (integer->char #x85)))
+    (define ls (string (integer->char #x2028)))
+    (define normalized (string-source (string-append "a" lf "b" lf "c")))
+    (check-equal? (string-source (string-append "a" cr lf "b" cr lf "c")) normalized)
+    (check-equal? (string-source (string-append "a" cr "b" cr "c")) normalized)
+    (check-equal? (string-source (string-append "a" nel "b" cr nel "c")) normalized)
+    (check-equal? (string-source (string-append "a" ls "b" ls "c")) normalized)
+    (define base (string-source "base"))
+    (check-equal? (modified-source base (string-append "a" cr lf "b"))
+                  (modified-source base (string-append "a" lf "b"))))
+
   (test-case "source-read-language"
     (check-equal? (source-read-language (string-source "#lang racket")) 'racket)
     (check-equal? (source-read-language (string-source "#lang at-exp racket")) 'at-exp)

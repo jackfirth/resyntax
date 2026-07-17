@@ -42,7 +42,7 @@
          rebellion/collection/range-set
          rebellion/private/static-name
          rebellion/type/record
-         resyntax/private/linemap
+         resyntax/grimoire/linemap
          resyntax/private/logger
          resyntax/grimoire/source
          resyntax/private/string-indent
@@ -264,14 +264,12 @@
   
   ;; For single-line replacements, we need to account for trailing text after the replacement
   ;; to ensure the formatted code doesn't exceed the line length limit.
+  (define linemap (string-linemap original))
+  (define orig-end (string-replacement-original-end replacement))
   (define trailing-text-length
-    (let ([linemap (string-linemap original)]
-          [orig-end (string-replacement-original-end replacement)])
-      ;; Convert from 0-based string indices to 1-based positions for linemap
-      (if (= (linemap-position-to-line linemap (add1 start))
-             (linemap-position-to-line linemap (add1 orig-end)))
-          (- (linemap-position-to-end-of-line linemap (add1 orig-end)) (add1 orig-end))
-          0)))
+    (if (= (linemap-position-to-line linemap start) (linemap-position-to-line linemap orig-end))
+        (- (linemap-position-to-end-of-line linemap orig-end) orig-end)
+        0))
   
   (define allowed-width (- base-allowed-width trailing-text-length))
   (define formatted-code-substring

@@ -4,6 +4,7 @@
 @(require (for-label racket/base
                      racket/contract/base
                      racket/path
+                     racket/port
                      rebellion/base/immutable-string
                      rebellion/collection/range-set
                      resyntax/grimoire/source
@@ -63,7 +64,10 @@ stack of dependent changes to commit in series without actually mutating the fil
 
 
 @defproc[(string-source [contents string?]) string-source?]{
- Constructs a source string containing @racket[contents] directly.}
+ Constructs a source string containing @racket[contents] directly. The newlines of
+ @racket[contents] are normalized at construction time, in the same manner described in
+ @racket[with-input-from-source]. Normalizing eagerly ensures that two string sources denoting the
+ same text are @racket[equal?] even if they were constructed with different newline conventions.}
 
 
 @defproc[(modified-source? [v any/c]) boolean?]{
@@ -76,7 +80,8 @@ stack of dependent changes to commit in series without actually mutating the fil
  Constructs a modified source that replaces the contents of @racket[original] with
  @racket[new-contents]. This represents a whole-file replacement --- the @emph{complete} contents of
  @racket[original] are @emph{entirely} swapped out with @racket[new-contents]. Modified sources cannot
- represent partial edits on their own.}
+ represent partial edits on their own. Like @racket[string-source], the newlines of
+ @racket[new-contents] are normalized at construction time.}
 
 
 @defproc[(source-name [code source?]) (or/c path? symbol?)]{
@@ -104,13 +109,32 @@ stack of dependent changes to commit in series without actually mutating the fil
 @defproc[(source->string [code source?]) immutable-string?]{
  Returns the full text of @racket[code], reading it from the filesystem if necessary. For
  @racket[modified-source?] values, this returns the new, updated text rather than the original
- unmodified text.}
+ unmodified text. The returned text has its newlines normalized, as described in
+ @racket[with-input-from-source].}
 
 
 @defproc[(with-input-from-source [code source?] [proc (-> any)]) any]{
  Calls @racket[proc] with @racket[current-input-port] set to a freshly opened input port reading
  the contents of @racket[code]. For unmodified file sources, this opens a file port. For modified
- sources and string sources, this opens a string port without interacting with the filesystem.}
+ sources and string sources, this opens a string port without interacting with the filesystem.
+
+ The opened port decodes the source as UTF-8 and @bold{normalizes newlines}, as in
+ @racket[reencode-input-port]: Windows-style @racket["\r\n"] sequences (and other newline
+ conventions) are converted into single @racket[#\newline] characters. Every operation that reads
+ a source goes through this normalization, including @racket[source->string] and
+ @racket[source-read-syntax]. This normalization mirrors the normalization Racket performs when
+ reading from ports with line counting enabled, as described in
+ @secref["linecol" #:doc '(lib "scribblings/reference/reference.scrbl")].
+
+ Newline normalization avoids various problems in Resyntax. Primarily, it ensures that the character
+ positions of source text strings match with the position numbers in syntax object source locations.
+ Without normalization, replacements could be misapplied in files if they contain Windows-style
+ newlines --- an especially difficult problem to diagnose given that newline characters are invisible
+ and their conventions platform-specific. See @hyperlink["https://github.com/jackfirth/resyntax/issues/272"]{this motivating bug report}
+ for an example.
+
+ Note that string sources and modified sources apply this normalization eagerly, when the source value
+ is constructed, so the port-level conversion only has a visible effect for unmodified file sources.}
 
 
 @section{Parsing, Expanding, and Compiling Sources}

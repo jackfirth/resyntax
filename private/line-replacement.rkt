@@ -27,7 +27,7 @@
          rebellion/streaming/reducer
          rebellion/streaming/transducer
          rebellion/type/record
-         resyntax/private/linemap
+         resyntax/grimoire/linemap
          resyntax/grimoire/string-replacement)
 
 
@@ -77,16 +77,13 @@
   (define new-lmap (string-linemap new-string))
   
   (define start-line
-    (linemap-position-to-line orig-lmap (add1 (string-replacement-start replacement))))
+    (linemap-position-to-line orig-lmap (string-replacement-start replacement)))
   (define start-pos
-    (sub1
-     (linemap-position-to-start-of-line orig-lmap (add1 (string-replacement-start replacement)))))
+    (linemap-position-to-start-of-line orig-lmap (string-replacement-start replacement)))
   (define original-end-pos
-    (sub1
-     (linemap-position-to-end-of-line orig-lmap
-                                      (add1 (string-replacement-original-end replacement)))))
+    (linemap-position-to-end-of-line orig-lmap (string-replacement-original-end replacement)))
   (define new-end-pos
-    (sub1 (linemap-position-to-end-of-line new-lmap (add1 (string-replacement-new-end replacement)))))
+    (linemap-position-to-end-of-line new-lmap (string-replacement-new-end replacement)))
 
   (define original-substr (substring original-string start-pos original-end-pos))
   (define new-substr (substring new-string start-pos new-end-pos))

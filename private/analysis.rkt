@@ -42,7 +42,7 @@
          resyntax/default-recommendations/analyzers/ignored-result-values
          resyntax/default-recommendations/analyzers/variable-mutability
          resyntax/private/analyzer
-         resyntax/private/linemap
+         resyntax/grimoire/linemap
          resyntax/private/logger
          resyntax/grimoire/source
          resyntax/private/string-indent
