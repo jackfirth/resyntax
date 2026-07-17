@@ -130,7 +130,7 @@ stack of dependent changes to commit in series without actually mutating the fil
  positions of source text strings match with the position numbers in syntax object source locations.
  Without normalization, replacements could be misapplied in files if they contain Windows-style
  newlines --- an especially difficult problem to diagnose given that newline characters are invisible
- and their conventions platform-specific. See @hyperlink["TODO(claude)"]{this motivating bug report}
+ and their conventions platform-specific. See @hyperlink["https://github.com/jackfirth/resyntax/issues/272"]{this motivating bug report}
  for an example.
 
  Note that string sources and modified sources apply this normalization eagerly, when the source value
