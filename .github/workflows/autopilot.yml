@@ -18,6 +18,11 @@ jobs:
         uses: actions/checkout@v5
       - name: Assign issue to copilot
         run: |
+          open_pull_requests=$(gh pr list --state open --author 'app/copilot-swe-agent' --json number --jq 'length')
+          if [ "$open_pull_requests" -ge 3 ]; then
+            echo "Copilot already has $open_pull_requests open pull requests, skipping assignment."
+            exit 0
+          fi
           issue_number=$(gh issue list --state open --label 'autopilot-candidate' --search 'no:assignee -is:blocked' --json number --jq '.[].number' | shuf -n 1)
           gh issue edit $issue_number --add-assignee "@copilot"
         env:
