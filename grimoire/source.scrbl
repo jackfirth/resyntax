@@ -1,14 +1,27 @@
 #lang scribble/manual
 
 
-@(require (for-label racket/base
+@(require scribble/example
+          (for-label racket/base
                      racket/contract/base
                      racket/path
                      racket/port
+                     rebellion/base/comparator
                      rebellion/base/immutable-string
+                     rebellion/base/range
                      rebellion/collection/range-set
                      resyntax/grimoire/source
-                     syntax/modread))
+                     syntax/modread)
+          (submod resyntax/private/scribble-evaluator-factory doc))
+
+
+@(define make-evaluator
+   (make-module-sharing-evaluator-factory
+    #:public (list 'resyntax/grimoire/source
+                   'rebellion/base/comparator
+                   'rebellion/base/range
+                   'rebellion/collection/range-set)
+    #:private (list 'racket/base)))
 
 
 @title[#:tag "source"]{Source Code}
@@ -42,38 +55,73 @@ stack of dependent changes to commit in series without actually mutating the fil
 
 
 @defproc[(source? [v any/c]) boolean?]{
- A predicate that recognizes @tech{source code} values of any kind --- file, string, or modified.}
+ A predicate that recognizes @tech{source code} values of any kind --- file, string, or modified.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source? (string-source "#lang racket/base\n(+ 1 2)"))
+   (source? (file-source "/tmp/my-project/main.rkt"))
+   (source? "just a string, not a source"))}
 
 
 @defproc[(unmodified-source? [v any/c]) boolean?]{
  A predicate that recognizes @tech{source code} values that are @emph{not} modified sources, i.e.
- either file sources or string sources.}
+ either file sources or string sources.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (unmodified-source? (string-source "#lang racket/base\n(+ 1 2)"))
+   (unmodified-source? (modified-source (string-source "#lang racket/base\n1") "#lang racket/base\n2")))}
 
 
 @defproc[(file-source? [v any/c]) boolean?]{
- A predicate that recognizes (unmodified) source files.}
+ A predicate that recognizes (unmodified) source files.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (file-source? (file-source "/tmp/my-project/main.rkt"))
+   (file-source? (string-source "#lang racket/base\n(+ 1 2)")))}
 
 
 @defproc[(file-source [path path-string?]) file-source?]{
  Constructs a source file that refers to the code stored on disk at @racket[path]. The path is
- normalized with @racket[simple-form-path] upon construction.}
+ normalized with @racket[simple-form-path] upon construction.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (file-source "/tmp/my-project/main.rkt"))}
 
 
 @defproc[(string-source? [v any/c]) boolean?]{
- A predicate that recognizes source strings.}
+ A predicate that recognizes source strings.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (string-source? (string-source "#lang racket/base\n(+ 1 2)"))
+   (string-source? (file-source "/tmp/my-project/main.rkt")))}
 
 
 @defproc[(string-source [contents string?]) string-source?]{
  Constructs a source string containing @racket[contents] directly. The newlines of
  @racket[contents] are normalized at construction time, in the same manner described in
  @racket[with-input-from-source]. Normalizing eagerly ensures that two string sources denoting the
- same text are @racket[equal?] even if they were constructed with different newline conventions.}
+ same text are @racket[equal?] even if they were constructed with different newline conventions.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (string-source "#lang racket/base\n(+ 1 2)")
+   (eval:check (equal? (string-source "a\r\nb") (string-source "a\nb")) #true))}
 
 
 @defproc[(modified-source? [v any/c]) boolean?]{
  A predicate that recognizes modified sources. A modified source is always a wrapper around an
  unmodified source plus a string containing the full replacement text that the modified source should
- contain instead of what the original source contains.}
+ contain instead of what the original source contains.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (modified-source? (modified-source (string-source "#lang racket/base\n1") "#lang racket/base\n2"))
+   (modified-source? (string-source "#lang racket/base\n(+ 1 2)")))}
 
 
 @defproc[(modified-source [original unmodified-source?] [new-contents string?]) modified-source?]{
@@ -81,36 +129,78 @@ stack of dependent changes to commit in series without actually mutating the fil
  @racket[new-contents]. This represents a whole-file replacement --- the @emph{complete} contents of
  @racket[original] are @emph{entirely} swapped out with @racket[new-contents]. Modified sources cannot
  represent partial edits on their own. Like @racket[string-source], the newlines of
- @racket[new-contents] are normalized at construction time.}
+ @racket[new-contents] are normalized at construction time.
+
+ The original source is left untouched; only the modified source reports the new contents.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define original (string-source "#lang racket/base\n(define x 1)"))
+   (define updated (modified-source original "#lang racket/base\n(define x 2)"))
+   (source->string updated)
+   (source->string original))}
 
 
 @defproc[(source-name [code source?]) (or/c path? symbol?)]{
  Returns a name identifying @racket[code], suitable for use as a syntax object's source location
  name. For file-based sources this is the source file's path, and for string-based sources this is the
  symbol @racket['string]. Modified sources always have the same name as their original unmodified
- sources.}
+ sources.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-name (file-source "/tmp/my-project/main.rkt"))
+   (source-name (string-source "#lang racket/base\n(+ 1 2)"))
+   (source-name
+    (modified-source (file-source "/tmp/my-project/main.rkt") "#lang racket/base\n(+ 1 3)")))}
 
 
 @defproc[(source-path [code source?]) (or/c path? #false)]{
  Returns the filesystem path of @racket[code], or @racket[#false] if @racket[code] is not
- file-based. Modified sources are file-based if their original source is file-based.}
+ file-based. Modified sources are file-based if their original source is file-based.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-path (file-source "/tmp/my-project/main.rkt"))
+   (source-path (string-source "#lang racket/base\n(+ 1 2)"))
+   (source-path
+    (modified-source (file-source "/tmp/my-project/main.rkt") "#lang racket/base\n(+ 1 3)")))}
 
 
 @defproc[(source-directory [code source?]) (or/c path? #false)]{
  Returns the directory containing @racket[code], or @racket[#false] if @racket[code] is not
- file-based. Modified sources are file-based if their original source is file-based.}
+ file-based. Modified sources are file-based if their original source is file-based.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-directory (file-source "/tmp/my-project/main.rkt"))
+   (source-directory (string-source "#lang racket/base\n(+ 1 2)")))}
 
 
 @defproc[(source-original [code source?]) unmodified-source?]{
  Returns the original, unmodified source underlying @racket[code]. If @racket[code] is already
- unmodified, it is returned as-is.}
+ unmodified, it is returned as-is.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define original (string-source "#lang racket/base\n(define x 1)"))
+   (eval:check
+    (equal? (source-original (modified-source original "#lang racket/base\n(define x 2)")) original)
+    #true)
+   (eval:check (equal? (source-original original) original) #true))}
 
 
 @defproc[(source->string [code source?]) immutable-string?]{
  Returns the full text of @racket[code], reading it from the filesystem if necessary. For
  @racket[modified-source?] values, this returns the new, updated text rather than the original
  unmodified text. The returned text has its newlines normalized, as described in
- @racket[with-input-from-source].}
+ @racket[with-input-from-source].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source->string (string-source "#lang racket/base\n(+ 1 2)"))
+   (source->string
+    (modified-source (string-source "#lang racket/base\n1") "#lang racket/base\n2")))}
 
 
 @defproc[(with-input-from-source [code source?] [proc (-> any)]) any]{
@@ -134,7 +224,11 @@ stack of dependent changes to commit in series without actually mutating the fil
  for an example.
 
  Note that string sources and modified sources apply this normalization eagerly, when the source value
- is constructed, so the port-level conversion only has a visible effect for unmodified file sources.}
+ is constructed, so the port-level conversion only has a visible effect for unmodified file sources.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (with-input-from-source (string-source "first line\nsecond line") read-line))}
 
 
 @section{Parsing, Expanding, and Compiling Sources}
@@ -166,31 +260,60 @@ This applies to both modified and unmodified file sources.
 
 @defproc[(source-read-language [code source?]) (or/c module-path? #false)]{
  Detects the @hash-lang[] language of @racket[code] and returns the module path of that language.
- Returns @racket[#false] if @racket[code] does not begin with a @hash-lang[] line.}
+ Returns @racket[#false] if @racket[code] does not begin with a @hash-lang[] line.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-read-language (string-source "#lang racket/base\n(+ 1 2)"))
+   (source-read-language (string-source "#lang scribble/manual"))
+   (source-read-language (string-source "(+ 1 2)")))}
 
 
 @defproc[(source-read-syntax [code source?]) syntax?]{
  Reads @racket[code] as a syntax object, using the module reading parameterization to allow the
  source's @hash-lang[] to control the reader. Every syntax object within the result is labeled with
  its @tech{original syntax path} using the @racket['original-syntax-path] syntax property, as
- described in @secref["original-syntax-paths"].}
+ described in @secref["original-syntax-paths"].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (syntax->datum (source-read-syntax (string-source "#lang racket/base\n(+ 1 2)"))))}
 
 
 @defproc[(source-expand [code source?]) syntax?]{
  Reads @racket[code] and fully expands it, as in @racket[expand]. Because the program is read with
  @racket[source-read-syntax], its subforms are labeled with @racket['original-syntax-path]
- properties before expansion occurs.}
+ properties before expansion occurs. Unlike @racket[source-read-syntax], the result is fully expanded,
+ so its subforms are core syntactic forms rather than the ones written in the source.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (car (syntax->datum (source-expand (string-source "#lang racket/base\n(+ 1 2)")))))}
 
 
 @defproc[(source-can-expand? [code source?]) boolean?]{
  Attempts to fully expand @racket[code], then returns @racket[#true] if expansion finished
- without raising an error and returns @racket[#false] otherwise.}
+ without raising an error and returns @racket[#false] otherwise.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-can-expand? (string-source "#lang racket/base\n(define x 42)"))
+   (source-can-expand? (string-source "#lang racket/base\n(if)")))}
 
 
 @defproc[(source-text-of [code source?] [stx syntax?]) immutable-string?]{
  Returns the source text within @racket[code] that produced @racket[stx], based on the source location
- information attached to @racket[stx]. Raises a contract violation if @racket[stx] does not have
- source location information.}
+ information attached to @racket[stx]. The returned text is verbatim, preserving the exact whitespace
+ and formatting used in @racket[code]. Raises a contract violation if @racket[stx] does not have
+ source location information.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define code (string-source "#lang racket/base\n(+  1   2)"))
+   (define program (source-read-syntax code))
+   (define plus-form (cadr (syntax->list (list-ref (syntax->list program) 3))))
+   (source-text-of code plus-form)
+   (eval:error (source-text-of code (datum->syntax #false 'no-location))))}
 
 
 @defproc[(source-comment-locations [code source?]) immutable-range-set?]{
@@ -198,4 +321,8 @@ This applies to both modified and unmodified file sources.
  by looking up the lexer of the @hash-lang[] that @racket[code] is written in, using the
  @racketmodname[syntax-color/module-lexer] API. @bold{Warning: the positions are zero-based}, unlike
  the one-based positions returned from @racket[syntax-position]. Additionally, positions are in terms
- of @emph{characters} and not @emph{bytes}.}
+ of @emph{characters} and not @emph{bytes}.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-comment-locations (string-source "#lang racket/base\n; a comment\n(+ 1 2)")))}
