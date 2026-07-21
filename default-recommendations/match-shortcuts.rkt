@@ -227,6 +227,46 @@
     clause-after ...))
 
 
+(define-syntax-class zero-or-more-match-ellipsis
+  #:literals (...)
+  (pattern ...)
+  (pattern id:id
+    #:when (equal? (symbol->string (syntax-e #'id)) "___")))
+
+
+(define-syntax-class empty-list-test
+  #:attributes (subject)
+  #:literals (null? empty?)
+  (pattern ((~or null? empty?) subject:id)))
+
+
+(define-refactoring-rule null-when-guard-to-match-pattern
+  #:description
+  "This `#:when` condition can be expressed directly by this clause's `match` pattern."
+  #:literals (match list)
+
+  (match subject
+    clause-before ...
+    (~and [(list subpattern ... tail-var:id :zero-or-more-match-ellipsis)
+           #:when guard:empty-list-test
+           body ...+]
+          clause-to-replace)
+    clause-after ...)
+
+  ; Repeated pattern variables aren't allowed alongside ellipses in match patterns, so the trailing
+  ; variable can't occur anywhere else in the pattern and only the body needs to be checked for uses.
+  #:when (free-identifier=? (attribute tail-var) (attribute guard.subject))
+  #:when (not (syntax-find-first #'(body ...)
+                id:id
+                #:when (free-identifier=? (attribute id) (attribute tail-var))))
+  #:with new-clause #'[(list subpattern ...) body ...]
+
+  (match subject
+    clause-before ...
+    (~replacement new-clause #:original clause-to-replace)
+    clause-after ...))
+
+
 (define-syntax-class list-ref-expr
   #:attributes (list-id index)
   #:literals (list-ref first second third fourth fifth sixth seventh eighth ninth tenth)
@@ -280,6 +320,7 @@ elements than expected."
   #:rules (and-match-to-match
            list-element-definitions-to-match-define
            match-conditional-to-when
+           null-when-guard-to-match-pattern
            predicate-pattern-with-lambda-to-when
            remove-unnecessary-root-and-pattern
            single-clause-match-to-match-define))

@@ -505,3 +505,120 @@ test: "and with match on same identifier preserves formatting"
 no-change-test: "and with match on different identifiers not refactorable"
 - (define (foo x y) (and x (match y ['a 'b] ['c 'd])))
 
+
+test: "#:when guard checking a trailing pattern variable is empty foldable into the pattern"
+------------------------------
+(define (f x)
+  (match x
+    [(list 'array elems ...)
+     #:when (null? elems)
+     #f]
+    [(list 'array elems ...) (length elems)]
+    [_ 'other]))
+==============================
+(define (f x)
+  (match x
+    [(list 'array) #f]
+    [(list 'array elems ...) (length elems)]
+    [_ 'other]))
+------------------------------
+
+
+test: "#:when guard using empty? foldable into the match pattern"
+------------------------------
+(require racket/list)
+(define (f x)
+  (match x
+    [(list 'array elems ...)
+     #:when (empty? elems)
+     #f]
+    [_ 'other]))
+==============================
+(require racket/list)
+(define (f x)
+  (match x
+    [(list 'array) #f]
+    [_ 'other]))
+------------------------------
+
+
+test: "#:when null? guard on ___ ellipsis pattern foldable into the pattern"
+------------------------------
+(define (f x)
+  (match x
+    [(list 'array elems ___)
+     #:when (null? elems)
+     #f]
+    [_ 'other]))
+==============================
+(define (f x)
+  (match x
+    [(list 'array) #f]
+    [_ 'other]))
+------------------------------
+
+
+test: "#:when null? guard on sole pattern variable leaves empty list pattern"
+------------------------------
+(define (f x)
+  (match x
+    [(list elems ...)
+     #:when (null? elems)
+     'empty]
+    [_ 'other]))
+==============================
+(define (f x)
+  (match x
+    [(list) 'empty]
+    [_ 'other]))
+------------------------------
+
+
+no-change-test: "#:when null? guard not foldable when the trailing variable is used in the body"
+------------------------------
+(define (f x)
+  (match x
+    [(list 'array elems ...)
+     #:when (null? elems)
+     elems]
+    [_ 'other]))
+------------------------------
+
+
+no-change-test: "#:when null? guard not foldable when the ellipsis requires at least one element"
+------------------------------
+(define (f x)
+  (match x
+    [(list 'array elems ..1)
+     #:when (null? elems)
+     #f]
+    [_ 'other]))
+------------------------------
+
+
+no-change-test: "#:when null? guard not foldable when checking a different variable"
+------------------------------
+(define (f x ys)
+  (match x
+    [(list 'array elems ...)
+     #:when (null? ys)
+     #f]
+    [_ 'other]))
+------------------------------
+
+
+test: "#:when null? guard foldable when the pattern contains a quoted symbol with the same name"
+------------------------------
+(define (f x)
+  (match x
+    [(list 'elems elems ...)
+     #:when (null? elems)
+     #f]
+    [_ 'other]))
+==============================
+(define (f x)
+  (match x
+    [(list 'elems) #f]
+    [_ 'other]))
+------------------------------
+
