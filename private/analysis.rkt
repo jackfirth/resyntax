@@ -135,8 +135,13 @@
     (log-resyntax-debug "original source name: ~a" program-source-name)
     (log-resyntax-debug "original syntax:\n  ~a" program-stx)
     (define current-expand-observe (dynamic-require ''#%expobs 'current-expand-observe))
-    (define visited-syntaxes (make-mutable-sorted-map #:key-comparator syntax-path<=>))
-    (define context-syntaxes (make-mutable-sorted-map #:key-comparator syntax-path<=>))
+    ;; These are hashes rather than sorted maps because expansion writes to them far more often than
+    ;; anything reads from them: every observed visit event records the visited form and every
+    ;; original subform within it, and expansion visits nested forms repeatedly. Keeping them sorted
+    ;; on every write means running syntax-path<=> a logarithmic number of times per write, whereas
+    ;; the two places that need sorted access can sort once after expansion finishes.
+    (define visited-syntaxes (make-hash))
+    (define context-syntaxes (make-hash))
 
     (define/guard (resyntax-should-analyze-syntax? stx #:as-visit? [as-visit? #true])
       (guard (syntax-original-and-from-source? stx program-source-name) #:else #false)
@@ -162,12 +167,13 @@
            (raise-arguments-error
             'source-analyze "visit is missing original path"
             "visited syntax" visited))
-         (sorted-map-put-if-absent! visited-syntaxes visited-path visited))
+         (unless (hash-has-key? visited-syntaxes visited-path)
+           (hash-set! visited-syntaxes visited-path visited)))
        (for ([visit-subform (in-stream (syntax-search-everything visited))]
              #:when (and (resyntax-should-analyze-syntax? visit-subform #:as-visit? #false)
                          (syntax-has-original-path? visit-subform)))
          (define path (syntax-original-path visit-subform))
-         (sorted-map-put! context-syntaxes path visit-subform))]
+         (hash-set! context-syntaxes path visit-subform))]
       [(_ _) (void)])
 
     (define output-port (open-output-string))
@@ -176,7 +182,8 @@
                      [current-output-port output-port])
         (expand program-stx)))
 
-    (define visited-paths (sorted-set->immutable-sorted-set (sorted-map-keys visited-syntaxes)))
+    (define visited-paths
+      (transduce (in-hash-keys visited-syntaxes) #:into (into-sorted-set syntax-path<=>)))
 
     ;; We evaluate the module in order to ensure it's declared in the namespace, then we attach it at
     ;; expansion time to ensure the module is visited (but not instantiated). This allows refactoring
@@ -205,14 +212,20 @@
                         orig-path))
       (when (equal? num-orig-paths 1)
         (define exp-path (present-value (sorted-set-least-element exp-paths)))
-        (sorted-map-put! context-syntaxes orig-path (syntax-ref expanded exp-path))))
+        (hash-set! context-syntaxes orig-path (syntax-ref expanded exp-path))))
+
+    (define sorted-context-syntaxes
+      (transduce (in-hash-pairs context-syntaxes)
+                 (mapping (λ (path-and-syntax)
+                            (entry (car path-and-syntax) (cdr path-and-syntax))))
+                 #:into (into-sorted-map syntax-path<=>)))
 
     (define enriched-program-stx-without-analyzer-props
       (for/fold ([program-stx program-stx])
-                ([e (in-sorted-map context-syntaxes)])
+                ([e (in-sorted-map sorted-context-syntaxes)])
         (match-define (entry orig-path context-stx) e)
         (define child-stx (syntax-ref program-stx orig-path))
-        (define stx-to-use-for-props (sorted-map-get visited-syntaxes orig-path child-stx))
+        (define stx-to-use-for-props (hash-ref visited-syntaxes orig-path child-stx))
         (define enriched-child
           (datum->syntax context-stx (syntax-e child-stx) child-stx stx-to-use-for-props))
         (syntax-set program-stx orig-path enriched-child)))
