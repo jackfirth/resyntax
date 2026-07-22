@@ -1427,6 +1427,32 @@
        ['< lesser]))))
 
 
+;; This is equivalent to (comparator-map (lexicographic-comparator natural<=>)
+;; syntax-path-elements), but written out by hand because it's extremely hot: expansion analysis
+;; stores every visited syntax object in sorted maps keyed by syntax path, so this comparator runs
+;; a logarithmic number of times per observed expansion event. The generic version pays for
+;; sequence-generate machinery on each treelist and for a contract check on each individual element
+;; comparison, both of which dominate its cost.
 (define syntax-path<=>
-  (comparator-map (lexicographic-comparator natural<=>) syntax-path-elements
-                  #:name 'syntax-path<=>))
+  (make-comparator
+   (λ (left right)
+     (define left-elements (syntax-path-elements left))
+     (define right-elements (syntax-path-elements right))
+     (define left-size (treelist-length left-elements))
+     (define right-size (treelist-length right-elements))
+     (define shared-size (min left-size right-size))
+     (let loop ([i 0])
+       (cond
+         [(>= i shared-size)
+          (cond
+            [(< left-size right-size) lesser]
+            [(> left-size right-size) greater]
+            [else equivalent])]
+         [else
+          (define left-element (treelist-ref left-elements i))
+          (define right-element (treelist-ref right-elements i))
+          (cond
+            [(< left-element right-element) lesser]
+            [(> left-element right-element) greater]
+            [else (loop (add1 i))])])))
+   #:name 'syntax-path<=>))
