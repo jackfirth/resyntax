@@ -89,8 +89,26 @@
          [_ (stream)])))))
 
 
+;; Returns stx and every syntax object nested within it, in depth-first preorder. This traversal is
+;; eager, even though it's exposed as a stream, because building it lazily costs far more than the
+;; list it saves allocating: every caller consumes nearly all of the traversal anyway, and this runs
+;; on every syntax object the expander visits.
 (define (syntax-search-everything stx)
-  (stream-cons stx (syntax-search stx #:skip-root? #true [_ (syntax-search-everything this-syntax)])))
+  (define subforms-in-reverse '())
+  (let loop ([stx stx])
+    (set! subforms-in-reverse (cons stx subforms-in-reverse))
+    (syntax-parse stx
+      [(part ...)
+       #:cut
+       (for ([part-stx (in-list (attribute part))])
+         (loop part-stx))]
+      [(part ...+ . tail-part)
+       #:cut
+       (for ([part-stx (in-list (attribute part))])
+         (loop part-stx))
+       (loop #'tail-part)]
+      [_ (void)]))
+  (reverse subforms-in-reverse))
 
 
 (module+ test
