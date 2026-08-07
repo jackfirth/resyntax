@@ -1,14 +1,28 @@
 #lang scribble/manual
 
 
-@(require (for-label pkg/lib
+@(require scribble/example
+          (for-label pkg/lib
                      racket/base
                      racket/contract/base
                      racket/path
                      racket/sequence
+                     rebellion/base/comparator
+                     rebellion/base/range
                      rebellion/collection/range-set
                      resyntax/grimoire/source-group
-                     resyntax/grimoire/source))
+                     resyntax/grimoire/source)
+          (submod resyntax/private/scribble-evaluator-factory doc))
+
+
+@(define make-evaluator
+   (make-module-sharing-evaluator-factory
+    #:public (list 'resyntax/grimoire/source-group
+                   'resyntax/grimoire/source
+                   'rebellion/base/comparator
+                   'rebellion/base/range
+                   'rebellion/collection/range-set)
+    #:private (list 'racket/base)))
 
 
 @title[#:tag "source-group"]{Source Groups}
@@ -63,13 +77,24 @@ memory yet. That occurs at a later step, on a per-file basis, as Resyntax is ana
 
 
 @defproc[(source-group? [v any/c]) boolean?]{
- A predicate that recognizes @tech{source groups} of any kind.}
+ A predicate that recognizes @tech{source groups} of any kind.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-group? (directory-source-group "/tmp/my-project"))
+   (source-group? empty-source-group)
+   (source-group? "/tmp/my-project"))}
 
 
 @defthing[empty-source-group source-group?]{
  The empty @tech{source group}, which specifies no sources at all. Resolving it produces an empty
  hash, and unioning it with any other source group has no effect --- it is the identity element of
- @racket[source-group-union].}
+ @racket[source-group-union].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-group-resolve empty-source-group)
+   (source-group-union empty-source-group (directory-source-group "/tmp/my-project")))}
 
 
 @defproc[(source-group-union [group source-group?] ...) source-group?]{
@@ -90,34 +115,75 @@ memory yet. That occurs at a later step, on a per-file basis, as Resyntax is ana
   @item{@racket[(source-group-union _g _g)] and @racket[(source-group-union _g empty-source-group)]
    are both always @racket[equal?] to @racket[_g].}]
 
- This operation is a convenience wrapper around @racket[source-group-union-all].}
+ This operation is a convenience wrapper around @racket[source-group-union-all].
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define project (directory-source-group "/tmp/my-project"))
+   (define pkg (package-source-group "my-package"))
+   (define main
+     (single-source-group "/tmp/other/main.rkt"
+                          (range-set (closed-open-range 1 20 #:comparator natural<=>))))
+   (eval:check (equal? (source-group-union project pkg) (source-group-union pkg project)) #true)
+   (eval:check (equal? (source-group-union (source-group-union project pkg) main)
+                       (source-group-union project (source-group-union pkg main)))
+               #true)
+   (eval:check (equal? (source-group-union project project) project) #true)
+   (eval:check (equal? (source-group-union project empty-source-group) project) #true)
+   (eval:check (equal? (source-group-union) empty-source-group) #true)
+   (source-group-union project))}
 
 
 @defproc[(source-group-union-all [groups (sequence/c source-group?)]) source-group?]{
  Combines every source group in @racket[groups] into a single @tech{source group}, exactly as
  @racket[source-group-union] does for its arguments, but accepting the groups as a single sequence
  of any kind. An empty sequence produces @racket[empty-source-group]. This is how the
- @seclink["cli"]{command-line interface} combines its collection of target flags into one group.}
+ @seclink["cli"]{command-line interface} combines its collection of target flags into one group.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (define project (directory-source-group "/tmp/my-project"))
+   (define pkg (package-source-group "my-package"))
+   (eval:check (equal? (source-group-union-all (list project pkg))
+                       (source-group-union project pkg))
+               #true)
+   (eval:check (equal? (source-group-union-all (vector project pkg))
+                       (source-group-union project pkg))
+               #true)
+   (eval:check (equal? (source-group-union-all (list)) empty-source-group) #true))}
 
 
 @defproc[(single-source-group [path path-string?] [lines immutable-range-set?])
          source-group?]{
  Constructs a @tech{source group} containing only the file at @racket[path], with suggestions
  restricted to the line numbers in @racket[lines]. The path is normalized with
- @racket[simple-form-path] upon construction.}
+ @racket[simple-form-path] upon construction.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (single-source-group "/tmp/my-project/main.rkt"
+                        (range-set (closed-open-range 1 20 #:comparator natural<=>))))}
 
 
 @defproc[(directory-source-group [path path-string?]) source-group?]{
  Constructs a @tech{source group} containing every file within the directory at @racket[path],
  including files within subdirectories, with all lines of each file eligible for suggestions. The
- path is normalized with @racket[simple-form-path] upon construction.}
+ path is normalized with @racket[simple-form-path] upon construction.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (directory-source-group "/tmp/my-project"))}
 
 
 @defproc[(package-source-group [package-name string?]) source-group?]{
  Constructs a @tech{source group} containing every file of the installed Racket package named
  @racket[package-name], with all lines of each file eligible for suggestions. The package's
  installation directory is located with @racket[pkg-directory] during resolution, and resolution
- raises a user error if no such package is installed.}
+ raises a user error if no such package is installed.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (package-source-group "my-package"))}
 
 
 @defproc[(git-repository-source-group [repository-path path-string?] [base-ref string?])
@@ -133,7 +199,11 @@ memory yet. That occurs at a later step, on a per-file basis, as Resyntax is ana
  of context surrounding them, so suggestions within the margin can still be posted as review
  comments. More generally, a three-line margin is the default amount of extra context that many Unix
  tools choose when interoperating via the unified diff format, particularly the
- @hyperlink["https://en.wikipedia.org/wiki/Diff#Unified_format"]{diff} tool.}
+ @hyperlink["https://en.wikipedia.org/wiki/Diff#Unified_format"]{diff} tool.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (git-repository-source-group "/tmp/my-project" "main"))}
 
 
 @defproc[(source-group-resolve [group source-group?])
@@ -142,5 +212,23 @@ memory yet. That occurs at a later step, on a per-file basis, as Resyntax is ana
  values and whose values are the line numbers eligible for suggestions in each file. When the same
  file is included multiple times by a unioned group, its line sets are unioned.
 
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-group-resolve
+    (single-source-group "/tmp/my-project/main.rkt"
+                         (range-set (closed-open-range 1 20 #:comparator natural<=>))))
+   (source-group-resolve
+    (source-group-union
+     (single-source-group "/tmp/my-project/main.rkt"
+                          (range-set (closed-open-range 1 20 #:comparator natural<=>)))
+     (single-source-group "/tmp/my-project/main.rkt"
+                          (range-set (closed-open-range 50 60 #:comparator natural<=>))))))
+
  Resolution discards all files that don't have the @exec{.rkt} extension. This is where the
- @seclink["cli"]{command-line interface}'s restriction to @exec{.rkt} files is implemented.}
+ @seclink["cli"]{command-line interface}'s restriction to @exec{.rkt} files is implemented.
+
+ @(examples
+   #:eval (make-evaluator) #:once
+   (source-group-resolve
+    (single-source-group "/tmp/my-project/notes.txt"
+                         (range-set (closed-open-range 1 20 #:comparator natural<=>)))))}
