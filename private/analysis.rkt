@@ -46,7 +46,7 @@
          resyntax/private/logger
          resyntax/grimoire/source
          resyntax/private/string-indent
-         resyntax/private/syntax-movement
+         resyntax/grimoire/syntax-movement
          resyntax/private/syntax-neighbors
          resyntax/grimoire/syntax-path
          resyntax/grimoire/syntax-property-bundle
